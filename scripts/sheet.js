@@ -1,20 +1,27 @@
 // Read-only pf1-style character sheet, rendered client-side from the generator's JSON.
 // Standalone static build: character generation happens on the Flask backend (Render); this
 // page only POSTs to it. Item details (descriptions, prerequisites, numeric changes) come
-// from the slim Foundry-data extracts loaded by scripts/details.js.
-// Everything renders through renderSheet(data) so later interactivity (rolls, HP tracking,
-// buff toggles) can hook onto the same DOM + localStorage copy without rearchitecting.
+// from the slim Foundry-data extracts loaded by scripts/details.js; saved characters live in
+// the SheetLibrary (scripts/library.js — IndexedDB + optional connected disk folder).
+//
+// Layout: a persistent header (name / class line / ability boxes) over a fixed FoundryVTT-style
+// tab bar — Summary/Attributes/Combat/Inventory/Features/Skills/Path of War/Spells/Buffs/
+// Biography/Notes/Settings/Spheres. Every character gets the identical 13 tabs (empty ones show
+// a placeholder); ALL panes are rendered up front and toggled by CSS class, so switching tabs is
+// instant and printing shows the whole sheet.
 
 (function () {
     'use strict';
 
-    const CHAR_KEY = 'sheet.characterData';
+    const LEGACY_CHAR_KEY = 'sheet.characterData'; // pre-library single slot (migrated once)
     const FORM_KEY = 'sheet.formData';
     const BACKEND_KEY = 'sheet.backendUrl';
+    const TAB_KEY = 'sheet.activeTab';
+    const CURRENT_KEY = 'sheet.currentId';
     const DEFAULT_BACKEND = 'https://pathfinder-char-creator-web-public-use.onrender.com';
 
-    // Generation backend base URL: default the hosted server, overridable for local dev via
-    // ?backend=http://127.0.0.1:5001 (persisted) — ?backend=default clears the override.
+    // Generation backend base URL: default the hosted server, overridable via the Settings tab
+    // or ?backend=http://127.0.0.1:5001 (persisted) — ?backend=default clears the override.
     function backendUrl() {
         return localStorage.getItem(BACKEND_KEY) || DEFAULT_BACKEND;
     }
@@ -126,7 +133,36 @@
     const stripRolls = (s) => String(s).replace(/\[\[|\]\]/g, '');
     const foundry = (kind, name) => window.SheetDetails?.lookup(kind, name) ?? null;
 
-    // ---------------------------------------------------------------- sheet sections
+    // ---------------------------------------------------------------- shared combat math
+    function combatStats(data) {
+        const level = Number(data.level) || 0;
+        const bab = Number(data.bab_total) || 0;
+        const strM = mod(data.str), dexM = mod(data.dex), conM = mod(data.con), wisM = mod(data.wis);
+        const armorAc = toInt(data.armor_ac) ?? 0;
+        const shieldAc = toInt(data.shield_ac) ?? 0;
+        const maxDex = toInt(data.armor_max_dex_bonus);
+        const effDex = maxDex === null ? dexM : Math.min(dexM, maxDex);
+        const stats = {
+            level, bab, strM, dexM, conM, wisM,
+            ac: 10 + armorAc + shieldAc + effDex,
+            touch: 10 + effDex,
+            flat: 10 + armorAc + shieldAc,
+            cmb: bab + strM, cmd: 10 + bab + strM + dexM,
+            savesText: null,
+        };
+        const goods = GOOD_SAVES[String(data.c_class || '').toLowerCase()];
+        if (goods && level) {
+            const bonus = (name) => goods.includes(name) ? 2 + Math.floor(level / 2) : Math.floor(level / 3);
+            stats.savesText = `Fort ${fmt(bonus('fort') + conM)}, Ref ${fmt(bonus('ref') + dexM)}, Will ${fmt(bonus('will') + wisM)}`
+                + (data.c_class_2 ? ' (multiclass: first class only)' : '');
+        }
+        return stats;
+    }
+
+    const gearLine = (name, enhList) => name && name.trim()
+        ? name + (nonEmpty(enhList) ? ' [' + enhList.join(', ') + ']' : '') : null;
+
+    // ---------------------------------------------------------------- section renderers
     function renderHeader(data) {
         const head = h('div', 'sheet-header');
         head.appendChild(h('h1', 'char-name', data.character_full_name || 'Unnamed'));
@@ -140,13 +176,7 @@
             data.region,
         ].filter(Boolean).join(' · ');
         head.appendChild(h('p', 'char-line', line));
-        const fluff = [
-            data.age_number != null ? `Age ${data.age_number}` : null,
-            data.height_number, data.weight_number != null ? `${data.weight_number} lbs` : null,
-            Array.isArray(data.language_text) && data.language_text.length
-                ? 'Languages: Common, ' + data.language_text.join(', ') : null,
-        ].filter(Boolean).join(' · ');
-        if (fluff) head.appendChild(h('p', 'char-line dim', fluff));
+        head.appendChild(renderAbilities(data));
         return head;
     }
 
@@ -164,43 +194,8 @@
         return wrap;
     }
 
-    function saveBonus(level, good) {
-        return good ? 2 + Math.floor(level / 2) : Math.floor(level / 3);
-    }
-
-    function renderCombat(data) {
-        const { sec, body } = section('Combat (base estimates — before feats, buffs & items)', 'combat');
-        const level = Number(data.level) || 0;
-        const bab = Number(data.bab_total) || 0;
-        const strM = mod(data.str), dexM = mod(data.dex), conM = mod(data.con), wisM = mod(data.wis);
-
-        const armorAc = toInt(data.armor_ac) ?? 0;
-        const shieldAc = toInt(data.shield_ac) ?? 0;
-        const maxDex = toInt(data.armor_max_dex_bonus);
-        const effDex = maxDex === null ? dexM : Math.min(dexM, maxDex);
-
-        kv(body, 'HP', data.Total_HP ?? '?');
-        kv(body, 'Initiative', fmt(dexM));
-        kv(body, 'Speed', (data.land_speed ?? '?') + ' ft');
-        kv(body, 'BAB', fmt(bab));
-        kv(body, 'Melee / Ranged', `${fmt(bab + strM)} / ${fmt(bab + dexM)}`);
-        kv(body, 'CMB / CMD', `${fmt(bab + strM)} / ${10 + bab + strM + dexM}`);
-        kv(body, 'AC', `${10 + armorAc + shieldAc + effDex} (touch ${10 + effDex}, flat-footed ${10 + armorAc + shieldAc})`);
-
-        const goods = GOOD_SAVES[String(data.c_class || '').toLowerCase()];
-        if (goods && level) {
-            const s = (name, abM) => fmt(saveBonus(level, goods.includes(name)) + abM);
-            let saves = `Fort ${s('fort', conM)}, Ref ${s('ref', dexM)}, Will ${s('will', wisM)}`;
-            if (data.c_class_2) saves += ' (multiclass: first class only)';
-            kv(body, 'Saves', saves);
-        } else {
-            kv(body, 'Saves', 'unknown class progression');
-        }
-        return sec;
-    }
-
     // Aggregated pf1 changes/notes/conditionals ledger — the data layer future dice rolling
-    // will consume. Also exposed as window.sheetChanges by renderModifiers.
+    // will consume. Also exposed as window.sheetChanges.
     function renderModifiers(data) {
         const SD = window.SheetDetails;
         if (!SD) return null;
@@ -253,14 +248,10 @@
 
     function renderGear(data) {
         const { sec, body } = section('Gear & Wealth');
-        if (data.weapon_name && data.weapon_name.trim()) {
-            let w = data.weapon_name;
-            if (nonEmpty(data.weapon_enhancement_chosen_list)) w += ' [' + data.weapon_enhancement_chosen_list.join(', ') + ']';
-            kv(body, 'Weapon', w);
-        }
-        if (data.armor_name && data.armor_name.trim()) {
-            let a = data.armor_name;
-            if (nonEmpty(data.armor_enhancement_chosen_list)) a += ' [' + data.armor_enhancement_chosen_list.join(', ') + ']';
+        const w = gearLine(data.weapon_name, data.weapon_enhancement_chosen_list);
+        if (w) kv(body, 'Weapon', w);
+        const a = gearLine(data.armor_name, data.armor_enhancement_chosen_list);
+        if (a) {
             const bits = [
                 data.armor_ac ? `+${data.armor_ac} AC` : null,
                 data.armor_max_dex_bonus?.trim?.() ? `max Dex ${data.armor_max_dex_bonus}` : null,
@@ -269,11 +260,8 @@
             ].filter(Boolean).join(', ');
             kv(body, 'Armor', bits ? `${a} (${bits})` : a);
         }
-        if (data.shield_name && data.shield_name.trim()) {
-            let s = data.shield_name;
-            if (nonEmpty(data.shield_enhancement_chosen_list)) s += ' [' + data.shield_enhancement_chosen_list.join(', ') + ']';
-            kv(body, 'Shield', s);
-        }
+        const s = gearLine(data.shield_name, data.shield_enhancement_chosen_list);
+        if (s) kv(body, 'Shield', s);
         if (data.gold != null) kv(body, 'Gold', `${data.gold} gp` + (data.platnium ? ` (${data.platnium} pp)` : ''));
         if (nonEmpty(data.equipment_list)) {
             const ul = h('ul', 'plain-list');
@@ -596,31 +584,304 @@
         return sec;
     }
 
-    let lastData = null;
+    // ---------------------------------------------------------------- tab composites
+    const emptyState = (text) => h('p', 'placeholder tab-empty', text);
+
+    function compose(...sections) {
+        const frag = document.createDocumentFragment();
+        for (const s of sections) if (s) frag.appendChild(s);
+        return frag.childNodes.length ? frag : null;
+    }
+
+    function tabSummary(data) {
+        const c = combatStats(data);
+        const { sec, body } = section('Overview');
+        const fluff = [
+            data.age_number != null ? `Age ${data.age_number}` : null,
+            data.height_number, data.weight_number != null ? `${data.weight_number} lbs` : null,
+        ].filter(Boolean).join(' · ');
+        if (fluff) kv(body, 'Vitals', fluff);
+        if (Array.isArray(data.language_text) && data.language_text.length) {
+            kv(body, 'Languages', 'Common, ' + data.language_text.join(', '));
+        }
+        kv(body, 'HP', data.Total_HP ?? '?');
+        kv(body, 'AC', `${c.ac} (touch ${c.touch}, flat-footed ${c.flat})`);
+        kv(body, 'Saves', c.savesText || 'unknown class progression');
+        kv(body, 'Speed', (data.land_speed ?? '?') + ' ft');
+        const w = gearLine(data.weapon_name, data.weapon_enhancement_chosen_list);
+        if (w) kv(body, 'Weapon', w);
+        const a = gearLine(data.armor_name, data.armor_enhancement_chosen_list);
+        if (a) kv(body, 'Armor', a);
+        if (data.gold != null) kv(body, 'Gold', `${data.gold} gp`);
+        return sec;
+    }
+
+    function tabAttributes(data) {
+        const c = combatStats(data);
+        const { sec, body } = section('Attributes (base estimates — before feats, buffs & items)');
+        kv(body, 'Initiative', fmt(c.dexM));
+        kv(body, 'Speed', (data.land_speed ?? '?') + ' ft');
+        kv(body, 'BAB', fmt(c.bab));
+        kv(body, 'Saves', c.savesText || 'unknown class progression');
+        if (data.main_stat) kv(body, 'Main Stat', data.main_stat.toUpperCase());
+        return sec;
+    }
+
+    function tabCombat(data) {
+        const c = combatStats(data);
+        const { sec, body } = section('Combat (base estimates — before feats, buffs & items)', 'combat');
+        kv(body, 'HP', data.Total_HP ?? '?');
+        kv(body, 'AC', `${c.ac} (touch ${c.touch}, flat-footed ${c.flat})`);
+        kv(body, 'Melee / Ranged', `${fmt(c.bab + c.strM)} / ${fmt(c.bab + c.dexM)}`);
+        kv(body, 'CMB / CMD', `${fmt(c.cmb)} / ${c.cmd}`);
+        const w = gearLine(data.weapon_name, data.weapon_enhancement_chosen_list);
+        if (w) kv(body, 'Weapon', w);
+        const a = gearLine(data.armor_name, data.armor_enhancement_chosen_list);
+        if (a) {
+            const bits = [
+                data.armor_ac ? `+${data.armor_ac} AC` : null,
+                data.armor_max_dex_bonus?.trim?.() ? `max Dex ${data.armor_max_dex_bonus}` : null,
+                data.armor_armor_check_penalty?.trim?.() ? `ACP ${data.armor_armor_check_penalty}` : null,
+                data.armor_spell_failure ? `ASF ${data.armor_spell_failure}%` : null,
+            ].filter(Boolean).join(', ');
+            kv(body, 'Armor', bits ? `${a} (${bits})` : a);
+        }
+        const s = gearLine(data.shield_name, data.shield_enhancement_chosen_list);
+        if (s) kv(body, 'Shield', s);
+        return sec;
+    }
+
+    function tabNotes(data) {
+        const { sec, body } = section('Notes');
+        const ta = h('textarea', 'notes-text');
+        ta.id = 'notes-text';
+        ta.placeholder = 'Session notes, plans, relationships… saved with this character.';
+        ta.value = data._sheet?.notes || '';
+        let timer = null;
+        ta.addEventListener('input', () => {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                (data._sheet ??= {}).notes = ta.value;
+                if (data === currentData) saveCurrent({ quiet: true });
+            }, 800);
+        });
+        body.appendChild(ta);
+        return sec;
+    }
+
+    function tabSettings() {
+        const { sec, body } = section('Settings');
+
+        body.appendChild(h('h3', null, 'Generation Backend'));
+        const urlRow = h('div', 'settings-row');
+        const urlInput = h('input');
+        urlInput.type = 'text';
+        urlInput.value = backendUrl();
+        urlInput.className = 'settings-input';
+        const setBtn = h('button', null, 'Set');
+        setBtn.addEventListener('click', () => {
+            const v = urlInput.value.trim().replace(/\/+$/, '');
+            if (v) localStorage.setItem(BACKEND_KEY, v);
+            urlInput.value = backendUrl();
+        });
+        const resetBtn = h('button', null, 'Reset to hosted');
+        resetBtn.addEventListener('click', () => {
+            localStorage.removeItem(BACKEND_KEY);
+            urlInput.value = backendUrl();
+        });
+        urlRow.append(urlInput, setBtn, resetBtn);
+        body.appendChild(urlRow);
+
+        body.appendChild(h('h3', null, 'Character Folder'));
+        const folderStatus = h('p', 'dim');
+        const folderRow = h('div', 'settings-row');
+        const refreshFolderUi = () => {
+            const st = window.SheetLibrary?.status() || { state: 'unsupported' };
+            folderStatus.textContent = {
+                unsupported: 'This browser cannot write disk folders (File System Access API — use Chrome/Edge). Characters are stored in the browser.',
+                none: 'No folder connected — characters are stored in the browser only.',
+                'need-permission': `Folder "${st.folderName}" remembered — click Reconnect to re-grant access.`,
+                connected: `Connected to "${st.folderName}" — every save writes a .json file there.`,
+            }[st.state];
+            connectBtn.textContent = st.state === 'connected' ? 'Change folder' : 'Connect folder';
+            reconnectBtn.classList.toggle('hidden', st.state !== 'need-permission');
+            disconnectBtn.classList.toggle('hidden', st.state !== 'connected' && st.state !== 'need-permission');
+            connectBtn.disabled = st.state === 'unsupported';
+        };
+        const connectBtn = h('button', null, 'Connect folder');
+        connectBtn.addEventListener('click', async () => {
+            try { await window.SheetLibrary.connectFolder(); } catch { /* picker cancelled */ }
+            refreshFolderUi(); refreshRoster();
+        });
+        const reconnectBtn = h('button', null, 'Reconnect');
+        reconnectBtn.addEventListener('click', async () => {
+            await window.SheetLibrary.reconnectFolder();
+            refreshFolderUi(); refreshRoster();
+        });
+        const disconnectBtn = h('button', null, 'Disconnect');
+        disconnectBtn.addEventListener('click', async () => {
+            await window.SheetLibrary.disconnectFolder();
+            refreshFolderUi(); refreshRoster();
+        });
+        folderRow.append(connectBtn, reconnectBtn, disconnectBtn);
+        body.append(folderStatus, folderRow);
+        refreshFolderUi();
+
+        body.appendChild(h('h3', null, 'Library'));
+        const libRow = h('div', 'settings-row');
+        const exportBtn = h('button', null, 'Export all');
+        exportBtn.addEventListener('click', async () => {
+            const all = await window.SheetLibrary.exportAll();
+            const blob = new Blob([JSON.stringify(all, null, 1)], { type: 'application/json' });
+            const aEl = h('a');
+            aEl.href = URL.createObjectURL(blob);
+            aEl.download = 'characters-export.json';
+            aEl.click();
+            URL.revokeObjectURL(aEl.href);
+        });
+        const importInput = h('input');
+        importInput.type = 'file';
+        importInput.accept = '.json,application/json';
+        importInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const parsed = JSON.parse(await file.text());
+                const items = Array.isArray(parsed) ? parsed : [parsed];
+                for (const item of items) await window.SheetLibrary.save(item);
+                refreshRoster();
+            } catch (err) { alert('Import failed: ' + err.message); }
+            e.target.value = '';
+        });
+        libRow.append(exportBtn, importInput);
+        body.appendChild(libRow);
+
+        return sec;
+    }
+
+    const TABS = [
+        { id: 'summary', label: 'Summary', render: tabSummary },
+        { id: 'attributes', label: 'Attributes', render: tabAttributes },
+        { id: 'combat', label: 'Combat', render: tabCombat },
+        { id: 'inventory', label: 'Inventory', render: (d) => renderGear(d) || emptyState('No gear.') },
+        { id: 'features', label: 'Features', render: (d) => compose(renderFeats(d), renderTraits(d), renderClassFeatures(d)) || emptyState('No feats, traits, or class features.') },
+        { id: 'skills', label: 'Skills', render: (d) => renderSkills(d) || emptyState('No skill ranks.') },
+        { id: 'path-of-war', label: 'Path of War', render: (d) => renderPathOfWar(d) || emptyState('Not an initiator — no maneuvers or stances.') },
+        { id: 'spells', label: 'Spells', render: (d) => renderSpells(d) || emptyState('No spellcasting.') },
+        { id: 'buffs', label: 'Buffs', render: (d) => renderModifiers(d) || emptyState('No always-on or per-roll modifiers.') },
+        { id: 'biography', label: 'Biography', render: (d) => compose(renderDescription(d), renderBackstory(d)) || emptyState('No description or backstory.') },
+        { id: 'notes', label: 'Notes', render: tabNotes },
+        { id: 'settings', label: 'Settings', render: tabSettings },
+        { id: 'spheres', label: 'Spheres', render: (d) => renderSpheres(d) || emptyState('No spheres or talents.') },
+    ];
+
+    // ---------------------------------------------------------------- sheet shell
+    let currentData = null;
+
+    function activeTabId() {
+        const saved = localStorage.getItem(TAB_KEY);
+        return TABS.some((t) => t.id === saved) ? saved : 'summary';
+    }
+
+    function setActiveTab(id) {
+        localStorage.setItem(TAB_KEY, id);
+        document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === id));
+        document.querySelectorAll('.tab-pane').forEach((p) => p.classList.toggle('active', p.dataset.tab === id));
+    }
 
     function renderSheet(data) {
-        lastData = data;
+        // Keep un-debounced notes edits when re-rendering (details-ready, manual save, …).
+        const notesEl = document.getElementById('notes-text');
+        if (notesEl && currentData) (currentData._sheet ??= {}).notes = notesEl.value;
+
+        currentData = data;
         const sheet = document.getElementById('sheet');
         sheet.innerHTML = '';
         if (!data || typeof data !== 'object' || data.error) {
-            sheet.appendChild(h('p', 'placeholder error', data?.error ? 'Backend error: ' + data.error : 'No character data.'));
+            sheet.appendChild(h('p', 'placeholder error', data?.error ? 'Backend error: ' + data.error : 'No character yet — hit Generate or Load JSON above.'));
+            sheet.appendChild(tabSettings()); // folder + backend setup stay reachable
             return;
         }
         sheet.appendChild(renderHeader(data));
-        sheet.appendChild(renderAbilities(data));
-        const grid = h('div', 'sheet-grid');
-        for (const renderer of [renderCombat, renderModifiers, renderGear, renderSkills,
-            renderFeats, renderTraits, renderClassFeatures, renderSpells, renderPathOfWar,
-            renderSpheres, renderDescription, renderBackstory]) {
-            const secEl = renderer(data);
-            if (secEl) grid.appendChild(secEl);
+
+        const nav = h('nav', 'tab-nav no-print');
+        const panes = h('div', 'tab-panes');
+        for (const tab of TABS) {
+            const btn = h('button', 'tab-btn', tab.label);
+            btn.type = 'button';
+            btn.dataset.tab = tab.id;
+            btn.addEventListener('click', () => setActiveTab(tab.id));
+            nav.appendChild(btn);
+
+            const pane = h('div', 'tab-pane');
+            pane.dataset.tab = tab.id;
+            pane.appendChild(h('h2', 'print-only tab-print-title', tab.label));
+            const content = tab.render(data);
+            pane.appendChild(content || emptyState('Nothing here.'));
+            panes.appendChild(pane);
         }
-        sheet.appendChild(grid);
+        sheet.append(nav, panes);
+        setActiveTab(activeTabId());
         if (data.generator_version) sheet.appendChild(h('p', 'dim footer', 'generator ' + data.generator_version));
     }
 
     // Exposed for console debugging and future interactive layers.
     window.renderSheet = renderSheet;
+
+    // ---------------------------------------------------------------- character roster
+    function rosterSelect() { return document.getElementById('char-select'); }
+
+    async function refreshRoster(selectedId) {
+        const sel = rosterSelect();
+        const lib = window.SheetLibrary;
+        if (!sel || !lib) return;
+        const records = await lib.list().catch(() => []);
+        sel.innerHTML = '';
+        const placeholder = h('option', null, records.length ? '— pick a character —' : '(no saved characters)');
+        placeholder.value = '';
+        sel.appendChild(placeholder);
+        for (const r of records) {
+            const opt = h('option', null, `${r.name} — ${titleCase(r.klass || '?')} ${r.level}`);
+            opt.value = r.id;
+            sel.appendChild(opt);
+        }
+        const want = selectedId ?? currentData?._sheet?.id ?? localStorage.getItem(CURRENT_KEY);
+        if (want && records.some((r) => r.id === want)) sel.value = want;
+    }
+
+    async function saveCurrent({ quiet } = {}) {
+        if (!currentData || currentData.error) return;
+        const notesEl = document.getElementById('notes-text');
+        if (notesEl) (currentData._sheet ??= {}).notes = notesEl.value;
+        const record = await window.SheetLibrary.save(currentData);
+        localStorage.setItem(CURRENT_KEY, record.id);
+        if (!quiet) await refreshRoster(record.id);
+        return record;
+    }
+
+    async function loadCharacter(id) {
+        const record = await window.SheetLibrary.get(id);
+        if (!record) return;
+        localStorage.setItem(CURRENT_KEY, record.id);
+        renderSheet(record.data);
+        await refreshRoster(record.id);
+    }
+
+    async function deleteCurrent() {
+        const id = currentData?._sheet?.id || rosterSelect()?.value;
+        if (!id) return;
+        const name = currentData?.character_full_name || 'this character';
+        if (!confirm(`Delete ${name} from the library${window.SheetLibrary.status().state === 'connected' ? ' and its file in the connected folder' : ''}?`)) return;
+        await window.SheetLibrary.remove(id);
+        localStorage.removeItem(CURRENT_KEY);
+        currentData = null;
+        const records = await window.SheetLibrary.list().catch(() => []);
+        if (records.length) await loadCharacter(records[0].id);
+        else {
+            renderSheet(null);
+            await refreshRoster();
+        }
+    }
 
     // ---------------------------------------------------------------- generate form
     function fillSelect(sel, options, valueFn) {
@@ -663,6 +924,11 @@
         };
     }
 
+    async function adoptCharacter(data) {
+        renderSheet(data);
+        await saveCurrent(); // auto-save: every generated/loaded character lands in the library
+    }
+
     async function generate(form) {
         const status = document.getElementById('gen-status');
         const btn = document.getElementById('gen-submit');
@@ -678,8 +944,7 @@
             });
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
             const data = await resp.json();
-            localStorage.setItem(CHAR_KEY, JSON.stringify(data));
-            renderSheet(data);
+            await adoptCharacter(data);
             status.textContent = '';
             document.getElementById('gen-panel').classList.add('hidden');
         } catch (err) {
@@ -692,8 +957,7 @@
     function loadJsonText(text) {
         try {
             const data = JSON.parse(text);
-            localStorage.setItem(CHAR_KEY, JSON.stringify(data));
-            renderSheet(data);
+            adoptCharacter(data);
             document.getElementById('load-panel').classList.add('hidden');
         } catch (err) {
             alert('Not valid JSON: ' + err.message);
@@ -701,14 +965,12 @@
     }
 
     // ---------------------------------------------------------------- wiring
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         // ?backend=http://host:port overrides the generation backend (persisted);
-        // ?backend=default clears the override.
+        // ?backend=default clears the override. Also editable in the Settings tab.
         const backendParam = new URLSearchParams(location.search).get('backend');
         if (backendParam === 'default') localStorage.removeItem(BACKEND_KEY);
         else if (backendParam) localStorage.setItem(BACKEND_KEY, backendParam.replace(/\/+$/, ''));
-        const hint = document.getElementById('backend-hint');
-        if (hint) hint.textContent = 'Backend: ' + backendUrl() + ' (override with ?backend=<url>)';
 
         const form = document.getElementById('gen-form');
         fillSelect(form.elements.region, REGIONS);
@@ -735,12 +997,42 @@
             if (file) file.text().then(loadJsonText);
         });
 
-        const saved = localStorage.getItem(CHAR_KEY);
-        if (saved) {
-            try { renderSheet(JSON.parse(saved)); } catch { /* stale/corrupt — leave placeholder */ }
+        rosterSelect().addEventListener('change', (e) => { if (e.target.value) loadCharacter(e.target.value); });
+        document.getElementById('save-btn').addEventListener('click', () => saveCurrent());
+        document.getElementById('delete-btn').addEventListener('click', deleteCurrent);
+        const reconnectChip = document.getElementById('reconnect-chip');
+        reconnectChip.addEventListener('click', async () => {
+            await window.SheetLibrary.reconnectFolder();
+            reconnectChip.classList.toggle('hidden', window.SheetLibrary.status().state !== 'need-permission');
+            await refreshRoster();
+            const id = localStorage.getItem(CURRENT_KEY);
+            if (id && !currentData) loadCharacter(id);
+        });
+
+        await window.SheetLibrary?.init();
+        reconnectChip.classList.toggle('hidden', window.SheetLibrary?.status().state !== 'need-permission');
+
+        // One-time migration of the pre-library single character slot.
+        const legacy = localStorage.getItem(LEGACY_CHAR_KEY);
+        if (legacy) {
+            try {
+                const data = JSON.parse(legacy);
+                const record = await window.SheetLibrary.save(data);
+                localStorage.setItem(CURRENT_KEY, record.id);
+            } catch { /* corrupt legacy slot — drop it */ }
+            localStorage.removeItem(LEGACY_CHAR_KEY);
         }
+
+        await refreshRoster();
+        const startId = localStorage.getItem(CURRENT_KEY);
+        if (startId) {
+            const record = await window.SheetLibrary.get(startId);
+            if (record) renderSheet(record.data);
+            await refreshRoster(startId);
+        }
+
         // The details data usually lands after first paint — re-render once so descriptions
-        // and the Modifiers ledger fill in.
-        window.SheetDetails?.ready.then(() => { if (lastData) renderSheet(lastData); });
+        // and the Buffs ledger fill in.
+        window.SheetDetails?.ready.then(() => { if (currentData) renderSheet(currentData); });
     });
 })();

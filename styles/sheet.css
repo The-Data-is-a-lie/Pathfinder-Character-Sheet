@@ -35,6 +35,21 @@ h1, h2, h3 { font-family: Georgia, serif; margin: 0; }
 
 .topbar h1 { font-size: 1.15rem; letter-spacing: 0.04em; }
 
+.topbar-buttons { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+.topbar .roster { flex: 1; justify-content: center; min-width: 0; }
+#char-select {
+    font: inherit;
+    font-size: 0.88rem;
+    max-width: 20rem;
+    min-width: 9rem;
+    padding: 0.3rem 0.35rem;
+    border: 1px solid var(--accent-dark);
+    border-radius: 4px;
+    background: #f7ecec;
+    color: var(--ink);
+}
+#reconnect-chip { background: #8a6d1f; border-color: #5e4a13; }
+
 button {
     font: inherit;
     padding: 0.35rem 0.9rem;
@@ -108,6 +123,61 @@ button:disabled { opacity: 0.55; cursor: wait; }
 .ab-name { font-size: 0.72rem; letter-spacing: 0.12em; color: var(--dim); }
 .ab-score { font-size: 1.5rem; font-weight: bold; }
 .ab-mod { color: var(--accent-dark); font-weight: bold; }
+
+/* ------------------------------------------------ tab bar (Foundry-style: one pane at a time) */
+.tab-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    border-bottom: 2px solid var(--accent);
+    margin: 0.4rem 0 0.9rem;
+}
+.tab-btn {
+    background: var(--panel);
+    color: var(--accent-dark);
+    border: 1px solid var(--rule);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.86rem;
+    font-variant: small-caps;
+    letter-spacing: 0.04em;
+}
+.tab-btn:hover { background: #f0e4c8; }
+.tab-btn.active {
+    background: var(--accent);
+    border-color: var(--accent-dark);
+    color: #f7ecec;
+    font-weight: bold;
+}
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.tab-empty { margin: 2rem 0; }
+.print-only { display: none; }
+
+.notes-text {
+    width: 100%;
+    min-height: 20rem;
+    font: 0.95rem/1.5 Georgia, serif;
+    color: var(--ink);
+    background: #fffdf6;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 0.6rem 0.8rem;
+    resize: vertical;
+}
+
+.settings-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin: 0.4rem 0 0.8rem; }
+.settings-input {
+    font: inherit;
+    font-size: 0.9rem;
+    flex: 1;
+    min-width: 16rem;
+    padding: 0.3rem 0.4rem;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: #fff;
+}
 
 .sheet-grid {
     column-width: 480px;
@@ -183,4 +253,15 @@ details .desc p { margin: 0.3rem 0; }
     details { break-inside: avoid; }
     details[open] summary ~ * { display: block; }
     .sheet-grid { column-width: 340px; }
+    /* Print the whole sheet: every pane (all are pre-rendered), each under its tab title. */
+    .tab-pane { display: block !important; break-inside: avoid-page; }
+    .tab-pane[data-tab="notes"] .notes-text:placeholder-shown,
+    .tab-pane[data-tab="settings"] { display: none !important; }
+    .print-only.tab-print-title {
+        display: block;
+        font-size: 1rem;
+        font-variant: small-caps;
+        border-bottom: 2px solid #000;
+        margin: 0.8rem 0 0.3rem;
+    }
 }

@@ -12,13 +12,27 @@ Open `index.html` (served over HTTP, not `file://` — the page fetches its `dat
 python -m http.server 8080     # then http://localhost:8080/
 ```
 
-- **Generate** — posts the form to the backend and renders the result.
-- **Load JSON** — paste/upload a saved `/update_character_data` response.
-- The last character re-renders from `localStorage` on reload.
+- **Generate** — posts the form to the backend, renders the result, and auto-saves it to the library.
+- **Load JSON** — paste/upload a saved `/update_character_data` response (also auto-saved).
+- The last-viewed character re-renders on reload; switch characters with the topbar dropdown.
+
+The sheet is a fixed FoundryVTT-style tab layout — `Summary | Attributes | Combat | Inventory |
+Features | Skills | Path of War | Spells | Buffs | Biography | Notes | Settings | Spheres` —
+one tab visible at a time, identical for every character (empty tabs show a placeholder).
+Printing outputs all tabs sequentially.
+
+### Character library
+
+Characters are stored in the browser (IndexedDB — effectively unlimited). Optionally **connect a
+real disk folder** (Settings tab; Chrome/Edge via the File System Access API): every save is then
+mirrored as a `<Name>.json` file in that folder, the dropdown lists the folder's contents, and
+JSON files dropped into the folder by hand appear automatically. Per-character notes (Notes tab)
+travel inside the saved JSON as `_sheet.notes`. Settings also offers export-all / import for
+browsers without folder support.
 
 ### Backend selection
 
-Defaults to the hosted Render backend. Override for local dev with
+Defaults to the hosted Render backend. Override in the Settings tab or with
 `?backend=http://127.0.0.1:5001` (persisted in localStorage); reset with `?backend=default`.
 
 ## Data files

@@ -6,12 +6,19 @@
     <title>Pathfinder NPC Sheet</title>
     <link rel="stylesheet" href="styles/sheet.css">
     <script src="scripts/details.js" defer></script>
+    <script src="scripts/library.js" defer></script>
     <script src="scripts/sheet.js" defer></script>
 </head>
 <body>
 
 <header class="topbar no-print">
     <h1>Pathfinder NPC Sheet</h1>
+    <div class="topbar-buttons roster">
+        <select id="char-select" title="Saved characters"></select>
+        <button id="save-btn" type="button" title="Save the current character (incl. notes)">Save</button>
+        <button id="delete-btn" type="button" title="Delete the current character">Delete</button>
+        <button id="reconnect-chip" type="button" class="hidden" title="Re-grant access to the remembered character folder">Reconnect folder</button>
+    </div>
     <div class="topbar-buttons">
         <button id="toggle-gen" type="button">Generate</button>
         <button id="toggle-load" type="button">Load JSON</button>
@@ -137,7 +144,6 @@
             <button type="submit" id="gen-submit">Generate Character</button>
             <span id="gen-status" role="status"></span>
         </div>
-        <p class="dim" id="backend-hint"></p>
     </form>
 </section>
 
