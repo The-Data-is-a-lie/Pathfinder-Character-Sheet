@@ -4,12 +4,80 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pathfinder NPC Sheet</title>
+    <script>
+    /* Apply theme before CSS paint to avoid flash (mirrors sheet.js resolveTheme). */
+    (function () {
+        try {
+            var KEY = 'sheet.theme';
+            var allowed = {
+                system: 1, parchment: 1, 'foundry-classic': 1, forest: 1, slate: 1,
+                arcane: 1, gold: 1, stone: 1, fey: 1, sepia: 1,
+                dusk: 1, ember: 1, ocean: 1, storm: 1, midnight: 1, 'high-contrast': 1
+            };
+            var q = new URLSearchParams(location.search).get('theme');
+            var pref = (q && allowed[q]) ? q : (localStorage.getItem(KEY) || 'system');
+            if (!allowed[pref]) pref = 'system';
+            var resolved = pref;
+            if (pref === 'system') {
+                resolved = matchMedia('(prefers-color-scheme: dark)').matches ? 'dusk' : 'parchment';
+            }
+            document.documentElement.setAttribute('data-theme', resolved);
+            document.documentElement.dataset.themePref = pref;
+        } catch (e) {
+            document.documentElement.setAttribute('data-theme', 'parchment');
+        }
+    })();
+    </script>
     <link rel="stylesheet" href="styles/sheet.css">
     <script src="scripts/details.js" defer></script>
     <script src="scripts/library.js" defer></script>
+    <script src="scripts/roll.js" defer></script>
     <script src="scripts/sheet.js" defer></script>
 </head>
 <body>
+
+<button id="tools-toggle" type="button" class="tools-toggle no-print" aria-expanded="false" aria-controls="tools-drawer" title="Open tools menu">☰</button>
+
+<aside id="tools-drawer" class="tools-drawer no-print" aria-hidden="true" aria-label="Tools menu">
+    <header class="tools-header">
+        <h2>Tools</h2>
+        <button id="tools-close" type="button" class="tools-close" title="Close tools menu" aria-label="Close">×</button>
+    </header>
+    <div class="tools-body">
+        <section class="tools-section" data-menu-section="dice">
+            <div class="tools-section-head">
+                <h3>Dice</h3>
+                <button type="button" class="tools-section-min" data-section="dice" title="Minimize section" aria-expanded="true" aria-label="Minimize Dice">−</button>
+            </div>
+            <div class="tools-section-body">
+                <div class="tools-dice-row">
+                    <input id="tools-dice-input" type="text" placeholder="/roll d20 or 2d6+3" autocomplete="off" spellcheck="false">
+                    <button id="tools-dice-roll" type="button">Roll</button>
+                </div>
+                <div id="tools-quick-dice" class="tools-quick-dice" aria-label="Quick dice"></div>
+                <p id="tools-dice-error" class="tools-error" role="status"></p>
+            </div>
+        </section>
+        <section class="tools-section" data-menu-section="attacks">
+            <div class="tools-section-head">
+                <h3>Attacks</h3>
+                <button type="button" class="tools-section-min" data-section="attacks" title="Minimize section" aria-expanded="true" aria-label="Minimize Attacks">−</button>
+            </div>
+            <div class="tools-section-body">
+                <div id="tools-attacks"></div>
+            </div>
+        </section>
+        <section class="tools-section" data-menu-section="log">
+            <div class="tools-section-head">
+                <h3>Roll log</h3>
+                <button type="button" class="tools-section-min" data-section="log" title="Minimize section" aria-expanded="true" aria-label="Minimize Roll log">−</button>
+            </div>
+            <div class="tools-section-body">
+                <div id="tools-log" class="tools-log"></div>
+            </div>
+        </section>
+    </div>
+</aside>
 
 <header class="topbar no-print">
     <h1>Pathfinder NPC Sheet</h1>
@@ -20,11 +88,28 @@
         <button id="reconnect-chip" type="button" class="hidden" title="Re-grant access to the remembered character folder">Reconnect folder</button>
     </div>
     <div class="topbar-buttons">
+        <button id="theme-btn" type="button" title="Choose color theme">Theme</button>
         <button id="toggle-gen" type="button">Generate</button>
         <button id="toggle-load" type="button">Load JSON</button>
         <button id="print-btn" type="button">Print</button>
     </div>
 </header>
+
+<div id="theme-modal" class="theme-modal no-print hidden" role="dialog" aria-modal="true" aria-labelledby="theme-modal-title" aria-hidden="true">
+    <div class="theme-modal-backdrop" data-theme-modal-dismiss></div>
+    <div class="theme-modal-card">
+        <h2 id="theme-modal-title">Choose a theme</h2>
+        <p class="theme-modal-lead">Pick a preferred look for the character sheet. You can change this anytime with <strong>Theme</strong> in the top bar.</p>
+        <div id="theme-modal-grid" class="theme-modal-grid" role="listbox" aria-label="Available themes"></div>
+        <label class="theme-modal-skip">
+            <input id="theme-modal-skip" type="checkbox">
+            <span>Don't show this on load</span>
+        </label>
+        <div class="theme-modal-actions">
+            <button id="theme-modal-done" type="button">Continue</button>
+        </div>
+    </div>
+</div>
 
 <section id="gen-panel" class="panel no-print hidden">
     <form id="gen-form">
