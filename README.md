@@ -6,13 +6,13 @@ Character **generation** still happens on the Flask backend; this page just POST
 
 ## Design knowledge (OKF)
 
-Sheet UX, visual hierarchy, color theory, and light/dark theme practices live in an
-[Open Knowledge Format](https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing)
-bundle:
+Sheet UX, visual hierarchy, color theory, and light/dark theme practices live in the
+`pathfinder-character-sheet-design` [Open Knowledge Format](https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing)
+bundle in [The-Data-is-a-lie/okf-bundles](https://github.com/The-Data-is-a-lie/okf-bundles)
+(private; entry point `oks/pathfinder-character-sheet-design/index.md`, local clone at
+`C:/Users/Daniel/okf-bundles`).
 
-- **Local entry point:** [`oks/pathfinder-character-sheet-design/index.md`](oks/pathfinder-character-sheet-design/index.md)
-
-For general agent/repo/git practices (not sheet-specific), use the upstream OKF
+For general agent/repo/git practices (not sheet-specific), use the public OKF
 collection and its raw base whenever those topics apply:
 
 - https://github.com/kwcantrell/okf-bundles
