@@ -10,16 +10,40 @@
         try {
             var KEY = 'sheet.theme';
             var allowed = {
-                system: 1, parchment: 1, 'foundry-classic': 1, forest: 1, slate: 1,
+                system: 1, parchment: 1, forest: 1, slate: 1,
                 arcane: 1, gold: 1, stone: 1, fey: 1, sepia: 1,
-                dusk: 1, ember: 1, ocean: 1, storm: 1, midnight: 1, 'high-contrast': 1
+                dusk: 1, ember: 1, ocean: 1, storm: 1, midnight: 1, 'high-contrast': 1,
+                custom: 1
             };
+            /* Saved custom themes are 'saved-…' ids; their tokens ride the same pre-paint map. */
+            var isSaved = function (v) { return typeof v === 'string' && v.indexOf('saved-') === 0; };
             var q = new URLSearchParams(location.search).get('theme');
-            var pref = (q && allowed[q]) ? q : (localStorage.getItem(KEY) || 'system');
-            if (!allowed[pref]) pref = 'system';
+            var pref = (q && (allowed[q] || isSaved(q))) ? q : (localStorage.getItem(KEY) || 'system');
+            if (pref === 'foundry-classic') pref = 'parchment'; /* retired theme */
+            if (!allowed[pref] && !isSaved(pref)) pref = 'system';
             var resolved = pref;
             if (pref === 'system') {
                 resolved = matchMedia('(prefers-color-scheme: dark)').matches ? 'dusk' : 'parchment';
+            }
+            if (resolved === 'custom' || isSaved(resolved)) {
+                /* Custom theme: sheet.js persists the derived token map so we can
+                   apply it before first paint without duplicating the color math. */
+                var tokens = null;
+                try { tokens = JSON.parse(localStorage.getItem('sheet.customThemeTokens')); } catch (e2) { /* fall through */ }
+                if (tokens && typeof tokens === 'object') {
+                    for (var name in tokens) {
+                        if (name.indexOf('--') === 0) {
+                            document.documentElement.style.setProperty(name, String(tokens[name]));
+                        }
+                    }
+                    if (tokens['color-scheme']) {
+                        document.documentElement.style.colorScheme = String(tokens['color-scheme']);
+                    }
+                    resolved = 'custom';
+                } else {
+                    pref = 'system';
+                    resolved = matchMedia('(prefers-color-scheme: dark)').matches ? 'dusk' : 'parchment';
+                }
             }
             document.documentElement.setAttribute('data-theme', resolved);
             document.documentElement.dataset.themePref = pref;
@@ -88,6 +112,7 @@
         <button id="reconnect-chip" type="button" class="hidden" title="Re-grant access to the remembered character folder">Reconnect folder</button>
     </div>
     <div class="topbar-buttons">
+        <button id="view-toggle" type="button" title="Switch to the simple printable sheet">Simple sheet</button>
         <button id="theme-btn" type="button" title="Choose color theme">Theme</button>
         <button id="toggle-gen" type="button">Generate</button>
         <button id="toggle-load" type="button">Load JSON</button>

@@ -5,8 +5,8 @@
 // the SheetLibrary (scripts/library.js — IndexedDB + optional connected disk folder).
 //
 // Layout: a persistent header (name / class line / ability boxes) over a fixed FoundryVTT-style
-// tab bar — Summary/Attributes/Combat/Inventory/Features/Skills/Path of War/Spells/Buffs/
-// Biography/Notes/Settings/Spheres. Every character gets the identical 13 tabs (empty ones show
+// tab bar — Summary/Attributes/Combat/Defenses/Inventory/Features/Skills/Path of War/Spells/
+// Buffs/Biography/Notes/Settings/Spheres. Every character gets the identical tabs (empty ones show
 // a placeholder); ALL panes are rendered up front and toggled by CSS class, so switching tabs is
 // instant and printing shows the whole sheet.
 
@@ -17,9 +17,13 @@
     const FORM_KEY = 'sheet.formData';
     const BACKEND_KEY = 'sheet.backendUrl';
     const TAB_KEY = 'sheet.activeTab';
+    const VIEW_KEY = 'sheet.viewMode'; // 'full' (tabbed) | 'simple' (classic printable sheet)
     const CURRENT_KEY = 'sheet.currentId';
     const THEME_KEY = 'sheet.theme';
     const THEME_SKIP_PROMPT_KEY = 'sheet.themePromptSkip'; // '1' = don't auto-open modal on load
+    const CUSTOM_THEME_KEY = 'sheet.customTheme'; // {paper, accent, ink} hex
+    const CUSTOM_THEME_TOKENS_KEY = 'sheet.customThemeTokens'; // derived token map for pre-paint boot
+    const SAVED_THEMES_KEY = 'sheet.savedThemes'; // [{id: 'saved-…', label, colors: {paper, accent, ink}}]
     const DEFAULT_BACKEND = 'https://pathfinder-char-creator-web-public-use.onrender.com';
 
     // Themes map to html[data-theme] tokens in styles/sheet.css (OKF color-theory roles).
@@ -27,7 +31,6 @@
     const THEMES = [
         { id: 'system', label: 'System', desc: 'Follow OS light/dark (parchment or dusk)', swatches: null },
         { id: 'parchment', label: 'Parchment', desc: 'Classic PF maroon on warm paper', swatches: ['#f3ead7', '#7a1f1f', '#2b2115'] },
-        { id: 'foundry-classic', label: 'Foundry Classic', desc: 'PF1 VTT rust/beige look', swatches: ['#c9c7b8', '#782e22', '#191813'] },
         { id: 'forest', label: 'Forest', desc: 'Analogous greens — nature / druid feel', swatches: ['#e8efe4', '#2d5a3d', '#1a2418'] },
         { id: 'slate', label: 'Slate', desc: 'Cool neutrals + blue-gray accent', swatches: ['#eef0f3', '#3d4f66', '#1c1f24'] },
         { id: 'arcane', label: 'Arcane', desc: 'Violet accent on cool lilac paper', swatches: ['#efeaf8', '#5b3d8c', '#1e1830'] },
@@ -41,6 +44,7 @@
         { id: 'storm', label: 'Storm', desc: 'Dark indigo night sky', swatches: ['#0c0e18', '#8a8ad4', '#e4e4f6'] },
         { id: 'midnight', label: 'Midnight', desc: 'Neutral #121212 stack + soft red', swatches: ['#121212', '#cf7a7a', '#ececec'] },
         { id: 'high-contrast', label: 'High contrast', desc: 'Max AA dark: black, white, gold', swatches: ['#000000', '#ffe566', '#ffffff'] },
+        { id: 'custom', label: 'Custom', desc: 'Pick your own background, accent & text colors', swatches: null },
     ];
     const THEME_IDS = new Set(THEMES.map((t) => t.id));
 
@@ -51,8 +55,9 @@
     }
 
     function themePreference() {
-        const v = localStorage.getItem(THEME_KEY) || 'system';
-        return THEME_IDS.has(v) ? v : 'system';
+        let v = localStorage.getItem(THEME_KEY) || 'system';
+        if (v === 'foundry-classic') v = 'parchment'; // retired theme
+        return isThemeChoice(v) ? v : 'system';
     }
 
     function skipThemePrompt() {
@@ -75,8 +80,357 @@
         }
     }
 
+    // ------------------------------------------------------------ custom theme (3 colors → palette)
+    // A theme is really 3 base colors (paper/background, accent, ink/text); every other
+    // token in styles/sheet.css is a derived shade. buildCustomTokens() does that derivation
+    // with plain HSL math; the 3 picked colors are applied exactly, never adjusted.
+    const CUSTOM_THEME_DEFAULT = { paper: '#f3ead7', accent: '#7a1f1f', ink: '#2b2115' };
+
+    function normHex(v, fallback) {
+        let s = String(v || '').trim().toLowerCase();
+        if (/^#[0-9a-f]{3}$/.test(s)) {
+            s = '#' + s[1] + s[1] + s[2] + s[2] + s[3] + s[3];
+        }
+        return /^#[0-9a-f]{6}$/.test(s) ? s : fallback;
+    }
+
+    function hexToRgb(hex) {
+        const n = parseInt(hex.slice(1), 16);
+        return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+    }
+
+    function rgbToHex(r, g, b) {
+        const c = (x) => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0');
+        return '#' + c(r) + c(g) + c(b);
+    }
+
+    /** h 0–360, s/l 0–100 */
+    function hexToHsl(hex) {
+        let { r, g, b } = hexToRgb(hex);
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        const l = (max + min) / 2;
+        let h = 0, s = 0;
+        if (max !== min) {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            if (max === r) h = ((g - b) / d + (g < b ? 6 : 0));
+            else if (max === g) h = (b - r) / d + 2;
+            else h = (r - g) / d + 4;
+            h *= 60;
+        }
+        return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
+    }
+
+    function hslToHex(h, s, l) {
+        h = ((h % 360) + 360) % 360; s = Math.max(0, Math.min(100, s)) / 100; l = Math.max(0, Math.min(100, l)) / 100;
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+        const m = l - c / 2;
+        let r = 0, g = 0, b = 0;
+        if (h < 60) { r = c; g = x; } else if (h < 120) { r = x; g = c; }
+        else if (h < 180) { g = c; b = x; } else if (h < 240) { g = x; b = c; }
+        else if (h < 300) { r = x; b = c; } else { r = c; b = x; }
+        return rgbToHex((r + m) * 255, (g + m) * 255, (b + m) * 255);
+    }
+
+    /** Mix hex a toward hex b by t (0–1). */
+    function mixHex(a, b, t) {
+        const ca = hexToRgb(a), cb = hexToRgb(b);
+        return rgbToHex(ca.r + (cb.r - ca.r) * t, ca.g + (cb.g - ca.g) * t, ca.b + (cb.b - ca.b) * t);
+    }
+
+    function withAlpha(hex, a) {
+        const { r, g, b } = hexToRgb(hex);
+        return `rgba(${r}, ${g}, ${b}, ${a})`;
+    }
+
+    function relLuminance(hex) {
+        const { r, g, b } = hexToRgb(hex);
+        const f = (v) => {
+            v /= 255;
+            return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        };
+        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    }
+
+    function contrastRatio(a, b) {
+        const la = relLuminance(a), lb = relLuminance(b);
+        return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+    }
+
+    function customThemeColors() {
+        let stored = null;
+        try { stored = JSON.parse(localStorage.getItem(CUSTOM_THEME_KEY)); } catch { /* bad JSON */ }
+        return {
+            paper: normHex(stored?.paper, CUSTOM_THEME_DEFAULT.paper),
+            accent: normHex(stored?.accent, CUSTOM_THEME_DEFAULT.accent),
+            ink: normHex(stored?.ink, CUSTOM_THEME_DEFAULT.ink),
+        };
+    }
+
+    function saveCustomThemeColors(colors) {
+        try { localStorage.setItem(CUSTOM_THEME_KEY, JSON.stringify(colors)); } catch { /* private mode */ }
+    }
+
+    // ---------------- saved custom themes (permanent named combos, deletable)
+    // The Custom builder is a scratch slot; "Save as theme" snapshots it into this list.
+    // Saved themes render as normal picker cards just before the Custom card.
+    function savedThemes() {
+        let list = null;
+        try { list = JSON.parse(localStorage.getItem(SAVED_THEMES_KEY)); } catch { /* bad JSON */ }
+        if (!Array.isArray(list)) return [];
+        return list
+            .filter((t) => t && typeof t.id === 'string' && t.id.startsWith('saved-'))
+            .map((t) => ({
+                id: t.id,
+                label: String(t.label || 'Custom'),
+                colors: {
+                    paper: normHex(t.colors?.paper, CUSTOM_THEME_DEFAULT.paper),
+                    accent: normHex(t.colors?.accent, CUSTOM_THEME_DEFAULT.accent),
+                    ink: normHex(t.colors?.ink, CUSTOM_THEME_DEFAULT.ink),
+                },
+            }));
+    }
+
+    function saveSavedThemes(list) {
+        try { localStorage.setItem(SAVED_THEMES_KEY, JSON.stringify(list)); } catch { /* private mode */ }
+    }
+
+    function savedThemeById(id) {
+        if (typeof id !== 'string' || !id.startsWith('saved-')) return null;
+        return savedThemes().find((t) => t.id === id) || null;
+    }
+
+    function addSavedTheme(label, colors) {
+        const list = savedThemes();
+        const entry = {
+            id: 'saved-' + Date.now().toString(36) + '-' + Math.floor(Math.random() * 46656).toString(36),
+            label: label || ('Custom ' + (list.length + 1)),
+            colors: { ...colors },
+        };
+        list.push(entry);
+        saveSavedThemes(list);
+        return entry;
+    }
+
+    function deleteSavedTheme(id) {
+        saveSavedThemes(savedThemes().filter((t) => t.id !== id));
+    }
+
+    /** Valid theme choice = built-in id or a saved custom theme id. */
+    function isThemeChoice(v) {
+        return THEME_IDS.has(v) || !!savedThemeById(v);
+    }
+
+    /** Built-in themes with saved custom themes spliced in just before the Custom card. */
+    function themeList() {
+        const list = THEMES.slice();
+        const customIdx = list.findIndex((t) => t.id === 'custom');
+        const saved = savedThemes().map((t) => ({
+            id: t.id,
+            label: t.label,
+            desc: 'Saved custom theme',
+            swatches: [t.colors.paper, t.colors.accent, t.colors.ink],
+            saved: true,
+        }));
+        list.splice(customIdx, 0, ...saved);
+        return list;
+    }
+
+    /**
+     * Derive the full token set from 3 base colors, used exactly as picked. Dark mode
+     * flips automatically from paper luminance. Returns { tokens, dark }.
+     */
+    function buildCustomTokens(colors) {
+        const paper = normHex(colors.paper, CUSTOM_THEME_DEFAULT.paper);
+        const accent = normHex(colors.accent, CUSTOM_THEME_DEFAULT.accent);
+        const ink = normHex(colors.ink, CUSTOM_THEME_DEFAULT.ink);
+        const dark = relLuminance(paper) < 0.35;
+        const W = '#ffffff', K = '#000000';
+
+        const dim = mixHex(ink, paper, 0.28);
+
+        const onAccentLight = mixHex(W, paper, 0.12);
+        const onAccentDark = mixHex(K, ink, 0.12);
+        const onAccent = contrastRatio(onAccentLight, accent) >= contrastRatio(onAccentDark, accent)
+            ? onAccentLight : onAccentDark;
+
+        const inputBg = dark ? mixHex(paper, W, 0.10) : mixHex(paper, W, 0.65);
+        const rowBorder = mixHex(paper, ink, dark ? 0.24 : 0.16);
+        const topbarFrom = dark ? mixHex(paper, W, 0.08) : mixHex(mixHex(ink, accent, 0.25), K, 0.1);
+        const quickBg = dark ? mixHex(paper, ink, 0.22) : mixHex(mixHex(ink, accent, 0.35), K, 0.05);
+
+        const tokens = {
+            'color-scheme': dark ? 'dark' : 'light',
+            '--ink': ink,
+            '--paper': paper,
+            '--panel': dark ? mixHex(paper, W, 0.06) : mixHex(paper, W, 0.45),
+            '--input-bg': inputBg,
+            '--input-bg-solid': dark ? inputBg : W,
+            '--row-bg': inputBg,
+            '--row-border': rowBorder,
+            '--row-hover': dark ? mixHex(paper, W, 0.13) : mixHex(paper, ink, 0.04),
+            '--chip-bg': dark ? mixHex(paper, W, 0.16) : mixHex(paper, ink, 0.09),
+            '--table-rule': rowBorder,
+            '--accent': accent,
+            '--accent-dark': accent,
+            '--accent-hover': mixHex(accent, W, 0.13),
+            '--on-accent': onAccent,
+            '--rule': mixHex(paper, ink, dark ? 0.32 : 0.38),
+            '--dim': dim,
+            '--topbar-from': topbarFrom,
+            '--topbar-to': dark ? mixHex(paper, W, 0.02) : mixHex(topbarFrom, K, 0.35),
+            '--topbar-fg': dark ? ink : mixHex(paper, W, 0.4),
+            '--chrome-muted': mixHex(paper, ink, 0.5),
+            '--select-bg': dark ? mixHex(paper, W, 0.16) : mixHex(paper, W, 0.7),
+            '--select-border': mixHex(paper, ink, dark ? 0.5 : 0.55),
+            '--menu-bg': dark ? mixHex(paper, W, 0.13) : mixHex(paper, W, 0.7),
+            '--menu-border': mixHex(paper, ink, dark ? 0.38 : 0.3),
+            '--menu-divider': mixHex(paper, ink, dark ? 0.24 : 0.16),
+            '--menu-summary-bg': mixHex(paper, ink, 0.12),
+            '--menu-summary-hover': mixHex(paper, ink, 0.18),
+            '--reconnect-bg': dark ? '#a88a3a' : '#8a6d1f',
+            '--reconnect-border': dark ? '#7a6428' : '#5e4a13',
+            '--quick-bg': quickBg,
+            '--quick-border': mixHex(quickBg, K, 0.3),
+            '--quick-hover': mixHex(quickBg, W, 0.12),
+            '--edit-hover-bg': withAlpha(accent, dark ? 0.12 : 0.08),
+            '--edit-focus-ring': withAlpha(accent, dark ? 0.28 : 0.22),
+            '--shadow': dark ? 'rgba(0, 0, 0, 0.45)' : 'rgba(0, 0, 0, 0.22)',
+            '--focus-ring': accent,
+            '--success': dark ? '#7dcea0' : '#2a6a32',
+            '--danger': dark ? '#e08080' : '#a02828',
+            '--warning': dark ? '#d0b060' : '#8a6a12',
+            '--status-bloodied-bg': dark ? 'rgba(224, 128, 128, 0.15)' : 'rgba(160, 40, 40, 0.12)',
+        };
+        return { tokens, dark };
+    }
+
+    const CUSTOM_TOKEN_NAMES = Object.keys(buildCustomTokens(CUSTOM_THEME_DEFAULT).tokens);
+
+    function applyCustomTokens(tokens) {
+        const st = document.documentElement.style;
+        for (const name of CUSTOM_TOKEN_NAMES) {
+            if (name === 'color-scheme') st.colorScheme = tokens[name] || '';
+            else if (tokens[name] != null) st.setProperty(name, tokens[name]);
+        }
+    }
+
+    function clearCustomTokens() {
+        const st = document.documentElement.style;
+        for (const name of CUSTOM_TOKEN_NAMES) {
+            if (name === 'color-scheme') st.colorScheme = '';
+            else st.removeProperty(name);
+        }
+    }
+
+    function customSwatches() {
+        const c = customThemeColors();
+        return [c.paper, c.accent, c.ink];
+    }
+
+    /**
+     * Builder panel: per base color a hue slider, a lightness slider, and an exact
+     * color picker (kept in sync; saturation rides along from the current color).
+     * Rendered in Settings → Appearance and the theme modal; visible when Custom is active.
+     */
+    function buildCustomThemeControls() {
+        const panel = h('div', 'custom-theme-panel hidden no-print');
+        const note = h('p', 'custom-theme-note dim', '');
+        const rows = [
+            ['paper', 'Background'],
+            ['accent', 'Accent'],
+            ['ink', 'Text'],
+        ];
+        const controls = {}; // key → {color, hue, light}
+
+        const commit = (key, hex) => {
+            const colors = customThemeColors();
+            colors[key] = hex;
+            saveCustomThemeColors(colors);
+            applyTheme('custom'); // re-derives tokens, persists them, refreshes all controls
+        };
+
+        for (const [key, label] of rows) {
+            const row = h('div', 'custom-color-row');
+            row.appendChild(h('span', 'custom-color-label', label));
+
+            const colorIn = h('input', 'custom-color-picker');
+            colorIn.type = 'color';
+            colorIn.title = label + ' — exact color';
+
+            const hueWrap = h('label', 'custom-color-slider');
+            hueWrap.appendChild(h('span', null, 'Hue'));
+            const hueIn = h('input');
+            hueIn.type = 'range';
+            hueIn.min = '0'; hueIn.max = '360'; hueIn.step = '1';
+            hueWrap.appendChild(hueIn);
+
+            const lightWrap = h('label', 'custom-color-slider');
+            lightWrap.appendChild(h('span', null, 'Light'));
+            const lightIn = h('input');
+            lightIn.type = 'range';
+            lightIn.min = '0'; lightIn.max = '100'; lightIn.step = '1';
+            lightWrap.appendChild(lightIn);
+
+            colorIn.addEventListener('input', () => commit(key, colorIn.value));
+            hueIn.addEventListener('input', () => {
+                const { s, l } = hexToHsl(customThemeColors()[key]);
+                commit(key, hslToHex(Number(hueIn.value), Math.max(s, 8), l));
+            });
+            lightIn.addEventListener('input', () => {
+                const { h: hh, s } = hexToHsl(customThemeColors()[key]);
+                commit(key, hslToHex(hh, s, Number(lightIn.value)));
+            });
+
+            row.append(colorIn, hueWrap, lightWrap);
+            panel.appendChild(row);
+            controls[key] = { color: colorIn, hue: hueIn, light: lightIn };
+        }
+
+        // Snapshot the current combo as a permanent named theme (card appears before Custom).
+        const saveRow = h('div', 'custom-theme-save');
+        const nameIn = h('input', 'custom-theme-name');
+        nameIn.type = 'text';
+        nameIn.placeholder = 'Theme name';
+        nameIn.maxLength = 40;
+        const saveBtn = h('button', null, 'Save as theme');
+        saveBtn.type = 'button';
+        const commitSave = () => {
+            const entry = addSavedTheme(nameIn.value.trim(), customThemeColors());
+            nameIn.value = '';
+            applyTheme(entry.id);
+            refreshThemeGrids();
+        };
+        saveBtn.addEventListener('click', commitSave);
+        nameIn.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); commitSave(); }
+        });
+        saveRow.append(nameIn, saveBtn);
+        panel.appendChild(saveRow);
+        panel.appendChild(note);
+
+        panel._refreshCustom = () => {
+            const colors = customThemeColors();
+            for (const [key] of rows) {
+                const { color, hue, light } = controls[key];
+                const hsl = hexToHsl(colors[key]);
+                if (document.activeElement !== color) color.value = colors[key];
+                if (document.activeElement !== hue) hue.value = String(hsl.h);
+                if (document.activeElement !== light) light.value = String(hsl.l);
+            }
+            const built = buildCustomTokens(colors);
+            note.textContent = built.dark
+                ? 'Dark theme (from background lightness).'
+                : 'Light theme (from background lightness).';
+        };
+        panel._refreshCustom();
+        return panel;
+    }
+
     function syncThemeControls(pref) {
-        const choice = THEME_IDS.has(pref) ? pref : 'system';
+        const choice = isThemeChoice(pref) ? pref : 'system';
         document.querySelectorAll('input[name="sheet-theme"]').forEach((r) => {
             r.checked = r.value === choice;
         });
@@ -85,11 +439,31 @@
             btn.classList.toggle('is-selected', on);
             btn.setAttribute('aria-selected', on ? 'true' : 'false');
         });
+        // Custom theme: show/refresh builder panels + live swatches on the Custom cards
+        document.querySelectorAll('.custom-theme-panel').forEach((p) => {
+            p.classList.toggle('hidden', choice !== 'custom');
+            if (choice === 'custom') p._refreshCustom?.();
+        });
+        const sw = customSwatches();
+        document.querySelectorAll('.custom-theme-swatches-live').forEach((box) => {
+            box.querySelectorAll('span').forEach((chip, i) => {
+                if (sw[i]) chip.style.background = sw[i];
+            });
+        });
     }
 
     function applyTheme(pref) {
-        const choice = THEME_IDS.has(pref) ? pref : 'system';
-        const resolved = resolveTheme(choice);
+        const choice = isThemeChoice(pref) ? pref : 'system';
+        const saved = savedThemeById(choice);
+        const resolved = saved ? 'custom' : resolveTheme(choice);
+        if (resolved === 'custom') {
+            const built = buildCustomTokens(saved ? saved.colors : customThemeColors());
+            applyCustomTokens(built.tokens);
+            // Persist derived tokens so index.html can re-apply them before first paint.
+            try { localStorage.setItem(CUSTOM_THEME_TOKENS_KEY, JSON.stringify(built.tokens)); } catch { /* private mode */ }
+        } else {
+            clearCustomTokens();
+        }
         document.documentElement.setAttribute('data-theme', resolved);
         document.documentElement.dataset.themePref = choice;
         try { localStorage.setItem(THEME_KEY, choice); } catch { /* private mode */ }
@@ -97,41 +471,98 @@
         return resolved;
     }
 
+    /** × control on saved-theme cards. A span (not a button) so it can live inside the card. */
+    function buildThemeDeleteBtn(theme) {
+        const del = h('span', 'theme-delete-btn', '×');
+        del.setAttribute('role', 'button');
+        del.tabIndex = 0;
+        del.title = 'Delete "' + theme.label + '"';
+        del.setAttribute('aria-label', 'Delete theme ' + theme.label);
+        const onDelete = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const wasActive = themePreference() === theme.id;
+            const entry = savedThemeById(theme.id);
+            deleteSavedTheme(theme.id);
+            if (wasActive && entry) {
+                // Keep the same look: load the deleted combo into the editable Custom slot.
+                saveCustomThemeColors(entry.colors);
+                applyTheme('custom');
+            }
+            refreshThemeGrids();
+        };
+        del.addEventListener('click', onDelete);
+        del.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') onDelete(e);
+        });
+        return del;
+    }
+
+    /**
+     * Fill a theme chooser with one card per themeList() entry.
+     * kind 'modal' → buttons (theme modal); 'settings' → radio labels (Settings tab).
+     */
+    function renderThemeCards(container, kind) {
+        container.textContent = '';
+        const pref = themePreference();
+        const modal = kind === 'modal';
+        for (const theme of themeList()) {
+            const card = modal
+                ? h('button', 'theme-modal-pick' + (theme.id === pref ? ' is-selected' : ''))
+                : h('label', 'settings-theme-option');
+            if (modal) {
+                card.type = 'button';
+                card.dataset.themeId = theme.id;
+                card.setAttribute('role', 'option');
+                card.setAttribute('aria-selected', theme.id === pref ? 'true' : 'false');
+                card.addEventListener('click', () => applyTheme(theme.id));
+            } else {
+                const radio = h('input');
+                radio.type = 'radio';
+                radio.name = 'sheet-theme';
+                radio.value = theme.id;
+                radio.checked = theme.id === pref;
+                radio.addEventListener('change', () => {
+                    if (radio.checked) applyTheme(theme.id);
+                });
+                card.appendChild(radio);
+            }
+            const swatches = theme.id === 'custom' ? customSwatches()
+                : (theme.swatches || ['#eef0f3', '#3d4f66', '#121212']);
+            const sw = h('div', (modal ? 'theme-modal-swatches' : 'settings-theme-swatches')
+                + (theme.id === 'custom' ? ' custom-theme-swatches-live' : ''));
+            sw.setAttribute('aria-hidden', 'true');
+            for (const hex of swatches) {
+                const chip = h('span');
+                chip.style.background = hex;
+                sw.appendChild(chip);
+            }
+            card.appendChild(sw);
+            card.appendChild(h('span', modal ? 'theme-modal-pick-label' : 'settings-theme-label', theme.label));
+            card.appendChild(h('span', modal ? 'theme-modal-pick-desc' : 'settings-theme-desc', theme.desc));
+            if (theme.saved) card.appendChild(buildThemeDeleteBtn(theme));
+            container.appendChild(card);
+        }
+    }
+
+    /** Re-render every theme chooser (modal grid + Settings tab) after a save/delete. */
+    function refreshThemeGrids() {
+        const grid = document.getElementById('theme-modal-grid');
+        if (grid && grid.dataset.built === '1') renderThemeCards(grid, 'modal');
+        document.querySelectorAll('.settings-theme-grid').forEach((g) => renderThemeCards(g, 'settings'));
+        syncThemeControls(themePreference());
+    }
+
     function buildThemeModalGrid() {
         const grid = document.getElementById('theme-modal-grid');
-        if (!grid || grid.dataset.built === '1') return;
-        grid.dataset.built = '1';
-        const pref = themePreference();
-        for (const theme of THEMES) {
-            const btn = h('button', 'theme-modal-pick' + (theme.id === pref ? ' is-selected' : ''));
-            btn.type = 'button';
-            btn.dataset.themeId = theme.id;
-            btn.setAttribute('role', 'option');
-            btn.setAttribute('aria-selected', theme.id === pref ? 'true' : 'false');
-            if (theme.swatches) {
-                const sw = h('div', 'theme-modal-swatches');
-                sw.setAttribute('aria-hidden', 'true');
-                for (const hex of theme.swatches) {
-                    const chip = h('span');
-                    chip.style.background = hex;
-                    sw.appendChild(chip);
-                }
-                btn.appendChild(sw);
-            } else {
-                const sw = h('div', 'theme-modal-swatches');
-                sw.setAttribute('aria-hidden', 'true');
-                for (const hex of ['#eef0f3', '#3d4f66', '#121212']) {
-                    const chip = h('span');
-                    chip.style.background = hex;
-                    sw.appendChild(chip);
-                }
-                btn.appendChild(sw);
-            }
-            btn.appendChild(h('span', 'theme-modal-pick-label', theme.label));
-            btn.appendChild(h('span', 'theme-modal-pick-desc', theme.desc));
-            btn.addEventListener('click', () => applyTheme(theme.id));
-            grid.appendChild(btn);
+        if (!grid) return;
+        if (grid.dataset.built !== '1') {
+            grid.dataset.built = '1';
+            // Builder for the Custom theme (hidden unless Custom is the active choice)
+            grid.insertAdjacentElement('afterend', buildCustomThemeControls());
         }
+        renderThemeCards(grid, 'modal');
+        syncThemeControls(themePreference());
     }
 
     function closeThemeModal() {
@@ -295,6 +726,51 @@
 
     const titleCase = (s) => String(s).replace(/\b\w/g, (c) => c.toUpperCase());
     const mod = (score) => Math.floor((Number(score) - 10) / 2);
+
+    /**
+     * Effective ability score & modifier, pf1-style: base + ledger changes (belts,
+     * buffs) + user Misc − Drain; ability Damage penalizes the MOD (−1 per 2 points).
+     * User boxes persist on _sheet.abilityAdjust[ab] = { damage, drain, misc }.
+     */
+    function abilityInfo(data, ab) {
+        const base = Number(data?.[ab]);
+        const adj = data?._sheet?.abilityAdjust?.[ab] || {};
+        const damage = Number(adj.damage) || 0;
+        const drain = Number(adj.drain) || 0;
+        const misc = Number(adj.misc) || 0;
+        const bits = [];
+        let ledgerSum = 0;
+        const SD = window.SheetDetails;
+        if (SD && data) {
+            for (const c of (effectiveLedger(data).changes || [])) {
+                if (c.target !== ab) continue;
+                const ev = SD.evalSimpleFormula(c.formula, data);
+                if (ev?.ok && ev.value) {
+                    ledgerSum += ev.value;
+                    bits.push(`${c.source} ${fmt(ev.value)}`);
+                }
+            }
+        }
+        if (!Number.isFinite(base)) {
+            return { base: null, total: null, mod: 0, damage, drain, misc, formula: 'no score' };
+        }
+        const total = base + ledgerSum + misc - drain;
+        const damagePen = Math.floor(damage / 2);
+        const formula = [
+            'base ' + base,
+            ...bits,
+            misc ? 'misc ' + fmt(misc) : null,
+            drain ? 'drain ' + drain : null,
+        ].filter(Boolean).join(' + ').replace(/\+ drain/g, '− drain')
+            + ' = ' + total
+            + (damagePen ? ` · mod −${damagePen} (${damage} ability damage)` : '');
+        return { base, total, mod: mod(total) - damagePen, damage, drain, misc, formula };
+    }
+
+    /** Effective ability modifier (ledger + damage/drain/misc aware). */
+    function abModOf(data, ab) {
+        return abilityInfo(data, ab).mod;
+    }
     const fmt = (n) => (n >= 0 ? '+' + n : String(n));
     const toInt = (v) => {
         const n = parseInt(v, 10);
@@ -354,8 +830,20 @@
         return String(sourceKind || 'buff') + '::' + String(source || '?');
     }
 
+    /** Deleted passive sources: hidden from the panel AND stripped from math. */
+    function removedBuffSet(data) {
+        const d = data || currentData;
+        const arr = d?._sheet?.removedBuffSources;
+        return new Set(Array.isArray(arr) ? arr : []);
+    }
+
     function isBuffSourceActive(data, source, sourceKind) {
-        return !disabledBuffSet(data).has(buffSourceKey(source, sourceKind));
+        const key = buffSourceKey(source, sourceKind);
+        return !disabledBuffSet(data).has(key) && !removedBuffSet(data).has(key);
+    }
+
+    function isBuffSourceRemoved(data, source, sourceKind) {
+        return removedBuffSet(data).has(buffSourceKey(source, sourceKind));
     }
 
     function setBuffSourceActive(data, source, sourceKind, on) {
@@ -369,16 +857,70 @@
         renderSheet(data);
     }
 
+    function removeBuffSource(data, source, sourceKind) {
+        if (!data) return;
+        const set = removedBuffSet(data);
+        set.add(buffSourceKey(source, sourceKind));
+        (data._sheet ??= {}).removedBuffSources = [...set];
+        quietSave();
+        renderSheet(data);
+    }
+
+    function restoreRemovedBuffSources(data) {
+        if (!data) return;
+        (data._sheet ??= {}).removedBuffSources = [];
+        quietSave();
+        renderSheet(data);
+    }
+
+    /**
+     * Situational contextNotes for a set of change targets, deduped and plain-text —
+     * shown as hover tooltips on the relevant skill / attack rows (not a panel).
+     */
+    function notesForTargets(data, targets) {
+        const ledger = window.sheetChangesFull
+            || window.SheetDetails?.collectChanges?.(data)
+            || { notes: [] };
+        const want = targets instanceof Set ? targets : new Set(targets || []);
+        const seen = new Set();
+        const out = [];
+        for (const n of ledger.notes || []) {
+            if (!want.has(n.target)) continue;
+            if (!isBuffSourceActive(data, n.source, n.sourceKind)) continue;
+            const text = String(n.text || '').replace(/<[^>]*>/g, '').trim();
+            if (!text) continue;
+            const key = n.source + '|' + n.target + '|' + text;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            out.push(text + ' — ' + n.source);
+        }
+        return out;
+    }
+
+    /** Add an ⓘ hover marker (and row tooltip) when targets have situational notes. */
+    function attachNotesHover(el, data, targets, markHost) {
+        const notes = notesForTargets(data, targets);
+        if (!notes.length || !el) return;
+        el.title = notes.join('\n');
+        const mark = h('span', 'note-hover-mark no-print', 'ⓘ');
+        mark.title = notes.join('\n');
+        mark.setAttribute('aria-label', 'Situational notes: ' + notes.join('; '));
+        (markHost || el).appendChild(mark);
+    }
+
     /** Full ledger with inactive sources' changes stripped (notes/conditionals kept for UI). */
     function effectiveLedger(data) {
         const SD = window.SheetDetails;
         const full = SD ? SD.collectChanges(data) : (window.sheetChangesFull || window.sheetChanges
             || { changes: [], notes: [], conditionals: [] });
         const disabled = disabledBuffSet(data);
-        if (!disabled.size) return full;
+        const removed = removedBuffSet(data);
+        if (!disabled.size && !removed.size) return full;
         return {
-            changes: (full.changes || []).filter((c) =>
-                !disabled.has(buffSourceKey(c.source, c.sourceKind))),
+            changes: (full.changes || []).filter((c) => {
+                const key = buffSourceKey(c.source, c.sourceKind);
+                return !disabled.has(key) && !removed.has(key);
+            }),
             notes: full.notes || [],
             conditionals: full.conditionals || [],
         };
@@ -570,6 +1112,7 @@
             value: value == null ? 0 : value,
             kind: opts.kind || 'base',
             type: opts.type || '',
+            sourceKind: opts.sourceKind || '', // feat/trait/item/buff… for defense buckets
             unresolved: !!opts.unresolved,
             formula: opts.formula || '',
             info: !!opts.info, // listed but not added to total (e.g. HP ledger)
@@ -605,11 +1148,13 @@
             const ev = SD.evalSimpleFormula(c.formula, data);
             if (ev.ok) {
                 parts.push(part(label, ev.value, {
-                    kind: 'ledger', type: c.type || '', info: !!opts.infoOnly,
+                    kind: 'ledger', type: c.type || '', sourceKind: c.sourceKind || '',
+                    info: !!opts.infoOnly,
                 }));
             } else {
                 parts.push(part(label, 0, {
-                    kind: 'ledger', type: c.type || '', unresolved: true,
+                    kind: 'ledger', type: c.type || '', sourceKind: c.sourceKind || '',
+                    unresolved: true,
                     formula: ev.formula || c.formula, info: !!opts.infoOnly,
                 }));
             }
@@ -627,10 +1172,26 @@
         const ledger = effectiveLedger(data);
         window.sheetChanges = ledger;
 
+        // Simple-sheet total edits land here as flat deltas (visible in every sources list).
+        const manual = sheetState(data).manualAdjust || {};
+        const manualPart = (parts, key) => {
+            const v = Number(manual[key]) || 0;
+            if (v) parts.push(part('Manual adjustment', v, { kind: 'manual' }));
+        };
+
+        // PF1 negative levels: −1 per level on attack rolls, saves, skill and ability
+        // checks; −5 HP each. (CL / spell-slot loss is flagged on Attributes, not automated.)
+        const negLv = Number(sheetState(data).negativeLevels) || 0;
+        const negPart = (parts) => {
+            if (negLv) {
+                parts.push(part('Negative levels', -negLv, { kind: 'ledger', type: 'penalty' }));
+            }
+        };
+
         const level = Number(data.level) || 0;
         const bab = Number(data.bab_total) || 0;
-        const strM = mod(data.str), dexM = mod(data.dex), conM = mod(data.con);
-        const wisM = mod(data.wis), intM = mod(data.int), chaM = mod(data.cha);
+        const strM = abModOf(data, 'str'), dexM = abModOf(data, 'dex'), conM = abModOf(data, 'con');
+        const wisM = abModOf(data, 'wis'), intM = abModOf(data, 'int'), chaM = abModOf(data, 'cha');
         const armorAc = toInt(data.armor_ac) ?? 0;
         const shieldAc = toInt(data.shield_ac) ?? 0;
         const maxDex = toInt(data.armor_max_dex_bonus);
@@ -658,12 +1219,14 @@
             dexCapped ? `Dex (capped by armor max ${maxDex})` : 'Dex',
             effDex, { kind: 'ability' }));
         appendLedgerParts(acParts, data, ledger, ['ac', 'aac', 'sac', 'nac']);
+        manualPart(acParts, 'ac');
 
         const touchParts = [part('Base', 10)];
         touchParts.push(part(
             dexCapped ? `Dex (capped by armor max ${maxDex})` : 'Dex',
             effDex, { kind: 'ability' }));
         appendLedgerParts(touchParts, data, ledger, ['ac', 'tac', 'nac'], { touchOnly: true });
+        manualPart(touchParts, 'touch');
 
         const flatParts = [part('Base', 10)];
         if (armorAc || data.armor_name) {
@@ -675,6 +1238,7 @@
         appendLedgerParts(flatParts, data, ledger, ['ac', 'ffac', 'aac', 'sac', 'nac'], {
             skipDodge: true,
         });
+        manualPart(flatParts, 'flat');
 
         // ---- Saves ----
         function saveBlock(save, abLabel, abMod) {
@@ -692,6 +1256,8 @@
             }
             parts.push(part(abLabel, abMod, { kind: 'ability' }));
             appendLedgerParts(parts, data, ledger, [save, 'allSavingThrows']);
+            manualPart(parts, save);
+            negPart(parts);
             return { total: sumParts(parts), parts };
         }
         const fort = saveBlock('fort', 'Constitution', conM);
@@ -701,18 +1267,24 @@
         // ---- Init / attacks / CMB / CMD ----
         const initParts = [part('Dexterity', dexM, { kind: 'ability' })];
         appendLedgerParts(initParts, data, ledger, ['init']);
+        manualPart(initParts, 'init');
+        negPart(initParts);
 
         const meleeParts = [
             part('BAB', bab, { kind: 'base' }),
             part('Strength', strM, { kind: 'ability' }),
         ];
         appendLedgerParts(meleeParts, data, ledger, ['attack', 'mattack']);
+        manualPart(meleeParts, 'melee');
+        negPart(meleeParts);
 
         const rangedParts = [
             part('BAB', bab, { kind: 'base' }),
             part('Dexterity', dexM, { kind: 'ability' }),
         ];
         appendLedgerParts(rangedParts, data, ledger, ['attack', 'rattack']);
+        manualPart(rangedParts, 'ranged');
+        negPart(rangedParts);
 
         // ---- Weapon damage (dice + ability + enh + ledger) — same breakdown style as attacks ----
         const wName = (data.weapon_name || '').trim();
@@ -768,6 +1340,8 @@
             part('Strength', strM, { kind: 'ability' }),
         ];
         appendLedgerParts(cmbParts, data, ledger, ['cmb']);
+        manualPart(cmbParts, 'cmb');
+        negPart(cmbParts);
 
         const cmdParts = [
             part('Base', 10),
@@ -776,6 +1350,11 @@
             part('Dexterity', dexM, { kind: 'ability' }),
         ];
         appendLedgerParts(cmdParts, data, ledger, ['cmd']);
+        manualPart(cmdParts, 'cmd');
+
+        // Flat-footed CMD (PF1): CMD without Dexterity and dodge bonuses
+        const cmdFFParts = cmdParts.filter((p) =>
+            !(p.kind === 'ability' && p.label === 'Dexterity') && p.type !== 'dodge');
 
         // ---- HP: rolled dice + CON×level, then mhp feats (Toughness, …) on top ----
         // Mirrors Foundry: total_rolled_hp → hp.base; Con is ability contribution; Toughness → mhp.
@@ -815,6 +1394,11 @@
         }
         // Feats/traits/talents that grant mhp/hp (Toughness: max(3, HD), etc.) — additive
         appendLedgerParts(hpParts, data, ledger, ['mhp', 'hp'], { infoOnly: false });
+        if (negLv) {
+            hpParts.push(part('Negative levels (−5 each)', -5 * negLv, {
+                kind: 'ledger', type: 'penalty',
+            }));
+        }
 
         const ac = { total: sumParts(acParts), parts: acParts };
         const touch = { total: sumParts(touchParts), parts: touchParts };
@@ -824,6 +1408,7 @@
         const ranged = { total: sumParts(rangedParts), parts: rangedParts };
         const cmb = { total: sumParts(cmbParts), parts: cmbParts };
         const cmd = { total: sumParts(cmdParts), parts: cmdParts };
+        const cmdFF = { total: sumParts(cmdFFParts), parts: cmdFFParts };
 
         const computedHp = sumParts(hpParts);
         let hpNote = null;
@@ -845,7 +1430,7 @@
             armorAc, shieldAc, maxDex, effDex,
             ac: ac.total, touch: touch.total, flat: flat.total,
             cmb: cmb.total, cmd: cmd.total,
-            blocks: { ac, touch, flat, fort, ref, will, init, melee, ranged, damage, cmb, cmd, hp },
+            blocks: { ac, touch, flat, fort, ref, will, init, melee, ranged, damage, cmb, cmd, cmdFF, hp },
             multiclassSaves,
             savesText: goods && level
                 ? `Fort ${fmt(fort.total)}, Ref ${fmt(ref.total)}, Will ${fmt(will.total)}`
@@ -1211,7 +1796,7 @@
 
     function castingAbilityMod(data) {
         const key = ensureCastingAbility(data);
-        return mod(data[key]);
+        return abModOf(data, key);
     }
 
     function casterLevelValue(data) {
@@ -1370,120 +1955,497 @@
         }
     }
 
-    function addSessionBuffFromEntry(data, name, entry) {
+    // Foundry PF1 buff subtypes (systems/pf1 buffTypes)
+    const BUFF_SUBTYPES = [
+        { id: 'temp', label: 'Temporary' },
+        { id: 'spell', label: 'Spell' },
+        { id: 'feat', label: 'Feat' },
+        { id: 'perm', label: 'Permanent' },
+        { id: 'item', label: 'Item' },
+        { id: 'misc', label: 'Misc' },
+    ];
+    const BUFF_DURATION_UNITS = [
+        { id: '', label: 'Infinite' },
+        { id: 'turn', label: 'Turn(s)' },
+        { id: 'round', label: 'Round(s)' },
+        { id: 'minute', label: 'Minute(s)' },
+        { id: 'hour', label: 'Hour(s)' },
+    ];
+
+    /**
+     * Foundry-shaped buff list on _sheet.buffs (migrates legacy tempBuffs once).
+     * { id, name, subType, active, level, duration:{value,units}, changes[], notes }
+     */
+    function ensureBuffs(data) {
         const st = sheetState(data);
-        st.tempBuffs ??= [];
-        const changes = cloneChanges(entry?.changes);
-        if (!changes.length) {
-            changes.push({ formula: '1', target: 'ac', type: 'untyped', operator: 'add', priority: 0 });
+        if (Array.isArray(st.buffs) && st.buffs.length) {
+            // Preserve object identity (rendered rows hold references; fresh objects
+            // here would orphan them and break delete/edit) — same rule as
+            // ensureInventoryObjects.
+            st.buffs = st.buffs.map((b) => (b && typeof b === 'object')
+                ? Object.assign(b, normalizeBuffEntry(b))
+                : normalizeBuffEntry(b));
+            return st.buffs;
         }
-        st.tempBuffs.push({
-            id: 'temp-' + Date.now(),
-            name: name || entry?.name || 'Buff',
-            active: true,
-            changes,
-        });
-        quietSave();
+        // Migrate session tempBuffs → Foundry-style buffs
+        const legacy = Array.isArray(st.tempBuffs) ? st.tempBuffs : [];
+        st.buffs = legacy.map((b) => normalizeBuffEntry({
+            ...b,
+            subType: b.subType || 'temp',
+        }));
+        if (legacy.length) {
+            // Keep legacy array empty so we don't double-apply if something still reads it
+            st.tempBuffs = [];
+        } else if (!Array.isArray(st.buffs)) {
+            st.buffs = [];
+        }
+        return st.buffs;
     }
 
-    function renderTempBuffsEditor(body, data) {
-        const st = sheetState(data);
-        st.tempBuffs ??= [];
-        body.appendChild(h('h3', null, 'Session buffs'));
-        body.appendChild(h('p', 'dbl-edit-hint no-print',
-            'Browse feats/items with mechanical changes, or add a custom formula buff.'));
-        body.appendChild(sectionCatalogToolbar({
-            browseLabel: 'Browse buff sources',
-            picker: {
-                title: 'Add buff from catalog',
-                kinds: ['feats', 'items'],
-                allowCustom: true,
-                customPlaceholder: 'Custom buff name (then set formula below)',
-                onPick: (hit) => {
-                    addSessionBuffFromEntry(data, hit.name, hit.entry);
-                    renderSheet(data);
-                    setActiveTab('buffs');
-                },
-                onCustom: (name) => {
-                    addSessionBuffFromEntry(data, name, null);
-                    renderSheet(data);
-                    setActiveTab('buffs');
-                },
+    function normalizeBuffEntry(raw) {
+        const b = raw && typeof raw === 'object' ? raw : {};
+        const sub = String(b.subType || 'temp').toLowerCase();
+        const okSub = BUFF_SUBTYPES.some((s) => s.id === sub) ? sub : 'temp';
+        const dur = b.duration && typeof b.duration === 'object' ? b.duration : {};
+        return {
+            id: b.id || ('buff-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7)),
+            name: String(b.name || 'Buff').trim() || 'Buff',
+            subType: okSub,
+            active: b.active !== false,
+            level: Number.isFinite(Number(b.level)) ? Number(b.level) : 0,
+            duration: {
+                value: dur.value != null ? String(dur.value) : '',
+                units: ['turn', 'round', 'minute', 'hour'].includes(String(dur.units || ''))
+                    ? String(dur.units) : '',
             },
-        }));
-        const list = h('div', 'temp-buff-list dnd-list');
-        st.tempBuffs.forEach((b, idx) => {
-            const row = h('div', 'buff-toggle-row dnd-item' + (b.active === false ? ' buff-off' : ''));
-            row.dataset.dndId = b.id || String(idx);
-            row.prepend(dndHandle());
-            const lab = h('label', 'buff-toggle-label');
-            const cb = document.createElement('input');
-            cb.type = 'checkbox';
-            cb.checked = b.active !== false;
-            cb.addEventListener('change', () => {
-                b.active = cb.checked;
-                quietSave();
-                renderSheet(data);
-                setActiveTab('buffs');
+            changes: Array.isArray(b.changes) ? cloneChanges(b.changes) : [],
+            notes: b.notes != null ? String(b.notes) : '',
+        };
+    }
+
+    function formatBuffDuration(buff) {
+        const v = String(buff?.duration?.value || '').trim();
+        const u = String(buff?.duration?.units || '').trim();
+        if (!v && !u) return '—';
+        if (v && u) {
+            const unitLab = ({
+                turn: 'turn', round: 'round', minute: 'min', hour: 'hour',
+            })[u] || u;
+            const plural = v !== '1' ? 's' : '';
+            return v + ' ' + unitLab + (unitLab === 'min' ? '' : plural);
+        }
+        if (v) return v;
+        return u || '—';
+    }
+
+    function createBuff(data, opts = {}) {
+        const list = ensureBuffs(data);
+        const changes = cloneChanges(opts.changes);
+        if (!changes.length && opts.seedDefault !== false) {
+            changes.push({
+                formula: '1', target: 'ac', type: 'untyped',
+                operator: 'add', priority: 0,
             });
-            lab.append(cb, h('span', 'buff-source-name', b.name || 'Buff'));
-            row.appendChild(lab);
-            const bits = (b.changes || []).map((c) => formatChangeLine(c, window.SheetDetails)).join('; ');
-            row.appendChild(h('div', 'buff-source-effects', bits || '—'));
-            const rm = h('button', 'inv-btn inv-btn-danger', '×');
-            rm.type = 'button';
-            rm.addEventListener('click', () => {
-                const i = st.tempBuffs.indexOf(b);
-                if (i >= 0) st.tempBuffs.splice(i, 1);
-                quietSave();
-                renderSheet(data);
-                setActiveTab('buffs');
-            });
-            row.appendChild(rm);
-            list.appendChild(row);
+        }
+        const buff = normalizeBuffEntry({
+            id: 'buff-' + Date.now(),
+            name: opts.name || 'New buff',
+            subType: opts.subType || 'temp',
+            active: opts.active !== false,
+            level: opts.level != null ? opts.level : 0,
+            duration: opts.duration || { value: '', units: '' },
+            changes,
+            notes: opts.notes || '',
         });
-        body.appendChild(list);
-        bindDragReorder(list, '.buff-toggle-row', (from, to) => {
-            reorderArray(st.tempBuffs, from, to);
-            quietSave();
-            renderSheet(data);
-            setActiveTab('buffs');
+        list.push(buff);
+        quietSave();
+        return buff;
+    }
+
+    function addBuffFromCatalog(data, name, entry, subType) {
+        // Exactly the compendium changes — possibly none. No "+1 → AC" placeholder;
+        // the buff editor is one click away for adding real modifiers.
+        return createBuff(data, {
+            name: name || entry?.name || 'Buff',
+            subType: subType || 'temp',
+            changes: cloneChanges(entry?.changes),
+            seedDefault: false,
         });
-        const form = h('div', 'temp-buff-add no-print');
+    }
+
+    function openBuffEditor(data, buff, host) {
+        const existing = host.querySelector('.buff-editor-panel');
+        if (existing) {
+            existing.remove();
+            return;
+        }
+        const SD = window.SheetDetails;
+        const panel = h('div', 'buff-editor-panel inv-buffs-editor no-print');
+        panel.appendChild(h('div', 'inv-buffs-title', 'Edit buff'));
+
+        const meta = h('div', 'buff-editor-meta');
         const nameIn = h('input', 'edit-field');
+        nameIn.value = buff.name || '';
         nameIn.placeholder = 'Buff name';
+        const subSel = h('select', 'edit-field');
+        for (const s of BUFF_SUBTYPES) {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = s.label;
+            if (s.id === buff.subType) opt.selected = true;
+            subSel.appendChild(opt);
+        }
+        const levelIn = h('input', 'edit-field');
+        levelIn.type = 'number';
+        levelIn.min = '0';
+        levelIn.max = '40';
+        levelIn.value = String(buff.level || 0);
+        levelIn.title = 'Buff level (for scaling formulas)';
+        const durVal = h('input', 'edit-field');
+        durVal.placeholder = 'Duration value';
+        durVal.value = buff.duration?.value || '';
+        const durUnit = h('select', 'edit-field');
+        for (const u of BUFF_DURATION_UNITS) {
+            const opt = document.createElement('option');
+            opt.value = u.id;
+            opt.textContent = u.label;
+            if (u.id === (buff.duration?.units || '')) opt.selected = true;
+            durUnit.appendChild(opt);
+        }
+        const addField = (label, el) => {
+            const lab = h('label', 'buff-editor-field');
+            lab.appendChild(h('span', null, label));
+            lab.appendChild(el);
+            meta.appendChild(lab);
+        };
+        addField('Name', nameIn);
+        addField('Category', subSel);
+        addField('Level', levelIn);
+        addField('Duration', durVal);
+        addField('Units', durUnit);
+        panel.appendChild(meta);
+
+        const notesIn = h('textarea', 'edit-field buff-editor-notes');
+        notesIn.rows = 2;
+        notesIn.placeholder = 'Notes / description (optional)';
+        notesIn.value = buff.notes || '';
+        panel.appendChild(notesIn);
+
+        panel.appendChild(h('h4', null, 'Changes'));
+        const list = h('div', 'inv-buffs-list');
+        function redrawList() {
+            list.innerHTML = '';
+            const changes = Array.isArray(buff.changes) ? buff.changes : [];
+            if (!changes.length) {
+                list.appendChild(h('p', 'tools-empty', 'No mechanical changes — add one below.'));
+                return;
+            }
+            changes.forEach((c, idx) => {
+                const row = h('div', 'inv-buffs-row');
+                row.appendChild(h('span', 'inv-buffs-line', formatChangeLine(c, SD)));
+                const del = h('button', 'inv-btn inv-btn-danger', '×');
+                del.type = 'button';
+                del.addEventListener('click', () => {
+                    buff.changes.splice(idx, 1);
+                    quietSave();
+                    redrawList();
+                    refreshDerived();
+                });
+                row.appendChild(del);
+                list.appendChild(row);
+            });
+        }
+        redrawList();
+        panel.appendChild(list);
+
+        const form = h('div', 'inv-buffs-add');
         const formulaIn = h('input', 'edit-field');
-        formulaIn.placeholder = 'Formula (e.g. 2)';
+        formulaIn.placeholder = 'Formula (e.g. 2 or +1)';
         const targetSel = h('select', 'edit-field');
         for (const t of INV_TARGET_OPTIONS) {
             const opt = document.createElement('option');
             opt.value = t;
-            opt.textContent = window.SheetDetails?.targetLabel?.(t) || t;
+            opt.textContent = SD?.targetLabel?.(t) || t;
             targetSel.appendChild(opt);
         }
         targetSel.value = 'ac';
-        const addBtn = h('button', 'inv-btn inv-btn-primary', 'Add session buff');
+        const typeSel = h('select', 'edit-field');
+        for (const t of INV_TYPE_OPTIONS) {
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = t === 'untyped' ? 'untyped' : (SD?.typeLabel?.(t) || t);
+            typeSel.appendChild(opt);
+        }
+        const addBtn = h('button', 'inv-btn', 'Add change');
         addBtn.type = 'button';
         addBtn.addEventListener('click', () => {
-            const name = String(nameIn.value || '').trim() || 'Session buff';
             let formula = String(formulaIn.value || '').trim();
             if (!formula) { formulaIn.focus(); return; }
             if (/^\+\d+$/.test(formula)) formula = formula.slice(1);
-            st.tempBuffs.push({
-                id: 'temp-' + Date.now(),
-                name,
-                active: true,
-                changes: [{
-                    formula, target: targetSel.value, type: 'untyped',
-                    operator: 'add', priority: 0,
-                }],
+            (buff.changes ??= []).push({
+                formula,
+                target: targetSel.value,
+                type: typeSel.value || 'untyped',
+                operator: 'add',
+                priority: 0,
             });
+            formulaIn.value = '';
+            quietSave();
+            redrawList();
+            refreshDerived();
+        });
+        form.append(formulaIn, targetSel, typeSel, addBtn);
+        panel.appendChild(form);
+
+        const actions = h('div', 'inv-buffs-actions');
+        const saveBtn = h('button', 'inv-btn inv-btn-primary', 'Save');
+        saveBtn.type = 'button';
+        saveBtn.addEventListener('click', () => {
+            buff.name = String(nameIn.value || '').trim() || buff.name;
+            buff.subType = subSel.value;
+            buff.level = parseIntLoose(levelIn.value, 0);
+            buff.duration = {
+                value: String(durVal.value || '').trim(),
+                units: durUnit.value || '',
+            };
+            buff.notes = notesIn.value || '';
             quietSave();
             renderSheet(data);
             setActiveTab('buffs');
         });
-        form.append(nameIn, formulaIn, targetSel, addBtn);
-        body.appendChild(form);
+        const closeBtn = h('button', 'inv-btn', 'Close');
+        closeBtn.type = 'button';
+        closeBtn.addEventListener('click', () => {
+            // Apply meta fields on close too
+            buff.name = String(nameIn.value || '').trim() || buff.name;
+            buff.subType = subSel.value;
+            buff.level = parseIntLoose(levelIn.value, 0);
+            buff.duration = {
+                value: String(durVal.value || '').trim(),
+                units: durUnit.value || '',
+            };
+            buff.notes = notesIn.value || '';
+            quietSave();
+            renderSheet(data);
+            setActiveTab('buffs');
+        });
+        actions.append(saveBtn, closeBtn);
+        panel.appendChild(actions);
+        host.appendChild(panel);
+    }
+
+    const PASSIVE_KIND_TAGS = {
+        feat: 'Feat', trait: 'Trait', classFeat: 'Class', item: 'Item', talent: 'Talent',
+    };
+
+    /**
+     * Always-on source (feat/trait/item/class feature) as a row in the Permanent buff
+     * section: Active checkbox toggles it in sheet math, × deletes it (restorable).
+     */
+    function renderPassiveSourceRow(data, g) {
+        const SD = window.SheetDetails;
+        const active = isBuffSourceActive(data, g.source, g.sourceKind);
+        const row = h('div', 'buffs-row buffs-row-derived' + (active ? '' : ' buff-off'));
+        const nameCell = h('div', 'buffs-col-name');
+        const nameLine = h('span', 'buff-source-name', g.source || '?');
+        nameCell.appendChild(nameLine);
+        nameCell.appendChild(h('span', 'feat-tag buff-kind-tag',
+            PASSIVE_KIND_TAGS[g.sourceKind] || 'Other'));
+        const bits = g.lines.map((c) => formatChangeLine(c, SD)).join('; ');
+        if (bits) nameCell.appendChild(h('div', 'buff-source-effects', bits));
+        // Situational notes from this source surface on hover (they also hover on the
+        // relevant skill / attack rows via notesForTargets).
+        const srcNotes = [...new Set((window.sheetChangesFull?.notes || [])
+            .filter((n) => n.source === g.source && n.sourceKind === g.sourceKind)
+            .map((n) => String(n.text || '').replace(/<[^>]*>/g, '').trim())
+            .filter(Boolean))];
+        if (srcNotes.length) row.title = 'Situational: ' + srcNotes.join('; ');
+        row.appendChild(nameCell);
+
+        row.appendChild(h('span', 'buffs-col-dur', 'Permanent'));
+        row.appendChild(h('span', 'buffs-col-lv', '—'));
+
+        const activeCell = h('label', 'buffs-col-active');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = active;
+        cb.title = active ? 'Active — applied to sheet math' : 'Inactive';
+        cb.addEventListener('change', () => {
+            setBuffSourceActive(data, g.source, g.sourceKind, cb.checked);
+            setActiveTab('buffs');
+        });
+        activeCell.appendChild(cb);
+        row.appendChild(activeCell);
+
+        const ctrl = h('div', 'buffs-col-ctrl no-print');
+        const rm = h('button', 'inv-btn inv-btn-danger', '×');
+        rm.type = 'button';
+        rm.title = 'Delete this source from the sheet math and list';
+        rm.addEventListener('click', () => {
+            if (!confirm(`Delete “${g.source}”? Its modifiers stop applying (restorable via the button below).`)) return;
+            removeBuffSource(data, g.source, g.sourceKind);
+            setActiveTab('buffs');
+        });
+        ctrl.appendChild(rm);
+        row.appendChild(ctrl);
+        return row;
+    }
+
+    function renderBuffSections(body, data, passive = { groups: [], removed: [] }) {
+        const buffs = ensureBuffs(data);
+        const SD = window.SheetDetails;
+
+        body.appendChild(h('h3', null, 'Buffs'));
+        body.appendChild(h('p', 'dbl-edit-hint no-print',
+            'Grouped by category. Active checkbox applies changes. Duration & level are session bookkeeping.'));
+
+        // Column legend
+        const legend = h('div', 'buffs-col-legend no-print');
+        legend.innerHTML = '<span class="buffs-col-name">Name</span>'
+            + '<span class="buffs-col-dur">Duration</span>'
+            + '<span class="buffs-col-lv">Level</span>'
+            + '<span class="buffs-col-active">Active</span>'
+            + '<span class="buffs-col-ctrl"></span>';
+        body.appendChild(legend);
+
+        for (const sec of BUFF_SUBTYPES) {
+            const sectionEl = h('div', 'buffs-section');
+            sectionEl.dataset.buffSubtype = sec.id;
+            const head = h('div', 'buffs-section-head');
+            head.appendChild(h('h4', 'buffs-section-title', sec.label));
+            const headCtrl = h('div', 'buffs-section-controls no-print');
+            const addBtn = h('button', 'inv-btn inv-btn-primary', '+');
+            addBtn.type = 'button';
+            addBtn.title = 'Create ' + sec.label.toLowerCase() + ' buff';
+            addBtn.addEventListener('click', () => {
+                createBuff(data, { name: 'New ' + sec.label.toLowerCase() + ' buff', subType: sec.id });
+                renderSheet(data);
+                setActiveTab('buffs');
+            });
+            const browseBtn = h('button', 'inv-btn', 'Browse');
+            browseBtn.type = 'button';
+            browseBtn.title = 'Add from catalog into ' + sec.label;
+            browseBtn.addEventListener('click', () => {
+                openCatalogPicker({
+                    title: 'Add ' + sec.label.toLowerCase() + ' buff',
+                    kinds: ['feats', 'items'],
+                    allowCustom: true,
+                    customPlaceholder: 'Custom buff name',
+                    onPick: (hit) => {
+                        addBuffFromCatalog(data, hit.name, hit.entry, sec.id);
+                        renderSheet(data);
+                        setActiveTab('buffs');
+                    },
+                    onCustom: (name) => {
+                        createBuff(data, { name, subType: sec.id });
+                        renderSheet(data);
+                        setActiveTab('buffs');
+                    },
+                });
+            });
+            headCtrl.append(addBtn, browseBtn);
+            head.appendChild(headCtrl);
+            sectionEl.appendChild(head);
+
+            const items = buffs.filter((b) => b.subType === sec.id);
+            // Always-on sources (feats/traits/items/class features) live in Permanent
+            const derived = sec.id === 'perm' ? (passive.groups || []) : [];
+            const list = h('div', 'buffs-list');
+            if (!items.length && !derived.length) {
+                list.appendChild(h('p', 'tools-empty buffs-empty', 'No ' + sec.label.toLowerCase() + ' buffs.'));
+            } else {
+                for (const buff of items) {
+                    const row = h('div', 'buffs-row' + (buff.active === false ? ' buff-off' : ''));
+                    const nameCell = h('div', 'buffs-col-name');
+                    nameCell.appendChild(h('span', 'buff-source-name', buff.name));
+                    const bits = (buff.changes || []).map((c) => formatChangeLine(c, SD)).join('; ');
+                    if (bits) {
+                        nameCell.appendChild(h('div', 'buff-source-effects', bits));
+                    }
+                    if (buff.notes) {
+                        nameCell.appendChild(h('div', 'dim buff-notes-preview', buff.notes));
+                    }
+                    row.appendChild(nameCell);
+
+                    row.appendChild(h('span', 'buffs-col-dur', formatBuffDuration(buff)));
+
+                    const lvCell = h('span', 'buffs-col-lv');
+                    lvCell.appendChild(dblclickEditable(buff, 'level', {
+                        type: 'number', min: 0, max: 40,
+                        format: (v) => (v == null || v === '' || Number(v) === 0 ? '—' : String(v)),
+                        parse: (s) => parseIntLoose(s, 0),
+                        onChange: () => quietSave(),
+                    }));
+                    row.appendChild(lvCell);
+
+                    const activeCell = h('label', 'buffs-col-active');
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.checked = buff.active !== false;
+                    cb.title = buff.active !== false ? 'Active — applied to sheet math' : 'Inactive';
+                    cb.addEventListener('change', () => {
+                        buff.active = cb.checked;
+                        quietSave();
+                        renderSheet(data);
+                        setActiveTab('buffs');
+                    });
+                    activeCell.appendChild(cb);
+                    row.appendChild(activeCell);
+
+                    const ctrl = h('div', 'buffs-col-ctrl no-print');
+                    const editBtn = h('button', 'inv-btn', 'Edit');
+                    editBtn.type = 'button';
+                    editBtn.addEventListener('click', () => openBuffEditor(data, buff, row));
+                    const dupBtn = h('button', 'inv-btn', '⧉');
+                    dupBtn.type = 'button';
+                    dupBtn.title = 'Duplicate buff';
+                    dupBtn.addEventListener('click', () => {
+                        createBuff(data, {
+                            name: (buff.name || 'Buff') + ' (copy)',
+                            subType: buff.subType,
+                            active: false,
+                            level: buff.level,
+                            duration: { ...buff.duration },
+                            changes: cloneChanges(buff.changes),
+                            notes: buff.notes,
+                            seedDefault: false,
+                        });
+                        renderSheet(data);
+                        setActiveTab('buffs');
+                    });
+                    const rm = h('button', 'inv-btn inv-btn-danger', '×');
+                    rm.type = 'button';
+                    rm.title = 'Delete buff';
+                    rm.addEventListener('click', () => {
+                        if (!confirm(`Delete buff “${buff.name}”?`)) return;
+                        const arr = ensureBuffs(data);
+                        let i = arr.indexOf(buff);
+                        if (i < 0) i = arr.findIndex((x) => x?.id === buff.id);
+                        if (i >= 0) arr.splice(i, 1);
+                        quietSave();
+                        renderSheet(data);
+                        setActiveTab('buffs');
+                    });
+                    ctrl.append(editBtn, dupBtn, rm);
+                    row.appendChild(ctrl);
+                    list.appendChild(row);
+                }
+            }
+            for (const g of derived) list.appendChild(renderPassiveSourceRow(data, g));
+            sectionEl.appendChild(list);
+            if (sec.id === 'perm' && (passive.removed || []).length) {
+                const restore = h('button', 'inv-btn no-print',
+                    'Restore removed sources (' + passive.removed.length + ')');
+                restore.type = 'button';
+                restore.title = 'Bring back: ' + passive.removed.map((g) => g.source).join(', ');
+                restore.addEventListener('click', () => {
+                    restoreRemovedBuffSources(data);
+                    setActiveTab('buffs');
+                });
+                sectionEl.appendChild(restore);
+            }
+            body.appendChild(sectionEl);
+        }
     }
 
     /** Compact AC line: total + touch/ff + sources for each. */
@@ -1569,7 +2531,8 @@
             // No global "main stat" highlight — casting / practitioner abilities live on Spells / PoW.
             const box = h('div', 'ability-box');
             box.appendChild(h('div', 'ab-name', ab.toUpperCase()));
-            const modEl = h('div', 'ab-mod', data[ab] != null ? fmt(mod(data[ab])) : '—');
+            const modEl = h('div', 'ab-mod', data[ab] != null ? fmt(abModOf(data, ab)) : '—');
+            modEl.title = abilityInfo(data, ab).formula;
             const scoreInput = editableField(data, ab, {
                 type: 'number',
                 min: 1,
@@ -1578,7 +2541,7 @@
                     modEl.textContent = v != null && Number.isFinite(Number(v)) ? fmt(mod(v)) : '—';
                 },
                 onChange: () => {
-                    modEl.textContent = data[ab] != null ? fmt(mod(data[ab])) : '—';
+                    modEl.textContent = data[ab] != null ? fmt(abModOf(data, ab)) : '—';
                 },
             });
             scoreInput.className = 'edit-field ab-score-input';
@@ -1589,104 +2552,65 @@
         return wrap;
     }
 
-    // Aggregated pf1 changes/notes/conditionals ledger — the data layer future dice rolling
-    // will consume. Also exposed as window.sheetChanges.
+    // Foundry-like Buffs tab: Conditions → Buff sections (Permanent holds always-on sources)
     function renderModifiers(data) {
         const SD = window.SheetDetails;
-        const { sec, body } = section('Buffs & modifiers', 'modifiers');
-        // Conditions always available (session trackers)
+        const { sec, body } = section('Buffs & Conditions', 'modifiers buffs-tab');
+        body.appendChild(h('p', 'dbl-edit-hint no-print',
+            'Conditions strip, then buffs by category (toggle Active). Always-on modifiers from feats, traits, items, and class features live under Permanent.'));
+
+        // 1) Conditions (Foundry buffs-conditions)
         renderConditionsTray(body, data);
-        renderTempBuffsEditor(body, data);
+
+        // Ledger first: the Permanent section lists always-on sources as rows.
+        let passive = { groups: [], removed: [] };
+        let ledger = null;
+        if (SD) {
+            ledger = SD.collectChanges(data);
+            window.sheetChangesFull = ledger;
+            window.sheetChanges = effectiveLedger(data);
+            const passiveChanges = (ledger.changes || []).filter((c) => c.sourceKind !== 'buff');
+            const allGroups = groupChangesBySource(passiveChanges);
+            passive = {
+                groups: allGroups.filter((g) => !isBuffSourceRemoved(data, g.source, g.sourceKind)),
+                removed: allGroups.filter((g) => isBuffSourceRemoved(data, g.source, g.sourceKind)),
+            };
+        }
+
+        // 2) Foundry-style buff item sections
+        renderBuffSections(body, data, passive);
 
         if (!SD) {
-            body.appendChild(h('p', 'tools-empty', 'Item details not loaded yet.'));
-            return sec;
-        }
-        const ledger = SD.collectChanges(data);
-        window.sheetChangesFull = ledger;
-        window.sheetChanges = effectiveLedger(data);
-        body.appendChild(h('p', 'dbl-edit-hint no-print',
-            'Toggle each buff on/off. Off buffs are ignored in AC, saves, HP, skills, and attack math. Combat conditionals stay separate.'));
-
-        if (!ledger.changes.length && !ledger.notes.length && !ledger.conditionals.length) {
-            body.appendChild(h('p', 'tools-empty', 'No always-on or per-roll modifiers on this character.'));
+            body.appendChild(h('p', 'tools-empty', 'Item details not loaded yet — permanent sources unavailable.'));
             return sec;
         }
 
-        if (ledger.changes.length) {
-            body.appendChild(h('h3', null, 'Always-on sources (toggle each)'));
-            const list = h('div', 'buff-toggle-list no-print');
-            const groups = groupChangesBySource(ledger.changes);
-            for (const g of groups) {
-                const active = isBuffSourceActive(data, g.source, g.sourceKind);
-                const row = h('div', 'buff-toggle-row' + (active ? '' : ' buff-off'));
-                const lab = h('label', 'buff-toggle-label');
-                const cb = document.createElement('input');
-                cb.type = 'checkbox';
-                cb.className = 'buff-source-check';
-                cb.checked = active;
-                cb.title = active ? 'Applied to sheet math' : 'Not applied';
-                cb.addEventListener('change', () => {
-                    setBuffSourceActive(data, g.source, g.sourceKind, cb.checked);
-                });
-                const kind = g.sourceKind ? ` [${g.sourceKind}]` : '';
-                lab.append(cb, h('span', 'buff-source-name', (g.source || '?') + kind));
-                row.appendChild(lab);
-                const bits = g.lines.map((c) => {
+        // Print: active modifiers by target
+        const activeChanges = effectiveLedger(data).changes;
+        if (activeChanges.length) {
+            body.appendChild(h('h3', 'print-only', 'Active modifiers (print)'));
+            const byTarget = {};
+            for (const c of activeChanges) (byTarget[SD.targetLabel(c.target)] ??= []).push(c);
+            for (const [label, clist] of Object.entries(byTarget).sort((a, b) => a[0].localeCompare(b[0]))) {
+                const line = h('div', 'mod-line print-only');
+                line.appendChild(h('span', 'mod-target', label + ': '));
+                line.appendChild(h('span', null, clist.map((c) => {
                     const t = SD.typeLabel(c.type);
                     const num = /^-?\d+$/.test(String(c.formula).trim())
                         ? fmt(Number(c.formula)) : String(c.formula);
-                    return `${num}${t ? ' ' + t : ''} → ${SD.targetLabel(c.target)}`;
-                }).join('; ');
-                row.appendChild(h('div', 'buff-source-effects', bits));
-                list.appendChild(row);
-            }
-            body.appendChild(list);
-
-            // Print-friendly by-target summary (active only)
-            const activeChanges = effectiveLedger(data).changes;
-            if (activeChanges.length) {
-                body.appendChild(h('h3', 'print-only', 'Active modifiers (print)'));
-                const byTarget = {};
-                for (const c of activeChanges) (byTarget[SD.targetLabel(c.target)] ??= []).push(c);
-                for (const [label, clist] of Object.entries(byTarget).sort((a, b) => a[0].localeCompare(b[0]))) {
-                    const line = h('div', 'mod-line print-only');
-                    line.appendChild(h('span', 'mod-target', label + ': '));
-                    line.appendChild(h('span', null, clist.map((c) => {
-                        const t = SD.typeLabel(c.type);
-                        const num = /^-?\d+$/.test(String(c.formula).trim())
-                            ? fmt(Number(c.formula)) : String(c.formula);
-                        return `${num}${t ? ' ' + t : ''} (${c.source})`;
-                    }).join(', ')));
-                    body.appendChild(line);
-                }
-            }
-        }
-        if (ledger.notes.length) {
-            body.appendChild(h('h3', null, 'Situational'));
-            for (const n of ledger.notes) {
-                const line = h('div', 'mod-note');
-                line.innerHTML = highlightInlineRolls(n.text) + ' — ' + escapeHtml(n.source);
+                    return `${num}${t ? ' ' + t : ''} (${c.source})`;
+                }).join(', ')));
                 body.appendChild(line);
             }
         }
+
+        // Situational notes render as ⓘ hover tooltips on the relevant skill / attack
+        // rows (notesForTargets) — no panel here.
+
+        // Per-roll conditionals — pointer only
         if (ledger.conditionals.length) {
-            body.appendChild(h('h3', null, 'Per-Roll Toggles & Riders'));
-            body.appendChild(h('p', 'dbl-edit-hint',
-                'These are toggled on the Combat attack panel, not here.'));
-            const ul = h('ul', 'plain-list');
-            for (const c of ledger.conditionals) {
-                const modTxt = (c.modifiers || []).map((m) =>
-                    `${m.formula} ${m.type && m.type !== 'untyped' ? m.type + ' ' : ''}${m.subTarget || m.target || ''}`.trim()).join('; ');
-                const bodyHtml = [
-                    c.name ? `<p>${highlightInlineRolls(c.name)}</p>` : '',
-                    modTxt ? `<p><strong>Modifiers:</strong> ${escapeHtml(modTxt)}</p>` : '',
-                    c.rider ? `<p><strong>Rider:</strong> ${highlightInlineRolls(c.rider)}</p>` : '',
-                ].join('');
-                ul.appendChild(h('li', null, null)).appendChild(
-                    bodyHtml ? details(c.source, bodyHtml, 'cond-rider') : h('span', null, c.source));
-            }
-            body.appendChild(ul);
+            body.appendChild(h('p', 'dim buffs-cond-pointer',
+                ledger.conditionals.length + ' per-roll conditionals — toggle them on the Combat / Tools attack panel, not here.'));
         }
         return sec;
     }
@@ -1765,7 +2689,10 @@
             if (obj.description) {
                 (data.equip_descrip ??= {})[obj.name] = obj.description;
             }
-            return obj;
+            // Preserve object identity: setActiveTab re-hydrates the list after panes render,
+            // and rendered rows (checkboxes, editors) hold references to these objects — a new
+            // object here would orphan them, so their edits would silently stop persisting.
+            return (raw && typeof raw === 'object') ? Object.assign(raw, obj) : obj;
         });
         return data.equipment_list;
     }
@@ -1789,6 +2716,8 @@
             contextNotes: (foundry?.contextNotes || []).map((n) => ({ ...n })),
             changesCustomized: false,
             subType: foundry?.subType || '',
+            equipmentSubtype: foundry?.equipmentSubtype || '',
+            armor: foundry?.armor ? { ...foundry.armor } : null,
             slot: foundry?.slot || '',
             itemType: foundry?.itemType || '',
             containerId: null,
@@ -1797,6 +2726,102 @@
         if (item.description) (data.equip_descrip ??= {})[item.name] = item.description;
         quietSave();
         return item;
+    }
+
+    /** "Longsword [+1, flaming]" → ['+1', 'flaming']; plain names → []. */
+    function parseEnhancements(name) {
+        const m = String(name || '').match(/\[([^\]]+)\]\s*$/);
+        if (!m) return [];
+        return m[1].split(',').map((s) => s.trim()).filter(Boolean);
+    }
+
+    /**
+     * What an enhancement does. Priority: backend `enhancement_desc_dict`
+     * ({ "<name lowercase>": "<html|text>" } — new payload field, shared with the
+     * FoundryVTT module), then the local compendium, then generic +N wording.
+     */
+    function enhancementDescHtml(data, enh, kind) {
+        const dict = data?.enhancement_desc_dict || {};
+        const key = String(enh).toLowerCase().trim();
+        let hit = dict[key] ?? dict[enh];
+        if (hit == null) {
+            hit = Object.entries(dict)
+                .find(([k]) => String(k).toLowerCase().trim() === key)?.[1];
+        }
+        if (hit != null) {
+            const html = typeof hit === 'object' ? (hit.description || '') : String(hit);
+            if (html) return /</.test(html) ? html : '<p>' + escapeHtml(html) + '</p>';
+        }
+        const plusN = key.match(/^\+(\d+)$/);
+        if (plusN) {
+            return kind === 'armor'
+                ? `<p>+${plusN[1]} enhancement bonus to AC.</p>`
+                : `<p>+${plusN[1]} enhancement bonus on attack and damage rolls.</p>`;
+        }
+        const local = window.SheetDetails?.lookupItem?.(enh);
+        if (local?.description) return local.description;
+        return '<p class="dim">No description on file — the backend can supply it via '
+            + '<code>enhancement_desc_dict</code>.</p>';
+    }
+
+    /** Empty item shell (no compendium link) — filled in via the item sheet. */
+    function addBlankInventoryItem(data, itemType) {
+        ensureInventoryObjects(data);
+        const item = {
+            id: 'eq:blank-' + Date.now(),
+            name: 'New Item',
+            equipped: false,
+            carried: true,
+            identified: true,
+            quantity: 1,
+            weight: null,
+            price: null,
+            description: '',
+            changes: [],
+            contextNotes: [],
+            changesCustomized: false,
+            subType: '',
+            equipmentSubtype: '',
+            armor: null,
+            slot: '',
+            itemType: itemType || '',
+            containerId: null,
+        };
+        data.equipment_list.push(item);
+        quietSave();
+        return item;
+    }
+
+    /**
+     * One-time migration: the generated weapon / armor / shield (weapon_name & co.)
+     * become regular equipment_list items with full item sheets. Combat math keeps
+     * reading data.weapon_name — only the inventory display moves into the list.
+     */
+    function migrateCoreGear(data) {
+        const st = (data._sheet ??= {});
+        if (st.coreGearMigrated) return;
+        st.coreGearMigrated = true;
+        const list = ensureInventoryObjects(data);
+        let touched = false;
+        const seed = (name, enhList, slot) => {
+            const nm = String(name || '').trim();
+            if (!nm || /^(none|n\/a|-)$/i.test(nm)) return;
+            const display = gearLine(nm, enhList) || nm;
+            const has = (v) => list.some((it) =>
+                String(it.name).toLowerCase() === String(v).toLowerCase());
+            if (has(display) || has(nm)) return;
+            const it = addInventoryItem(data, nm); // hydrates from the compendium
+            if (!it) return;
+            if (display !== nm) it.name = display; // keep the enhancement suffix visible
+            if (!it.slot) it.slot = slot;
+            if (!it.itemType) it.itemType = slot === 'weapon' ? 'weapon' : 'equipment';
+            it.equipped = true;
+            touched = true;
+        };
+        seed(data.weapon_name, data.weapon_enhancement_chosen_list, 'weapon');
+        seed(data.armor_name, data.armor_enhancement_chosen_list, 'armor');
+        seed(data.shield_name, data.shield_enhancement_chosen_list, 'shield');
+        if (touched) quietSave();
     }
 
     function formatChangeLine(c, SD) {
@@ -1839,7 +2864,7 @@
         card.appendChild(head);
 
         const lead = h('p', 'catalog-picker-lead dim',
-            'Search the local Foundry extracts. Pick a result, or add a custom name if it is not in the database.');
+            'Search the item database. Pick a result, or add a custom name if it is not listed.');
         card.appendChild(lead);
 
         let activeKind = kinds[0];
@@ -1890,6 +2915,16 @@
                 if (e.key === 'Enter') { e.preventDefault(); doCustom(); }
             });
             customRow.append(customIn, customBtn);
+            if (opts.onBlank) {
+                const blankBtn = h('button', 'inv-btn', 'Blank item');
+                blankBtn.type = 'button';
+                blankBtn.title = 'Create an empty item and open its sheet';
+                blankBtn.addEventListener('click', () => {
+                    overlay.remove();
+                    opts.onBlank();
+                });
+                customRow.appendChild(blankBtn);
+            }
             card.appendChild(customRow);
         }
 
@@ -1952,14 +2987,8 @@
         return bar;
     }
 
-    function openItemBuffsEditor(data, item, host) {
-        // Toggle: if editor already open under this card, close it
-        const existing = host.querySelector('.inv-buffs-editor');
-        if (existing) {
-            existing.remove();
-            return;
-        }
-
+    /** Mechanical-buffs (changes) editor panel — embedded in the item sheet's Changes tab. */
+    function buildItemBuffsPanel(data, item, opts = {}) {
         const SD = window.SheetDetails;
         const panel = h('div', 'inv-buffs-editor no-print');
         panel.appendChild(h('div', 'inv-buffs-title', 'Mechanical buffs — ' + item.name));
@@ -2048,9 +3077,9 @@
         const actions = h('div', 'inv-buffs-actions');
         const resetBtn = h('button', 'inv-btn', 'Reset to compendium');
         resetBtn.type = 'button';
-        resetBtn.title = 'Restore Foundry/compendium changes for this item';
+        resetBtn.title = 'Restore the default changes for this item';
         resetBtn.addEventListener('click', () => {
-            const foundry = SD?.lookupItem?.(item.name);
+            const foundry = SD?.lookupItem?.(String(item.name || '').split(' [')[0].trim());
             item.changes = cloneChanges(foundry?.changes);
             item.contextNotes = (foundry?.contextNotes || []).map((n) => ({ ...n }));
             item.changesCustomized = false;
@@ -2062,13 +3091,369 @@
             window.sheetChangesFull = SD?.collectChanges?.(data);
             window.sheetChanges = effectiveLedger(data);
         });
-        const closeBtn = h('button', 'inv-btn', 'Close');
-        closeBtn.type = 'button';
-        closeBtn.addEventListener('click', () => panel.remove());
-        actions.append(resetBtn, closeBtn);
+        actions.append(resetBtn);
+        if (opts.closable) {
+            const closeBtn = h('button', 'inv-btn', 'Close');
+            closeBtn.type = 'button';
+            closeBtn.addEventListener('click', () => panel.remove());
+            actions.append(closeBtn);
+        }
         panel.appendChild(actions);
+        return panel;
+    }
 
-        host.appendChild(panel);
+    /** camelCase / lowercase tokens → "Title Case" for type captions. */
+    function prettyTypeWord(s) {
+        return String(s || '')
+            .replace(/([a-z])([A-Z])/g, '$1 $2')
+            .replace(/(^|\s)\w/g, (c) => c.toUpperCase());
+    }
+
+    /**
+     * Foundry-style pf1 item sheet (modal): stats sidebar (type, qty, weight, price,
+     * HP/hardness, state checkboxes, property chips) + Description / Details / Changes
+     * tabs. Everything editable; the inventory re-renders on close.
+     */
+    function openItemSheet(data, item) {
+        document.getElementById('item-sheet-modal')?.remove();
+        const SD = window.SheetDetails;
+        // Migrated core gear carries an "[enhancements]" suffix — look up by base name.
+        const baseName = String(item.name || '').split(' [')[0].trim();
+        // Per-item overrides (item.weapon / item.armor) win over compendium lookups.
+        const wBase = SD?.lookupWeapon?.(baseName);
+        const weapon = (wBase || item.weapon) ? { ...(wBase || {}), ...(item.weapon || {}) } : null;
+        const compendium = SD?.lookupItem?.(baseName);
+        const armor = item.armor || compendium?.armor || null;
+
+        const overlay = h('div', 'catalog-picker item-sheet-overlay no-print');
+        overlay.id = 'item-sheet-modal';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-label', 'Item sheet — ' + (item.name || 'item'));
+
+        const onKey = (e) => {
+            if (e.key === 'Escape') { e.preventDefault(); close(); }
+        };
+        const close = () => {
+            document.removeEventListener('keydown', onKey);
+            overlay.remove();
+            invRerender(data);
+        };
+        document.addEventListener('keydown', onKey);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) close();
+        });
+
+        const card = h('div', 'item-sheet-card');
+
+        // ---- header: name + unidentified name (both editable), type caption, close
+        const head = h('div', 'item-sheet-head');
+        const titles = h('div', 'item-sheet-titles');
+        const nameIn = h('input', 'item-sheet-name');
+        nameIn.type = 'text';
+        nameIn.value = item.name || '';
+        nameIn.placeholder = 'Item name';
+        nameIn.addEventListener('change', () => {
+            const next = nameIn.value.trim();
+            if (!next || next === item.name) return;
+            // Re-key the shared description map so the row expander keeps working.
+            if (data.equip_descrip?.[item.name]) {
+                data.equip_descrip[next] = data.equip_descrip[item.name];
+            }
+            item.name = next;
+            quietSave();
+        });
+        const unidIn = h('input', 'item-sheet-unid-name');
+        unidIn.type = 'text';
+        unidIn.value = item.unidName || '';
+        unidIn.placeholder = 'Unidentified Name';
+        unidIn.title = 'Shown on the sheet while the item is unidentified';
+        unidIn.addEventListener('change', () => {
+            item.unidName = unidIn.value.trim();
+            quietSave();
+        });
+        titles.append(nameIn, unidIn);
+        head.appendChild(titles);
+        const closeBtn = h('button', 'catalog-picker-close', '×');
+        closeBtn.type = 'button';
+        closeBtn.title = 'Close';
+        closeBtn.addEventListener('click', close);
+        head.appendChild(closeBtn);
+        card.appendChild(head);
+
+        const grid = h('div', 'item-sheet-grid');
+
+        // ---- sidebar
+        const side = h('div', 'item-sheet-side');
+        const typeBits = [
+            prettyTypeWord(item.itemType) || prettyTypeWord(inventoryCategory(item)),
+            item.subType && item.subType !== item.itemType ? prettyTypeWord(item.subType) : '',
+            item.equipmentSubtype ? prettyTypeWord(item.equipmentSubtype) : '',
+        ].filter(Boolean);
+        side.appendChild(h('h4', 'item-sheet-type', typeBits[0] || 'Item'));
+        for (const bit of typeBits.slice(1)) side.appendChild(h('p', 'item-sheet-subtype', bit));
+
+        const numRow = (label, get, set, o = {}) => {
+            const row = h('label', 'item-sheet-stat');
+            row.appendChild(h('span', 'item-sheet-stat-label', label));
+            const inp = h('input', 'item-sheet-num');
+            inp.type = 'number';
+            if (o.min != null) inp.min = String(o.min);
+            inp.step = o.step || 'any';
+            const v = get();
+            inp.value = v == null || v === '' ? '' : String(v);
+            if (o.placeholder) inp.placeholder = o.placeholder;
+            inp.addEventListener('change', () => {
+                const n = inp.value === '' ? null : Number(inp.value);
+                set(Number.isFinite(n) ? n : null);
+                quietSave();
+            });
+            row.appendChild(inp);
+            return row;
+        };
+        const textRow = (label, get, set, placeholder) => {
+            const row = h('label', 'item-sheet-stat');
+            row.appendChild(h('span', 'item-sheet-stat-label', label));
+            const inp = h('input', 'item-sheet-text');
+            inp.type = 'text';
+            inp.value = get() || '';
+            if (placeholder) inp.placeholder = placeholder;
+            inp.addEventListener('change', () => {
+                set(inp.value.trim());
+                quietSave();
+            });
+            row.appendChild(inp);
+            return row;
+        };
+        const selectRow = (label, options, get, set) => {
+            const row = h('label', 'item-sheet-stat');
+            row.appendChild(h('span', 'item-sheet-stat-label', label));
+            const sel = h('select', 'item-sheet-select');
+            for (const [val, lab] of options) {
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = lab;
+                sel.appendChild(opt);
+            }
+            sel.value = get() ?? '';
+            sel.addEventListener('change', () => {
+                set(sel.value);
+                quietSave();
+            });
+            row.appendChild(sel);
+            return row;
+        };
+        side.appendChild(numRow('Quantity',
+            () => item.quantity ?? 1,
+            (v) => { item.quantity = Math.max(1, Math.round(v ?? 1)); }, { min: 1, step: '1' }));
+        side.appendChild(numRow('Weight', () => item.weight, (v) => { item.weight = v; }, { min: 0 }));
+        side.appendChild(numRow('Price', () => item.price, (v) => { item.price = v; }, { min: 0 }));
+        side.appendChild(numRow('Unid. Price', () => item.unidPrice, (v) => { item.unidPrice = v; }, { min: 0 }));
+
+        // HP value / max on one row (pf1 defaults 10/10)
+        const hpRow = h('div', 'item-sheet-stat');
+        hpRow.appendChild(h('span', 'item-sheet-stat-label', 'HP'));
+        const hpPair = h('span', 'item-sheet-hp');
+        const hpIn = h('input', 'item-sheet-num');
+        hpIn.type = 'number';
+        hpIn.value = String(item.hp ?? 10);
+        hpIn.addEventListener('change', () => {
+            item.hp = parseIntLoose(hpIn.value, 10);
+            quietSave();
+        });
+        const hpMaxIn = h('input', 'item-sheet-num');
+        hpMaxIn.type = 'number';
+        hpMaxIn.value = String(item.hpMax ?? 10);
+        hpMaxIn.addEventListener('change', () => {
+            item.hpMax = parseIntLoose(hpMaxIn.value, 10);
+            quietSave();
+        });
+        hpPair.append(hpIn, h('span', 'item-sheet-hp-sep', '/'), hpMaxIn);
+        hpRow.appendChild(hpPair);
+        side.appendChild(hpRow);
+        side.appendChild(numRow('Hardness',
+            () => item.hardness ?? 10,
+            (v) => { item.hardness = v == null ? null : Math.max(0, Math.round(v)); }, { min: 0, step: '1' }));
+
+        const checks = h('div', 'item-sheet-checks');
+        const checkRow = (label, get, set, title) => {
+            const row = h('label', 'item-sheet-check');
+            const cb = h('input');
+            cb.type = 'checkbox';
+            cb.checked = !!get();
+            if (title) row.title = title;
+            cb.addEventListener('change', () => { set(cb.checked); quietSave(); });
+            row.append(cb, h('span', null, label));
+            return row;
+        };
+        checks.append(
+            checkRow('Equipped', () => item.equipped, (v) => { item.equipped = v; },
+                'Applies the item buffs'),
+            checkRow('Carried', () => item.carried !== false, (v) => { item.carried = v; },
+                'Stowed items do not count for encumbrance'),
+            checkRow('Broken', () => item.broken, (v) => { item.broken = v; }),
+            checkRow('Masterwork', () => item.masterwork, (v) => { item.masterwork = v; }),
+            checkRow('Identified', () => item.identified !== false, (v) => { item.identified = v; },
+                'Unidentified items show the unidentified name on the sheet'),
+        );
+        side.appendChild(checks);
+
+        // Property chips — the data we actually have (armor numbers, weapon dice/crit)
+        const chips = [];
+        if (armor && armor.value != null) {
+            chips.push('AC +' + armor.value);
+            if (armor.dex != null) chips.push('Max Dex ' + armor.dex);
+            if (armor.acp != null && armor.acp !== 0) chips.push('ACP ' + armor.acp);
+        }
+        if (weapon) {
+            if (weapon.dice) chips.push(weapon.dice);
+            const cr = Number(weapon.critRange) || 20;
+            chips.push((cr >= 20 ? '20' : cr + '–20') + '/×' + (weapon.critMult || 2));
+            for (const p of weapon.parts || []) for (const t of p.types || []) chips.push(t);
+        }
+        if (chips.length) {
+            side.appendChild(h('p', 'item-sheet-chips-title', 'Properties'));
+            const chipRow = h('div', 'item-sheet-chips');
+            for (const c of [...new Set(chips)]) chipRow.appendChild(h('span', 'feat-tag', c));
+            side.appendChild(chipRow);
+        }
+        grid.appendChild(side);
+
+        // ---- content: Description | Details | Changes tabs
+        const content = h('div', 'item-sheet-content');
+        const tabBar = h('div', 'item-sheet-tabs');
+        const panes = {};
+        const tabs = [['description', 'Description'], ['details', 'Details'], ['changes', 'Changes']];
+        for (const [id, label] of tabs) {
+            const btn = h('button', 'item-sheet-tab' + (id === 'description' ? ' is-active' : ''), label);
+            btn.type = 'button';
+            btn.dataset.pane = id;
+            btn.addEventListener('click', () => {
+                tabBar.querySelectorAll('.item-sheet-tab').forEach((b) =>
+                    b.classList.toggle('is-active', b === btn));
+                for (const [pid, pane] of Object.entries(panes)) {
+                    pane.classList.toggle('hidden', pid !== id);
+                }
+            });
+            tabBar.appendChild(btn);
+        }
+        content.appendChild(tabBar);
+
+        // Description pane — Superficial (unidentified) + Identified Properties
+        const descPane = h('div', 'item-sheet-pane');
+        descPane.appendChild(h('h4', 'item-sheet-h', 'Superficial Details'));
+        const unidDesc = h('textarea', 'edit-field item-sheet-unid-desc');
+        unidDesc.placeholder = 'No description.';
+        unidDesc.value = item.unidDescription || '';
+        unidDesc.title = 'What the item looks like before identification';
+        unidDesc.addEventListener('change', () => {
+            item.unidDescription = unidDesc.value;
+            quietSave();
+        });
+        descPane.appendChild(unidDesc);
+        descPane.appendChild(h('h4', 'item-sheet-h', 'Identified Properties'));
+        const descHtml = () => item.description || data.equip_descrip?.[item.name] || '';
+        const descView = htmlBlock('desc item-sheet-desc', descHtml() || '<p class="dim">No description.</p>');
+        descPane.appendChild(descView);
+        const descEditBtn = h('button', 'inv-btn item-sheet-desc-edit', 'Edit description');
+        descEditBtn.type = 'button';
+        const descEdit = h('textarea', 'edit-field item-sheet-desc-src hidden');
+        descEdit.value = descHtml();
+        descEdit.placeholder = '<p>Description HTML…</p>';
+        descEdit.addEventListener('change', () => {
+            item.description = descEdit.value;
+            (data.equip_descrip ??= {})[item.name] = descEdit.value;
+            descView.innerHTML = descEdit.value || '<p class="dim">No description.</p>';
+            quietSave();
+        });
+        descEditBtn.addEventListener('click', () => descEdit.classList.toggle('hidden'));
+        descPane.append(descEditBtn, descEdit);
+        // Enhancements from the "[+1, flaming]" suffix — each with what it does
+        const enhList = parseEnhancements(item.name);
+        if (enhList.length) {
+            descPane.appendChild(h('h4', 'item-sheet-h', 'Enhancements'));
+            const enhKind = inventoryCategory(item) === 'armor' ? 'armor' : 'weapon';
+            for (const enh of enhList) {
+                descPane.appendChild(htmlBlock('desc item-sheet-enh',
+                    `<p><strong>${escapeHtml(titleCase(enh))}</strong></p>`
+                    + enhancementDescHtml(data, enh, enhKind)));
+            }
+        }
+        panes.description = descPane;
+
+        // Details pane — everything editable; overrides persist on the item
+        const detPane = h('div', 'item-sheet-pane hidden');
+        detPane.appendChild(h('h4', 'item-sheet-h', 'Identity'));
+        detPane.appendChild(selectRow('Type', [
+            ['', '—'], ['weapon', 'Weapon'], ['equipment', 'Equipment'],
+            ['consumable', 'Consumable'], ['loot', 'Loot'], ['container', 'Container'],
+        ], () => item.itemType || '', (v) => { item.itemType = v; }));
+        detPane.appendChild(textRow('Subtype',
+            () => item.subType, (v) => { item.subType = v; }, 'wondrous, armor, tool, …'));
+        detPane.appendChild(textRow('Equipment type',
+            () => item.equipmentSubtype, (v) => { item.equipmentSubtype = v; }, 'lightArmor, clothing, …'));
+        detPane.appendChild(textRow('Slot',
+            () => item.slot, (v) => { item.slot = v; }, 'weapon, armor, wrists, ring, …'));
+
+        if (weapon || item.itemType === 'weapon' || inventoryCategory(item) === 'weapons') {
+            detPane.appendChild(h('h4', 'item-sheet-h', 'Weapon'));
+            // First edit snapshots the compendium values so later edits stack sanely.
+            const wOv = () => (item.weapon ??= {
+                dice: weapon?.dice ?? '',
+                damageAbility: weapon?.damageAbility ?? '',
+                critRange: weapon?.critRange ?? 20,
+                critMult: weapon?.critMult ?? 2,
+            });
+            detPane.appendChild(textRow('Damage dice',
+                () => item.weapon?.dice ?? weapon?.dice ?? '',
+                (v) => { wOv().dice = v; }, '1d8'));
+            detPane.appendChild(selectRow('Damage ability', [
+                ['', '—'], ['str', 'STR'], ['dex', 'DEX'], ['con', 'CON'],
+                ['int', 'INT'], ['wis', 'WIS'], ['cha', 'CHA'],
+            ], () => String(item.weapon?.damageAbility ?? weapon?.damageAbility ?? '').toLowerCase(),
+                (v) => { wOv().damageAbility = v; }));
+            detPane.appendChild(numRow('Crit range',
+                () => item.weapon?.critRange ?? weapon?.critRange ?? 20,
+                (v) => { wOv().critRange = v == null ? 20 : Math.round(v); }, { min: 2, step: '1' }));
+            detPane.appendChild(numRow('Crit multiplier',
+                () => item.weapon?.critMult ?? weapon?.critMult ?? 2,
+                (v) => { wOv().critMult = v == null ? 2 : Math.round(v); }, { min: 2, step: '1' }));
+        }
+
+        if (armor || inventoryCategory(item) === 'armor') {
+            detPane.appendChild(h('h4', 'item-sheet-h', 'Armor'));
+            const aOv = () => (item.armor ??= { ...(armor || {}) });
+            detPane.appendChild(numRow('Armor bonus',
+                () => armor?.value ?? item.armor?.value,
+                (v) => { aOv().value = v; }, { min: 0, step: '1' }));
+            detPane.appendChild(numRow('Max Dex',
+                () => armor?.dex ?? item.armor?.dex,
+                (v) => { aOv().dex = v; }, { step: '1' }));
+            detPane.appendChild(numRow('Check penalty',
+                () => armor?.acp ?? item.armor?.acp,
+                (v) => { aOv().acp = v; }, { step: '1' }));
+        }
+        const notes = item.contextNotes || [];
+        if (notes.length) {
+            detPane.appendChild(h('h4', 'item-sheet-h', 'Context notes'));
+            const ul = h('ul', 'plain-list item-sheet-notes');
+            for (const n of notes) {
+                ul.appendChild(h('li', null, typeof n === 'string' ? n : (n.text || JSON.stringify(n))));
+            }
+            detPane.appendChild(ul);
+        }
+        panes.details = detPane;
+
+        // Changes pane — shared mechanical-buffs editor
+        const chgPane = h('div', 'item-sheet-pane hidden');
+        chgPane.appendChild(buildItemBuffsPanel(data, item));
+        panes.changes = chgPane;
+
+        for (const pane of Object.values(panes)) content.appendChild(pane);
+        grid.appendChild(content);
+        card.appendChild(grid);
+        overlay.appendChild(card);
+        document.body.appendChild(overlay);
     }
 
     function fmtPrice(gp) {
@@ -2103,12 +3488,37 @@
 
     const INV_CATEGORY_ORDER = [
         ['weapons', 'Weapons'],
-        ['armor', 'Armor & shields'],
+        ['armor', 'Armor & Shields'],
         ['equipment', 'Equipment'],
         ['consumables', 'Consumables'],
         ['containers', 'Containers'],
-        ['other', 'Other'],
     ];
+
+    function invRerender(data) {
+        // renderSheet restores the active tab itself — don't force a jump to Inventory
+        // (inventory-style weapon rows also live on the Combat tab).
+        renderSheet(data);
+    }
+
+    /** Slot / type column label (Belt, Ring, Armor, …). */
+    function invSlotLabel(item) {
+        let s = String(item.slot || item.subType || '').replace(/[_-]+/g, ' ').trim();
+        if (!s || s === 'none' || s === 'slotless') return '';
+        return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    /** Checkbox cell for the identified / carried / equipped columns. */
+    function invCheckCell(checked, title, onChange) {
+        const wrap = h('span', 'inv-check');
+        const cb = h('input');
+        cb.type = 'checkbox';
+        cb.checked = checked;
+        cb.title = title;
+        cb.setAttribute('aria-label', title);
+        cb.addEventListener('change', () => onChange(cb.checked));
+        wrap.appendChild(cb);
+        return wrap;
+    }
 
     function renderInventoryItemCard(data, item, index) {
         const SD = window.SheetDetails;
@@ -2119,40 +3529,53 @@
         card.dataset.invId = item.id || String(index);
         card.dataset.dndId = item.id || String(index);
 
-        // Foundry-ish: handle · qty · name · weight · value · ID · carried · eq · buffs · actions
-        const row = h('div', 'inv-item-row inv-item-row-ext');
+        // Table row: handle · qty(−/+) · name · slot · weight · value · ✓id · ✓carried · ✓equipped · actions
+        const row = h('div', 'inv-row');
         row.appendChild(dndHandle());
 
         const qtyCell = h('span', 'inv-qty');
         if (item.quantity == null) item.quantity = 1;
+        const stepQty = (d) => {
+            item.quantity = Math.max(1, (Number(item.quantity) || 1) + d);
+            quietSave();
+            invRerender(data);
+        };
+        const minusBtn = h('button', 'inv-step no-print', '−');
+        minusBtn.type = 'button';
+        minusBtn.title = 'Decrease quantity';
+        minusBtn.addEventListener('click', () => stepQty(-1));
+        const plusBtn = h('button', 'inv-step no-print', '+');
+        plusBtn.type = 'button';
+        plusBtn.title = 'Increase quantity';
+        plusBtn.addEventListener('click', () => stepQty(1));
+        qtyCell.appendChild(minusBtn);
         qtyCell.appendChild(dblclickEditable(item, 'quantity', {
             type: 'number', min: 1, max: 999,
-            format: (v) => '×' + (v == null || v === '' ? 1 : v),
+            format: (v) => String(v == null || v === '' ? 1 : v),
             parse: (s) => Math.max(1, parseIntLoose(s, 1)),
             onChange: () => quietSave(),
         }));
+        qtyCell.appendChild(plusBtn);
         row.appendChild(qtyCell);
 
-        const nameCell = h('div', 'inv-item-name-cell');
         const descHtml = item.description || data.equip_descrip?.[item.name] || '';
         const nameEl = h('span', 'inv-item-name');
-        nameEl.appendChild(dblclickEditable(item, 'name', {
-            format: () => (item.identified === false ? 'Unidentified item' : (item.name || '—')),
-            parse: (s) => s.trim() || item.name,
-            onChange: (v) => {
-                if (descHtml && data.equip_descrip) {
-                    data.equip_descrip[v] = descHtml;
-                }
-                quietSave();
-            },
-        }));
-        nameCell.appendChild(nameEl);
-        if (item.identified !== false && descHtml) {
-            nameCell.appendChild(details('Description', descHtml, 'inv-item-details'));
-        } else if (item.identified === false) {
-            nameCell.appendChild(h('span', 'dim inv-unid-hint', ' (unidentified)'));
+        // Foundry behavior: clicking the name opens the item sheet (rename lives there).
+        const nameBtn = h('button', 'inv-item-open',
+            item.identified === false ? (item.unidName || 'Unidentified item') : (item.name || '—'));
+        nameBtn.type = 'button';
+        nameBtn.title = 'Open item sheet';
+        nameBtn.addEventListener('click', () => openItemSheet(data, item));
+        nameEl.appendChild(nameBtn);
+        const buffBits = (item.changes || []).map((c) => formatChangeLine(c, SD));
+        if (buffBits.length) {
+            const buffMark = h('span', 'inv-buff-mark', '✦');
+            buffMark.title = 'Buffs while equipped: ' + buffBits.join('; ');
+            nameEl.appendChild(buffMark);
         }
-        row.appendChild(nameCell);
+        row.appendChild(nameEl);
+
+        row.appendChild(h('span', 'inv-slot', invSlotLabel(item)));
 
         row.appendChild(h('span', 'inv-weight', fmtWeight(
             (Number(item.weight) || 0) * (Number(item.quantity) || 1))));
@@ -2169,55 +3592,33 @@
         }));
         row.appendChild(priceCell);
 
-        const idBtn = h('button', 'inv-btn' + (item.identified !== false ? '' : ' inv-btn-primary'),
-            item.identified !== false ? 'ID' : 'UnID');
-        idBtn.type = 'button';
-        idBtn.title = 'Toggle identified (Foundry: known vs mystery item)';
-        idBtn.addEventListener('click', () => {
-            item.identified = item.identified === false;
-            quietSave();
-            renderSheet(data);
-            setActiveTab('inventory');
-        });
-        row.appendChild(idBtn);
-
-        const carryBtn = h('button', 'inv-btn' + (item.carried !== false ? '' : ' inv-btn-primary'),
-            item.carried !== false ? 'Carried' : 'Stowed');
-        carryBtn.type = 'button';
-        carryBtn.title = 'Toggle carried (stowed items do not count for encumbrance)';
-        carryBtn.addEventListener('click', () => {
-            item.carried = item.carried === false;
-            quietSave();
-            renderSheet(data);
-            setActiveTab('inventory');
-        });
-        row.appendChild(carryBtn);
-
-        row.appendChild(h('span',
-            'inv-equip-badge' + (item.equipped ? ' on' : ''),
-            item.equipped ? 'Eq' : 'Off'));
-
-        const buffBits = (item.changes || []).map((c) => formatChangeLine(c, SD));
-        const buffPrev = h('span', 'inv-item-buffs-preview',
-            buffBits.length ? buffBits.join('; ') : '');
-        buffPrev.title = buffBits.join('; ') || 'No mechanical buffs';
-        row.appendChild(buffPrev);
+        row.appendChild(invCheckCell(item.identified !== false,
+            'Identified (known vs mystery item)', (on) => {
+                item.identified = on;
+                quietSave();
+                invRerender(data);
+            }));
+        row.appendChild(invCheckCell(item.carried !== false,
+            'Carried (stowed items do not count for encumbrance)', (on) => {
+                item.carried = on;
+                quietSave();
+                invRerender(data);
+            }));
+        row.appendChild(invCheckCell(!!item.equipped,
+            'Equipped (applies the item buffs)', (on) => {
+                item.equipped = on;
+                quietSave();
+                invRerender(data);
+            }));
 
         const btns = h('div', 'inv-item-actions no-print');
-        const equipBtn = h('button', 'inv-btn' + (item.equipped ? '' : ' inv-btn-primary'),
-            item.equipped ? 'Unequip' : 'Equip');
-        equipBtn.type = 'button';
-        equipBtn.addEventListener('click', () => {
-            item.equipped = !item.equipped;
-            quietSave();
-            renderSheet(data);
-            setActiveTab('inventory');
-        });
-        const buffsBtn = h('button', 'inv-btn', 'Buffs');
+        const buffsBtn = h('button', 'inv-icon-btn', '⚙');
         buffsBtn.type = 'button';
-        buffsBtn.addEventListener('click', () => openItemBuffsEditor(data, item, card));
-        const removeBtn = h('button', 'inv-btn inv-btn-danger', '×');
+        buffsBtn.title = 'Open item sheet';
+        buffsBtn.addEventListener('click', () => openItemSheet(data, item));
+        const removeBtn = h('button', 'inv-icon-btn inv-btn-danger', '×');
         removeBtn.type = 'button';
+        removeBtn.title = 'Remove from inventory';
         removeBtn.addEventListener('click', () => {
             if (!confirm(`Remove “${item.name}” from inventory?`)) return;
             const list = data.equipment_list || [];
@@ -2225,35 +3626,97 @@
             if (idx >= 0) list.splice(idx, 1);
             else if (index >= 0 && index < list.length) list.splice(index, 1);
             quietSave();
-            renderSheet(data);
-            setActiveTab('inventory');
+            invRerender(data);
         });
-        btns.append(equipBtn, buffsBtn, removeBtn);
+        btns.append(buffsBtn, removeBtn);
         row.appendChild(btns);
+
+        // Appended after the fixed cells so grid auto-placement keeps row 1 intact:
+        // the expander toggle + description land on their own rows under the name.
+        if (item.identified !== false && descHtml) {
+            row.appendChild(details('Description', descHtml, 'inv-item-details'));
+        } else if (item.identified === false) {
+            row.appendChild(h('span', 'dim inv-unid-hint', '(unidentified)'));
+        }
         card.appendChild(row);
         return card;
     }
 
+    /** Currency bar pinned at the top of the Inventory tab: PP · GP · SP · CP inputs. */
+    function invCurrencyBar(data) {
+        if (data.platinum == null && data.platnium != null) data.platinum = data.platnium;
+        const bar = h('div', 'inv-currency-bar');
+        bar.appendChild(h('span', 'inv-currency-title', 'Currency'));
+        for (const [label, key] of [
+            ['PP', 'platinum'],
+            ['GP', 'gold'],
+            ['SP', 'silver'],
+            ['CP', 'copper'],
+        ]) {
+            if (data[key] == null || data[key] === '') data[key] = 0;
+            const box = h('label', 'inv-currency-box');
+            box.appendChild(h('span', 'inv-currency-label', label));
+            const input = h('input', 'inv-currency-input');
+            input.type = 'number';
+            input.min = '0';
+            input.value = String(Number(data[key]) || 0);
+            input.addEventListener('change', () => {
+                data[key] = Math.max(0, parseIntLoose(input.value, 0));
+                input.value = String(data[key]);
+                if (key === 'platinum') data.platnium = data.platinum; // keep legacy in sync
+                quietSave();
+            });
+            box.appendChild(input);
+            bar.appendChild(box);
+        }
+        return bar;
+    }
+
+    // Category → itemType preset for the per-category "+" add buttons.
+    const INV_CAT_ITEMTYPE = {
+        weapons: 'weapon', armor: 'armor', equipment: 'equipment',
+        consumables: 'consumable', containers: 'container',
+    };
+
     function renderGear(data) {
-        const { sec, body } = section('Gear & Wealth', 'inventory-tab');
+        const { sec, body } = section('Inventory', 'inventory-tab');
+
+        body.appendChild(invCurrencyBar(data));
+
         body.appendChild(h('p', 'dbl-edit-hint no-print',
-            'Add items (bottom of list). Drag ⋮⋮ to reorder. Set qty, carried vs equipped. Equip applies buffs.'));
+            'Add items with Browse or a category +. Drag ⋮⋮ to reorder. Checkboxes: identified · carried · equipped (equip applies buffs).'));
 
         const filterIn = h('input', 'edit-field inv-filter');
         filterIn.type = 'search';
-        filterIn.placeholder = 'Filter owned items…';
+        filterIn.placeholder = 'Search filter…';
         filterIn.addEventListener('input', () => {
             const q = filterIn.value.toLowerCase().trim();
             body.querySelectorAll('.inv-item').forEach((el) => {
-                const n = (el.querySelector('.inv-item-name .dbl-edit-display')?.textContent
+                const n = (el.querySelector('.inv-item-name')?.textContent
                     || el.textContent || '').toLowerCase();
                 el.style.display = !q || n.includes(q) ? '' : 'none';
             });
         });
+
+        // Category jump links (scroll to the section header)
+        const catNav = h('div', 'inv-cat-nav no-print');
+        for (const [cat, label] of INV_CATEGORY_ORDER) {
+            const btn = h('button', 'inv-cat-link', label);
+            btn.type = 'button';
+            btn.dataset.invNav = cat;
+            btn.addEventListener('click', () => {
+                body.querySelector(`[data-inv-cat="${cat}"]`)
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+            catNav.appendChild(btn);
+        }
+        const toolbarExtra = h('div', 'inv-toolbar-extra');
+        toolbarExtra.append(filterIn, catNav);
+
         body.appendChild(sectionCatalogToolbar({
             browseLabel: 'Browse items',
             browseTitle: 'Search weapons & equipment',
-            extra: filterIn,
+            extra: toolbarExtra,
             picker: {
                 title: 'Add inventory item',
                 kinds: ['items', 'weapons'],
@@ -2261,82 +3724,30 @@
                 customPlaceholder: 'Custom item name',
                 onPick: (hit) => {
                     addInventoryItem(data, hit.name);
-                    renderSheet(data);
-                    setActiveTab('inventory');
+                    invRerender(data);
                 },
                 onCustom: (name) => {
                     addInventoryItem(data, name);
-                    renderSheet(data);
-                    setActiveTab('inventory');
+                    invRerender(data);
+                },
+                onBlank: () => {
+                    const it = addBlankInventoryItem(data);
+                    invRerender(data);
+                    openItemSheet(data, it);
                 },
             },
         }));
 
-        // Core slots (weapon / armor / shield) — display + weight when known
-        const slots = h('div', 'inv-slots');
-        const SD = window.SheetDetails;
-        const w = gearLine(data.weapon_name, data.weapon_enhancement_chosen_list);
-        if (w) {
-            const wItem = SD?.lookupItem?.(data.weapon_name) || SD?.lookupWeapon?.(data.weapon_name);
-            const row = h('div', 'inv-slot-row');
-            row.appendChild(h('span', 'inv-slot-label', 'Weapon'));
-            row.appendChild(h('span', 'inv-slot-value', w));
-            if (wItem?.weight != null) {
-                row.appendChild(h('span', 'inv-weight', fmtWeight(wItem.weight)));
-            }
-            slots.appendChild(row);
-            if (wItem?.description) {
-                slots.appendChild(details('Weapon description', wItem.description, 'inv-slot-desc'));
-            }
-        }
-        const a = gearLine(data.armor_name, data.armor_enhancement_chosen_list);
-        if (a) {
-            const aItem = SD?.lookupItem?.(data.armor_name);
-            const bits = [
-                data.armor_ac ? `+${data.armor_ac} AC` : null,
-                data.armor_max_dex_bonus?.trim?.() ? `max Dex ${data.armor_max_dex_bonus}` : null,
-                data.armor_armor_check_penalty?.trim?.() ? `ACP ${data.armor_armor_check_penalty}` : null,
-                data.armor_spell_failure ? `ASF ${data.armor_spell_failure}%` : null,
-            ].filter(Boolean).join(', ');
-            const row = h('div', 'inv-slot-row');
-            row.appendChild(h('span', 'inv-slot-label', 'Armor'));
-            row.appendChild(h('span', 'inv-slot-value', bits ? `${a} (${bits})` : a));
-            if (aItem?.weight != null) {
-                row.appendChild(h('span', 'inv-weight', fmtWeight(aItem.weight)));
-            }
-            slots.appendChild(row);
-            if (aItem?.description) {
-                slots.appendChild(details('Armor description', aItem.description, 'inv-slot-desc'));
-            }
-        }
-        const s = gearLine(data.shield_name, data.shield_enhancement_chosen_list);
-        if (s) {
-            const sItem = SD?.lookupItem?.(data.shield_name);
-            const row = h('div', 'inv-slot-row');
-            row.appendChild(h('span', 'inv-slot-label', 'Shield'));
-            row.appendChild(h('span', 'inv-slot-value', s));
-            if (sItem?.weight != null) {
-                row.appendChild(h('span', 'inv-weight', fmtWeight(sItem.weight)));
-            }
-            slots.appendChild(row);
-            if (sItem?.description) {
-                slots.appendChild(details('Shield description', sItem.description, 'inv-slot-desc'));
-            }
-        }
-        if (slots.childNodes.length) body.appendChild(slots);
-
-        kvCurrency(body, data);
+        // Generated weapon / armor / shield live in the list as regular items
+        // (migrated once) — no separate core-slots block.
+        migrateCoreGear(data);
 
         const list = ensureInventoryObjects(data);
-        body.appendChild(h('h3', null, 'Items'));
-        body.appendChild(h('p', 'dim no-print',
-            'Grouped like Foundry (weapons / armor / equipment / …). Qty · weight · value · ID · carried · equip.'));
         if (!list.length) {
-            body.appendChild(h('p', 'tools-empty', 'No items in equipment list.'));
-            return sec;
+            body.appendChild(h('p', 'dim no-print', 'No items yet — use Browse or a category + below.'));
         }
 
-        // Group by Foundry-style category (display only; list order preserved within groups
+        // Group by category (display only; list order preserved within groups
         // via original indices for reorder — reorder stays within each section list).
         const groups = new Map();
         list.forEach((item, i) => {
@@ -2347,10 +3758,58 @@
 
         let totalWeight = 0;
         for (const [cat, label] of INV_CATEGORY_ORDER) {
-            const entries = groups.get(cat);
-            if (!entries?.length) continue;
+            const entries = groups.get(cat) || [];
             const secWrap = h('div', 'inv-category');
-            secWrap.appendChild(h('h4', 'inv-category-title', label + ' (' + entries.length + ')'));
+            secWrap.dataset.invCat = cat;
+
+            // Category header row: title + column captions + per-category add button.
+            const head = h('div', 'inv-row inv-cat-head');
+            head.appendChild(h('span'));           // handle col
+            head.appendChild(h('span', 'inv-col-cap', 'Qty'));
+            head.appendChild(h('span', 'inv-cat-title',
+                label + (entries.length ? ' (' + entries.length + ')' : '')));
+            head.appendChild(h('span', 'inv-col-cap', 'Slot'));
+            head.appendChild(h('span', 'inv-col-cap inv-col-cap-right', 'Weight'));
+            head.appendChild(h('span', 'inv-col-cap inv-col-cap-right', 'Value'));
+            head.appendChild(h('span', 'inv-col-cap inv-col-cap-mid', 'ID'));
+            head.appendChild(h('span', 'inv-col-cap inv-col-cap-mid', 'Car'));
+            head.appendChild(h('span', 'inv-col-cap inv-col-cap-mid', 'Eq'));
+            const addWrap = h('span', 'inv-cat-add no-print');
+            const addBtn = h('button', 'inv-icon-btn inv-add-btn', '+');
+            addBtn.type = 'button';
+            addBtn.title = 'Add to ' + label.toLowerCase();
+            addBtn.addEventListener('click', () => openCatalogPicker({
+                title: 'Add — ' + label.toLowerCase(),
+                kinds: cat === 'weapons' ? ['weapons', 'items'] : ['items', 'weapons'],
+                allowCustom: true,
+                customPlaceholder: 'Custom item name',
+                onPick: (hit) => {
+                    const it = addInventoryItem(data, hit.name);
+                    // Known items keep their natural category; unknowns land here.
+                    if (it && inventoryCategory(it) !== cat && INV_CAT_ITEMTYPE[cat]) {
+                        it.itemType = INV_CAT_ITEMTYPE[cat];
+                        quietSave();
+                    }
+                    invRerender(data);
+                },
+                onCustom: (name) => {
+                    const it = addInventoryItem(data, name);
+                    if (it && INV_CAT_ITEMTYPE[cat]) {
+                        it.itemType = INV_CAT_ITEMTYPE[cat];
+                        quietSave();
+                    }
+                    invRerender(data);
+                },
+                onBlank: () => {
+                    const it = addBlankInventoryItem(data, INV_CAT_ITEMTYPE[cat]);
+                    invRerender(data);
+                    openItemSheet(data, it);
+                },
+            }));
+            addWrap.appendChild(addBtn);
+            head.appendChild(addWrap);
+            secWrap.appendChild(head);
+
             const pack = h('div', 'inv-list dnd-list');
             for (const { item, index } of entries) {
                 pack.appendChild(renderInventoryItemCard(data, item, index));
@@ -2369,25 +3828,13 @@
                 if (fromIdx < 0 || toIdx < 0) return;
                 reorderArray(listNow, fromIdx, toIdx);
                 quietSave();
-                renderSheet(data);
-                setActiveTab('inventory');
+                invRerender(data);
             });
             secWrap.appendChild(pack);
             body.appendChild(secWrap);
         }
 
-        for (const name of [data.weapon_name, data.armor_name, data.shield_name]) {
-            if (!name) continue;
-            const ent = SD?.lookupItem?.(name);
-            if (ent?.weight != null && Number.isFinite(Number(ent.weight))) {
-                totalWeight += Number(ent.weight);
-            }
-        }
         const load = loadCategory(totalWeight, data.str);
-        const foot = h('div', 'inv-footer');
-        foot.appendChild(h('span', load.cls,
-            `Load: ${fmtWeight(totalWeight)} — ${load.label} `
-            + `(light ${load.lim.light} / med ${load.lim.medium} / heavy ${load.lim.heavy})`));
         const eqCount = list.filter((it) => it.equipped).length;
         const carried = list.filter((it) => it.carried !== false).length;
         const valueSum = list.reduce((sum, it) => {
@@ -2395,9 +3842,46 @@
             if (!Number.isFinite(p)) return sum;
             return sum + p * (Number(it.quantity) || 1);
         }, 0);
-        foot.appendChild(h('span', 'dim',
+
+        const foot = h('div', 'inv-footer');
+
+        const statLine = h('div', 'inv-foot-stats');
+        statLine.appendChild(h('span', load.cls, `Carrying ${fmtWeight(totalWeight)}`));
+        statLine.appendChild(h('span', 'dim',
             `${eqCount} equipped · ${carried} carried · ${list.length} total`
-            + (valueSum ? ` · ~${fmtPrice(valueSum)}` : '')));
+            + (valueSum ? ` · Total item value: ${fmtPrice(valueSum)}` : '')));
+        foot.appendChild(statLine);
+
+        // Load bar: Light / Medium / Heavy segments; the current band is highlighted.
+        const bar = h('div', 'inv-load-bar');
+        for (const [segLabel, limit, cls] of [
+            ['Light Load', load.lim.light, 'load-light'],
+            ['Medium Load', load.lim.medium, 'load-medium'],
+            ['Heavy Load', load.lim.heavy, 'load-heavy'],
+        ]) {
+            const seg = h('span', 'inv-load-seg ' + cls
+                + (load.label.startsWith(segLabel.split(' ')[0]) ? ' is-active' : '')
+                + (load.label === 'Over capacity' ? ' is-over' : ''),
+                `${segLabel} (${limit})`);
+            seg.title = `${segLabel}: up to ${limit} lbs`;
+            bar.appendChild(seg);
+        }
+        foot.appendChild(bar);
+
+        // Lift & drag capacities (PF1: above head = heavy; off ground = ×2; drag & push = ×5)
+        const caps = h('div', 'inv-capacity-row');
+        for (const [capLabel, val] of [
+            ['Above Head', load.lim.heavy],
+            ['Off Ground', load.lim.heavy * 2],
+            ['Drag & Push', load.lim.heavy * 5],
+        ]) {
+            const box = h('div', 'inv-capacity-box');
+            box.appendChild(h('span', 'inv-capacity-label', capLabel));
+            box.appendChild(h('span', 'inv-capacity-value', String(val)));
+            caps.appendChild(box);
+        }
+        foot.appendChild(caps);
+
         body.appendChild(foot);
 
         return sec;
@@ -2492,6 +3976,44 @@
         quietSave();
     }
 
+    // ---- per-skill user bonuses: Racial / Feat / Trait / Misc + class-skill toggle
+    // Stored on _sheet.skillBonuses[key] = { racial, feat, trait, misc, cs }.
+    function skillBonusEntry(data, key) {
+        const st = sheetState(data);
+        st.skillBonuses ??= {};
+        return st.skillBonuses[key] || {};
+    }
+
+    function setSkillBonus(data, key, field, value) {
+        const st = sheetState(data);
+        st.skillBonuses ??= {};
+        const entry = { ...(st.skillBonuses[key] || {}) };
+        if (field === 'cs') {
+            if (value) entry.cs = true;
+            else delete entry.cs;
+        } else {
+            const n = Number(value) || 0;
+            if (n) entry[field] = n;
+            else delete entry[field];
+        }
+        // Drop the key entirely when everything is zero/off
+        if (Object.keys(entry).length) st.skillBonuses[key] = entry;
+        else delete st.skillBonuses[key];
+        quietSave();
+    }
+
+    /** User-entered skill bonuses; class skill gives PF1's +3 only with ≥1 rank. */
+    function skillUserBonus(data, key, ranks) {
+        const e = skillBonusEntry(data, key);
+        const racial = Number(e.racial) || 0;
+        const feat = Number(e.feat) || 0;
+        const trait = Number(e.trait) || 0;
+        const misc = Number(e.misc) || 0;
+        const csBonus = e.cs && (Number(ranks) || 0) >= 1 ? 3 : 0;
+        return { racial, feat, trait, misc, cs: !!e.cs, csBonus,
+            total: racial + feat + trait + misc + csBonus };
+    }
+
     function skillMiscBonus(data, skill) {
         const SD = window.SheetDetails;
         const ab = getSkillAbility(data, skill);
@@ -2499,7 +4021,8 @@
         const ledger = effectiveLedger(data);
         // ACP applies when skill is Str/Dex based (Foundry-style) or originally marked acp
         const acpApplies = skill.acp || ab === 'str' || ab === 'dex';
-        if (!ledger?.changes?.length && !acpApplies) return { total: 0, bits: [] };
+        const hasNegLv = (Number(data?._sheet?.negativeLevels) || 0) > 0;
+        if (!ledger?.changes?.length && !acpApplies && !hasNegLv) return { total: 0, bits: [] };
         const abBucket = {
             str: 'strSkills', dex: 'dexSkills', con: 'conSkills',
             int: 'intSkills', wis: 'wisSkills', cha: 'chaSkills',
@@ -2522,6 +4045,12 @@
                 total += pen;
                 bits.push({ source: 'Armor check', value: pen });
             }
+        }
+        // PF1 negative levels: −1 per level on all skill checks
+        const negLv = Number(data?._sheet?.negativeLevels) || 0;
+        if (negLv) {
+            total -= negLv;
+            bits.push({ source: 'Negative levels', value: -negLv });
         }
         return { total, bits };
     }
@@ -2649,13 +4178,50 @@
         const rankMap = ensureSkillRanksObject(data);
         const { sec, body } = section('Skills');
         body.appendChild(h('p', 'dbl-edit-hint no-print',
-            'Double-click ranks to edit. Change ability via the Abl dropdown (Foundry-style). Roll = 1d20 + ranks + ability + misc.'));
+            'Double-click ranks to edit. Change ability via the Abl dropdown. Roll = 1d20 + ranks + ability + misc.'));
 
         const unlockSkill = (data.skill_unlock?.base_skill || '').toLowerCase();
         const table = h('table', 'skills-table skills-table-full');
         const hd = h('tr');
-        ['', 'Skill', 'Abl', 'Ranks', 'Mod', 'Misc', 'Total'].forEach((t) => hd.appendChild(h('th', null, t)));
+        ['', 'Skill', 'Abl', 'Ranks', 'Mod', 'Racial', 'Feat', 'Trait', 'Misc', 'Buffs', 'CS', 'Total']
+            .forEach((t) => hd.appendChild(h('th', null, t)));
         table.appendChild(hd);
+
+        // Editable user-bonus cell (Racial / Feat / Trait / Misc)
+        const bonusCell = (key, field, entry) => {
+            const td = h('td', 'num skill-bonus-cell');
+            const bag = { v: Number(entry[field]) || 0 };
+            td.appendChild(dblclickEditable(bag, 'v', {
+                type: 'number', min: -99, max: 99,
+                format: (v) => (Number(v) ? fmt(Number(v)) : '—'),
+                parse: (s) => parseIntLoose(s, 0),
+                onChange: (v) => {
+                    setSkillBonus(data, key, field, v);
+                    renderSheet(data);
+                    setActiveTab('skills');
+                },
+            }));
+            return td;
+        };
+        // Class-skill toggle: +3 once the skill has at least 1 rank (PF1)
+        const csCell = (key, entry, ranks) => {
+            const td = h('td', 'num skill-cs-cell');
+            const on = !!entry.cs;
+            const btn = h('button', 'skill-cs-btn' + (on ? ' is-on' : ''),
+                on ? (ranks >= 1 ? '+3' : '✓') : '—');
+            btn.type = 'button';
+            btn.title = on
+                ? (ranks >= 1 ? 'Class skill: +3 applied — click to clear'
+                    : 'Class skill (+3 needs at least 1 rank) — click to clear')
+                : 'Mark as class skill (+3 with at least 1 rank)';
+            btn.addEventListener('click', () => {
+                setSkillBonus(data, key, 'cs', !on);
+                renderSheet(data);
+                setActiveTab('skills');
+            });
+            td.appendChild(btn);
+            return td;
+        };
 
         const craftLabel = data.craft_type ? `Craft (${data.craft_type})` : 'Craft';
         for (const skill of ALL_SKILLS) {
@@ -2673,18 +4239,29 @@
                 || (skill.name === 'Craft' && data.craft_type
                     ? ranksForSkill(rankMap, 'craft') : 0);
             const ab = getSkillAbility(data, skill);
-            const abMod = mod(data[ab]);
+            const abMod = abModOf(data, ab);
             const skillEff = { ...skill, ab };
             const misc = skillMiscBonus(data, skillEff);
-            const total = ranks + abMod + misc.total;
+            const bonusKey = skillAbilityKey(skill);
+            const entry = skillBonusEntry(data, bonusKey);
+            const user = skillUserBonus(data, bonusKey, ranks);
+            const total = ranks + abMod + misc.total + user.total;
             const tr = h('tr', displayName.toLowerCase().includes(unlockSkill) && unlockSkill
                 ? 'unlocked' : null);
 
             const rollTd = h('td', 'skill-roll-cell no-print');
             rollTd.appendChild(rollBtn(displayName + ' check', total, `1d20${fmt(total)}`));
             tr.appendChild(rollTd);
-            tr.appendChild(h('td', null,
-                displayName + (unlockSkill && displayName.toLowerCase().includes(unlockSkill) ? ' ★' : '')));
+            const nameTd = h('td', null,
+                displayName + (unlockSkill && displayName.toLowerCase().includes(unlockSkill) ? ' ★' : ''));
+            tr.appendChild(nameTd);
+            // Situational context notes (e.g. trait bonuses vs specific targets) hover here
+            const abBucket = {
+                str: 'strSkills', dex: 'dexSkills', con: 'conSkills',
+                int: 'intSkills', wis: 'wisSkills', cha: 'chaSkills',
+            }[ab];
+            attachNotesHover(nameTd, data,
+                ['skills', abBucket, skill.id ? 'skill.' + skill.id : null].filter(Boolean));
 
             const abTd = h('td', 'num skill-ab-cell');
             const abSel = h('select', 'skill-ability-select edit-field');
@@ -2708,8 +4285,21 @@
             rankTd.appendChild(ranksEditor(data, rKey, ranks));
             tr.appendChild(rankTd);
             tr.appendChild(h('td', 'num', fmt(abMod)));
+            tr.appendChild(bonusCell(bonusKey, 'racial', entry));
+            tr.appendChild(bonusCell(bonusKey, 'feat', entry));
+            tr.appendChild(bonusCell(bonusKey, 'trait', entry));
+            tr.appendChild(bonusCell(bonusKey, 'misc', entry));
             tr.appendChild(h('td', 'num', misc.total ? fmt(misc.total) : '—'));
-            tr.appendChild(h('td', 'num skill-total', fmt(total)));
+            tr.appendChild(csCell(bonusKey, entry, ranks));
+            const totalTd = h('td', 'num skill-total', fmt(total));
+            totalTd.title = `ranks ${ranks} + ${ab.toUpperCase()} ${fmt(abMod)}`
+                + (misc.total ? ` + buffs ${fmt(misc.total)}` : '')
+                + (user.racial ? ` + racial ${fmt(user.racial)}` : '')
+                + (user.feat ? ` + feat ${fmt(user.feat)}` : '')
+                + (user.trait ? ` + trait ${fmt(user.trait)}` : '')
+                + (user.misc ? ` + misc ${fmt(user.misc)}` : '')
+                + (user.csBonus ? ' + class skill +3' : '');
+            tr.appendChild(totalTd);
             table.appendChild(tr);
         }
         body.appendChild(table);
@@ -2724,19 +4314,25 @@
             body.appendChild(h('h3', null, 'Professions'));
             const t2 = h('table', 'skills-table skills-table-full professions');
             const phd = h('tr');
-            ['', 'Profession', 'Abl', 'Ranks', 'Mod', 'Misc', 'Total'].forEach((t) => phd.appendChild(h('th', null, t)));
+            ['', 'Profession', 'Abl', 'Ranks', 'Mod', 'Racial', 'Feat', 'Trait', 'Misc', 'Buffs', 'CS', 'Total']
+                .forEach((t) => phd.appendChild(h('th', null, t)));
             t2.appendChild(phd);
             data.profession_ranks.forEach((p, idx) => {
                 const label = p.skill_label || p.name || 'Profession';
                 const ranks = Number(p.ranks) || 0;
-                const abMod = mod(data.wis);
+                const abMod = abModOf(data, 'wis');
                 const misc = skillMiscBonus(data, { ab: 'wis', id: 'pro', acp: false });
-                const total = ranks + abMod + misc.total;
+                const proKey = 'pro:' + label;
+                const entry = skillBonusEntry(data, proKey);
+                const user = skillUserBonus(data, proKey, ranks);
+                const total = ranks + abMod + misc.total + user.total;
                 const tr = h('tr');
                 const rollTd = h('td', 'skill-roll-cell no-print');
                 rollTd.appendChild(rollBtn(label + ' check', total));
                 tr.appendChild(rollTd);
-                tr.appendChild(h('td', null, label));
+                const proNameTd = h('td', null, label);
+                tr.appendChild(proNameTd);
+                attachNotesHover(proNameTd, data, ['skills', 'wisSkills', 'skill.pro']);
                 tr.appendChild(h('td', 'num', 'WIS'));
                 const rankTd = h('td', 'num skill-ranks-cell');
                 rankTd.appendChild(dblclickEditable(p, 'ranks', {
@@ -2753,7 +4349,12 @@
                 }));
                 tr.appendChild(rankTd);
                 tr.appendChild(h('td', 'num', fmt(abMod)));
+                tr.appendChild(bonusCell(proKey, 'racial', entry));
+                tr.appendChild(bonusCell(proKey, 'feat', entry));
+                tr.appendChild(bonusCell(proKey, 'trait', entry));
+                tr.appendChild(bonusCell(proKey, 'misc', entry));
                 tr.appendChild(h('td', 'num', misc.total ? fmt(misc.total) : '—'));
+                tr.appendChild(csCell(proKey, entry, ranks));
                 tr.appendChild(h('td', 'num skill-total', fmt(total)));
                 t2.appendChild(tr);
             });
@@ -2815,25 +4416,29 @@
     }
 
     /**
-     * Feat row title — Foundry-like: feat name primary; optional generator label as quiet tag.
-     * (Old “(Feat 1) / (Feat 3)” step numbering was confusing when reordering.)
+     * Feat row title — matches the generator mod's addingReceivedLocationToName():
+     * per-feat backend label ("Fighter 1: Weapon Focus") when present, else
+     * "(Prefix N) Name" with N from the group's start/step/customLevels. The feat-tax
+     * chain rides along as " > Child" like the mod's applyFeatTax(). Numbering is
+     * positional, so drag-reorder renumbers the acquisition slots live.
      */
     function foundryFeatTitle(name, index, group) {
         const disp = featDisplayName(name);
         const tax = group.taxChain || [];
         const taxSuffix = tax.length
-            ? ' › ' + tax.map((t) => featDisplayName(t)).join(' › ')
+            ? ' > ' + tax.map((t) => featDisplayName(t)).join(' > ')
             : '';
         const labels = group.labels || null;
         if (labels?.[index] != null && String(labels[index]).trim()) {
-            let lab = String(labels[index]).trim().replace(/^\(|\)$/g, '');
-            // Avoid "Power Attack: Power Attack"
+            const lab = String(labels[index]).trim().replace(/^\(|\)$/g, '');
+            // Avoid "Power Attack: Power Attack" when the backend label embeds the name
             if (lab.toLowerCase().includes(String(name).toLowerCase().split(' (')[0])) {
                 return lab + taxSuffix;
             }
-            return disp + taxSuffix;
+            return lab + ': ' + disp + taxSuffix;
         }
-        return disp + taxSuffix;
+        const level = group.customLevels?.[index] ?? ((group.start ?? 1) + index * (group.step ?? 1));
+        return `(${group.prefix} ${level}) ${disp}${taxSuffix}`;
     }
 
     /** Primary description + Foundry-style tax children under <hr><strong>Name</strong>. */
@@ -2859,38 +4464,86 @@
         return parts.join('');
     }
 
-    function featItem(name, descSource, titleText, taxChain, data, opts = {}) {
-        const html = featDescriptionHtml(name, descSource, taxChain);
-        const li = h('li', 'feat-item dnd-item' + (taxChain?.length ? ' has-feat-tax' : ''));
-        li.dataset.featName = String(name).toLowerCase();
-        li.dataset.dndId = String(name);
-        const tags = featTags(name);
-        const head = h('div', 'feat-item-head');
-        head.prepend(dndHandle());
-        const titleEl = html
-            ? details(titleText, html, 'feat-details')
-            : h('span', 'feat-title', titleText);
-        head.appendChild(titleEl);
-        if (tags.length) {
-            const chipRow = h('span', 'feat-tags');
-            for (const t of tags) chipRow.appendChild(h('span', 'feat-tag', t));
-            head.appendChild(chipRow);
-        }
-        if (data) head.appendChild(renderUsesControls(data, name));
+    /**
+     * Foundry-style feature row (pf1 actor-features.hbs item rows):
+     * name (expandable) | type chips | uses | post-to-chat | remove ×.
+     * Cells are direct grid children so header and item rows share column tracks.
+     */
+    function featureRow(opts) {
+        const li = h('li', 'feat-item dnd-item feat-grid' + (opts.extraClass ? ' ' + opts.extraClass : ''));
+        li.dataset.featName = String(opts.name).toLowerCase();
+        li.dataset.dndId = String(opts.name);
+
+        const nameCell = h('div', 'feat-cell feat-cell-name');
+        nameCell.appendChild(dndHandle());
+        nameCell.appendChild(opts.descHtml
+            ? details(opts.title, opts.descHtml, 'feat-details')
+            : h('span', 'feat-title', opts.title));
+        li.appendChild(nameCell);
+
+        const typeCell = h('div', 'feat-cell feat-cell-type');
+        if (opts.typeLabel) typeCell.appendChild(h('span', 'feat-type', opts.typeLabel));
+        for (const t of opts.tags || []) typeCell.appendChild(h('span', 'feat-tag', t));
+        li.appendChild(typeCell);
+
+        const usesCell = h('div', 'feat-cell feat-cell-uses');
+        if (opts.data) usesCell.appendChild(renderUsesControls(opts.data, opts.name));
+        li.appendChild(usesCell);
+
+        const chatCell = h('div', 'feat-cell feat-cell-chat no-print');
+        const chat = h('button', 'inv-btn feat-chat-btn', '🎲');
+        chat.type = 'button';
+        chat.title = 'Post to the roll log';
+        chat.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.SheetRoll?.setOpen?.(true);
+            window.SheetRoll?.rollAndLog?.('d1', (opts.chatKind || 'Feature') + ': ' + opts.title);
+        });
+        chatCell.appendChild(chat);
+        li.appendChild(chatCell);
+
+        const ctrlCell = h('div', 'feat-cell feat-cell-controls no-print');
         if (opts.onRemove) {
-            const rm = h('button', 'inv-btn inv-btn-danger feat-remove no-print', '×');
+            const rm = h('button', 'inv-btn inv-btn-danger feat-remove', '×');
             rm.type = 'button';
             rm.title = 'Remove from character';
             rm.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                if (!confirm(`Remove “${name}”?`)) return;
-                opts.onRemove(name);
+                if (!confirm(`Remove “${opts.name}”?`)) return;
+                opts.onRemove(opts.name);
             });
-            head.appendChild(rm);
+            ctrlCell.appendChild(rm);
         }
-        li.appendChild(head);
+        li.appendChild(ctrlCell);
         return li;
+    }
+
+    /** Column header row (pf1 item-list-header). Not a .feat-item, so dnd skips it. */
+    function featureListHeader() {
+        const li = h('li', 'feat-list-header feat-grid no-print');
+        li.append(
+            h('span', 'feat-cell feat-cell-name', 'Name'),
+            h('span', 'feat-cell feat-cell-type', 'Type'),
+            h('span', 'feat-cell feat-cell-uses', 'Uses'),
+            h('span', 'feat-cell feat-cell-chat', ''),
+            h('span', 'feat-cell feat-cell-controls', ''),
+        );
+        return li;
+    }
+
+    function featureGroupSlug(ns, label) {
+        return ns + '-' + String(label).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    }
+
+    /** Wrapper div a filter pill can hide; carries the group heading. */
+    function featureGroup(body, slug, headerTitle) {
+        const wrap = h('div', 'feature-group');
+        wrap.dataset.fgroup = slug;
+        if (headerTitle) wrap.appendChild(h('h3', null, headerTitle));
+        body.appendChild(wrap);
+        return wrap;
     }
 
     function removeFromArrayField(data, key, name) {
@@ -2913,21 +4566,104 @@
         return true;
     }
 
-    function bindFeatureSearch(body) {
-        if (body.querySelector('.feature-search')) return;
-        const box = h('input', 'edit-field feature-search no-print');
-        box.type = 'search';
-        box.placeholder = 'Search features…';
-        box.addEventListener('input', () => {
-            const q = box.value.toLowerCase().trim();
-            body.querySelectorAll('.feat-item').forEach((el) => {
-                const t = (el.dataset.featName || el.textContent || '').toLowerCase();
+    /** Pill list for the features toolbar — mirrors the groups the renderers emit. */
+    function featuresFilterEntries(data) {
+        const entries = [];
+        const push = (ns, label, count) => {
+            if (!count) return;
+            const slug = featureGroupSlug(ns, label);
+            const found = entries.find((e) => e.slug === slug);
+            if (found) found.count += count; // e.g. the two "Class Bonus Feat" groups merge
+            else entries.push({ slug, label, count });
+        };
+        for (const g of FEAT_GROUPS) {
+            push('feats', pluralizeFeatSection(g.title), (data[g.listKey] || []).length);
+        }
+        push('traits', 'Traits', (data.selected_traits || []).length);
+        push('traits', 'Background', (data.background_traits || []).length);
+        push('traits', 'Sphere Traits', (data.sphere_traits || []).length);
+        push('traits', 'Flaws', (data.flaw || []).length);
+        push('class', 'Class Features',
+            (data.class_ability || []).length + (data.profession_ability_items || []).length);
+        return entries;
+    }
+
+    /**
+     * Tab-wide toolbar (pf1 actor-item-nav-filters.hbs): one search box over every
+     * section plus filter pills per group. No active pill = show all; active pills
+     * narrow to those groups. Hides via classes — never rebuilds the lists.
+     */
+    function renderFeaturesToolbar(data) {
+        const entries = featuresFilterEntries(data);
+        if (!entries.length) return null;
+        const bar = h('div', 'features-toolbar no-print');
+        const search = h('input', 'edit-field feature-search');
+        search.type = 'search';
+        search.placeholder = 'Search features…';
+        const pillRow = h('div', 'feature-filter-pills');
+
+        const applyFilters = () => {
+            const pane = bar.parentElement;
+            if (!pane) return;
+            const q = search.value.toLowerCase().trim();
+            const active = new Set([...pillRow.querySelectorAll('.filter-pill.is-active')]
+                .map((p) => p.dataset.fgroup));
+            pane.querySelectorAll('[data-fgroup]').forEach((grp) => {
+                grp.classList.toggle('hidden', active.size > 0 && !active.has(grp.dataset.fgroup));
+            });
+            pane.querySelectorAll('.feat-item').forEach((el) => {
+                const t = (el.dataset.featName || '') + ' ' + el.textContent.toLowerCase();
                 el.style.display = !q || t.includes(q) ? '' : 'none';
             });
-        });
-        const hint = body.querySelector('.dbl-edit-hint');
-        if (hint) hint.after(box);
-        else body.prepend(box);
+        };
+
+        search.addEventListener('input', applyFilters);
+        for (const entry of entries) {
+            const pill = h('button', 'filter-pill');
+            pill.type = 'button';
+            pill.dataset.fgroup = entry.slug;
+            pill.appendChild(h('span', null, entry.label));
+            pill.appendChild(h('span', 'pill-count', String(entry.count)));
+            pill.title = 'Show only selected groups (click again to clear)';
+            pill.setAttribute('aria-pressed', 'false');
+            pill.addEventListener('click', () => {
+                pill.classList.toggle('is-active');
+                pill.setAttribute('aria-pressed', pill.classList.contains('is-active') ? 'true' : 'false');
+                applyFilters();
+            });
+            pillRow.appendChild(pill);
+        }
+        bar.append(search, pillRow);
+        return bar;
+    }
+
+    /** pf1 features footer: feat counts vs the odd-level budget (info boxes). */
+    function renderFeatCounts(data) {
+        const owned = (data.feats || []).length;
+        const byLevel = Math.ceil((Number(data.level) || 0) / 2); // PF1 feats at 1, 3, 5, …
+        let bonus = 0;
+        for (const g of FEAT_GROUPS) {
+            if (g.listKey === 'feats') continue;
+            bonus += (data[g.listKey] || []).length;
+        }
+        const box = (label, value, cls) => {
+            const b = h('div', 'feat-count-box' + (cls ? ' ' + cls : ''));
+            b.appendChild(h('span', 'feat-count-label', label));
+            b.appendChild(h('span', 'feat-count-value', String(value)));
+            return b;
+        };
+        const wrap = h('div', 'feat-counts');
+        const joined = h('div', 'feat-count-joined');
+        joined.append(box('Feats', owned), box('By level', byLevel),
+            box('Bonus', bonus), box('Total', owned + bonus));
+        wrap.appendChild(joined);
+        if (byLevel > 0 && owned !== byLevel) {
+            const missing = byLevel - owned;
+            wrap.appendChild(missing > 0
+                ? box('Missing', missing, 'is-missing')
+                : box('Excess', -missing, 'is-excess'));
+        }
+        return wrap;
     }
 
     function renderFeats(data) {
@@ -2942,7 +4678,7 @@
             .filter((g) => nonEmpty(g.list));
         const { sec, body } = section('Feats');
         body.appendChild(h('p', 'dbl-edit-hint no-print',
-            'Add feats to the bottom of the list. Drag ⋮⋮ to reorder (Foundry-style). Set uses with max / −.'));
+            'Add feats to the bottom of the list. Drag ⋮⋮ to reorder. Set uses with max / −.'));
         body.appendChild(sectionCatalogToolbar({
             browseLabel: 'Browse feats',
             picker: {
@@ -2964,21 +4700,32 @@
         }));
         if (!groups.length) {
             body.appendChild(h('p', 'tools-empty', 'No feats yet — browse the catalog to add some.'));
+            body.appendChild(renderFeatCounts(data));
             return sec;
         }
         // One list per source array so drag-reorder maps cleanly (like Foundry sections)
         for (const g of groups) {
-            body.appendChild(h('h3', null, pluralizeFeatSection(g.title)));
+            const label = pluralizeFeatSection(g.title);
+            const wrap = featureGroup(body, featureGroupSlug('feats', label), label);
             const ul = h('ul', 'plain-list feat-list dnd-list');
-            body.appendChild(ul);
+            wrap.appendChild(ul);
+            ul.appendChild(featureListHeader());
             const descSource = g.listKey === 'profession_feats'
                 ? { ...descs, ...(data.profession_feat_desc || {}) } : descs;
             const listKey = g.listKey;
             const list = data[listKey] || [];
             list.forEach((f, i) => {
                 const tax = featTaxChain(f, g.taxDict);
-                const gWithTax = { ...g, taxChain: tax };
-                ul.appendChild(featItem(f, descSource, foundryFeatTitle(f, i, gWithTax), tax, data, {
+                const tags = featTags(f);
+                ul.appendChild(featureRow({
+                    name: f,
+                    title: foundryFeatTitle(f, i, { ...g, taxChain: tax }),
+                    descHtml: featDescriptionHtml(f, descSource, tax),
+                    typeLabel: tags[0] || 'Feat',
+                    tags: tags.slice(1),
+                    data,
+                    chatKind: 'Feat',
+                    extraClass: tax.length ? 'has-feat-tax' : '',
                     onRemove: (nm) => {
                         removeFromArrayField(data, listKey, nm);
                         renderSheet(data);
@@ -2993,15 +4740,15 @@
                 setActiveTab('features');
             });
         }
-        bindFeatureSearch(body);
+        body.appendChild(renderFeatCounts(data));
         return sec;
     }
 
     function pluralizeFeatSection(title) {
         if (title === 'Martial Training') return 'Martial Training';
-        if (title.endsWith('s')) return title;
         if (title.endsWith('Feat')) return title + 's';
-        return title + 's';
+        if (title.endsWith('s')) return title;
+        return title + ' Feats'; // Flavor, Flaw, Trainer, Profession
     }
 
     function renderTraits(data) {
@@ -3042,34 +4789,36 @@
                 },
             },
         }));
+        const typeLabels = {
+            Traits: 'Trait',
+            Background: 'Background',
+            'Sphere Traits': 'Sphere',
+            Flaws: 'Flaw',
+        };
         let any = false;
         for (const [title, list, fieldKey] of groups) {
             if (!nonEmpty(list)) continue;
             any = true;
-            body.appendChild(h('h3', null, title));
+            const wrap = featureGroup(body, featureGroupSlug('traits', title), title);
             const ul = h('ul', 'plain-list feat-list dnd-list');
+            wrap.appendChild(ul);
+            ul.appendChild(featureListHeader());
             list.forEach((t) => {
                 const desc = foundry('traits', t)?.description
                     || foundry('feats', t)?.description || backendDesc[t];
-                const li = h('li', 'feat-item dnd-item');
-                li.dataset.featName = String(t).toLowerCase();
-                li.dataset.dndId = String(t);
-                const head = h('div', 'feat-item-head');
-                head.appendChild(dndHandle());
-                head.appendChild(desc ? details(t, desc) : h('span', null, t));
-                const rm = h('button', 'inv-btn inv-btn-danger feat-remove no-print', '×');
-                rm.type = 'button';
-                rm.addEventListener('click', () => {
-                    if (!confirm(`Remove “${t}”?`)) return;
-                    removeFromArrayField(data, fieldKey, t);
-                    renderSheet(data);
-                    setActiveTab('features');
-                });
-                head.appendChild(rm);
-                li.appendChild(head);
-                ul.appendChild(li);
+                ul.appendChild(featureRow({
+                    name: t,
+                    title: t,
+                    descHtml: desc,
+                    typeLabel: typeLabels[title] || 'Trait',
+                    chatKind: typeLabels[title] || 'Trait',
+                    onRemove: (nm) => {
+                        removeFromArrayField(data, fieldKey, nm);
+                        renderSheet(data);
+                        setActiveTab('features');
+                    },
+                }));
             });
-            body.appendChild(ul);
             bindDragReorder(ul, '.feat-item', (from, to) => {
                 reorderArray(data[fieldKey], from, to);
                 quietSave();
@@ -3090,12 +4839,15 @@
                 // entries look like "arcane school_wizard" -> name + owning class
                 const cut = String(entry).lastIndexOf('_');
                 const name = cut > 0 ? entry.slice(0, cut) : entry;
+                const cls = cut > 0 ? titleCase(String(entry).slice(cut + 1)) : '';
                 const desc = window.SheetDetails?.lookupClassFeature(name, classes)?.description
                     || data.class_ability_desc?.[name] || data.class_features?.[name]?.description;
-                items.push([titleCase(name), desc]);
+                items.push([titleCase(name), desc, cls]);
             }
         }
-        for (const pa of data.profession_ability_items || []) items.push([pa.name, pa.description]);
+        for (const pa of data.profession_ability_items || []) {
+            items.push([pa.name, pa.description, 'Profession']);
+        }
         const { sec, body } = section('Class Features & Abilities');
         body.appendChild(h('p', 'dbl-edit-hint no-print',
             'Browse class features or add custom. Set max uses; Rest restores them.'));
@@ -3136,39 +4888,44 @@
             body.appendChild(h('p', 'tools-empty', 'No class features yet — browse the catalog.'));
             return sec;
         }
-        const ul = h('ul', 'plain-list feature-list dnd-list');
+        const wrap = featureGroup(body, featureGroupSlug('class', 'Class Features'), null);
+        const ul = h('ul', 'plain-list feat-list dnd-list');
+        wrap.appendChild(ul);
+        ul.appendChild(featureListHeader());
         // Map display name back to raw class_ability entry for delete
         const rawList = data.class_ability || [];
         // Build order: class_ability first, then profession abilities as non-reorder with class list
-        for (const [name, desc] of items) {
-            const li = h('li', 'feat-item dnd-item');
-            li.dataset.featName = String(name).toLowerCase();
-            li.dataset.dndId = String(name);
-            const head = h('div', 'feat-item-head');
-            head.appendChild(dndHandle());
-            head.appendChild(desc ? details(name, desc) : h('span', null, name));
-            head.appendChild(renderUsesControls(data, name));
-            const rm = h('button', 'inv-btn inv-btn-danger feat-remove no-print', '×');
-            rm.type = 'button';
-            rm.addEventListener('click', () => {
-                if (!confirm(`Remove “${name}”?`)) return;
-                const idx = rawList.findIndex((raw) => {
-                    const cut = String(raw).lastIndexOf('_');
-                    const n = cut > 0 ? String(raw).slice(0, cut) : String(raw);
-                    return titleCase(n) === name || n.toLowerCase() === name.toLowerCase();
-                });
-                if (idx >= 0) {
-                    rawList.splice(idx, 1);
+        for (const [name, desc, cls] of items) {
+            ul.appendChild(featureRow({
+                name,
+                title: name,
+                descHtml: desc,
+                typeLabel: cls || 'Class',
+                data,
+                chatKind: 'Class Feature',
+                onRemove: (nm) => {
+                    const idx = rawList.findIndex((raw) => {
+                        const cut = String(raw).lastIndexOf('_');
+                        const n = cut > 0 ? String(raw).slice(0, cut) : String(raw);
+                        return titleCase(n) === nm || n.toLowerCase() === nm.toLowerCase();
+                    });
+                    if (idx >= 0) {
+                        rawList.splice(idx, 1);
+                    } else {
+                        // Profession abilities live in their own array
+                        const pro = data.profession_ability_items;
+                        const pIdx = Array.isArray(pro)
+                            ? pro.findIndex((pa) => String(pa?.name).toLowerCase() === nm.toLowerCase())
+                            : -1;
+                        if (pIdx < 0) return;
+                        pro.splice(pIdx, 1);
+                    }
                     quietSave();
                     renderSheet(data);
                     setActiveTab('features');
-                }
-            });
-            head.appendChild(rm);
-            li.appendChild(head);
-            ul.appendChild(li);
+                },
+            }));
         }
-        body.appendChild(ul);
         // Reorder only class_ability entries (profession items sit at end; skip if mixed)
         if (nonEmpty(rawList) && rawList.length === items.length) {
             bindDragReorder(ul, '.feat-item', (from, to) => {
@@ -3178,7 +4935,6 @@
                 setActiveTab('features');
             });
         }
-        bindFeatureSearch(body);
         return sec;
     }
 
@@ -3354,7 +5110,7 @@
             `Basic save DC = 10 + spell level + ${castAb.toUpperCase()} (${fmt(castMod)}) — listed on each level box.`));
 
         body.appendChild(h('p', 'dbl-edit-hint no-print',
-            'Browse spells to add to a level. Cast rolls attack/damage/DC (Foundry-style) and spends a slot. Minimize a level with −.'));
+            'Browse spells to add to a level. Cast rolls attack/damage/DC and spends a slot. Minimize a level with −.'));
 
         // Add spell from catalog to a chosen level
         const levelSel = h('select', 'edit-field');
@@ -3677,7 +5433,7 @@
         });
         pracV.appendChild(pracSel);
         pracV.appendChild(h('span', 'dim',
-            `  mod ${fmt(mod(data[pracKey]))} (used for @INITMOD / maneuver riders)`));
+            `  mod ${fmt(abModOf(data, pracKey))} (used for @INITMOD / maneuver riders)`));
         pracRow.appendChild(pracV);
         body.appendChild(pracRow);
         if (nonEmpty(data.martial_disciplines)) {
@@ -4042,13 +5798,7 @@
         kvDbl(body, 'Age', data, 'age_number', { type: 'number', min: 0 });
         kvDbl(body, 'Height', data, 'height_number');
         kvDbl(body, 'Weight (lbs)', data, 'weight_number', { type: 'number', min: 0 });
-        kvDbl(body, 'Languages (extra)', data, 'language_text', {
-            asArray: true,
-            format: (v) => {
-                const list = Array.isArray(v) ? v : (v ? [String(v)] : []);
-                return list.length ? list.join(', ') : '—';
-            },
-        });
+        // Languages moved to Attributes (with senses / aura / proficiencies).
         body.appendChild(h('p', 'dim no-print',
             'Tip: open Notes for Description, Personality, and session / background text.'));
         return sec;
@@ -4123,10 +5873,11 @@
         if (st.sr == null && data.spell_resistance != null) st.sr = data.spell_resistance;
         if (st.sr == null) st.sr = 0;
         const srBox = h('div', 'summary-stat-box');
+        srBox.title = 'SR total (base + feat/trait/class/misc — see Combat → Defenses). Double-click edits the base.';
         srBox.appendChild(h('div', 'summary-stat-head', 'SR'));
         srBox.appendChild(dblclickEditable(st, 'sr', {
             type: 'number', min: 0,
-            format: (v) => String(v == null || v === '' ? 0 : v),
+            format: () => String(srTotal(data)),
             parse: (s) => parseIntLoose(s, 0),
             onChange: () => quietSave(),
         }));
@@ -4187,9 +5938,10 @@
             const ab = getSkillAbility(data, skill);
             const rankMap = parseSkillRanks(data);
             const ranks = ranksForSkill(rankMap, 'Perception');
-            const abMod = mod(data[ab]);
+            const abMod = abModOf(data, ab);
             const misc = skillMiscBonus(data, { ...skill, ab });
-            rollCheck('Perception check', ranks + abMod + misc.total);
+            const user = skillUserBonus(data, skillAbilityKey(skill), ranks);
+            rollCheck('Perception check', ranks + abMod + misc.total + user.total);
         });
         mk('Rest', () => {
             if (!confirm('Rest and restore daily resources (spell casts, feature uses, sphere SP)?')) return;
@@ -4199,32 +5951,433 @@
         body.appendChild(bar);
     }
 
+    // ------------------------------------------------------------ class & archetype info
+    // Built-in PF1 class chassis (best effort — every field is editable per character
+    // via _sheet.classInfo overrides in the class popup). classSkills use ALL_SKILLS ids.
+    const CLASS_STATS = {
+        alchemist: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Good', will: 'Poor', skills: 4, casting: 'Extracts (Int, 6th-level)', weaponProf: 'Simple + bombs', armorProf: 'Light', classSkills: ['apr', 'crf', 'dev', 'fly', 'hea', 'kar', 'kna', 'per', 'pro', 'slt', 'spl', 'sur'] },
+        antipaladin: { hd: 10, bab: 'Full', fort: 'Good', ref: 'Poor', will: 'Good', skills: 2, casting: 'Divine (Cha, 4th-level)', alignment: 'Chaotic evil only', weaponProf: 'Simple, martial', armorProf: 'All armor, shields', classSkills: ['blf', 'crf', 'dis', 'han', 'int', 'kre', 'pro', 'rid', 'sen', 'ste', 'spl'] },
+        arcanist: { hd: 6, bab: '1/2', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 2, casting: 'Arcane (Int, 9th-level, prepared-spontaneous)', weaponProf: 'Simple', armorProf: 'None', classSkills: ['apr', 'crf', 'fly', 'kar', 'kdu', 'ken', 'kge', 'khi', 'klo', 'kna', 'kno', 'kpl', 'kre', 'lin', 'pro', 'spl', 'umd'] },
+        barbarian: { hd: 12, bab: 'Full', fort: 'Good', ref: 'Poor', will: 'Poor', skills: 4, casting: 'None', alignment: 'Any nonlawful', weaponProf: 'Simple, martial', armorProf: 'Light, medium, shields', classSkills: ['acr', 'clm', 'crf', 'han', 'int', 'kna', 'per', 'rid', 'sur', 'swm'] },
+        bard: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Good', will: 'Good', skills: 6, casting: 'Arcane (Cha, 6th-level, spontaneous)', weaponProf: 'Simple + bard list', armorProf: 'Light, shields', classSkills: ['acr', 'apr', 'blf', 'clm', 'crf', 'dip', 'dis', 'esc', 'int', 'kar', 'kdu', 'ken', 'kge', 'khi', 'klo', 'kna', 'kno', 'kpl', 'kre', 'lin', 'per', 'prf', 'pro', 'sen', 'slt', 'spl', 'ste', 'umd'] },
+        bloodrager: { hd: 10, bab: 'Full', fort: 'Good', ref: 'Poor', will: 'Poor', skills: 4, casting: 'Arcane (Cha, 4th-level, spontaneous)', weaponProf: 'Simple, martial', armorProf: 'Light, medium, shields', classSkills: ['acr', 'clm', 'crf', 'han', 'int', 'kar', 'per', 'rid', 'spl', 'sur', 'swm'] },
+        brawler: { hd: 10, bab: 'Full', fort: 'Good', ref: 'Good', will: 'Poor', skills: 4, casting: 'None', weaponProf: 'Simple + close weapons', armorProf: 'Light, shields', classSkills: ['acr', 'clm', 'crf', 'esc', 'han', 'int', 'kdu', 'klo', 'per', 'pro', 'rid', 'sen', 'swm'] },
+        cavalier: { hd: 10, bab: 'Full', fort: 'Good', ref: 'Poor', will: 'Poor', skills: 4, casting: 'None', weaponProf: 'Simple, martial', armorProf: 'All armor, shields', classSkills: ['blf', 'clm', 'crf', 'dip', 'han', 'int', 'pro', 'rid', 'sen', 'swm'] },
+        cleric: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Poor', will: 'Good', skills: 2, casting: 'Divine (Wis, 9th-level, prepared)', weaponProf: 'Simple + deity favored', armorProf: 'Light, medium, shields', classSkills: ['apr', 'crf', 'dip', 'hea', 'kar', 'khi', 'kno', 'kpl', 'kre', 'lin', 'pro', 'sen', 'spl'] },
+        druid: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Poor', will: 'Good', skills: 4, casting: 'Divine (Wis, 9th-level, prepared)', alignment: 'Any neutral', weaponProf: 'Druid list', armorProf: 'Light, medium, shields (no metal)', classSkills: ['clm', 'crf', 'fly', 'han', 'hea', 'kge', 'kna', 'per', 'pro', 'rid', 'spl', 'sur', 'swm'] },
+        fighter: { hd: 10, bab: 'Full', fort: 'Good', ref: 'Poor', will: 'Poor', skills: 2, casting: 'None', weaponProf: 'Simple, martial', armorProf: 'All armor, shields (incl. tower)', classSkills: ['clm', 'crf', 'han', 'int', 'kdu', 'ken', 'pro', 'rid', 'sur', 'swm'] },
+        gunslinger: { hd: 10, bab: 'Full', fort: 'Good', ref: 'Good', will: 'Poor', skills: 4, casting: 'None', weaponProf: 'Simple, martial + firearms', armorProf: 'Light', classSkills: ['acr', 'blf', 'clm', 'crf', 'han', 'hea', 'int', 'ken', 'klo', 'per', 'pro', 'rid', 'slt', 'sur', 'swm'] },
+        hunter: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Good', will: 'Poor', skills: 6, casting: 'Divine (Wis, 6th-level, spontaneous)', weaponProf: 'Simple, martial', armorProf: 'Light, medium, shields', classSkills: ['clm', 'crf', 'han', 'hea', 'int', 'kdu', 'kge', 'kna', 'per', 'pro', 'rid', 'spl', 'ste', 'sur', 'swm'] },
+        inquisitor: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Poor', will: 'Good', skills: 6, casting: 'Divine (Wis, 6th-level, spontaneous)', weaponProf: 'Simple + deity favored', armorProf: 'Light, medium, shields', classSkills: ['blf', 'clm', 'crf', 'dip', 'dis', 'hea', 'int', 'kar', 'kdu', 'kna', 'kpl', 'kre', 'per', 'pro', 'rid', 'sen', 'spl', 'ste', 'sur', 'swm'] },
+        investigator: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Good', will: 'Good', skills: 6, casting: 'Extracts (Int, 6th-level)', weaponProf: 'Simple + a few martial', armorProf: 'Light', classSkills: ['acr', 'apr', 'blf', 'clm', 'crf', 'dip', 'dev', 'dis', 'esc', 'hea', 'int', 'kar', 'kdu', 'ken', 'kge', 'khi', 'klo', 'kna', 'kno', 'kpl', 'kre', 'lin', 'per', 'pro', 'sen', 'slt', 'spl', 'ste'] },
+        magus: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Poor', will: 'Good', skills: 2, casting: 'Arcane (Int, 6th-level, prepared)', weaponProf: 'Simple, martial', armorProf: 'Light (armored casting)', classSkills: ['clm', 'crf', 'dip', 'fly', 'int', 'kar', 'kdu', 'kpl', 'pro', 'rid', 'spl', 'swm', 'umd'] },
+        monk: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Good', will: 'Good', skills: 4, casting: 'None', alignment: 'Any lawful', weaponProf: 'Monk weapons', armorProf: 'None', classSkills: ['acr', 'clm', 'crf', 'esc', 'int', 'khi', 'kre', 'per', 'prf', 'pro', 'rid', 'sen', 'ste', 'swm'] },
+        'monk (unchained)': { hd: 10, bab: 'Full', fort: 'Good', ref: 'Good', will: 'Poor', skills: 4, casting: 'None', alignment: 'Any lawful', weaponProf: 'Monk weapons', armorProf: 'None', classSkills: ['acr', 'clm', 'crf', 'esc', 'int', 'khi', 'kre', 'per', 'prf', 'pro', 'rid', 'sen', 'ste', 'swm'] },
+        ninja: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Good', will: 'Poor', skills: 8, casting: 'None (ki tricks)', weaponProf: 'Simple + ninja weapons', armorProf: 'Light', classSkills: ['acr', 'apr', 'blf', 'clm', 'crf', 'dip', 'dev', 'dis', 'esc', 'int', 'klo', 'kno', 'lin', 'per', 'prf', 'pro', 'sen', 'slt', 'ste', 'swm', 'umd'] },
+        oracle: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 4, casting: 'Divine (Cha, 9th-level, spontaneous)', weaponProf: 'Simple', armorProf: 'Light, medium, shields', classSkills: ['crf', 'dip', 'hea', 'khi', 'kpl', 'kre', 'pro', 'sen', 'spl'] },
+        paladin: { hd: 10, bab: 'Full', fort: 'Good', ref: 'Poor', will: 'Good', skills: 2, casting: 'Divine (Cha, 4th-level)', alignment: 'Lawful good only', weaponProf: 'Simple, martial', armorProf: 'All armor, shields', classSkills: ['crf', 'dip', 'han', 'hea', 'kno', 'kre', 'pro', 'rid', 'sen', 'spl'] },
+        ranger: { hd: 10, bab: 'Full', fort: 'Good', ref: 'Good', will: 'Poor', skills: 6, casting: 'Divine (Wis, 4th-level)', weaponProf: 'Simple, martial', armorProf: 'Light, medium, shields', classSkills: ['clm', 'crf', 'han', 'hea', 'int', 'kdu', 'kge', 'kna', 'per', 'pro', 'rid', 'spl', 'ste', 'sur', 'swm'] },
+        rogue: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Good', will: 'Poor', skills: 8, casting: 'None', weaponProf: 'Simple + rogue weapons', armorProf: 'Light', classSkills: ['acr', 'apr', 'blf', 'clm', 'crf', 'dip', 'dev', 'dis', 'esc', 'int', 'kdu', 'klo', 'lin', 'per', 'prf', 'pro', 'sen', 'slt', 'spl', 'ste', 'swm', 'umd'] },
+        samurai: { hd: 10, bab: 'Full', fort: 'Good', ref: 'Poor', will: 'Poor', skills: 4, casting: 'None', weaponProf: 'Simple, martial + katana', armorProf: 'All armor, shields', classSkills: ['blf', 'clm', 'crf', 'dip', 'han', 'int', 'pro', 'rid', 'sen', 'swm'] },
+        shaman: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 4, casting: 'Divine (Wis, 9th-level, prepared)', weaponProf: 'Simple', armorProf: 'Light, medium (no metal)', classSkills: ['crf', 'dip', 'fly', 'han', 'hea', 'kna', 'kpl', 'kre', 'lin', 'pro', 'rid', 'spl', 'sur'] },
+        shifter: { hd: 10, bab: 'Full', fort: 'Good', ref: 'Good', will: 'Poor', skills: 4, casting: 'None', alignment: 'Any neutral', weaponProf: 'Simple + natural attacks', armorProf: 'Light (no metal)', classSkills: ['acr', 'clm', 'crf', 'fly', 'han', 'kna', 'per', 'pro', 'rid', 'ste', 'sur', 'swm'] },
+        skald: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Poor', will: 'Good', skills: 4, casting: 'Arcane (Cha, 6th-level, spontaneous)', weaponProf: 'Simple, martial', armorProf: 'Light, medium, shields', classSkills: ['acr', 'apr', 'blf', 'clm', 'crf', 'dip', 'esc', 'han', 'int', 'kar', 'kdu', 'ken', 'kge', 'khi', 'klo', 'kna', 'kno', 'kpl', 'kre', 'lin', 'per', 'prf', 'pro', 'rid', 'sen', 'spl', 'swm', 'umd'] },
+        slayer: { hd: 10, bab: 'Full', fort: 'Good', ref: 'Good', will: 'Poor', skills: 6, casting: 'None', weaponProf: 'Simple, martial', armorProf: 'Light, medium, shields', classSkills: ['acr', 'blf', 'clm', 'crf', 'dis', 'han', 'hea', 'int', 'kdu', 'kge', 'klo', 'per', 'pro', 'rid', 'sen', 'ste', 'sur', 'swm'] },
+        sorcerer: { hd: 6, bab: '1/2', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 2, casting: 'Arcane (Cha, 9th-level, spontaneous)', weaponProf: 'Simple', armorProf: 'None', classSkills: ['apr', 'blf', 'crf', 'fly', 'int', 'kar', 'pro', 'spl', 'umd'] },
+        summoner: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 2, casting: 'Arcane (Cha, 6th-level, spontaneous)', weaponProf: 'Simple', armorProf: 'Light', classSkills: ['crf', 'fly', 'han', 'kar', 'kdu', 'ken', 'kge', 'khi', 'klo', 'kna', 'kno', 'kpl', 'kre', 'lin', 'pro', 'rid', 'spl', 'umd'] },
+        warpriest: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Poor', will: 'Good', skills: 2, casting: 'Divine (Wis, 6th-level, prepared)', weaponProf: 'Simple, martial + deity favored', armorProf: 'All armor, shields', classSkills: ['clm', 'crf', 'dip', 'han', 'hea', 'int', 'ken', 'kre', 'pro', 'rid', 'sen', 'spl', 'sur', 'swm'] },
+        witch: { hd: 6, bab: '1/2', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 2, casting: 'Arcane (Int, 9th-level, prepared)', weaponProf: 'Simple', armorProf: 'None', classSkills: ['crf', 'fly', 'hea', 'int', 'kar', 'khi', 'kna', 'kpl', 'pro', 'spl', 'umd'] },
+        wizard: { hd: 6, bab: '1/2', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 2, casting: 'Arcane (Int, 9th-level, prepared)', weaponProf: 'Wizard list', armorProf: 'None', classSkills: ['apr', 'crf', 'fly', 'kar', 'kdu', 'ken', 'kge', 'khi', 'klo', 'kna', 'kno', 'kpl', 'kre', 'lin', 'pro', 'spl'] },
+        stalker: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Good', will: 'Good', skills: 6, casting: 'None', maneuvers: 'Full initiator (Path of War)', weaponProf: 'Simple, martial', armorProf: 'Light', classSkills: ['acr', 'blf', 'clm', 'esc', 'int', 'per', 'sen', 'slt', 'ste', 'sur', 'swm'] },
+        warder: { hd: 10, bab: 'Full', fort: 'Good', ref: 'Poor', will: 'Good', skills: 4, casting: 'None', maneuvers: 'Full initiator (Path of War)', weaponProf: 'Simple, martial', armorProf: 'All armor, shields', classSkills: ['acr', 'clm', 'crf', 'dip', 'int', 'kdu', 'ken', 'khi', 'klo', 'kno', 'per', 'pro', 'rid', 'sen', 'swm'] },
+        warlord: { hd: 10, bab: 'Full', fort: 'Poor', ref: 'Good', will: 'Poor', skills: 4, casting: 'None', maneuvers: 'Full initiator (Path of War)', weaponProf: 'Simple, martial', armorProf: 'Light, medium, shields', classSkills: ['acr', 'blf', 'clm', 'crf', 'dip', 'han', 'int', 'khi', 'klo', 'per', 'prf', 'pro', 'rid', 'sen', 'swm'] },
+        zealot: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Poor', will: 'Good', skills: 4, casting: 'Psionic-flavored (Path of War: Zealot)', maneuvers: 'Full initiator (Path of War)', weaponProf: 'Simple, martial', armorProf: 'Light, medium, shields', classSkills: ['blf', 'clm', 'crf', 'dip', 'hea', 'int', 'khi', 'klo', 'kre', 'per', 'pro', 'sen', 'spl', 'swm'] },
+    };
+    CLASS_STATS['barbarian (unchained)'] = CLASS_STATS.barbarian;
+    CLASS_STATS['rogue (unchained)'] = CLASS_STATS.rogue;
+
+    const DEFAULT_CLASS_INFO = {
+        hd: null, bab: '—', fort: '—', ref: '—', will: '—', skills: null,
+        casting: '—', maneuvers: '—', fcb: '+1 HP or +1 skill point',
+        weaponProf: '—', armorProf: '—', alignment: 'Any', classSkills: [],
+    };
+
+    function classKeyOf(name) {
+        return String(name || '').toLowerCase().trim();
+    }
+
+    /** Built-in chassis + per-character overrides (_sheet.classInfo[key]). */
+    function classInfoFor(data, clsName) {
+        const key = classKeyOf(clsName);
+        const base = CLASS_STATS[key] || {};
+        const over = data?._sheet?.classInfo?.[key] || {};
+        return { ...DEFAULT_CLASS_INFO, ...base, ...over };
+    }
+
+    function setClassInfo(data, clsName, field, value) {
+        const st = sheetState(data);
+        st.classInfo ??= {};
+        const key = classKeyOf(clsName);
+        st.classInfo[key] ??= {};
+        if (value == null || value === '' || value === '—') delete st.classInfo[key][field];
+        else st.classInfo[key][field] = value;
+        if (!Object.keys(st.classInfo[key]).length) delete st.classInfo[key];
+        if (!Object.keys(st.classInfo).length) delete st.classInfo;
+        quietSave();
+    }
+
+    /** One-time: check the class-skill CS toggles from the class defaults. */
+    function seedClassSkills(data) {
+        const st = sheetState(data);
+        if (st.classSkillsSeeded) return;
+        st.classSkillsSeeded = true;
+        for (const cls of [data.c_class, data.c_class_2]) {
+            if (!cls) continue;
+            for (const id of classInfoFor(data, cls).classSkills || []) {
+                setSkillBonus(data, id, 'cs', true);
+            }
+        }
+        quietSave();
+    }
+
+    /** { name, raw } from the backend archetype_info ({ "<Name>": <description> }). */
+    function archetypeInfoOf(data) {
+        let obj = data?.archetype_info;
+        if (typeof obj === 'string') {
+            try { obj = JSON.parse(obj); } catch { return null; }
+        }
+        if (!obj || typeof obj !== 'object') return null;
+        const name = Object.keys(obj)[0];
+        return name ? { name, raw: obj[name] } : null;
+    }
+
+    /** Render scraped archetype content (string / array / object) as readable HTML. */
+    function archetypeDescHtml(raw) {
+        if (raw == null) return '<p class="dim">No description.</p>';
+        if (typeof raw === 'string') {
+            return /</.test(raw) ? raw : '<p>' + escapeHtml(raw) + '</p>';
+        }
+        if (Array.isArray(raw)) {
+            return raw.map((x) => archetypeDescHtml(x)).join('');
+        }
+        return Object.entries(raw).map(([k, v]) =>
+            `<p><strong>${escapeHtml(titleCase(k.replace(/_/g, ' ')))}:</strong></p>`
+            + archetypeDescHtml(v)).join('');
+    }
+
+    /** Class detail popup — defaults line + editable chassis + class-skill checkboxes. */
+    function openClassSheet(data, clsName) {
+        document.getElementById('class-sheet-modal')?.remove();
+        const overlay = h('div', 'catalog-picker item-sheet-overlay no-print');
+        overlay.id = 'class-sheet-modal';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        const onKey = (e) => {
+            if (e.key === 'Escape') { e.preventDefault(); close(); }
+        };
+        const close = () => {
+            document.removeEventListener('keydown', onKey);
+            overlay.remove();
+            renderSheet(data);
+        };
+        document.addEventListener('keydown', onKey);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) close();
+        });
+
+        const card = h('div', 'item-sheet-card class-sheet-card');
+        const head = h('div', 'item-sheet-head');
+        head.appendChild(h('h3', 'class-sheet-title',
+            titleCase(clsName) + ' — level ' + (Number(data.level) || 0)));
+        const closeBtn = h('button', 'catalog-picker-close', '×');
+        closeBtn.type = 'button';
+        closeBtn.addEventListener('click', close);
+        head.appendChild(closeBtn);
+        card.appendChild(head);
+
+        const bodyEl = h('div', 'class-sheet-body');
+        const info = classInfoFor(data, clsName);
+        bodyEl.appendChild(h('p', 'class-sheet-summary',
+            `HD d${info.hd ?? '—'} · BAB ${info.bab} · Fort ${info.fort} / Ref ${info.ref} / Will ${info.will}`
+            + ` · Skills ${info.skills ?? '—'} + Int per level`));
+
+        bodyEl.appendChild(h('h4', 'item-sheet-h', 'Details (editable)'));
+        const grid = h('div', 'class-sheet-grid');
+        const row = (label, field, opts = {}) => {
+            const wrap = h('label', 'item-sheet-stat');
+            wrap.appendChild(h('span', 'item-sheet-stat-label', label));
+            const cur = classInfoFor(data, clsName)[field];
+            if (opts.select) {
+                const sel = h('select', 'item-sheet-select');
+                for (const o of opts.select) {
+                    const opt = document.createElement('option');
+                    opt.value = o;
+                    opt.textContent = o;
+                    if (o === cur) opt.selected = true;
+                    sel.appendChild(opt);
+                }
+                sel.addEventListener('change', () => setClassInfo(data, clsName, field, sel.value));
+                wrap.appendChild(sel);
+            } else {
+                const inp = h('input', opts.number ? 'item-sheet-num' : 'item-sheet-text');
+                inp.type = opts.number ? 'number' : 'text';
+                inp.value = cur == null || cur === '—' ? '' : String(cur);
+                inp.placeholder = '—';
+                inp.addEventListener('change', () => {
+                    const v = opts.number
+                        ? (inp.value === '' ? null : parseIntLoose(inp.value, 0))
+                        : inp.value.trim();
+                    setClassInfo(data, clsName, field, v);
+                });
+                wrap.appendChild(inp);
+            }
+            grid.appendChild(wrap);
+        };
+        row('Hit die (d)', 'hd', { number: true });
+        // Rolled HP is character data (feeds the HP formula), not a class override
+        {
+            const wrap = h('label', 'item-sheet-stat');
+            wrap.appendChild(h('span', 'item-sheet-stat-label', 'Rolled HP (dice total)'));
+            const inp = h('input', 'item-sheet-num');
+            inp.type = 'number';
+            inp.value = data.total_rolled_hp != null ? String(data.total_rolled_hp) : '';
+            inp.placeholder = '—';
+            inp.addEventListener('change', () => {
+                data.total_rolled_hp = inp.value === '' ? null : parseIntLoose(inp.value, 0);
+                quietSave();
+            });
+            wrap.appendChild(inp);
+            grid.appendChild(wrap);
+        }
+        row('Skills / level', 'skills', { number: true });
+        row('Alignment restrictions', 'alignment');
+        row('Fortitude', 'fort', { select: ['Good', 'Poor'] });
+        row('Reflex', 'ref', { select: ['Good', 'Poor'] });
+        row('Will', 'will', { select: ['Good', 'Poor'] });
+        row('Spellcasting', 'casting');
+        row('Maneuver progression', 'maneuvers');
+        row('Favored class bonus', 'fcb');
+        row('Weapon proficiencies', 'weaponProf');
+        row('Armor proficiencies', 'armorProf');
+        bodyEl.appendChild(grid);
+
+        bodyEl.appendChild(h('h4', 'item-sheet-h', 'Class skills'));
+        bodyEl.appendChild(h('p', 'dim class-skill-hint',
+            'Checked = class skill — syncs the Skills tab CS toggle (+3 with at least 1 rank).'));
+        const skGrid = h('div', 'class-skill-grid');
+        for (const skill of ALL_SKILLS) {
+            const lab = h('label', 'class-skill-check');
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = !!skillBonusEntry(data, skillAbilityKey(skill)).cs;
+            cb.addEventListener('change', () => {
+                setSkillBonus(data, skillAbilityKey(skill), 'cs', cb.checked);
+            });
+            lab.append(cb, h('span', null, skill.name));
+            skGrid.appendChild(lab);
+        }
+        bodyEl.appendChild(skGrid);
+
+        card.appendChild(bodyEl);
+        overlay.appendChild(card);
+        document.body.appendChild(overlay);
+    }
+
+    /** Archetype popup — scraped description, base level 0. */
+    function openArchetypeSheet(data) {
+        const info = archetypeInfoOf(data);
+        if (!info) return;
+        document.getElementById('class-sheet-modal')?.remove();
+        const overlay = h('div', 'catalog-picker item-sheet-overlay no-print');
+        overlay.id = 'class-sheet-modal';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        const onKey = (e) => {
+            if (e.key === 'Escape') { e.preventDefault(); close(); }
+        };
+        const close = () => {
+            document.removeEventListener('keydown', onKey);
+            overlay.remove();
+        };
+        document.addEventListener('keydown', onKey);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) close();
+        });
+        const card = h('div', 'item-sheet-card class-sheet-card');
+        const head = h('div', 'item-sheet-head');
+        head.appendChild(h('h3', 'class-sheet-title', info.name));
+        const closeBtn = h('button', 'catalog-picker-close', '×');
+        closeBtn.type = 'button';
+        closeBtn.addEventListener('click', close);
+        head.appendChild(closeBtn);
+        card.appendChild(head);
+        const bodyEl = h('div', 'class-sheet-body');
+        bodyEl.appendChild(h('p', 'dim', 'Archetype — base level 0.'));
+        bodyEl.appendChild(htmlBlock('desc', archetypeDescHtml(info.raw)));
+        card.appendChild(bodyEl);
+        overlay.appendChild(card);
+        document.body.appendChild(overlay);
+    }
+
     function tabSummary(data) {
         const d = computeDerived(data);
         const { sec, body } = section('Overview', 'summary-overview');
         body.appendChild(h('p', 'dbl-edit-hint no-print',
-            'Play dashboard: HP, defenses, combat strip, speeds, quick actions. Double-click values to edit.'));
+            'Play dashboard. Double-click values to edit; 🎲 rolls; click a class for details.'));
 
         summaryQuickActions(body, data, d);
-        kvHp(body, data, d);
-        kvAc(body, d);
-        summaryCombatStrip(body, data, d);
-        kvSaves(body, d);
-        summarySpeeds(body, data);
+        seedClassSkills(data);
 
-        kvDbl(body, 'Age', data, 'age_number', { type: 'number', min: 0 });
-        kvDbl(body, 'Height', data, 'height_number');
-        kvDbl(body, 'Weight (lbs)', data, 'weight_number', { type: 'number', min: 0 });
-        kvDbl(body, 'Languages (extra)', data, 'language_text', {
-            asArray: true,
-            format: (v) => {
-                const list = Array.isArray(v) ? v : (v ? [String(v)] : []);
-                return list.length ? list.join(', ') : '—';
-            },
+        const st = sheetState(data);
+        if (st.hpCurrent == null || st.hpCurrent === '') st.hpCurrent = d.blocks.hp.total;
+        if (st.hpTemp == null || st.hpTemp === '') st.hpTemp = 0;
+        if (st.hpNonlethal == null || st.hpNonlethal === '') st.hpNonlethal = 0;
+        st.speeds ??= {};
+        if (st.speeds.land == null || st.speeds.land === '') {
+            st.speeds.land = Number(data.land_speed) || 30;
+        }
+
+        const line = (label) => {
+            const wrap = h('div', 'summary-line');
+            wrap.appendChild(h('h4', 'summary-line-label', label));
+            const strip = h('div', 'summary-combat-strip combat-top-strip summary-line-strip');
+            wrap.appendChild(strip);
+            body.appendChild(wrap);
+            return strip;
+        };
+        const box = (strip, label, content, opts = {}) => {
+            const b = h('div', 'summary-stat-box');
+            const headEl = h('div', 'summary-stat-head');
+            headEl.appendChild(document.createTextNode(label + ' '));
+            if (opts.rollTotal != null) {
+                headEl.appendChild(rollBtn(opts.rollLabel || label, opts.rollTotal));
+            }
+            b.appendChild(headEl);
+            const val = h('div', 'summary-stat-val');
+            if (content instanceof Node) val.appendChild(content);
+            else val.textContent = String(content);
+            b.appendChild(val);
+            if (opts.title) b.title = opts.title;
+            if (opts.cls) b.classList.add(opts.cls);
+            strip.appendChild(b);
+            return b;
+        };
+        const editNumNode = (obj, key, opts = {}) => dblclickEditable(obj, key, {
+            type: 'number', min: opts.min ?? 0,
+            format: (v) => (v == null || v === '' ? '0' : String(v)),
+            parse: (s) => parseIntLoose(s, 0),
+            onChange: opts.onChange || (() => quietSave()),
         });
-        kvDbl(body, 'Weapon', data, 'weapon_name');
-        kvDbl(body, 'Armor', data, 'armor_name');
-        kvCurrency(body, data);
+        const partsTitle = (block) => (block.parts || [])
+            .filter((p) => !p.info && !p.unresolved && Number(p.value))
+            .map((p) => `${p.label} ${fmt(Number(p.value))}`).join('\n');
+
+        // --- HP / Speed line
+        const hpLine = line('Hit Points / Speed');
+        const hpVal = h('span', 'summary-hp-pair');
+        hpVal.appendChild(editNumNode(st, 'hpCurrent'));
+        hpVal.appendChild(document.createTextNode(' / ' + d.blocks.hp.total));
+        const cur = Number(st.hpCurrent) || 0;
+        box(hpLine, 'HP', hpVal, {
+            title: partsTitle(d.blocks.hp),
+            cls: d.blocks.hp.total > 0 && cur <= d.blocks.hp.total / 2 ? 'is-bloodied' : undefined,
+        });
+        box(hpLine, 'Temp', editNumNode(st, 'hpTemp'));
+        box(hpLine, 'Nonlethal', editNumNode(st, 'hpNonlethal'));
+        for (const [key, label] of [
+            ['land', 'Land'], ['climb', 'Climb'], ['swim', 'Swim'], ['fly', 'Fly'], ['burrow', 'Burrow'],
+        ]) {
+            if (st.speeds[key] == null || st.speeds[key] === '') st.speeds[key] = key === 'land' ? (Number(data.land_speed) || 30) : 0;
+            const node = h('span');
+            node.appendChild(editNumNode(st.speeds, key));
+            if (key === 'fly') {
+                const sel = h('select', 'edit-field fly-maneuver-select');
+                for (const m of ['—', 'clumsy', 'poor', 'average', 'good', 'perfect']) {
+                    const opt = document.createElement('option');
+                    opt.value = m === '—' ? '' : m;
+                    opt.textContent = m;
+                    if ((st.speeds.flyManeuver || '') === opt.value) opt.selected = true;
+                    sel.appendChild(opt);
+                }
+                sel.title = 'Fly maneuverability';
+                sel.addEventListener('change', () => {
+                    if (sel.value) st.speeds.flyManeuver = sel.value;
+                    else delete st.speeds.flyManeuver;
+                    quietSave();
+                });
+                node.appendChild(sel);
+            }
+            box(hpLine, label, node);
+        }
+
+        // --- Defense line
+        const defLine = line('Defense');
+        box(defLine, 'AC', String(d.blocks.ac.total), { title: partsTitle(d.blocks.ac) });
+        box(defLine, 'Touch', String(d.blocks.touch.total), { title: partsTitle(d.blocks.touch) });
+        box(defLine, 'Flat-footed', String(d.blocks.flat.total), { title: partsTitle(d.blocks.flat) });
+        box(defLine, 'CMD', String(d.blocks.cmd.total), { title: partsTitle(d.blocks.cmd) });
+        box(defLine, 'FF CMD', String(d.blocks.cmdFF.total), { title: partsTitle(d.blocks.cmdFF) });
+
+        // --- Saves line
+        const savesLine = line('Saving Throws');
+        box(savesLine, 'Fort', fmt(d.blocks.fort.total),
+            { rollTotal: d.blocks.fort.total, rollLabel: 'Fortitude save', title: partsTitle(d.blocks.fort) });
+        box(savesLine, 'Ref', fmt(d.blocks.ref.total),
+            { rollTotal: d.blocks.ref.total, rollLabel: 'Reflex save', title: partsTitle(d.blocks.ref) });
+        box(savesLine, 'Will', fmt(d.blocks.will.total),
+            { rollTotal: d.blocks.will.total, rollLabel: 'Will save', title: partsTitle(d.blocks.will) });
+        if (st.sr == null && data.spell_resistance != null) st.sr = Number(data.spell_resistance) || 0;
+        const srNode = dblclickEditable(st, 'sr', {
+            type: 'number', min: 0,
+            format: () => String(srTotal(data)),
+            parse: (s) => parseIntLoose(s, 0),
+            onChange: () => quietSave(),
+        });
+        box(savesLine, 'SR', srNode,
+            { title: 'Spell resistance total — double-click edits the base (bonuses on Defenses)' });
+
+        // --- Offense line
+        const offLine = line('Offense');
+        box(offLine, 'BAB', babIterativesStr(d.bab), { title: 'Iterative attacks (up to 4 shown)' });
+        box(offLine, 'CMB', fmt(d.blocks.cmb.total),
+            { rollTotal: d.blocks.cmb.total, rollLabel: 'CMB', title: partsTitle(d.blocks.cmb) });
+        box(offLine, 'Initiative', fmt(d.blocks.init.total),
+            { rollTotal: d.blocks.init.total, rollLabel: 'Initiative', title: partsTitle(d.blocks.init) });
+
+        // --- Attacks
+        body.appendChild(h('h3', null, 'Attacks'));
+        const attackHost = h('div', null);
+        attackHost.id = 'summary-attack-panel';
+        body.appendChild(attackHost);
+        window.SheetRoll?.renderAttackCard?.(attackHost, {
+            showConditionals: false,
+            showGeneric: true,
+        });
+
+        // --- Class & Archetype
+        body.appendChild(h('h3', null, 'Class & Archetype'));
+        const classRow = (label, blurb, onOpen) => {
+            const btn = h('button', 'class-row');
+            btn.type = 'button';
+            btn.appendChild(h('span', 'class-row-arrow', '▸'));
+            btn.appendChild(h('span', 'class-row-name', label));
+            if (blurb) btn.appendChild(h('span', 'class-row-blurb dim', blurb));
+            btn.addEventListener('click', onOpen);
+            body.appendChild(btn);
+        };
+        for (const cls of [data.c_class, data.c_class_2]) {
+            if (!cls) continue;
+            const info = classInfoFor(data, cls);
+            classRow(
+                titleCase(cls) + ' — level ' + (Number(data.level) || 0),
+                info.hd ? `d${info.hd} · BAB ${info.bab} · ${info.casting}` : 'click for class details',
+                () => openClassSheet(data, cls));
+        }
+        const arch = archetypeInfoOf(data);
+        if (arch) {
+            classRow('Archetype: ' + arch.name, 'base level 0 — click for description',
+                () => openArchetypeSheet(data));
+        }
         return sec;
     }
 
@@ -4266,72 +6419,502 @@
             'Double-click a value to edit. Expand “sources” for calculated breakdowns. Use Roll for checks.'));
 
         kvInitiative(body, d);
-        kvDbl(body, 'Speed (ft)', data, 'land_speed', { type: 'number', min: 0 });
-        kvDbl(body, 'BAB', data, 'bab_total', {
-            type: 'number', min: 0, max: 30,
-            format: (v) => (v == null || v === '' ? '—' : fmt(Number(v) || 0)),
-            parse: (s) => {
-                const n = parseInt(String(s).replace(/^\+/, ''), 10);
-                return Number.isFinite(n) ? n : 0;
+        // Speed lives on Summary; BAB on Combat; saves on Defenses.
+
+        // Misc info — senses / aura / languages / proficiencies (_sheet.miscInfo)
+        const stMisc = sheetState(data);
+        stMisc.miscInfo ??= {};
+        const miscRow = (label, field, hint) => {
+            const row = h('div', 'kv');
+            row.appendChild(h('span', 'k', label));
+            const v = h('span', 'v');
+            const bag = { t: stMisc.miscInfo[field] || '' };
+            v.appendChild(dblclickEditable(bag, 't', {
+                format: (x) => (x && String(x).trim() ? String(x) : '—'),
+                parse: (s) => String(s),
+                onChange: (x) => {
+                    const t = String(x || '').trim();
+                    if (t) stMisc.miscInfo[field] = t;
+                    else delete stMisc.miscInfo[field];
+                    quietSave();
+                },
+            }));
+            v.title = hint;
+            row.appendChild(v);
+            body.appendChild(row);
+        };
+        miscRow('Senses', 'senses', 'e.g. darkvision 60 ft., low-light vision, scent');
+        miscRow('Aura', 'aura', 'e.g. courage 10 ft., fear aura (DC 16)');
+        kvDbl(body, 'Languages', data, 'language_text', {
+            asArray: true,
+            format: (v) => {
+                const list = Array.isArray(v) ? v : (v ? [String(v)] : []);
+                return list.length ? list.join(', ') : '—';
             },
         });
-        kvSaves(body, d);
-        for (const ab of ['str', 'dex', 'con', 'int', 'wis', 'cha']) {
-            kvDbl(body, ab.toUpperCase(), data, ab, { type: 'number', min: 1, max: 99 });
+        miscRow('Weapon proficiencies', 'weaponProf', 'e.g. simple, martial, whip');
+        miscRow('Armor proficiencies', 'armorProf', 'e.g. light, medium, heavy, shields');
+
+        // Negative levels — PF1: each gives −1 attacks/saves/skill & ability checks,
+        // −5 HP, −1 effective level; equal to HD = death. Applied to sheet math.
+        const nlRow = h('div', 'kv');
+        nlRow.appendChild(h('span', 'k', 'Negative levels'));
+        const nlV = h('span', 'v');
+        const nlBag = { v: Number(stMisc.negativeLevels) || 0 };
+        nlV.appendChild(dblclickEditable(nlBag, 'v', {
+            type: 'number', min: 0, max: 40,
+            format: (v) => String(Number(v) || 0),
+            parse: (s) => parseIntLoose(s, 0),
+            onChange: (v) => {
+                const n = Number(v) || 0;
+                if (n) stMisc.negativeLevels = n;
+                else delete stMisc.negativeLevels;
+                quietSave();
+                renderSheet(data);
+                setActiveTab('attributes');
+            },
+        }));
+        nlRow.appendChild(nlV);
+        body.appendChild(nlRow);
+        const negLv = Number(stMisc.negativeLevels) || 0;
+        if (negLv) {
+            body.appendChild(h('p', 'neg-level-warning',
+                `⚠ ${negLv} negative level${negLv > 1 ? 's' : ''}: −${negLv} on attack rolls, `
+                + `saves, skill and ability checks; −${5 * negLv} max HP; effective level −${negLv}. `
+                + `Applied automatically to attacks, saves, skills, initiative, and HP. `
+                + `Casters also lose ${negLv} highest-level spell slot${negLv > 1 ? 's' : ''} `
+                + `(adjust on Spells); negative levels equal to Hit Dice mean death.`));
         }
+
+        // FoundryVTT-style ability rows: spelled-out name + Total / Modifier /
+        // Damage / Drain / Misc, full width. Total hover shows the formula.
+        const ABILITY_NAMES = {
+            str: 'Strength', dex: 'Dexterity', con: 'Constitution',
+            int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma',
+        };
+        const st = sheetState(data);
+        const abT = h('table', 'skills-table ability-table');
+        const abHd = h('tr');
+        ['Ability', 'Total', 'Modifier', 'Damage', 'Drain', 'Misc']
+            .forEach((t) => abHd.appendChild(h('th', null, t)));
+        abT.appendChild(abHd);
+        const rerenderAttrs = () => {
+            quietSave();
+            renderSheet(data);
+            setActiveTab('attributes');
+        };
+        for (const ab of ['str', 'dex', 'con', 'int', 'wis', 'cha']) {
+            const info = abilityInfo(data, ab);
+            const tr = h('tr');
+            tr.appendChild(h('td', 'ability-name', ABILITY_NAMES[ab]));
+
+            const totTd = h('td', 'num ability-total');
+            totTd.title = info.formula + ' — double-click to edit the base score';
+            totTd.appendChild(dblclickEditable(data, ab, {
+                type: 'number', min: 1, max: 99,
+                format: () => (abilityInfo(data, ab).total ?? '—') + '',
+                parse: (s) => parseIntLoose(s, 10),
+                onChange: rerenderAttrs,
+            }));
+            tr.appendChild(totTd);
+
+            const modTd = h('td', 'num ability-mod', fmt(info.mod));
+            modTd.title = 'floor((total − 10) / 2)'
+                + (info.damage ? ` − ${Math.floor(info.damage / 2)} (ability damage)` : '');
+            tr.appendChild(modTd);
+
+            const adjCell = (field, signed) => {
+                const td = h('td', 'num');
+                const bag = { v: (st.abilityAdjust?.[ab]?.[field]) || 0 };
+                td.appendChild(dblclickEditable(bag, 'v', {
+                    type: 'number', min: signed ? -99 : 0, max: 99,
+                    format: (v) => (Number(v) ? (signed ? fmt(Number(v)) : String(v)) : '—'),
+                    parse: (s) => parseIntLoose(s, 0),
+                    onChange: (v) => {
+                        st.abilityAdjust ??= {};
+                        st.abilityAdjust[ab] ??= {};
+                        const n = Number(v) || 0;
+                        if (n) st.abilityAdjust[ab][field] = n;
+                        else delete st.abilityAdjust[ab][field];
+                        if (!Object.keys(st.abilityAdjust[ab]).length) delete st.abilityAdjust[ab];
+                        rerenderAttrs();
+                    },
+                }));
+                return td;
+            };
+            tr.appendChild(adjCell('damage', false));
+            tr.appendChild(adjCell('drain', false));
+            tr.appendChild(adjCell('misc', true));
+            abT.appendChild(tr);
+        }
+        body.appendChild(abT);
         return sec;
+    }
+
+    // ---------------------------------------------------------------- defenses block
+    const DR_BYPASS_TYPES = ['—', 'adamantine', 'bludgeoning', 'chaotic', 'cold iron',
+        'epic', 'evil', 'good', 'lawful', 'magic', 'piercing', 'silver', 'slashing'];
+    const ENERGY_TYPES = ['acid', 'cold', 'electricity', 'fire', 'sonic', 'force',
+        'negative energy', 'positive energy'];
+
+    /** Bucket AC parts into per-bonus-type totals for the Defenses grid. */
+    function acTypeTotals(parts) {
+        const order = ['Armor', 'Shield', 'Deflection', 'Dodge', 'Natural Armor',
+            'Enhancement', 'Insight', 'Luck', 'Profane', 'Sacred', 'Trait', 'Other'];
+        const typeMap = {
+            armor: 'Armor', shield: 'Shield', deflect: 'Deflection', dodge: 'Dodge',
+            nac: 'Natural Armor', enh: 'Enhancement', insight: 'Insight', luck: 'Luck',
+            profane: 'Profane', sacred: 'Sacred', trait: 'Trait',
+        };
+        const buckets = new Map(order.map((k) => [k, { total: 0, sources: [] }]));
+        for (const p of parts || []) {
+            if (p.info || p.unresolved) continue;
+            let bucket = null;
+            if (p.kind === 'gear') {
+                bucket = /^Shield/.test(p.label) ? 'Shield'
+                    : (/^Armor/.test(p.label) ? 'Armor' : null);
+            } else if (p.kind === 'ledger' || p.kind === 'manual') {
+                bucket = typeMap[p.type] || 'Other';
+            }
+            if (!bucket) continue; // Base 10 / Dex are not bonuses
+            const b = buckets.get(bucket);
+            b.total += Number(p.value) || 0;
+            b.sources.push(p.label + ' ' + fmt(Number(p.value) || 0));
+        }
+        return order.map((label) => ({ label, ...buckets.get(label) }));
+    }
+
+    /** Bucket a save block's parts: Base / Abl / Resist / Feat / Trait / Misc / Temp. */
+    function saveBuckets(block) {
+        const out = { base: 0, ability: 0, resist: 0, feat: 0, trait: 0, misc: 0, temp: 0 };
+        for (const p of block?.parts || []) {
+            if (p.info || p.unresolved) continue;
+            const v = Number(p.value) || 0;
+            if (p.kind === 'base') out.base += v;
+            else if (p.kind === 'ability') out.ability += v;
+            else if (p.kind === 'manual' || p.sourceKind === 'buff') out.temp += v;
+            else if (p.type === 'resist') out.resist += v;
+            else if (p.sourceKind === 'feat') out.feat += v;
+            else if (p.sourceKind === 'trait') out.trait += v;
+            else out.misc += v;
+        }
+        return out;
+    }
+
+    function ensureDefenses(data) {
+        const st = sheetState(data);
+        st.defenses ??= {};
+        for (const key of ['dr', 'resist', 'dmgImmune', 'dmgVuln', 'condResist', 'condImmune']) {
+            if (!Array.isArray(st.defenses[key])) st.defenses[key] = [];
+        }
+        return st.defenses;
+    }
+
+    const DAMAGE_TYPES = [...ENERGY_TYPES, 'bludgeoning', 'piercing', 'slashing'];
+
+    /** SR = editable base (seeded from the generator) + feat/trait/class/misc boxes. */
+    function srTotal(data) {
+        const st = sheetState(data);
+        const b = st.srBonus || {};
+        return (Number(st.sr) || 0) + (Number(b.feat) || 0) + (Number(b.trait) || 0)
+            + (Number(b.class) || 0) + (Number(b.misc) || 0);
+    }
+
+    function renderDefenses(body, data, d) {
+        body.appendChild(h('p', 'dbl-edit-hint no-print',
+            'AC bonuses by type (hover a box for sources), save buckets, and editable DR / resistances / SR. + adds an entry; × removes it.'));
+        const st = sheetState(data);
+        const defs = ensureDefenses(data);
+        const rerender = () => {
+            quietSave();
+            renderSheet(data);
+            setActiveTab('defenses');
+        };
+
+        // --- AC composition by bonus type
+        const grid = h('div', 'defense-grid');
+        for (const b of acTypeTotals(d.blocks.ac.parts)) {
+            const box = h('div', 'feat-count-box def-box');
+            box.appendChild(h('span', 'feat-count-label', b.label));
+            box.appendChild(h('span', 'feat-count-value', b.total ? fmt(b.total) : '—'));
+            if (b.sources.length) box.title = b.sources.join('\n');
+            grid.appendChild(box);
+        }
+        body.appendChild(grid);
+
+        // --- Saves breakdown (rollable — every ledger boost is already in block.total)
+        const table = h('table', 'skills-table saves-breakdown');
+        const hd = h('tr');
+        ['', 'Save', 'Base', 'Abl', 'Resist', 'Feat', 'Trait', 'Misc', 'Temp', 'Total']
+            .forEach((t) => hd.appendChild(h('th', null, t)));
+        table.appendChild(hd);
+        for (const [label, block] of [
+            ['Fortitude', d.blocks.fort], ['Reflex', d.blocks.ref], ['Will', d.blocks.will],
+        ]) {
+            const bk = saveBuckets(block);
+            const tr = h('tr');
+            const rollTd = h('td', 'skill-roll-cell no-print');
+            rollTd.appendChild(rollBtn(label + ' save', block.total));
+            tr.appendChild(rollTd);
+            tr.appendChild(h('td', null, label));
+            for (const key of ['base', 'ability', 'resist', 'feat', 'trait', 'misc', 'temp']) {
+                tr.appendChild(h('td', 'num', bk[key] ? fmt(bk[key]) : '—'));
+            }
+            tr.appendChild(h('td', 'num skill-total', fmt(block.total)));
+            table.appendChild(tr);
+        }
+        body.appendChild(table);
+
+        // --- shared chip-list builder (DR, resistances, immunities, vulnerabilities)
+        const chipSection = (title, list, chipParts, selOptions, onAdd, opts = {}) => {
+            const head = h('div', 'def-line-head');
+            head.appendChild(h('h4', 'def-h', title));
+            const addBtn = h('button', 'inv-btn def-add-btn no-print', '+');
+            addBtn.type = 'button';
+            addBtn.title = 'Add ' + title.toLowerCase();
+            head.appendChild(addBtn);
+            body.appendChild(head);
+
+            const row = h('div', 'def-chips');
+            list.forEach((entry, idx) => {
+                const chip = h('span', 'def-chip');
+                chipParts(chip, entry);
+                const rm = h('button', 'inv-btn inv-btn-danger def-chip-rm no-print', '×');
+                rm.type = 'button';
+                rm.title = 'Remove';
+                rm.addEventListener('click', () => {
+                    list.splice(idx, 1);
+                    rerender();
+                });
+                chip.appendChild(rm);
+                row.appendChild(chip);
+            });
+            if (!list.length) row.appendChild(h('span', 'dim', 'None'));
+            body.appendChild(row);
+
+            const form = h('div', 'def-add-row no-print hidden');
+            const amt = h('input', 'edit-field def-amt');
+            amt.type = 'number';
+            amt.min = '0';
+            amt.placeholder = '5';
+            const sel = h('select', 'edit-field');
+            for (const t of selOptions) {
+                const opt = document.createElement('option');
+                opt.value = t;
+                opt.textContent = t;
+                sel.appendChild(opt);
+            }
+            const customOpt = document.createElement('option');
+            customOpt.value = '__custom';
+            customOpt.textContent = 'custom…';
+            sel.appendChild(customOpt);
+            const custom = h('input', 'edit-field def-custom hidden');
+            custom.type = 'text';
+            custom.placeholder = 'custom type';
+            sel.addEventListener('change', () => {
+                custom.classList.toggle('hidden', sel.value !== '__custom');
+            });
+            const go = h('button', 'inv-btn inv-btn-primary', 'Add');
+            go.type = 'button';
+            go.addEventListener('click', () => {
+                const amount = opts.noAmount ? 0 : parseIntLoose(amt.value, 0);
+                if (!opts.noAmount && !amount) {
+                    amt.focus();
+                    return;
+                }
+                const type = sel.value === '__custom'
+                    ? (custom.value.trim() || '—') : sel.value;
+                onAdd(amount, type);
+                rerender();
+            });
+            if (!opts.noAmount) form.append(amt);
+            form.append(sel, custom, go);
+            body.appendChild(form);
+            addBtn.addEventListener('click', () => form.classList.toggle('hidden'));
+        };
+
+        // --- Damage reduction: chips like "5/cold iron", amount dblclick-editable
+        chipSection('Damage Reduction', defs.dr, (chip, entry) => {
+            const bag = { v: Number(entry.amount) || 0 };
+            chip.appendChild(dblclickEditable(bag, 'v', {
+                type: 'number', min: 0,
+                format: (v) => String(v ?? 0),
+                parse: (s) => parseIntLoose(s, 0),
+                onChange: (v) => {
+                    entry.amount = Number(v) || 0;
+                    quietSave();
+                },
+            }));
+            chip.appendChild(h('span', 'def-chip-type', '/' + (entry.bypass || '—')));
+        }, DR_BYPASS_TYPES, (amount, type) => {
+            defs.dr.push({ amount, bypass: type });
+        });
+
+        // --- Energy resistances: chips like "Fire 10"
+        chipSection('Energy Resistance', defs.resist, (chip, entry) => {
+            chip.appendChild(h('span', 'def-chip-type', titleCase(entry.type || '?') + ' '));
+            const bag = { v: Number(entry.amount) || 0 };
+            chip.appendChild(dblclickEditable(bag, 'v', {
+                type: 'number', min: 0,
+                format: (v) => String(v ?? 0),
+                parse: (s) => parseIntLoose(s, 0),
+                onChange: (v) => {
+                    entry.amount = Number(v) || 0;
+                    quietSave();
+                },
+            }));
+        }, ENERGY_TYPES, (amount, type) => {
+            defs.resist.push({ type, amount });
+        });
+
+        // --- Healing & toughness: regeneration / fast healing / hardness
+        body.appendChild(h('h4', 'def-h', 'Healing & Toughness'));
+        const healRow = h('div', 'defense-grid def-stretch');
+        const defEditBox = (label, get, set, textOpts) => {
+            const box = h('div', 'feat-count-box def-box');
+            box.appendChild(h('span', 'feat-count-label', label));
+            const bag = { v: get() };
+            box.appendChild(dblclickEditable(bag, 'v', textOpts || {
+                type: 'number', min: 0,
+                format: (v) => (Number(v) ? String(v) : '—'),
+                parse: (s) => parseIntLoose(s, 0),
+                onChange: (v) => {
+                    set(Number(v) || 0);
+                    quietSave();
+                },
+            }));
+            return box;
+        };
+        healRow.appendChild(defEditBox('Regeneration',
+            () => Number(defs.regen) || 0, (v) => { defs.regen = v; }));
+        healRow.appendChild(defEditBox('Regen. bypass',
+            () => defs.regenBypass || '', null, {
+                format: (v) => (v && String(v).trim() ? String(v) : '—'),
+                parse: (s) => String(s),
+                onChange: (v) => {
+                    const t = String(v || '').trim();
+                    if (t) defs.regenBypass = t;
+                    else delete defs.regenBypass;
+                    quietSave();
+                },
+            }));
+        healRow.appendChild(defEditBox('Fast Healing',
+            () => Number(defs.fastHealing) || 0, (v) => { defs.fastHealing = v; }));
+        healRow.appendChild(defEditBox('Hardness',
+            () => Number(defs.hardness) || 0, (v) => { defs.hardness = v; }));
+        body.appendChild(healRow);
+
+        // --- Immunities / vulnerabilities / condition defenses (type-only chips)
+        const typeChip = (chip, entry) => {
+            chip.appendChild(h('span', 'def-chip-type', titleCase(entry.type || '?')));
+        };
+        const condOptions = PF1_CONDITIONS.map((c) => c.label.toLowerCase());
+        chipSection('Damage Immunities', defs.dmgImmune, typeChip, DAMAGE_TYPES,
+            (a, type) => defs.dmgImmune.push({ type }), { noAmount: true });
+        chipSection('Damage Vulnerabilities', defs.dmgVuln, typeChip, DAMAGE_TYPES,
+            (a, type) => defs.dmgVuln.push({ type }), { noAmount: true });
+        chipSection('Condition Resistances', defs.condResist, typeChip, condOptions,
+            (a, type) => defs.condResist.push({ type }), { noAmount: true });
+        chipSection('Condition Immunities', defs.condImmune, typeChip, condOptions,
+            (a, type) => defs.condImmune.push({ type }), { noAmount: true });
+
+        // --- Spell resistance: base + feat/trait/class/misc boxes + computed total
+        body.appendChild(h('h4', 'def-h', 'Spell Resistance'));
+        if (st.sr == null && data.spell_resistance != null) {
+            st.sr = Number(data.spell_resistance) || 0;
+        }
+        st.srBonus ??= {};
+        const srRow = h('div', 'defense-grid def-sr-row def-stretch');
+        const srBox = (label, get, set) => {
+            const box = h('div', 'feat-count-box def-box');
+            box.appendChild(h('span', 'feat-count-label', label));
+            const bag = { v: get() };
+            box.appendChild(dblclickEditable(bag, 'v', {
+                type: 'number', min: 0,
+                format: (v) => String(Number(v) || 0),
+                parse: (s) => parseIntLoose(s, 0),
+                onChange: (v) => {
+                    set(Number(v) || 0);
+                    rerender();
+                },
+            }));
+            return box;
+        };
+        srRow.appendChild(srBox('Base', () => Number(st.sr) || 0, (v) => { st.sr = v; }));
+        for (const [key, label] of [['feat', 'Feat'], ['trait', 'Trait'], ['class', 'Class'], ['misc', 'Misc']]) {
+            srRow.appendChild(srBox(label,
+                () => Number(st.srBonus[key]) || 0,
+                (v) => {
+                    if (v) st.srBonus[key] = v;
+                    else delete st.srBonus[key];
+                }));
+        }
+        const totBox = h('div', 'feat-count-box def-box def-sr-total');
+        totBox.appendChild(h('span', 'feat-count-label', 'SR Total'));
+        totBox.appendChild(h('span', 'feat-count-value', String(srTotal(data))));
+        srRow.appendChild(totBox);
+        body.appendChild(srRow);
+    }
+
+    /** Iterative attack string from BAB: "+11/+6/+1" (max 4 attacks, PF1-style). */
+    function babIterativesStr(bab) {
+        const b = Number(bab) || 0;
+        const parts = [fmt(b)];
+        for (let a = b - 5; a > 0 && parts.length < 4; a -= 5) parts.push(fmt(a));
+        return parts.join('/');
     }
 
     function tabCombat(data) {
         const d = computeDerived(data);
         const { sec, body } = section('Combat', 'combat');
         body.appendChild(h('p', 'dbl-edit-hint no-print',
-            'Double-click a value to edit. Expand “sources” for breakdowns. Toggle individual buffs on the Buffs tab.'));
+            'Attack hub: bonus strip on top, weapon fields, and the attack roller. AC / saves / DR live on Defenses; HP and speeds on Summary.'));
 
-        kvHp(body, data, d);
-        kvAc(body, d);
-        kvInitiative(body, d);
-        kvDbl(body, 'BAB', data, 'bab_total', {
-            type: 'number', min: 0, max: 30,
-            format: (v) => (v == null || v === '' ? '—' : fmt(Number(v) || 0)),
-            parse: (s) => {
-                const n = parseInt(String(s).replace(/^\+/, ''), 10);
-                return Number.isFinite(n) ? n : 0;
-            },
+        // Top strip: BAB iteratives + core attack bonuses (rollable where useful)
+        const strip = h('div', 'summary-combat-strip combat-top-strip');
+        const box = (label, value, opts = {}) => {
+            const b = h('div', 'summary-stat-box');
+            const head = h('div', 'summary-stat-head');
+            head.appendChild(document.createTextNode(label + ' '));
+            if (opts.rollTotal != null) {
+                head.appendChild(rollBtn(opts.rollLabel || label, opts.rollTotal));
+            }
+            b.appendChild(head);
+            b.appendChild(h('div', 'summary-stat-val', value));
+            if (opts.title) b.title = opts.title;
+            strip.appendChild(b);
+            return b;
+        };
+        box('BAB', babIterativesStr(d.bab), { title: 'Iterative attacks (up to 4 shown)' });
+        box('CMB', fmt(d.blocks.cmb.total), { rollTotal: d.blocks.cmb.total, rollLabel: 'CMB' });
+        const meleeBox = box('Melee', fmt(d.blocks.melee.total),
+            { rollTotal: d.blocks.melee.total, rollLabel: 'Melee attack' });
+        attachNotesHover(meleeBox, data, ['attack', 'mattack']);
+        const rangedBox = box('Ranged', fmt(d.blocks.ranged.total),
+            { rollTotal: d.blocks.ranged.total, rollLabel: 'Ranged attack' });
+        attachNotesHover(rangedBox, data, ['attack', 'rattack']);
+        box('Init', fmt(d.blocks.init.total),
+            { rollTotal: d.blocks.init.total, rollLabel: 'Initiative' });
+        body.appendChild(strip);
+
+        // Weapons — the same rows as Inventory (name / ⚙ opens the full item sheet)
+        body.appendChild(h('h3', null, 'Weapons'));
+        migrateCoreGear(data);
+        const invList = ensureInventoryObjects(data);
+        const weaponRows = [];
+        invList.forEach((item, i) => {
+            if (inventoryCategory(item) === 'weapons') weaponRows.push({ item, index: i });
         });
-        kvDbl(body, 'Land Speed (ft)', data, 'land_speed', { type: 'number', min: 0 });
-        kvStat(body, 'Melee attack', d.blocks.melee, { formatTotal: fmt });
-        kvStat(body, 'Ranged attack', d.blocks.ranged, { formatTotal: fmt });
-        if (d.blocks.damage) {
-            kvStat(body, 'Weapon damage', d.blocks.damage, {
-                formatTotal: (v) => (v == null || v === '' ? '—' : String(v)),
-            });
+        if (weaponRows.length) {
+            const pack = h('div', 'inv-list combat-weapons');
+            for (const { item, index } of weaponRows) {
+                pack.appendChild(renderInventoryItemCard(data, item, index));
+            }
+            body.appendChild(pack);
+        } else {
+            body.appendChild(h('p', 'dim no-print',
+                'No weapons in inventory — add one on the Inventory tab (Browse items → Weapons).'));
         }
-        // CMB rollable
-        {
-            const block = d.blocks.cmb;
-            const row = h('div', 'kv kv-stat');
-            const k = h('span', 'k');
-            k.append(document.createTextNode('CMB '), rollBtn('CMB', block.total));
-            row.appendChild(k);
-            const v = h('span', 'v');
-            v.appendChild(h('span', 'stat-total', fmt(block.total)));
-            row.appendChild(v);
-            body.appendChild(row);
-        }
-        kvStat(body, 'CMD', d.blocks.cmd, { formatTotal: (n) => String(n) });
-        kvSaves(body, d);
-
-        kvDbl(body, 'Weapon', data, 'weapon_name');
-        kvDbl(body, 'Weapon enhancements', data, 'weapon_enhancement_chosen_list', { asArray: true });
-        kvDbl(body, 'Armor', data, 'armor_name');
-        kvDbl(body, 'Armor AC bonus', data, 'armor_ac', { type: 'number', min: 0 });
-        kvDbl(body, 'Armor max Dex', data, 'armor_max_dex_bonus');
-        kvDbl(body, 'Armor check penalty', data, 'armor_armor_check_penalty');
-        kvDbl(body, 'Spell failure %', data, 'armor_spell_failure', { type: 'number', min: 0 });
-        kvDbl(body, 'Shield', data, 'shield_name');
-        kvDbl(body, 'Shield AC', data, 'shield_ac', { type: 'number', min: 0 });
-        kvCurrency(body, data);
 
         body.appendChild(h('h3', null, 'Attack'));
         const attackHost = h('div', null);
@@ -4345,11 +6928,39 @@
         return sec;
     }
 
+    function tabDefenses(data) {
+        const d = computeDerived(data);
+        const { sec, body } = section('Defenses', 'defenses-tab');
+        renderDefenses(body, data, d);
+        // Armor & shield — same inventory-style rows as the weapons on Combat
+        // (name / ⚙ open the item sheet, incl. the Enhancements block)
+        body.appendChild(h('h4', 'def-h', 'Armor & Shield'));
+        migrateCoreGear(data);
+        const invList = ensureInventoryObjects(data);
+        const armorRows = [];
+        invList.forEach((item, i) => {
+            if (inventoryCategory(item) === 'armor') armorRows.push({ item, index: i });
+        });
+        if (armorRows.length) {
+            const pack = h('div', 'inv-list defense-armor');
+            for (const { item, index } of armorRows) {
+                pack.appendChild(renderInventoryItemCard(data, item, index));
+            }
+            body.appendChild(pack);
+        } else {
+            body.appendChild(h('p', 'dim no-print',
+                'No armor in inventory — add it on the Inventory tab (Browse items).'));
+        }
+        // The generator's armor numbers (armor_ac & co.) still feed the AC math —
+        // they show in the AC "sources" expander; no separate input rows here.
+        return sec;
+    }
+
     function tabNotes(data) {
         const prose = ensureProse(data);
         const { sec, body } = section('Notes');
         body.appendChild(h('p', 'dbl-edit-hint no-print',
-            'Freeform identity & session text (Foundry-style biography/notes). Auto-saves with the character.'));
+            'Freeform identity & session text (biography/notes). Auto-saves with the character.'));
 
         const mkBlock = (title, key, placeholder, extraClass) => {
             body.appendChild(h('h3', 'notes-prose-title', title));
@@ -4378,47 +6989,17 @@
         const { sec, body } = section('Settings');
 
         body.appendChild(h('h3', null, 'Appearance'));
-        const themeHint = h('p', 'dim', 'Themes use semantic color tokens (ink, paper, accent) with WCAG AA contrast targets. System follows your OS light/dark preference.');
+        const themeHint = h('p', 'dim', 'Built-in themes use semantic color tokens (ink, paper, accent) with WCAG AA contrast targets; custom colors are used exactly as picked. System follows your OS light/dark preference.');
         body.appendChild(themeHint);
         const themeGrid = h('div', 'settings-theme-grid');
         themeGrid.setAttribute('role', 'radiogroup');
         themeGrid.setAttribute('aria-label', 'Color theme');
         const pref = themePreference();
-        for (const theme of THEMES) {
-            const label = h('label', 'settings-theme-option');
-            const radio = h('input');
-            radio.type = 'radio';
-            radio.name = 'sheet-theme';
-            radio.value = theme.id;
-            radio.checked = theme.id === pref;
-            radio.addEventListener('change', () => {
-                if (radio.checked) applyTheme(theme.id);
-            });
-            if (theme.swatches) {
-                const sw = h('div', 'settings-theme-swatches');
-                sw.setAttribute('aria-hidden', 'true');
-                for (const hex of theme.swatches) {
-                    const chip = h('span');
-                    chip.style.background = hex;
-                    sw.appendChild(chip);
-                }
-                label.appendChild(sw);
-            } else {
-                const sw = h('div', 'settings-theme-swatches');
-                sw.setAttribute('aria-hidden', 'true');
-                for (const hex of ['#eef0f3', '#3d4f66', '#121212']) {
-                    const chip = h('span');
-                    chip.style.background = hex;
-                    sw.appendChild(chip);
-                }
-                label.appendChild(sw);
-            }
-            label.appendChild(h('span', 'settings-theme-label', theme.label));
-            label.appendChild(h('span', 'settings-theme-desc', theme.desc));
-            label.prepend(radio);
-            themeGrid.appendChild(label);
-        }
+        renderThemeCards(themeGrid, 'settings');
         body.appendChild(themeGrid);
+        const customPanel = buildCustomThemeControls();
+        customPanel.classList.toggle('hidden', pref !== 'custom');
+        body.appendChild(customPanel);
 
         body.appendChild(h('h3', null, 'Generation Backend'));
         const urlRow = h('div', 'settings-row');
@@ -4507,12 +7088,667 @@
         return sec;
     }
 
+    // ---------------------------------------------------------------- simple printable sheet
+    // Classic paper-style sheet (PZO1110-like): static values, write-in blanks, two print pages.
+    function viewMode() {
+        return localStorage.getItem(VIEW_KEY) === 'simple' ? 'simple' : 'full';
+    }
+
+    function setViewMode(mode) {
+        localStorage.setItem(VIEW_KEY, mode === 'simple' ? 'simple' : 'full');
+        syncViewToggle();
+    }
+
+    function syncViewToggle() {
+        const btn = document.getElementById('view-toggle');
+        if (!btn) return;
+        const simple = viewMode() === 'simple';
+        btn.textContent = simple ? 'Full sheet' : 'Simple sheet';
+        btn.title = simple
+            ? 'Switch back to the full tabbed sheet'
+            : 'Switch to the simple printable sheet';
+    }
+
+    /** value: string/number, or a Node (e.g. dblclickEditable) hosted inside the cell. */
+    function spCell(label, value, cls) {
+        const cell = h('div', 'simple-id-cell' + (cls ? ' ' + cls : ''));
+        if (value instanceof Node) {
+            const v = h('div', 'simple-id-v');
+            v.appendChild(value);
+            cell.appendChild(v);
+        } else {
+            const text = value == null ? '' : String(value).trim();
+            cell.appendChild(h('div', 'simple-id-v', text || ' '));
+        }
+        cell.appendChild(h('div', 'simple-id-k', label));
+        return cell;
+    }
+
+    function spHeading(text) {
+        return h('h2', 'simple-h', text);
+    }
+
+    function spBoxBig(label, value) {
+        const box = h('div', 'simple-stat-box');
+        if (value instanceof Node) {
+            const v = h('div', 'simple-stat-val');
+            v.appendChild(value);
+            box.appendChild(v);
+            box.appendChild(h('div', 'simple-stat-lab', label));
+            return box;
+        }
+        const text = value == null ? '' : String(value);
+        box.appendChild(h('div', 'simple-stat-val', text || ' '));
+        box.appendChild(h('div', 'simple-stat-lab', label));
+        return box;
+    }
+
+    /** headers/cells: string or { text, cls } ('num' right-aligns, 'strong' bolds). */
+    function spTable(headers, rows, cls) {
+        const t = h('table', 'simple-table' + (cls ? ' ' + cls : ''));
+        const hd = h('tr');
+        for (const c of headers) {
+            hd.appendChild(h('th', typeof c === 'object' ? c.cls : null,
+                typeof c === 'object' ? c.text : c));
+        }
+        t.appendChild(hd);
+        for (const raw of rows) {
+            // Rows may be { cls, cells } so blank write-in rows can be tagged for print
+            const isRowObj = raw && !Array.isArray(raw) && typeof raw === 'object' && Array.isArray(raw.cells);
+            const row = isRowObj ? raw.cells : raw;
+            const tr = h('tr', isRowObj ? raw.cls : null);
+            for (const c of row) {
+                if (c instanceof Node) {
+                    tr.appendChild(h('td', null, c));
+                    continue;
+                }
+                if (c && typeof c === 'object' && c.node instanceof Node) {
+                    tr.appendChild(h('td', c.cls, c.node));
+                    continue;
+                }
+                const text = typeof c === 'object' ? c.text : c;
+                tr.appendChild(h('td', typeof c === 'object' ? c.cls : null,
+                    text == null || text === '' ? ' ' : String(text)));
+            }
+            t.appendChild(tr);
+        }
+        return t;
+    }
+
+    function renderSimpleSheet(data) {
+        const d = computeDerived(data);
+        const st = sheetState(data);
+        const SD = window.SheetDetails;
+        const wrap = h('div', 'simple-sheet');
+
+        // Edit helpers: every commit quiet-saves via editableField; opts.rerender repaints
+        // the sheet when the edited value feeds computeDerived / skill math.
+        const rerender = () => renderSheet(currentData || data);
+        const edit = (obj, key, opts = {}) => dblclickEditable(obj, key, {
+            ...opts,
+            onChange: (v, o) => {
+                opts.onChange?.(v, o);
+                if (opts.rerender) rerender();
+            },
+        });
+        const editNum = (obj, key, opts = {}) => edit(obj, key, {
+            type: 'number',
+            parse: (s) => parseIntLoose(s, 0),
+            ...opts,
+        });
+        // Editing a computed total stores the delta as a "Manual adjustment" that
+        // computeDerived folds into both views' math.
+        const adjustable = (key, block, opts = {}) => {
+            const bag = { total: block.total };
+            return dblclickEditable(bag, 'total', {
+                type: 'number',
+                format: () => (opts.plain ? String(block.total) : fmt(block.total)),
+                parse: (s) => parseIntLoose(s, block.total),
+                onChange: () => {
+                    const delta = (Number(bag.total) || 0) - block.total;
+                    if (delta) {
+                        st.manualAdjust ??= {};
+                        st.manualAdjust[key] = (Number(st.manualAdjust[key]) || 0) + delta;
+                    }
+                    rerender();
+                },
+            });
+        };
+        const titled = (v) => (v ? titleCase(String(v)) : '');
+
+        // ---- page 1: identity, abilities, combat, skills ----
+        const p1 = h('section', 'simple-page');
+        p1.appendChild(h('p', 'simple-hint no-print',
+            'Double-click a value to edit. Editing a total (AC, saves, Initiative, …) stores a manual adjustment that also shows on the full sheet. '
+            + 'Double-click a blank line under Feats, Gear, etc. to add an entry; clear a name to remove it.'));
+
+        const nameRow = h('div', 'simple-name-row');
+        nameRow.appendChild(spCell('Character Name', edit(data, 'character_full_name'), 'simple-name-cell'));
+        nameRow.appendChild(spCell('Player', edit(st, 'player')));
+        p1.appendChild(nameRow);
+
+        const clsWrap = h('span', 'simple-inline-edits');
+        clsWrap.appendChild(edit(data, 'c_class', { format: titled, rerender: true }));
+        if (data.c_class_2) clsWrap.appendChild(h('span', null, ' / ' + titleCase(data.c_class_2)));
+        clsWrap.appendChild(document.createTextNode(' '));
+        clsWrap.appendChild(editNum(data, 'level', { min: 1, max: 40, rerender: true }));
+        const id = h('div', 'simple-id-grid');
+        id.appendChild(spCell('Alignment', edit(data, 'alignment', {
+            format: (v) => {
+                const s = String(v || '');
+                return s.length <= 2 ? s.toUpperCase() : titleCase(s);
+            },
+        })));
+        id.appendChild(spCell('Class & Level', clsWrap));
+        id.appendChild(spCell('Race', edit(data, 'chosen_race', { format: titled })));
+        id.appendChild(spCell('Deity', edit(data, 'deity_name', {
+            format: (v) => Array.isArray(v) ? v.join(', ') : (v == null ? '' : String(v)),
+            parse: (s) => {
+                const parts = s.split(',').map((x) => x.trim()).filter(Boolean);
+                return parts.length <= 1 ? (parts[0] || '') : parts;
+            },
+        })));
+        id.appendChild(spCell('Homeland', edit(data, 'region')));
+        id.appendChild(spCell('Size', edit(data, 'size')));
+        id.appendChild(spCell('Gender', edit(data, 'gender', { format: titled })));
+        id.appendChild(spCell('Age', editNum(data, 'age_number', { min: 0 })));
+        id.appendChild(spCell('Height', edit(data, 'height_number')));
+        id.appendChild(spCell('Weight', editNum(data, 'weight_number', { min: 0 })));
+        p1.appendChild(id);
+
+        const cols = h('div', 'simple-cols');
+        const left = h('div', 'simple-col');
+        const right = h('div', 'simple-col');
+        cols.append(left, right);
+        p1.appendChild(cols);
+
+        // Abilities
+        left.appendChild(spHeading('Ability Scores'));
+        left.appendChild(spTable(
+            ['Ability', { text: 'Score', cls: 'num' }, { text: 'Mod', cls: 'num' }],
+            ['str', 'dex', 'con', 'int', 'wis', 'cha'].map((ab) => [
+                ab.toUpperCase(),
+                { node: editNum(data, ab, { min: 1, max: 99, rerender: true }), cls: 'num' },
+                { text: data[ab] != null ? fmt(abModOf(data, ab)) : '', cls: 'num strong' },
+            ])));
+
+        // HP / init / speed
+        left.appendChild(spHeading('Hit Points & Initiative'));
+        const vit = h('div', 'simple-stat-grid');
+        const maxHp = d.blocks.hp.total || 0;
+        if (st.hpCurrent == null || st.hpCurrent === '') st.hpCurrent = maxHp;
+        if (st.hpNonlethal == null || st.hpNonlethal === '') st.hpNonlethal = 0;
+        const hpBag = { max: maxHp };
+        vit.appendChild(spBoxBig('Max HP', dblclickEditable(hpBag, 'max', {
+            type: 'number',
+            min: 0,
+            format: () => String(maxHp),
+            parse: (s) => parseIntLoose(s, maxHp),
+            onChange: () => {
+                // Shift the rolled-dice component so the computed total matches (kvHp-style).
+                const delta = (Number(hpBag.max) || 0) - maxHp;
+                if (delta) {
+                    const rolled = toInt(data.total_rolled_hp)
+                        ?? (d.blocks.hp.parts.find((p) => p.kind === 'base' && !p.unresolved)?.value ?? 0);
+                    data.total_rolled_hp = rolled + delta;
+                    if (Number(st.hpCurrent) === maxHp) st.hpCurrent = maxHp + delta;
+                }
+                rerender();
+            },
+        })));
+        vit.appendChild(spBoxBig('Current HP', editNum(st, 'hpCurrent', { min: 0 })));
+        vit.appendChild(spBoxBig('Nonlethal', editNum(st, 'hpNonlethal', { min: 0 })));
+        vit.appendChild(spBoxBig('Initiative', adjustable('init', d.blocks.init)));
+        st.speeds ??= {};
+        if (st.speeds.land == null || st.speeds.land === '') {
+            st.speeds.land = Number(data.land_speed) || 30;
+        }
+        const extraSpeeds = ['climb', 'swim', 'fly', 'burrow']
+            .map((k) => [k, Number(st.speeds[k]) || 0])
+            .filter(([, v]) => v > 0)
+            .map(([k, v]) => `${titleCase(k)} ${v}`)
+            .join(', ');
+        vit.appendChild(spBoxBig('Speed', editNum(st.speeds, 'land', {
+            min: 0,
+            suffix: ' ft',
+            onChange: () => { data.land_speed = st.speeds.land; },
+        })));
+        vit.appendChild(spBoxBig('Other Speeds', extraSpeeds || '—'));
+        left.appendChild(vit);
+
+        // Defense
+        left.appendChild(spHeading('Defense'));
+        const defGrid = h('div', 'simple-stat-grid');
+        defGrid.appendChild(spBoxBig('AC', adjustable('ac', d.blocks.ac, { plain: true })));
+        defGrid.appendChild(spBoxBig('Touch', adjustable('touch', d.blocks.touch, { plain: true })));
+        defGrid.appendChild(spBoxBig('Flat-Footed', adjustable('flat', d.blocks.flat, { plain: true })));
+        left.appendChild(defGrid);
+        const acMisc = d.ac - 10 - d.armorAc - d.shieldAc - d.effDex;
+        left.appendChild(h('p', 'simple-formula',
+            `AC = 10 + armor ${d.armorAc} + shield ${d.shieldAc} + Dex ${fmt(d.effDex)}`
+            + (acMisc ? ` + misc ${fmt(acMisc)}` : '')));
+
+        // Saves
+        const saveRow = (label, key, block, abLabel, abMod) => {
+            const base = block.parts.find((p) => p.kind === 'base' && !p.unresolved)?.value ?? 0;
+            const misc = block.total - base - abMod;
+            return [
+                label,
+                { node: adjustable(key, block), cls: 'num strong' },
+                { text: String(base), cls: 'num' },
+                { text: `${fmt(abMod)} ${abLabel}`, cls: 'num' },
+                { text: misc ? fmt(misc) : '—', cls: 'num' },
+            ];
+        };
+        left.appendChild(spHeading('Saving Throws'));
+        left.appendChild(spTable(
+            ['Save', { text: 'Total', cls: 'num' }, { text: 'Base', cls: 'num' },
+                { text: 'Ability', cls: 'num' }, { text: 'Misc', cls: 'num' }],
+            [
+                saveRow('Fortitude', 'fort', d.blocks.fort, 'Con', d.conM),
+                saveRow('Reflex', 'ref', d.blocks.ref, 'Dex', d.dexM),
+                saveRow('Will', 'will', d.blocks.will, 'Wis', d.wisM),
+            ]));
+
+        // Offense
+        left.appendChild(spHeading('Offense'));
+        const offGrid = h('div', 'simple-stat-grid');
+        offGrid.appendChild(spBoxBig('BAB', editNum(data, 'bab_total', {
+            min: 0,
+            rerender: true,
+            format: (v) => fmt(Number(v) || 0),
+        })));
+        offGrid.appendChild(spBoxBig('Melee', adjustable('melee', d.blocks.melee)));
+        offGrid.appendChild(spBoxBig('Ranged', adjustable('ranged', d.blocks.ranged)));
+        offGrid.appendChild(spBoxBig('CMB', adjustable('cmb', d.blocks.cmb)));
+        offGrid.appendChild(spBoxBig('CMD', adjustable('cmd', d.blocks.cmd, { plain: true })));
+        if (st.sr == null || st.sr === '') st.sr = Number(data.spell_resistance) || 0;
+        offGrid.appendChild(spBoxBig('SR', editNum(st, 'sr', {
+            min: 0,
+            format: () => (srTotal(data) ? String(srTotal(data)) : '—'),
+        })));
+        left.appendChild(offGrid);
+
+        // Weapons
+        const isRangedType = (w) => !!w && ['rwak', 'rsak', 'twak'].includes(w.actionType);
+        const critStr = (w) => w
+            ? (w.critRange && w.critRange < 20 ? w.critRange + '–20' : '20') + '/×' + (w.critMult || 2)
+            : '';
+        const dmgTypeStr = (w) => (w?.parts?.[0]?.types || [])
+            .map((t) => String(t).charAt(0).toUpperCase()).join('/');
+        const weaponRows = [];
+        const mainName = (data.weapon_name || '').trim();
+        if (mainName) {
+            const w = SD?.lookupWeapon?.(mainName);
+            const atk = isRangedType(w) ? d.blocks.ranged.total : d.blocks.melee.total;
+            weaponRows.push([
+                gearLine(mainName, data.weapon_enhancement_chosen_list) || mainName,
+                { text: fmt(atk), cls: 'num strong' },
+                { text: critStr(w), cls: 'num' },
+                { text: d.blocks.damage?.total || w?.dice || '', cls: 'num' },
+                dmgTypeStr(w),
+            ]);
+        }
+        for (const item of ensureInventoryObjects(data)) {
+            if (!item?.name || item.name.toLowerCase() === mainName.toLowerCase()) continue;
+            const w = SD?.lookupWeapon?.(item.name);
+            if (!w) continue;
+            const atk = isRangedType(w) ? d.blocks.ranged.total : d.blocks.melee.total;
+            const abKey = String(w.damageAbility || 'str').toLowerCase();
+            const abMod = ({ str: d.strM, dex: d.dexM, con: d.conM, int: d.intM, wis: d.wisM, cha: d.chaM })[abKey] ?? 0;
+            weaponRows.push([
+                item.name,
+                { text: fmt(atk), cls: 'num' },
+                { text: critStr(w), cls: 'num' },
+                { text: (w.dice || '') + (abMod ? (abMod > 0 ? '+' : '') + abMod : ''), cls: 'num' },
+                dmgTypeStr(w),
+            ]);
+        }
+        const weaponBlanks = Math.max(4 - weaponRows.length, 2);
+        for (let i = 0; i < weaponBlanks; i++) {
+            weaponRows.push({
+                cls: 'simple-blank-row' + (i > 0 ? ' simple-blank-extra' : ''),
+                cells: ['', '', '', '', ''],
+            });
+        }
+        left.appendChild(spHeading('Weapons'));
+        left.appendChild(spTable(
+            ['Weapon', { text: 'Attack', cls: 'num' }, { text: 'Crit', cls: 'num' },
+                { text: 'Damage', cls: 'num' }, 'Type'],
+            weaponRows));
+        const wornBits = [
+            gearLine(data.armor_name, data.armor_enhancement_chosen_list),
+            gearLine(data.shield_name, data.shield_enhancement_chosen_list),
+        ].filter(Boolean);
+        if (wornBits.length) {
+            left.appendChild(h('p', 'simple-formula', 'Worn: ' + wornBits.join(' · ')));
+        }
+
+        // Gear — editable name / qty / per-unit weight; blank rows add items
+        // (addInventoryItem fills weight & price from the compendium when the name matches).
+        left.appendChild(spHeading('Gear'));
+        const eqList = data.equipment_list ??= [];
+        const gearRows = [];
+        let totalWt = 0;
+        for (const item of eqList) {
+            if (!item || typeof item !== 'object') continue;
+            const qty = Math.max(1, Number(item.quantity) || 1);
+            const wt = item.weight != null && Number.isFinite(Number(item.weight))
+                ? Number(item.weight) * qty : null;
+            if (wt) totalWt += wt;
+            gearRows.push([
+                { node: edit(item, 'name', {
+                    onChange: () => {
+                        if (!String(item.name || '').trim()) {
+                            const ix = eqList.indexOf(item);
+                            if (ix >= 0) eqList.splice(ix, 1);
+                        }
+                        rerender();
+                    },
+                }) },
+                { node: editNum(item, 'quantity', {
+                    min: 1,
+                    rerender: true,
+                    parse: (s) => Math.max(1, parseIntLoose(s, 1)),
+                }), cls: 'num' },
+                { node: editNum(item, 'weight', {
+                    min: 0,
+                    rerender: true,
+                    format: (v) => (v == null || v === '' ? '—' : String(v)),
+                    parse: (s) => {
+                        const n = parseFloat(s);
+                        return Number.isFinite(n) ? n : null;
+                    },
+                }), cls: 'num' },
+            ]);
+        }
+        const gearBlanks = Math.max(8 - gearRows.length, 2);
+        for (let i = 0; i < gearBlanks; i++) {
+            const bag = { name: '' };
+            gearRows.push({
+                cls: 'simple-blank-row' + (i > 0 ? ' simple-blank-extra' : ''),
+                cells: [
+                    { node: dblclickEditable(bag, 'name', {
+                        format: (v) => (v && String(v).trim() ? String(v) : ' '),
+                        onChange: () => {
+                            const nm = String(bag.name || '').trim();
+                            if (nm) {
+                                addInventoryItem(data, nm);
+                                rerender();
+                            }
+                        },
+                    }) },
+                    '', '',
+                ],
+            });
+        }
+        left.appendChild(spTable(
+            ['Item', { text: 'Qty', cls: 'num' }, { text: 'Wt.', cls: 'num' }],
+            gearRows));
+        const load = loadCategory(totalWt, data.str);
+        left.appendChild(h('p', 'simple-formula',
+            `Total ${fmtWeight(totalWt)} — ${load.label} load`
+            + ` (light ${load.lim.light} / medium ${load.lim.medium} / heavy ${load.lim.heavy} lbs)`));
+
+        // Languages
+        left.appendChild(spHeading('Languages'));
+        const langsP = h('p', 'simple-langs');
+        langsP.appendChild(edit(data, 'language_text', { asArray: true }));
+        left.appendChild(langsP);
+
+        // Skills (same math and rank storage as the Skills tab)
+        right.appendChild(spHeading('Skills'));
+        const rankMap = ensureSkillRanksObject(data);
+        const craftLabel = data.craft_type ? `Craft (${data.craft_type})` : 'Craft';
+        const skillRows = [];
+        for (const skill of ALL_SKILLS) {
+            const displayName = skill.name === 'Craft' ? craftLabel
+                : skill.name === 'Profession' && nonEmpty(data.profession_ranks) ? null
+                    : skill.name;
+            if (displayName === null) continue;
+            const rKey = skillRankKey(
+                skill.name === 'Craft' && data.craft_type ? craftLabel : skill.name,
+            );
+            const ranks = ranksForSkill(rankMap, skill.name)
+                || ranksForSkill(rankMap, displayName)
+                || (skill.name === 'Craft' && data.craft_type ? ranksForSkill(rankMap, 'craft') : 0);
+            const ab = getSkillAbility(data, skill);
+            const abMod = abModOf(data, ab);
+            const misc = skillMiscBonus(data, { ...skill, ab });
+            // Fold user bonuses (racial/feat/trait/misc/class-skill) into Misc here
+            const user = skillUserBonus(data, skillAbilityKey(skill), ranks);
+            const extra = misc.total + user.total;
+            skillRows.push([
+                displayName,
+                ab.toUpperCase(),
+                { text: fmt(ranks + abMod + extra), cls: 'num strong' },
+                { text: fmt(abMod), cls: 'num' },
+                { node: ranksEditor(data, rKey, ranks), cls: 'num' },
+                { text: extra ? fmt(extra) : '—', cls: 'num' },
+            ]);
+        }
+        for (const p of data.profession_ranks || []) {
+            const label = p.skill_label || p.name || 'Profession';
+            const ranks = Number(p.ranks) || 0;
+            const abMod = abModOf(data, 'wis');
+            const misc = skillMiscBonus(data, { ab: 'wis', id: 'pro', acp: false });
+            const user = skillUserBonus(data, 'pro:' + label, ranks);
+            const extra = misc.total + user.total;
+            skillRows.push([
+                label, 'WIS',
+                { text: fmt(ranks + abMod + extra), cls: 'num strong' },
+                { text: fmt(abMod), cls: 'num' },
+                { node: editNum(p, 'ranks', { min: 0, max: 40, rerender: true }), cls: 'num' },
+                { text: extra ? fmt(extra) : '—', cls: 'num' },
+            ]);
+        }
+        right.appendChild(spTable(
+            ['Skill', 'Abl', { text: 'Total', cls: 'num' }, { text: 'Mod', cls: 'num' },
+                { text: 'Ranks', cls: 'num' }, { text: 'Misc', cls: 'num' }],
+            skillRows, 'simple-skills'));
+
+        wrap.appendChild(p1);
+
+        // ---- page 2: feats, traits, abilities, money, spells ----
+        const p2 = h('section', 'simple-page');
+
+        // Editable name lists: dblclick a line to rename (clear it to remove);
+        // dblclick a blank line to add a new entry.
+        const editableNameList = (rows, onAdd, minLines = 3) => {
+            const ul = h('ul', 'simple-name-list');
+            for (const r of rows) {
+                const li = h('li');
+                li.appendChild(dblclickEditable(r.obj, r.key, {
+                    format: r.format,
+                    parse: r.parse,
+                    onChange: () => {
+                        const v = r.obj[r.key];
+                        if (v == null || String(v).trim() === '') r.remove();
+                        rerender();
+                    },
+                }));
+                ul.appendChild(li);
+            }
+            // Pad with blanks to at least minLines, then round up to fill the 3-wide grid row
+            let blanks = Math.max(minLines - rows.length, 1);
+            blanks += (3 - ((rows.length + blanks) % 3)) % 3;
+            for (let b = 0; b < blanks; b++) {
+                const li = h('li', 'simple-blank' + (b > 0 ? ' simple-blank-extra' : ''));
+                const bag = { name: '' };
+                li.appendChild(dblclickEditable(bag, 'name', {
+                    format: (v) => (v && String(v).trim() ? String(v) : ' '),
+                    onChange: () => {
+                        const nm = String(bag.name || '').trim();
+                        if (nm) {
+                            onAdd(nm);
+                            rerender();
+                        }
+                    },
+                }));
+                ul.appendChild(li);
+            }
+            return ul;
+        };
+        const arrayRows = (arr, opts = {}) => (arr || []).map((_, i) => ({
+            obj: arr,
+            key: i,
+            format: opts.format,
+            parse: opts.parse,
+            remove: () => arr.splice(i, 1),
+        }));
+
+        const featRows = [];
+        for (const g of FEAT_GROUPS) featRows.push(...arrayRows(data[g.listKey]));
+        p2.appendChild(spHeading('Feats'));
+        p2.appendChild(editableNameList(featRows, (nm) => {
+            (data.feats ??= []).push(nm);
+        }));
+
+        const traitRows = [
+            ...arrayRows(data.selected_traits),
+            ...arrayRows(data.background_traits),
+            ...arrayRows(data.sphere_traits),
+            ...arrayRows(data.flaw, {
+                format: (v) => (v ? v + ' (flaw)' : ''),
+                parse: (s) => s.replace(/\s*\(flaw\)\s*$/i, '').trim(),
+            }),
+        ];
+        p2.appendChild(spHeading('Traits & Flaws'));
+        p2.appendChild(editableNameList(traitRows, (nm) => {
+            (data.selected_traits ??= []).push(nm);
+        }));
+
+        // class_ability entries look like "arcane bond_wizard" — edit the name, keep the class suffix
+        const abilityRows = (data.class_ability || []).map((entry, i) => {
+            const s = String(entry ?? '');
+            const cut = s.lastIndexOf('_');
+            const suffix = cut > 0 ? s.slice(cut) : '';
+            return {
+                obj: data.class_ability,
+                key: i,
+                format: (v) => {
+                    const str = String(v ?? '');
+                    const c = str.lastIndexOf('_');
+                    return titleCase(c > 0 ? str.slice(0, c) : str);
+                },
+                parse: (txt) => {
+                    const nm = txt.trim();
+                    return nm ? nm.toLowerCase() + suffix : '';
+                },
+                remove: () => data.class_ability.splice(i, 1),
+            };
+        });
+        for (const pa of data.profession_ability_items || []) {
+            abilityRows.push({
+                obj: pa,
+                key: 'name',
+                remove: () => {
+                    const ix = data.profession_ability_items.indexOf(pa);
+                    if (ix >= 0) data.profession_ability_items.splice(ix, 1);
+                },
+            });
+        }
+        p2.appendChild(spHeading('Special Abilities'));
+        p2.appendChild(editableNameList(abilityRows, (nm) => {
+            (data.class_ability ??= []).push(nm); // plain name, like the Features tab's custom add
+        }));
+
+        // Money | Experience side by side (gear lives on page 1 under Weapons)
+        const cols2 = h('div', 'simple-cols');
+        const l2 = h('div', 'simple-col');
+        const r2 = h('div', 'simple-col');
+        cols2.append(l2, r2);
+        p2.appendChild(cols2);
+
+        if (data.platinum == null && data.platnium != null) data.platinum = data.platnium;
+        l2.appendChild(spHeading('Money'));
+        const moneyGrid = h('div', 'simple-stat-grid simple-money');
+        for (const [label, key] of [['PP', 'platinum'], ['GP', 'gold'], ['SP', 'silver'], ['CP', 'copper']]) {
+            if (data[key] == null || data[key] === '') data[key] = 0;
+            moneyGrid.appendChild(spBoxBig(label, editNum(data, key, {
+                min: 0,
+                format: (raw) => (raw == null || raw === '' ? '0' : String(raw)),
+                onChange: () => {
+                    if (key === 'platinum') data.platnium = data.platinum; // keep legacy in sync
+                },
+            })));
+        }
+        l2.appendChild(moneyGrid);
+
+        r2.appendChild(spHeading('Experience'));
+        const xpBox = h('div', 'simple-writein-box');
+        xpBox.appendChild(edit(st, 'xp'));
+        r2.appendChild(xpBox);
+
+        // Spells — fixed levels 0–9 like the paper sheet; blank but editable for non-casters.
+        if (!Array.isArray(data.day_list)) data.day_list = [];
+        if (!Array.isArray(data.known_list)) data.known_list = [];
+        if (!Array.isArray(data.spell_list_choose_from)) data.spell_list_choose_from = [];
+        const perDay = data.day_list;
+        const known = data.known_list;
+        const lists = data.spell_list_choose_from;
+        const isCaster = perDay.some((n) => Number(n) > 0)
+            || known.some((n) => Number(n) > 0)
+            || lists.some((l) => nonEmpty(l))
+            || Number(data.caster_level) > 0;
+        let castAb = '';
+        let castMod = 0;
+        if (isCaster) {
+            castAb = ensureCastingAbility(data);
+            castMod = castingAbilityMod(data);
+        }
+        const sp = h('div', 'simple-spells');
+        sp.appendChild(spHeading('Spells'));
+        const spLine = h('p', 'simple-formula');
+        spLine.appendChild(document.createTextNode('Caster level '));
+        spLine.appendChild(editNum(data, 'caster_level', { min: 0, max: 40, rerender: true }));
+        spLine.appendChild(document.createTextNode(isCaster
+            ? ` · ${String(castAb).toUpperCase()} ${fmt(castMod)}`
+                + ` · Concentration ${fmt(concentrationBonus(data))} · Save DC = 10 + spell level ${fmt(castMod)}`
+            : ' · Save DC = 10 + spell level + casting ability mod'));
+        sp.appendChild(spLine);
+        const spellNumCell = (arr, lv) => ({
+            node: editNum(arr, lv, {
+                min: 0,
+                format: (raw) => (raw == null || raw === '' ? '—' : String(raw)),
+            }),
+            cls: 'num',
+        });
+        // Editable list plus a print-only "(N)" so the printed 2-line clamp shows the true count
+        const spellListCell = (lv) => {
+            const cellWrap = h('span', 'simple-spell-wrap');
+            cellWrap.appendChild(edit(lists, lv, { asArray: true }));
+            const n = (lists[lv] || []).length;
+            if (n > 2) cellWrap.appendChild(h('span', 'simple-spell-count print-only', `(${n} total)`));
+            return cellWrap;
+        };
+        const spellRows = [];
+        for (let lv = 0; lv <= 9; lv++) {
+            spellRows.push([
+                { text: String(lv), cls: 'num' },
+                spellNumCell(perDay, lv),
+                spellNumCell(known, lv),
+                { text: isCaster ? String(10 + lv + castMod) : '', cls: 'num' },
+                { node: spellListCell(lv), cls: 'simple-spell-cell' },
+            ]);
+        }
+        sp.appendChild(spTable(
+            [{ text: 'Lvl', cls: 'num' }, { text: 'Per Day', cls: 'num' },
+                { text: 'Known', cls: 'num' }, { text: 'DC', cls: 'num' }, 'Spell List'],
+            spellRows));
+        p2.appendChild(sp);
+
+        wrap.appendChild(p2);
+        return wrap;
+    }
+
     const TABS = [
         { id: 'summary', label: 'Summary', render: tabSummary },
         { id: 'attributes', label: 'Attributes', render: tabAttributes },
         { id: 'combat', label: 'Combat', render: tabCombat },
+        { id: 'defenses', label: 'Defenses', render: tabDefenses },
         { id: 'inventory', label: 'Inventory', render: (d) => renderGear(d) || emptyState('No gear.') },
-        { id: 'features', label: 'Features', render: (d) => compose(renderFeats(d), renderTraits(d), renderClassFeatures(d)) },
+        { id: 'features', label: 'Features', render: (d) => compose(renderFeaturesToolbar(d), renderFeats(d), renderTraits(d), renderClassFeatures(d)) },
         { id: 'skills', label: 'Skills', render: (d) => renderSkills(d) },
         { id: 'path-of-war', label: 'Path of War', render: (d) => renderPathOfWar(d) || emptyState('Not an initiator — no maneuvers or stances.') },
         { id: 'spells', label: 'Spells', render: (d) => renderSpells(d) },
@@ -4540,7 +7776,7 @@
         // and rebuild derived panes if items gained changes since last full render (e.g. details
         // loaded after first paint, or empty changes[] from an earlier migration).
         if (!currentData || currentData.error) return;
-        const mathTabs = new Set(['combat', 'buffs', 'inventory', 'summary', 'attributes', 'skills']);
+        const mathTabs = new Set(['combat', 'defenses', 'buffs', 'inventory', 'summary', 'attributes', 'skills']);
         if (!mathTabs.has(id)) return;
         ensureInventoryObjects(currentData);
         const SD = window.SheetDetails;
@@ -4593,6 +7829,13 @@
         // Hydrate equipment (and re-fill empty non-customized changes from compendium)
         // before any tab computes AC / attacks / buffs.
         ensureInventoryObjects(data);
+
+        if (viewMode() === 'simple') {
+            sheet.appendChild(renderSimpleSheet(data));
+            syncThemeControls(themePreference());
+            window.SheetRoll?.setCharacter(data);
+            return;
+        }
 
         sheet.appendChild(renderHeader(data));
 
@@ -4776,10 +8019,26 @@
 
     // ---------------------------------------------------------------- wiring
     document.addEventListener('DOMContentLoaded', async () => {
+        // Core topbar buttons FIRST, before anything that can throw — a bad stored
+        // theme/form value must never take Print or Generate down with it.
+        const toggle = (id) => document.getElementById(id).classList.toggle('hidden');
+        document.getElementById('toggle-gen').addEventListener('click', () => toggle('gen-panel'));
+        document.getElementById('toggle-load').addEventListener('click', () => toggle('load-panel'));
+        document.getElementById('print-btn').addEventListener('click', () => window.print());
+        document.getElementById('view-toggle').addEventListener('click', () => {
+            setViewMode(viewMode() === 'simple' ? 'full' : 'simple');
+            renderSheet(currentData);
+        });
+        syncViewToggle();
+
         // Theme: topbar + Settings + localStorage; ?theme=parchment|dusk|…|system applies (persisted).
-        initTheme();
-        const themeParam = new URLSearchParams(location.search).get('theme');
-        if (themeParam && THEME_IDS.has(themeParam)) applyTheme(themeParam);
+        try {
+            initTheme();
+            const themeParam = new URLSearchParams(location.search).get('theme');
+            if (themeParam && isThemeChoice(themeParam)) applyTheme(themeParam);
+        } catch (err) {
+            console.error('Theme boot failed (continuing):', err);
+        }
 
         // ?backend=http://host:port overrides the generation backend (persisted);
         // ?backend=default clears the override. Also editable in the Settings tab.
@@ -4793,17 +8052,20 @@
         fillSelect(form.elements.class, CLASSES, (c) => c.toLowerCase().replace(/\s/g, '-'));
         fillSelect(form.elements.deity, DEITIES);
 
-        const savedForm = JSON.parse(localStorage.getItem(FORM_KEY) || 'null');
-        if (savedForm) {
-            for (const [k, v] of Object.entries(savedForm)) {
-                if (form.elements[k]) form.elements[k].value = v;
+        // Restore the saved generator form; a corrupt value self-heals instead of
+        // killing the rest of the boot.
+        try {
+            const savedForm = JSON.parse(localStorage.getItem(FORM_KEY) || 'null');
+            if (savedForm) {
+                for (const [k, v] of Object.entries(savedForm)) {
+                    if (form.elements[k]) form.elements[k].value = v;
+                }
             }
+        } catch (err) {
+            console.error('Stored generator form was corrupt — clearing it:', err);
+            localStorage.removeItem(FORM_KEY);
         }
 
-        const toggle = (id) => document.getElementById(id).classList.toggle('hidden');
-        document.getElementById('toggle-gen').addEventListener('click', () => toggle('gen-panel'));
-        document.getElementById('toggle-load').addEventListener('click', () => toggle('load-panel'));
-        document.getElementById('print-btn').addEventListener('click', () => window.print());
         form.addEventListener('submit', (e) => { e.preventDefault(); generate(form); });
         document.getElementById('render-paste').addEventListener('click', () =>
             loadJsonText(document.getElementById('json-paste').value));

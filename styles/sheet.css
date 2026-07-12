@@ -347,51 +347,6 @@ html[data-theme="high-contrast"] {
     --status-bloodied-bg: rgba(255, 100, 100, 0.2);
 }
 
-/* Light — Foundry Classic (PF1 system rust / beige) */
-html[data-theme="foundry-classic"] {
-    color-scheme: light;
-    --ink: #191813;
-    --paper: #d4d1c2;
-    --panel: #e0ddd0;
-    --input-bg: #ece9dc;
-    --input-bg-solid: #f0ede0;
-    --row-bg: #ece9dc;
-    --row-border: #b5b3a4;
-    --row-hover: #e4e0d0;
-    --chip-bg: #c9c7b8;
-    --table-rule: #b5b3a4;
-    --accent: #782e22;
-    --accent-dark: #5c2218;
-    --accent-hover: #922f22;
-    --on-accent: #f0ede0;
-    --rule: #7a7971;
-    --dim: #4b4a44;
-    --topbar-from: #4b4a44;
-    --topbar-to: #2a2924;
-    --topbar-fg: #f0ede0;
-    --chrome-muted: #7a7971;
-    --select-bg: #f0ede0;
-    --select-border: #7a7971;
-    --menu-bg: #f0ede0;
-    --menu-border: #b5b3a4;
-    --menu-divider: #c9c7b8;
-    --menu-summary-bg: #d8d5c6;
-    --menu-summary-hover: #ccc9b8;
-    --reconnect-bg: #8a7a2a;
-    --reconnect-border: #5c5020;
-    --quick-bg: #5c4030;
-    --quick-border: #3a2c1e;
-    --quick-hover: #6e5040;
-    --edit-hover-bg: rgba(120, 46, 34, 0.08);
-    --edit-focus-ring: rgba(120, 46, 34, 0.22);
-    --shadow: rgba(0, 0, 0, 0.28);
-    --focus-ring: #782e22;
-    --success: #18520b;
-    --danger: #aa0200;
-    --warning: #909000;
-    --status-bloodied-bg: rgba(170, 2, 0, 0.1);
-}
-
 /* Light — gold / amber treasure */
 html[data-theme="gold"] {
     color-scheme: light;
@@ -826,6 +781,7 @@ select:focus-visible,
     margin: 0 0 0.9rem;
 }
 .theme-modal-pick {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -1057,29 +1013,6 @@ button:disabled { opacity: 0.55; cursor: wait; }
 }
 
 /* Inventory item cards */
-.inventory-tab .inv-slots {
-    margin: 0.35rem 0 0.75rem;
-    padding: 0.45rem 0.55rem;
-    background: var(--row-bg);
-    border: 1px solid var(--rule);
-    border-radius: 4px;
-}
-.inv-slot-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.35rem 0.75rem;
-    padding: 0.2rem 0;
-}
-.inv-slot-label {
-    flex: 0 0 5rem;
-    font-weight: bold;
-    font-size: 0.85rem;
-    color: var(--accent-dark);
-}
-.inv-slot-value { flex: 1 1 12rem; min-width: 0; }
-.inv-slot-desc { margin: 0.15rem 0 0.35rem 5rem; font-size: 0.85rem; }
-
 .inv-list {
     display: flex;
     flex-direction: column;
@@ -1254,30 +1187,420 @@ button:disabled { opacity: 0.55; cursor: wait; }
 }
 .inv-footer {
     display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    padding: 0.45rem 0 0.2rem;
+    border-top: 1px solid var(--rule);
+    margin-top: 0.35rem;
+}
+.inv-foot-stats {
+    display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    gap: 0.5rem 1rem;
+    gap: 0.3rem 1rem;
+}
+
+/* ---------------- Foundry-like inventory table */
+/* Shared column template: handle · qty · name · slot · weight · value · id · car · eq · actions */
+.inv-row {
+    display: grid;
+    grid-template-columns:
+        1.1rem
+        4.6rem
+        minmax(7rem, 1fr)
+        5.5rem
+        4.4rem
+        5rem
+        2rem
+        2rem
+        2rem
+        3.8rem;
+    align-items: center;
+    column-gap: 0.4rem;
+    row-gap: 0.25rem;
+    min-height: 1.65rem;
+}
+.inv-cat-head {
+    background: linear-gradient(var(--topbar-from), var(--topbar-to));
+    color: var(--topbar-fg);
+    border-radius: 4px;
+    padding: 0.18rem 0.4rem;
+    margin: 0.55rem 0 0.15rem;
+    min-height: 1.5rem;
+}
+.inv-cat-title {
+    font-weight: bold;
+    font-size: 0.88rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.inv-col-cap {
+    font-size: 0.6rem;
+    font-family: system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.85;
+    white-space: nowrap;
+}
+.inv-col-cap-right { text-align: right; }
+.inv-col-cap-mid { text-align: center; }
+.inv-cat-add { text-align: right; }
+.inv-icon-btn {
+    font: inherit;
     font-size: 0.85rem;
-    padding: 0.35rem 0;
-    border-top: 1px solid var(--rule);
-    margin-top: 0.25rem;
+    line-height: 1;
+    padding: 0.14rem 0.4rem;
+    background: var(--input-bg);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    cursor: pointer;
+}
+.inv-icon-btn:hover { border-color: var(--accent); color: var(--accent-dark); }
+.inv-cat-head .inv-icon-btn {
+    background: transparent;
+    color: var(--topbar-fg);
+    border-color: var(--chrome-muted);
+    font-weight: bold;
+}
+.inv-cat-head .inv-icon-btn:hover { border-color: var(--topbar-fg); color: var(--topbar-fg); }
+.inv-qty {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.8rem;
+}
+.inv-step {
+    font: inherit;
+    font-size: 0.72rem;
+    line-height: 1;
+    width: 1.1rem;
+    padding: 0.1rem 0;
+    background: var(--input-bg);
+    color: var(--dim);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    cursor: pointer;
+}
+.inv-step:hover { border-color: var(--accent); color: var(--accent-dark); }
+.inv-check { text-align: center; }
+.inv-check input[type="checkbox"] {
+    accent-color: var(--accent);
+    margin: 0;
+    cursor: pointer;
+}
+.inv-slot {
+    font-size: 0.75rem;
+    color: var(--dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.inv-buff-mark {
+    color: var(--accent-dark);
+    font-size: 0.72rem;
+    margin-left: 0.3rem;
+    cursor: help;
+}
+/* Expander toggle + description flow under the name (appended after row cells) */
+.inv-row > .inv-item-details > summary { grid-column: 3 / -1; }
+.inv-row > .inv-unid-hint { grid-column: 3 / -1; font-size: 0.78rem; }
+
+/* Currency bar (top of the tab) */
+.inv-currency-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.3rem 0.45rem;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+.inv-currency-title {
+    font-weight: bold;
+    font-size: 0.85rem;
+    margin-right: 0.25rem;
+}
+.inv-currency-box {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.inv-currency-label {
+    font-size: 0.68rem;
+    font-family: system-ui, sans-serif;
+    font-weight: bold;
+    color: var(--dim);
+}
+.inv-currency-input {
+    width: 5.2rem;
+    font: inherit;
+    font-size: 0.85rem;
+    padding: 0.12rem 0.3rem;
+    background: var(--input-bg);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Category jump links next to the filter */
+.inv-toolbar-extra {
+    display: flex;
+    flex: 1 1 14rem;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+}
+.inv-cat-nav { display: flex; flex-wrap: wrap; gap: 0.2rem; }
+.inv-cat-link {
+    font: inherit;
+    font-size: 0.72rem;
+    padding: 0.14rem 0.4rem;
+    background: transparent;
+    color: var(--accent-dark);
+    border: 1px solid transparent;
+    border-radius: 3px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.inv-cat-link:hover { border-color: var(--accent); background: var(--chip-bg); }
+
+/* Carry-capacity footer */
+.inv-load-bar {
+    display: flex;
+    gap: 2px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.inv-load-seg {
+    flex: 1;
+    text-align: center;
+    font-size: 0.72rem;
+    font-family: system-ui, sans-serif;
+    padding: 0.16rem 0.3rem;
+    background: var(--chip-bg);
+    color: var(--dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.inv-load-seg.is-active.load-light { background: var(--success); color: var(--paper); font-weight: bold; }
+.inv-load-seg.is-active.load-medium { background: var(--warning); color: var(--paper); font-weight: bold; }
+.inv-load-seg.is-active.load-heavy { background: var(--danger); color: var(--paper); font-weight: bold; }
+.inv-load-seg.is-over { background: var(--status-bloodied-bg); color: var(--danger); font-weight: bold; }
+.inv-capacity-row {
+    display: flex;
+    gap: 2px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.inv-capacity-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.05rem;
+    padding: 0.2rem 0.3rem;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+}
+.inv-capacity-label {
+    font-size: 0.66rem;
+    font-family: system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--dim);
+}
+.inv-capacity-value {
+    font-variant-numeric: tabular-nums;
+    font-weight: bold;
+    font-size: 0.9rem;
 }
 
 @media print {
     .inv-item-actions, .inv-buffs-editor { display: none !important; }
     .inv-item.is-unequipped { opacity: 1; }
+    .inv-row { grid-template-columns: 0 3rem minmax(7rem, 1fr) 5.5rem 4.4rem 5rem 2rem 2rem 2rem 0; }
 }
 
-/* Foundry-style feat rows */
-.feat-list .feat-item { list-style: none; margin: 0.2rem 0; }
+/* Foundry-style feat rows (pf1 actor-features.hbs item lists) */
+.feat-list .feat-item { list-style: none; margin: 0; }
 .feat-list { padding-left: 0.2rem; }
-.feat-item-head {
+
+/* Features toolbar: tab-wide search + filter pills (actor-item-nav-filters.hbs) */
+.features-toolbar {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.35rem 0.5rem;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.9rem;
+    padding: 0.5rem 0.6rem;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
 }
-.feat-item-head details { flex: 1 1 auto; min-width: 12rem; }
+.features-toolbar .feature-search { flex: 1 1 12rem; min-width: 8rem; }
+.feature-filter-pills { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.filter-pill {
+    font: inherit;
+    font-size: 0.75rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--rule);
+    background: var(--chip-bg);
+    color: var(--ink);
+    cursor: pointer;
+}
+.filter-pill:hover { border-color: var(--accent); }
+.filter-pill.is-active {
+    background: var(--accent);
+    border-color: var(--accent-dark);
+    color: var(--on-accent);
+}
+.filter-pill .pill-count { opacity: 0.75; margin-left: 0.3rem; font-size: 0.7rem; }
+.feature-group.hidden { display: none; }
+
+/* Shared column grid for header + item rows */
+.feat-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(5.5rem, auto) auto auto auto;
+    gap: 0.15rem 0.6rem;
+    align-items: center;
+}
+.feat-list-header {
+    list-style: none;
+    margin: 0.25rem 0 0.1rem;
+    padding: 0.2rem 0.35rem;
+    background: var(--row-bg);
+    border: 1px solid var(--row-border);
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--dim);
+}
+.feat-list .feat-item.feat-grid {
+    padding: 0.15rem 0.35rem;
+    border-radius: 4px;
+}
+.feat-list .feat-item.feat-grid:nth-child(odd) { background: var(--row-bg); }
+.feat-list .feat-item.feat-grid:hover { background: var(--row-hover); }
+.feat-cell { min-width: 0; }
+.feat-cell-name { display: flex; align-items: baseline; gap: 0.3rem; }
+.feat-cell-name details, .feat-cell-name .feat-title { flex: 1 1 auto; min-width: 0; }
+.feat-cell-type { display: flex; flex-wrap: wrap; gap: 0.25rem; align-items: center; }
+.feat-type { font-size: 0.75rem; color: var(--dim); white-space: nowrap; }
+.feat-cell-uses { justify-self: end; }
+.feat-chat-btn { padding: 0.05rem 0.3rem !important; font-size: 0.8rem; }
+@media (max-width: 560px) {
+    .feat-item.feat-grid { grid-template-columns: 1fr auto auto auto; }
+    .feat-item .feat-cell-name { grid-column: 1 / -1; }
+    .feat-list-header { display: none; }
+}
+
+/* Feat-count footer (pf1 info-box-joined) */
+.feat-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: stretch;
+    margin-top: 0.75rem;
+}
+.feat-count-joined {
+    display: flex;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+}
+.feat-count-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.3rem 0.7rem;
+    background: var(--panel);
+    border-right: 1px solid var(--rule);
+    min-width: 4rem;
+}
+.feat-count-joined .feat-count-box:last-child { border-right: 0; }
+.feat-counts > .feat-count-box { border: 1px solid var(--rule); border-radius: 6px; }
+.feat-count-box.is-missing { color: var(--danger); border-color: var(--danger); }
+.feat-count-box.is-excess { color: var(--warning); border-color: var(--warning); }
+.feat-count-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--dim);
+}
+.feat-count-box.is-missing .feat-count-label,
+.feat-count-box.is-excess .feat-count-label { color: inherit; }
+.feat-count-value { font-size: 1.05rem; font-weight: bold; }
+
+/* Defenses block (Combat tab): AC-type grid, save buckets, DR / resist / SR */
+.defense-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
+    gap: 0.35rem;
+    margin: 0.35rem 0 0.7rem;
+}
+.def-box {
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    cursor: default;
+}
+.def-sr-total { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.saves-breakdown { margin: 0.2rem 0 0.8rem; }
+.def-line-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+.def-h {
+    margin: 0.2rem 0;
+    font-size: 0.9rem;
+    font-variant: small-caps;
+    letter-spacing: 0.03em;
+}
+.def-add-btn { padding: 0 0.45rem !important; line-height: 1.4; }
+.def-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 0.15rem 0 0.35rem;
+    align-items: center;
+}
+.def-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.1rem 0.3rem 0.1rem 0.5rem;
+    background: var(--chip-bg);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+.def-chip-type { color: var(--accent-dark); }
+.def-chip-rm { padding: 0 0.3rem !important; margin-left: 0.15rem; line-height: 1.3; }
+.def-add-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+    margin: 0.2rem 0 0.5rem;
+}
+.def-add-row.hidden { display: none; }
+.def-amt { width: 4.5rem; }
+.def-custom { width: 9rem; }
+
 .feat-tags { display: inline-flex; flex-wrap: wrap; gap: 0.25rem; }
 .feat-tag {
     font-size: 0.68rem;
@@ -1447,6 +1770,28 @@ button:disabled { opacity: 0.55; cursor: wait; }
     font-weight: bold;
     color: var(--accent-dark);
 }
+/* Editable user-bonus columns (Racial / Feat / Trait / Misc) */
+.skill-bonus-cell { min-width: 2.4rem; }
+.skill-bonus-cell .dbl-edit-display { display: inline-block; min-width: 1.4rem; }
+/* Class-skill toggle: +3 once the skill has a rank */
+.skill-cs-cell { width: 2.4rem; }
+.skill-cs-btn {
+    font: inherit;
+    font-size: 0.78rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    border: 1px solid var(--rule);
+    background: var(--chip-bg);
+    color: var(--dim);
+    cursor: pointer;
+}
+.skill-cs-btn:hover { border-color: var(--accent); color: var(--ink); }
+.skill-cs-btn.is-on {
+    background: var(--accent);
+    border-color: var(--accent-dark);
+    color: var(--on-accent);
+    font-weight: bold;
+}
 .skill-roll-cell {
     width: 3.2rem;
     padding: 0.1rem 0.2rem !important;
@@ -1458,52 +1803,174 @@ button:disabled { opacity: 0.55; cursor: wait; }
 }
 
 /* Per-buff toggles (Buffs tab) */
-.buff-toggle-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    margin: 0.35rem 0 0.8rem;
+.buff-source-name { font-weight: bold; min-width: 0; }
+.buff-source-effects {
+    font-size: 0.8rem;
+    color: var(--dim);
+    line-height: 1.35;
 }
-.buff-toggle-row {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-    padding: 0.4rem 0.55rem;
-    background: var(--row-bg);
+/* Always-on sources rendered as Permanent buff rows */
+.buffs-row-derived .buff-kind-tag { margin-left: 0.4rem; vertical-align: 0.1rem; }
+.buffs-row.buff-off .buff-source-name {
+    text-decoration: line-through;
+    color: var(--dim);
+}
+/* Situational-note hover marker (skills / attack rows) */
+.note-hover-mark {
+    display: inline-block;
+    margin-left: 0.3rem;
+    font-size: 0.75rem;
+    color: var(--accent-dark);
+    cursor: help;
+    opacity: 0.8;
+}
+
+/* Foundry-like Buffs tab (conditions → buff sections → passive) */
+.buffs-tab .conditions-grid {
+    margin-bottom: 0.75rem;
+}
+.buffs-col-legend,
+.buffs-row {
+    display: grid;
+    grid-template-columns:
+        minmax(8rem, 1.4fr)
+        minmax(4.5rem, 0.7fr)
+        3.2rem
+        3.2rem
+        auto;
+    gap: 0.35rem 0.5rem;
+    align-items: center;
+}
+.buffs-col-legend {
+    font-size: 0.72rem;
+    font-variant: small-caps;
+    color: var(--dim);
+    padding: 0.15rem 0.45rem;
+    border-bottom: 1px solid var(--menu-divider);
+    margin-bottom: 0.35rem;
+}
+.buffs-section {
+    margin: 0.45rem 0 0.7rem;
     border: 1px solid var(--row-border);
-    border-radius: 4px;
-}
-.buff-toggle-row.buff-off {
-    opacity: 0.72;
+    border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0;
     background: var(--panel);
-    border-style: dashed;
+    overflow: hidden;
 }
-.buff-toggle-label {
+.buffs-section-head {
     display: flex;
     align-items: center;
-    gap: 0.45rem;
-    cursor: pointer;
-    font-weight: bold;
-    color: var(--ink);
-    user-select: none;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.35rem 0.5rem;
+    background: var(--row-bg);
+    border-bottom: 1px solid var(--menu-divider);
 }
-.buff-source-check {
+.buffs-section-title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-variant: small-caps;
+    color: var(--accent-dark);
+    letter-spacing: 0.03em;
+}
+.buffs-section-controls {
+    display: flex;
+    gap: 0.3rem;
+}
+.buffs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+.buffs-empty {
+    margin: 0.4rem 0.55rem !important;
+    font-size: 0.82rem;
+}
+.buffs-row {
+    padding: 0.4rem 0.5rem;
+    border-bottom: 1px solid var(--menu-divider);
+    background: var(--row-bg);
+}
+.buffs-row:last-child { border-bottom: none; }
+.buffs-row.buff-off {
+    opacity: 0.7;
+    background: var(--panel);
+}
+.buffs-row.buff-off .buff-source-name {
+    text-decoration: line-through;
+    color: var(--dim);
+}
+.buffs-col-name { min-width: 0; }
+.buffs-col-name .buff-source-effects {
+    padding-left: 0;
+    margin-top: 0.15rem;
+}
+.buff-notes-preview {
+    font-size: 0.78rem;
+    margin-top: 0.1rem;
+}
+.buffs-col-dur {
+    font-size: 0.8rem;
+    color: var(--dim);
+    font-variant-numeric: tabular-nums;
+}
+.buffs-col-lv {
+    font-size: 0.85rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+.buffs-col-active {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+.buffs-col-active input {
     width: 1.1rem;
     height: 1.1rem;
     accent-color: var(--accent);
     cursor: pointer;
-    flex: 0 0 auto;
 }
-.buff-source-name { flex: 1; min-width: 0; }
-.buff-source-effects {
-    font-size: 0.8rem;
-    color: var(--dim);
-    padding-left: 1.55rem;
-    line-height: 1.35;
+.buffs-col-ctrl {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    justify-content: flex-end;
 }
-.buff-toggle-row.buff-off .buff-source-name {
-    text-decoration: line-through;
+.buff-editor-panel {
+    grid-column: 1 / -1;
+    margin-top: 0.35rem;
+}
+.buff-editor-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    gap: 0.4rem 0.55rem;
+    margin-bottom: 0.45rem;
+}
+.buff-editor-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.78rem;
     color: var(--dim);
+}
+.buff-editor-field .edit-field { width: 100%; }
+.buff-editor-notes { width: 100%; margin-bottom: 0.4rem; }
+.buffs-cond-pointer { margin-top: 0.6rem; font-size: 0.85rem; }
+@media (max-width: 720px) {
+    .buffs-col-legend { display: none; }
+    .buffs-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "name name"
+            "dur lv"
+            "active ctrl";
+    }
+    .buffs-col-name { grid-area: name; }
+    .buffs-col-dur { grid-area: dur; }
+    .buffs-col-lv { grid-area: lv; }
+    .buffs-col-active { grid-area: active; justify-content: flex-start; }
+    .buffs-col-ctrl { grid-area: ctrl; }
 }
 
 /* Path of War ready list */
@@ -1765,6 +2232,105 @@ button:disabled { opacity: 0.55; cursor: wait; }
     gap: 0.4rem;
     margin: 0.4rem 0 0.75rem;
 }
+/* Combat tab top strip: boxes stretch edge-to-edge (BAB iteratives can be long) */
+.combat-top-strip .summary-stat-box { flex: 1 1 0; min-width: 7rem; text-align: center; }
+.combat-top-strip .summary-stat-val { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Summary paper-sheet lines (HP/Speed · Defense · Saves · Offense) */
+.summary-line { margin: 0.15rem 0 0.45rem; }
+.summary-line-label {
+    margin: 0 0 0.15rem;
+    font-size: 0.75rem;
+    font-variant: small-caps;
+    letter-spacing: 0.08em;
+    color: var(--dim);
+    border-bottom: 1px solid var(--rule);
+}
+.summary-line-strip { margin: 0.15rem 0 0.2rem; }
+.summary-line-strip .summary-stat-box { min-width: 5.2rem; }
+.summary-stat-box.is-bloodied {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 1px var(--danger);
+}
+.fly-maneuver-select {
+    font-size: 0.7rem !important;
+    margin-left: 0.25rem;
+    padding: 0 0.1rem !important;
+    max-width: 5rem;
+}
+
+/* Class & archetype rows + popup */
+.class-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    width: 100%;
+    margin: 0.25rem 0;
+    padding: 0.4rem 0.6rem;
+    font: inherit;
+    text-align: left;
+    background: var(--row-bg);
+    border: 1px solid var(--row-border);
+    border-radius: 6px;
+    color: var(--ink);
+    cursor: pointer;
+}
+.class-row:hover { border-color: var(--accent); background: var(--row-hover); }
+.class-row-arrow { color: var(--accent-dark); }
+.class-row-name { font-weight: bold; }
+.class-row-blurb { font-size: 0.8rem; }
+.class-sheet-card { width: min(40rem, 100%); }
+.class-sheet-title { margin: 0; font-size: 1.1rem; font-variant: small-caps; letter-spacing: 0.03em; }
+.class-sheet-body { padding: 0.7rem 0.85rem; overflow-y: auto; }
+.class-sheet-summary {
+    margin: 0 0 0.4rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent-dark);
+}
+.class-sheet-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 0.2rem 1rem;
+}
+.class-skill-hint { margin: 0 0 0.3rem; font-size: 0.78rem; }
+.class-skill-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+    gap: 0.1rem 0.6rem;
+}
+.class-skill-check {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+.class-skill-check input { accent-color: var(--accent); }
+
+/* Defenses: stretch SR + Healing rows edge-to-edge */
+.def-stretch { grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr)); }
+
+/* Negative levels warning (Attributes tab) */
+.neg-level-warning {
+    margin: 0.3rem 0 0.6rem;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    color: var(--danger);
+    background: var(--status-bloodied-bg, rgba(160, 40, 40, 0.12));
+    border: 1px solid var(--danger);
+    border-radius: 6px;
+}
+
+/* FoundryVTT-style ability table (Attributes tab) — full width */
+.ability-table { width: 100%; }
+.ability-table td.ability-name { font-weight: 600; }
+.ability-table td.ability-total .dbl-edit-display {
+    font-weight: bold;
+    color: var(--accent-dark);
+    cursor: help;
+}
+.ability-table td.ability-mod { font-weight: 600; }
 .summary-stat-box {
     min-width: 4.2rem;
     padding: 0.3rem 0.45rem;
@@ -1857,13 +2423,7 @@ button:disabled { opacity: 0.55; cursor: wait; }
 .dnd-item.dnd-over {
     box-shadow: inset 0 2px 0 0 var(--accent);
 }
-.feat-item-head .dnd-handle { margin-right: 0.15rem; }
-.buff-toggle-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.35rem;
-}
+.feat-cell-name .dnd-handle { margin-right: 0.15rem; align-self: center; }
 .skill-ability-select {
     font-size: 0.75rem !important;
     padding: 0.1rem 0.2rem !important;
@@ -2337,6 +2897,209 @@ button:disabled { opacity: 0.55; cursor: wait; }
 }
 .inv-item.is-unidentified .inv-item-name { font-style: italic; color: var(--dim); }
 .inv-unid-hint { font-size: 0.78rem; }
+
+/* Clickable item name (opens the item sheet, like Foundry) */
+.inv-item-open {
+    font: inherit;
+    font-weight: 600;
+    color: var(--accent-dark);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.inv-item-open:hover { text-decoration: underline; }
+.inv-item.is-unidentified .inv-item-open { font-style: italic; color: var(--dim); }
+
+/* Foundry-style item sheet modal (pf1 item window: sidebar + tabbed content) */
+.item-sheet-card {
+    width: min(46rem, 100%);
+    max-height: min(42rem, 92vh);
+    display: flex;
+    flex-direction: column;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--menu-border);
+    border-radius: 8px;
+    box-shadow: 0 12px 40px var(--shadow);
+    overflow: hidden;
+}
+.item-sheet-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.6rem 0.85rem;
+    background: linear-gradient(var(--topbar-from), var(--topbar-to));
+    color: var(--topbar-fg);
+    border-bottom: 2px solid var(--accent);
+}
+.item-sheet-titles { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 0.2rem; }
+.item-sheet-name, .item-sheet-unid-name {
+    font: inherit;
+    width: 100%;
+    background: transparent;
+    color: inherit;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    padding: 0.1rem 0.3rem;
+}
+.item-sheet-name { font-size: 1.15rem; font-weight: bold; font-variant: small-caps; letter-spacing: 0.03em; }
+.item-sheet-unid-name { font-size: 0.85rem; opacity: 0.8; }
+.item-sheet-name:hover, .item-sheet-unid-name:hover,
+.item-sheet-name:focus, .item-sheet-unid-name:focus {
+    border-color: var(--chrome-muted);
+    background: rgba(0, 0, 0, 0.15);
+    outline: none;
+}
+.item-sheet-grid {
+    display: grid;
+    grid-template-columns: minmax(11rem, 14rem) 1fr;
+    gap: 0;
+    overflow: auto;
+    flex: 1 1 auto;
+}
+.item-sheet-side {
+    padding: 0.7rem 0.8rem;
+    border-right: 1px solid var(--rule);
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.item-sheet-type {
+    margin: 0 0 0.1rem;
+    font-size: 0.95rem;
+    font-variant: small-caps;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid var(--accent);
+    padding-bottom: 0.15rem;
+}
+.item-sheet-subtype { margin: 0; font-size: 0.8rem; color: var(--dim); }
+.item-sheet-stat {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+}
+.item-sheet-stat-label { font-weight: 600; }
+.item-sheet-num {
+    font: inherit;
+    font-size: 0.85rem;
+    width: 4.2rem;
+    padding: 0.1rem 0.3rem;
+    text-align: right;
+    background: var(--input-bg);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+}
+.item-sheet-text, .item-sheet-select {
+    font: inherit;
+    font-size: 0.85rem;
+    width: 11rem;
+    max-width: 60%;
+    padding: 0.1rem 0.3rem;
+    background: var(--input-bg);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+}
+.item-sheet-pane .item-sheet-stat { max-width: 26rem; margin: 0.15rem 0; }
+.item-sheet-hp { display: inline-flex; align-items: center; gap: 0.2rem; }
+.item-sheet-hp .item-sheet-num { width: 3rem; }
+.item-sheet-hp-sep { color: var(--dim); }
+.item-sheet-checks {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+    border-top: 1px solid var(--rule);
+}
+.item-sheet-check {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+.item-sheet-check input { accent-color: var(--accent); }
+.item-sheet-chips-title {
+    margin: 0.4rem 0 0.15rem;
+    font-size: 0.78rem;
+    font-weight: bold;
+    background: var(--chip-bg);
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+}
+.item-sheet-chips { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.item-sheet-content { display: flex; flex-direction: column; min-width: 0; }
+.item-sheet-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--rule);
+    background: var(--row-bg);
+}
+.item-sheet-tab {
+    font: inherit;
+    font-size: 0.9rem;
+    font-variant: small-caps;
+    letter-spacing: 0.04em;
+    flex: 1;
+    padding: 0.4rem 0.6rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--dim);
+    cursor: pointer;
+}
+.item-sheet-tab:hover { color: var(--ink); }
+.item-sheet-tab.is-active {
+    color: var(--accent-dark);
+    font-weight: bold;
+    border-bottom-color: var(--accent);
+    background: var(--paper);
+}
+.item-sheet-pane { padding: 0.7rem 0.85rem; overflow-y: auto; }
+.item-sheet-pane.hidden { display: none; }
+.item-sheet-h {
+    margin: 0.6rem 0 0.3rem;
+    font-size: 0.95rem;
+    font-variant: small-caps;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 0.1rem;
+}
+.item-sheet-pane .item-sheet-h:first-child { margin-top: 0; }
+.item-sheet-unid-desc, .item-sheet-desc-src {
+    width: 100%;
+    min-height: 3.2rem;
+    font: inherit;
+    font-size: 0.85rem;
+    padding: 0.3rem 0.4rem;
+    background: var(--input-bg);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    resize: vertical;
+}
+.item-sheet-desc-src { min-height: 7rem; font-family: ui-monospace, monospace; font-size: 0.78rem; margin-top: 0.35rem; }
+.item-sheet-desc-src.hidden { display: none; }
+.item-sheet-desc-edit { margin-top: 0.4rem; }
+.item-sheet-notes { padding-left: 1rem; font-size: 0.85rem; }
+.item-sheet-enh { margin: 0.2rem 0 0.5rem; font-size: 0.85rem; }
+.item-sheet-enh > p:first-child { margin: 0 0 0.15rem; color: var(--accent-dark); }
+.item-sheet-pane .inv-buffs-editor { margin: 0; }
+@media (max-width: 640px) {
+    .item-sheet-grid { grid-template-columns: 1fr; }
+    .item-sheet-side { border-right: none; border-bottom: 1px solid var(--rule); }
+}
 .spell-cast-ability { max-width: 6rem; }
 
 .settings-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin: 0.4rem 0 0.8rem; }
@@ -2389,6 +3152,97 @@ button:disabled { opacity: 0.55; cursor: wait; }
 .settings-theme-swatches span { flex: 1; }
 .settings-theme-label { font-size: 0.88rem; font-weight: bold; }
 .settings-theme-desc { font-size: 0.72rem; color: var(--dim); line-height: 1.3; }
+
+/* Custom theme builder (3 base colors → derived palette) */
+.custom-theme-panel {
+    margin: 0.35rem 0 0.9rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.custom-color-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+.custom-color-label {
+    flex: 0 0 6.5rem;
+    font-size: 0.88rem;
+    font-weight: bold;
+}
+.custom-color-picker {
+    width: 2.6rem;
+    height: 1.7rem;
+    padding: 0;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: var(--input-bg);
+    cursor: pointer;
+}
+.custom-color-slider {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    color: var(--dim);
+}
+.custom-color-slider input[type="range"] {
+    width: 9rem;
+    accent-color: var(--accent);
+}
+.custom-theme-note {
+    margin: 0;
+    font-size: 0.72rem;
+}
+.custom-theme-save {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.custom-theme-name {
+    flex: 1 1 9rem;
+    min-width: 0;
+    padding: 0.3rem 0.45rem;
+    font: inherit;
+    font-size: 0.85rem;
+    background: var(--input-bg);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+}
+/* × on saved-theme cards (top-right, over the swatch strip) */
+.theme-delete-btn {
+    position: absolute;
+    top: 0.2rem;
+    right: 0.25rem;
+    width: 1.15rem;
+    height: 1.15rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: bold;
+    line-height: 1;
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--ink);
+    background: color-mix(in srgb, var(--paper) 70%, transparent);
+    border: 1px solid var(--rule);
+    opacity: 0.75;
+}
+.theme-delete-btn:hover,
+.theme-delete-btn:focus-visible {
+    opacity: 1;
+    background: var(--paper);
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
+}
 
 .sheet-grid {
     column-width: 480px;
@@ -2450,7 +3304,6 @@ details .desc p { margin: 0.3rem 0; }
 .modifiers .mod-line { padding: 0.08rem 0; font-size: 0.9rem; }
 .modifiers .mod-target { font-weight: bold; color: var(--accent-dark); }
 .modifiers .mod-src { color: var(--dim); }
-.modifiers .mod-note { font-size: 0.86rem; padding: 0.08rem 0 0.08rem 0.6rem; }
 .modifiers .cond-rider { font-size: 0.86rem; }
 
 /* ------------------------------------------------ tools drawer (left menu) */
@@ -2953,4 +3806,322 @@ html[data-theme="high-contrast"] .roll-card-result.is-nat20 {
         margin: 0.8rem 0 0.3rem;
         color: #000;
     }
+}
+
+/* ------------------------------------------------ simple printable sheet */
+.simple-sheet {
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 0.5rem 1rem 2rem;
+    color: var(--ink);
+}
+
+.simple-page {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 1.1rem 1.3rem;
+    margin-bottom: 1rem;
+}
+
+.simple-name-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 0.8rem;
+    margin-bottom: 0.6rem;
+}
+
+.simple-id-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.5rem 0.8rem;
+    margin-bottom: 0.9rem;
+}
+
+.simple-id-cell {
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 1px;
+}
+
+.simple-id-v {
+    font-weight: 600;
+    font-size: 0.9rem;
+    min-height: 1.2em;
+}
+
+.simple-name-cell .simple-id-v {
+    font-size: 1.35rem;
+    font-weight: 700;
+}
+
+.simple-id-k {
+    font-size: 0.58rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--dim);
+}
+
+.simple-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 1.4rem;
+    align-items: start;
+}
+
+.simple-h {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 2px solid var(--ink);
+    margin: 0.9rem 0 0.35rem;
+    padding-bottom: 2px;
+    color: var(--ink);
+}
+
+.simple-col > .simple-h:first-child { margin-top: 0; }
+
+.simple-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+}
+
+.simple-table th {
+    text-align: left;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--dim);
+    border-bottom: 1px solid var(--ink);
+    padding: 1px 4px;
+}
+
+.simple-table td {
+    border-bottom: 1px solid var(--row-border);
+    padding: 2px 4px;
+}
+
+.simple-table th.num,
+.simple-table td.num { text-align: right; }
+
+.simple-table td.strong { font-weight: 700; }
+
+.simple-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.45rem;
+    margin: 0.3rem 0;
+}
+
+.simple-stat-box {
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    text-align: center;
+    padding: 0.3rem 0.2rem 0.2rem;
+    background: var(--row-bg);
+}
+
+.simple-stat-val {
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.15;
+    min-height: 1.2em;
+}
+
+.simple-stat-lab {
+    font-size: 0.56rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--dim);
+}
+
+.simple-money { grid-template-columns: repeat(4, 1fr); }
+
+.simple-formula {
+    font-size: 0.7rem;
+    color: var(--dim);
+    margin: 0.25rem 0 0.5rem;
+}
+
+.simple-langs {
+    font-size: 0.82rem;
+    margin: 0.2rem 0 0.6rem;
+    border-bottom: 1px solid var(--row-border);
+    padding-bottom: 2px;
+    min-height: 1.2em;
+}
+
+.simple-name-list {
+    list-style: none;
+    margin: 0.2rem 0 0.6rem;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0 1.2rem;
+    font-size: 0.8rem;
+}
+
+.simple-name-list li {
+    border-bottom: 1px solid var(--row-border);
+    padding: 1px 0;
+    break-inside: avoid;
+}
+
+.simple-empty {
+    color: var(--dim);
+    margin: 0.2rem 0 0.6rem;
+}
+
+.simple-writein-box {
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    min-height: 3.2em;
+    background: var(--row-bg);
+    padding: 0.3rem 0.5rem;
+}
+
+.simple-spells { margin-top: 0.4rem; }
+
+/* Inline editors keep the printed-text look */
+.simple-hint {
+    font-size: 0.72rem;
+    color: var(--dim);
+    margin: 0 0 0.5rem;
+}
+
+.simple-name-list li.simple-blank { min-height: 1.25em; }
+
+.simple-sheet .dbl-edit-display { min-width: 1ch; }
+.simple-stat-val .dbl-edit-input {
+    width: 4.5em;
+    text-align: center;
+    font-size: 1rem;
+}
+.simple-table .dbl-edit-input {
+    width: 3.5em;
+    font-size: 0.78rem;
+}
+.simple-id-v .dbl-edit-input {
+    width: 92%;
+    font-size: 0.85rem;
+}
+.simple-name-cell .simple-id-v .dbl-edit-input { font-size: 1.2rem; }
+.simple-langs .dbl-edit-input { width: 95%; }
+.simple-inline-edits .dbl-edit { display: inline-block; }
+.simple-formula .dbl-edit-input { width: 3em; font-size: 0.7rem; }
+
+/* Editable lists: full-line dblclick targets and wide inputs */
+.simple-name-list .dbl-edit,
+.simple-name-list .dbl-edit-display { display: block; min-height: 1.2em; }
+.simple-name-list .dbl-edit-input { width: 95%; font-size: 0.8rem; }
+.simple-table td:first-child .dbl-edit,
+.simple-table td:first-child .dbl-edit-display { display: block; min-height: 1.1em; }
+.simple-table td.simple-spell-cell .dbl-edit,
+.simple-table td.simple-spell-cell .dbl-edit-display { display: block; min-height: 1.1em; }
+.simple-table td.simple-spell-cell .dbl-edit-input { width: 98%; }
+
+/* screen-only: narrow print paper (A4, custom margins) must keep the two-column layout */
+@media screen and (max-width: 760px) {
+    .simple-cols { grid-template-columns: 1fr; }
+    .simple-id-grid { grid-template-columns: repeat(2, 1fr); }
+    .simple-name-list { grid-template-columns: 1fr; }
+}
+
+/* Tighter sheet margins for all printing (browser default ~1in wastes a fifth of the page) */
+@page { margin: 0.45in; }
+
+@media print {
+    /* zoom shrinks the whole sheet uniformly in Chromium print (Firefox ignores it
+       and falls back to the px sizes below) */
+    .simple-sheet { max-width: none; padding: 0; zoom: 0.85; }
+    .simple-page {
+        border: none;
+        border-radius: 0;
+        background: #fff;
+        color: #000;
+        padding: 0;
+        margin: 0;
+        break-after: page;
+    }
+    .simple-page:last-child { break-after: auto; }
+    .simple-h { border-color: #000; color: #000; }
+    .simple-table th { color: #333; border-color: #000; }
+    .simple-table td { border-color: #bbb; }
+    .simple-id-cell { border-color: #999; }
+    .simple-id-k, .simple-stat-lab, .simple-formula, .simple-empty { color: #333; }
+    .simple-stat-box, .simple-writein-box { border-color: #666; background: #fff; }
+    .simple-name-list li, .simple-langs { border-color: #bbb; }
+
+    /* Compact print typography: the on-screen rem sizes resolve against the 16px root
+       (the print body { font-size: 11px } never touches them), so size everything in px
+       here to land the whole sheet on 2 pages. */
+    .simple-name-row { gap: 8px; margin-bottom: 4px; }
+    .simple-id-grid { gap: 3px 8px; margin-bottom: 6px; }
+    .simple-id-cell { padding-bottom: 0; }
+    .simple-id-v { font-size: 10px; min-height: 1.1em; }
+    .simple-name-cell .simple-id-v { font-size: 16px; }
+    .simple-id-k { font-size: 6px; }
+
+    .simple-h {
+        font-size: 9px;
+        margin: 6px 0 2px;
+        padding-bottom: 1px;
+        border-bottom-width: 1px;
+    }
+    .simple-cols { gap: 0 16px; }
+
+    .simple-table { font-size: 8.5px; }
+    .simple-table th { font-size: 6px; padding: 1px 3px; }
+    .simple-table td { padding: 1px 3px; }
+    .simple-table .dbl-edit-display { min-height: 0; }
+    /* Narrow paper (A4, custom margins) must not wrap rows taller — clip instead.
+       The spell-list cell is exempt: it wraps on purpose (clamped to 2 lines below). */
+    .simple-table td:not(.simple-spell-cell) { white-space: nowrap; }
+    .simple-table td:first-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 150px;
+    }
+
+    .simple-stat-grid {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 3px;
+        margin: 2px 0;
+    }
+    .simple-money { grid-template-columns: repeat(4, 1fr); }
+    .simple-stat-box { padding: 2px; border-radius: 0; }
+    .simple-stat-val { font-size: 12px; min-height: 1em; line-height: 1.1; }
+    .simple-stat-lab { font-size: 6px; }
+
+    .simple-name-list { font-size: 8.5px; margin: 2px 0 4px; }
+    .simple-name-list li {
+        padding: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .simple-name-list .dbl-edit,
+    .simple-name-list .dbl-edit-display { min-height: 1.1em; }
+    .simple-name-list li.simple-blank { min-height: 1.1em; }
+
+    /* Keep one blank write-in line/row per section on paper; hide the rest */
+    .simple-blank-extra { display: none !important; }
+
+    /* Long per-level spell lists: clamp to 2 printed lines, show the true count */
+    .simple-table td.simple-spell-cell .dbl-edit-display {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .simple-spell-count { display: inline; color: #333; font-size: 7px; padding-left: 3px; }
+
+    .simple-formula { font-size: 7px; margin: 2px 0 4px; }
+    .simple-langs { font-size: 9px; margin: 2px 0 4px; min-height: 1.1em; }
+    .simple-writein-box { min-height: 1.5em; border-radius: 0; padding: 2px 4px; }
+    .simple-spells { margin-top: 2px; }
+
+    /* Tables may split across pages (an unbreakable 400px+ skills table would
+       otherwise jump wholesale to a fresh sheet, wasting most of a page). */
+    .simple-stat-grid, .simple-id-grid { break-inside: avoid; }
 }

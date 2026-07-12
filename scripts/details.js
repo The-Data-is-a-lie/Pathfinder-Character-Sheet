@@ -356,13 +356,15 @@ window.SheetDetails = (function () {
             }
         }
 
-        // Session temp buffs from the Buffs tab (_sheet.tempBuffs)
-        const tempBuffs = data._sheet?.tempBuffs;
-        if (Array.isArray(tempBuffs)) {
-            for (const b of tempBuffs) {
+        // Foundry-style buffs on Buffs tab (_sheet.buffs; migrate from tempBuffs)
+        const buffs = Array.isArray(data._sheet?.buffs) && data._sheet.buffs.length
+            ? data._sheet.buffs
+            : (data._sheet?.tempBuffs || []);
+        if (Array.isArray(buffs)) {
+            for (const b of buffs) {
                 if (!b || b.active === false) continue;
                 if (!b.changes?.length) continue;
-                pushEntry(ledger, b.name || 'Session buff', 'buff', { changes: b.changes });
+                pushEntry(ledger, b.name || 'Buff', 'buff', { changes: b.changes });
             }
         }
 
