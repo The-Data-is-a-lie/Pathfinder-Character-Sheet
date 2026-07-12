@@ -311,17 +311,23 @@ window.SheetDetails = (function () {
             }
         }
 
+        const seenTraits = new Set();
         for (const bucket of TRAIT_BUCKETS) {
             for (const name of data[bucket] || []) {
+                if (!name || seenTraits.has(name)) continue;
+                seenTraits.add(name);
                 const entry = lookup('traits', name) || lookup('feats', name);
                 if (entry) pushEntry(ledger, name, 'trait', entry);
             }
         }
 
         const classes = [data.c_class, data.c_class_2];
+        const seenClassFeats = new Set();
         for (const raw of data.class_ability || []) {
             const cut = String(raw).lastIndexOf('_');
             const name = cut > 0 ? String(raw).slice(0, cut) : String(raw);
+            if (!name || seenClassFeats.has(name)) continue;
+            seenClassFeats.add(name);
             const entry = lookupClassFeature(name, classes);
             if (entry) pushEntry(ledger, entry.name || name, 'classFeat', entry);
         }
