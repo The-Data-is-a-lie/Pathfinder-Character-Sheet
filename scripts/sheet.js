@@ -3568,7 +3568,6 @@
         qtyCell.appendChild(plusBtn);
         row.appendChild(qtyCell);
 
-        const descHtml = item.description || data.equip_descrip?.[item.name] || '';
         const nameEl = h('span', 'inv-item-name');
         // Foundry behavior: clicking the name opens the item sheet (rename lives there).
         const nameBtn = h('button', 'inv-item-open',
@@ -3641,11 +3640,9 @@
         btns.append(buffsBtn, removeBtn);
         row.appendChild(btns);
 
-        // Appended after the fixed cells so grid auto-placement keeps row 1 intact:
-        // the expander toggle + description land on their own rows under the name.
-        if (item.identified !== false && descHtml) {
-            row.appendChild(details('Description', descHtml, 'inv-item-details'));
-        } else if (item.identified === false) {
+        // The full description lives in the item sheet (open via the ⚙ button); the
+        // inline row expander was removed. Unidentified items still get a hint here.
+        if (item.identified === false) {
             row.appendChild(h('span', 'dim inv-unid-hint', '(unidentified)'));
         }
         card.appendChild(row);
