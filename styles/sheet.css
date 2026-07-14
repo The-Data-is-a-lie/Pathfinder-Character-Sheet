@@ -2137,6 +2137,16 @@ button:disabled { opacity: 0.55; cursor: wait; }
     font-size: 0.95em;
     padding: 0.08em 0.38em;
 }
+/* Cross-reference to another spell/rule. No live compendium on the static sheet, so
+   this is inline reference text (the Foundry link label), not a dead @UUID link. */
+.spell-ref {
+    color: var(--accent-dark);
+    font-weight: 600;
+    text-decoration: underline dotted;
+    text-underline-offset: 2px;
+    cursor: help;
+}
+.spell-ref-bare { font-weight: 400; text-decoration: none; opacity: 0.7; }
 .roll-card-rider .inline-roll,
 .cond-rider .inline-roll,
 .desc .inline-roll {
@@ -3839,6 +3849,33 @@ html[data-theme="high-contrast"] .roll-card-result.is-nat20 {
     color: var(--ink);
     word-break: break-word;
 }
+/* Full spell text in a cast card — collapsible, scrolls if long so the log stays usable. */
+.roll-card-desc {
+    margin-top: 0.35rem;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.8rem;
+    color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--row-border);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 5px 5px 0;
+}
+.roll-card-desc > summary {
+    cursor: pointer;
+    font-weight: 700;
+    font-variant: small-caps;
+    letter-spacing: 0.03em;
+    color: var(--accent-dark);
+}
+.roll-card-desc-body {
+    margin-top: 0.3rem;
+    max-height: 16rem;
+    overflow-y: auto;
+    line-height: 1.4;
+    word-break: break-word;
+}
+.roll-card-desc-body p { margin: 0 0 0.4rem; }
+.roll-card-desc-body p:last-child { margin-bottom: 0; }
 
 @media (prefers-reduced-motion: reduce) {
     .tools-drawer { transition: none; }

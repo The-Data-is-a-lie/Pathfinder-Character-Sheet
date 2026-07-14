@@ -1883,6 +1883,7 @@
                 level,
                 data,
                 spellData: sd,
+                descHtml: sd?.description ? enrichSpellHtml(sd.description) : '',
                 castingAbility: ensureCastingAbility(data),
                 castingMod: castingAbilityMod(data),
                 casterLevel: casterLevelValue(data),
@@ -5247,6 +5248,29 @@
         util: 'Utility', other: 'Other',
     };
 
+    /**
+     * Clean Foundry description markup for the static sheet. There is no live VTT
+     * compendium here, so @UUID[Compendium…]{Label} cross-references are rendered as
+     * inline reference text (the label) instead of dead links, and Foundry roll syntax
+     * ([[/r 3d6]], [[3d6]]) becomes styled inline-roll chips. The description HTML itself
+     * comes from the data the python server ships (spell_details.json), not a compendium.
+     */
+    function enrichSpellHtml(html) {
+        let s = String(html || '');
+        // Labeled cross-reference → keep the human label as an inline reference.
+        s = s.replace(/@UUID\[[^\]]*\]\{([^}]*)\}/g, (_m, label) =>
+            `<span class="spell-ref" title="Linked entry (from spell data)">${escapeHtml(label)}</span>`);
+        // Labelless UUID → no name available in the slim data; show a muted marker.
+        s = s.replace(/@UUID\[[^\]]*\]/g,
+            '<span class="spell-ref spell-ref-bare" title="Linked entry">↗</span>');
+        // Foundry inline rolls, optionally command-prefixed ([[/r 3d6]] → 3d6 chip).
+        s = s.replace(/\[\[([^\]]+)\]\]/g, (_m, inner) => {
+            const f = String(inner).replace(/^\/[a-z]+\s+/i, '').trim();
+            return `<span class="inline-roll" title="Roll: ${escapeHtml(f)}">${escapeHtml(f)}</span>`;
+        });
+        return s;
+    }
+
     // One expandable entry per spell: compendium description plus a compact meta line
     // (school / action / save+DC / damage / range / duration) from the slim spell extract.
     function spellItem(name, data, level) {
@@ -5279,7 +5303,9 @@
                 : null,
         ].filter(Boolean).join(' · ');
         const metaHtml = meta ? `<p><em>${escapeHtml(meta)}</em></p>` : '';
-        const desc = sd?.description || '<p class="dim">No description on file.</p>';
+        const desc = sd?.description
+            ? enrichSpellHtml(sd.description)
+            : '<p class="dim">No description on file.</p>';
         return details(name, metaHtml + desc, 'spell-details');
     }
 

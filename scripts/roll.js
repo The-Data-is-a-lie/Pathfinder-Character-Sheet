@@ -325,6 +325,9 @@ window.SheetRoll = (function () {
             attacks,
             damages,
             riders,
+            // Full spell text (UUID links already enriched by the caller) so it's easy
+            // to read what the spell does right after casting.
+            descHtml: opts.descHtml || '',
         });
     }
 
@@ -899,6 +902,20 @@ window.SheetRoll = (function () {
                 riders.appendChild(line);
             }
             body.appendChild(riders);
+        }
+        // Full spell description (collapsible, open by default) — shown after casting so
+        // the effect text is right there in the log without reopening the Spells tab.
+        if (e.descHtml) {
+            const det = document.createElement('details');
+            det.className = 'roll-card-desc';
+            det.open = true;
+            const sum = document.createElement('summary');
+            sum.textContent = 'Description';
+            det.appendChild(sum);
+            const inner = h('div', 'roll-card-desc-body');
+            inner.innerHTML = e.descHtml;
+            det.appendChild(inner);
+            body.appendChild(det);
         }
         card.appendChild(body);
         bindLogRemove(card, e);
