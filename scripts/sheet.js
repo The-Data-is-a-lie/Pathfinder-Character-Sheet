@@ -1506,6 +1506,31 @@
         return (data._sheet ??= {});
     }
 
+    /**
+     * User-authored buffs attached to a feature (feat/trait/class feature), keyed by its
+     * display name. Stored on _sheet.featureChanges[name] = { sourceKind, changes: [...] }
+     * and folded into the ledger by SheetDetails.collectChanges.
+     */
+    // Non-mutating read: the stored change array for a feature, or [] if none.
+    function featureCustomList(data, name) {
+        const arr = data?._sheet?.featureChanges?.[name]?.changes;
+        return Array.isArray(arr) ? arr : [];
+    }
+    // Get-or-create the entry (only call when about to write).
+    function featureCustomEntry(data, name, sourceKind = 'feat') {
+        const st = sheetState(data);
+        st.featureChanges ??= {};
+        const entry = st.featureChanges[name] ??= { sourceKind, changes: [] };
+        if (!Array.isArray(entry.changes)) entry.changes = [];
+        entry.sourceKind = sourceKind; // keep in sync with the row's kind
+        return entry;
+    }
+    // Drop an emptied entry so saved data doesn't accumulate blanks.
+    function pruneFeatureCustom(data, name) {
+        const map = data?._sheet?.featureChanges;
+        if (map && map[name] && !map[name].changes?.length) delete map[name];
+    }
+
     function parseIntLoose(s, fallback = 0) {
         const n = parseInt(String(s).replace(/[^\d-]/g, ''), 10);
         return Number.isFinite(n) ? n : fallback;
@@ -4471,6 +4496,171 @@
         return parts.join('');
     }
 
+    // Full changes ledger for the Features tab, recomputed once per feature-section
+    // render so each row can show its source's built-in buffs without re-collecting.
+    let featureLedgerCache = null;
+    function refreshFeatureLedger(data) {
+        const SD = window.SheetDetails;
+        featureLedgerCache = SD ? SD.collectChanges(data)
+            : (window.sheetChangesFull || null);
+        return featureLedgerCache;
+    }
+    /** Grouped built-in changes a feature (feat/trait/class feature) contributes, or null. */
+    function featureBuffGroup(name) {
+        const led = featureLedgerCache;
+        if (!led || !name) return null;
+        const lines = (led.changes || []).filter((c) => c.source === name);
+        if (!lines.length) return null;
+        return { source: name, sourceKind: lines[0].sourceKind || 'feat', lines };
+    }
+
+    /**
+     * Anchored popover to manage a feature's buffs: toggle built-in modifiers on/off and
+     * add/remove your own typed modifiers (same targets/types as inventory item buffs).
+     * Custom buffs persist on _sheet.featureChanges and feed the whole sheet math.
+     */
+    function openFeatureBuffMenu(anchor, data, name, sourceKind = 'feat') {
+        const SD = window.SheetDetails;
+        document.getElementById('feat-buff-menu')?.remove();
+        const menu = h('div', 'feat-buff-menu no-print');
+        menu.id = 'feat-buff-menu';
+        menu.appendChild(h('div', 'feat-buff-menu-title', name));
+
+        // Recompute the built-in vs custom split from the live ledger each redraw.
+        const bodyWrap = h('div', 'feat-buff-menu-body');
+        menu.appendChild(bodyWrap);
+
+        // Apply an edit: persist, refresh the derived ledger in place, redraw the popover.
+        const commit = () => {
+            pruneFeatureCustom(data, name);
+            quietSave();
+            refreshDerived();
+            window.sheetChangesFull = SD?.collectChanges?.(data);
+            window.sheetChanges = effectiveLedger(data);
+            refreshFeatureLedger(data);
+            redraw();
+        };
+
+        function redraw() {
+            bodyWrap.innerHTML = '';
+            const group = featureBuffGroup(name); // ledger lines for this source (or null)
+            const builtin = (group?.lines || []).filter((c) => !c.custom);
+            const customList = featureCustomList(data, name);
+            const hasAny = builtin.length || customList.length;
+
+            // Active toggle (governs the whole source) — only when there is something to toggle.
+            if (hasAny) {
+                const active = isBuffSourceActive(data, name, group?.sourceKind || sourceKind);
+                const lbl = h('label', 'feat-buff-menu-toggle');
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.checked = active;
+                cb.addEventListener('change', () => {
+                    setBuffSourceActive(data, name, group?.sourceKind || sourceKind, cb.checked);
+                    refreshFeatureLedger(data);
+                    redraw();
+                });
+                lbl.append(cb, h('span', null, 'Active — apply these modifiers'));
+                bodyWrap.appendChild(lbl);
+            }
+
+            // Built-in (read-only) modifiers from the compendium / feat data.
+            if (builtin.length) {
+                bodyWrap.appendChild(h('div', 'feat-buff-menu-section', 'Built-in'));
+                const ul = h('ul', 'feat-buff-menu-list');
+                for (const c of builtin) ul.appendChild(h('li', null, formatChangeLine(c, SD)));
+                bodyWrap.appendChild(ul);
+            }
+
+            // Custom (editable) modifiers the user added.
+            bodyWrap.appendChild(h('div', 'feat-buff-menu-section', 'Your buffs'));
+            if (customList.length) {
+                const ul = h('ul', 'feat-buff-menu-list feat-buff-menu-custom');
+                customList.forEach((c, idx) => {
+                    const li = h('li', null);
+                    li.appendChild(h('span', 'feat-buff-line', formatChangeLine(c, SD)));
+                    const del = h('button', 'inv-btn inv-btn-danger', '×');
+                    del.type = 'button';
+                    del.title = 'Remove this buff';
+                    del.addEventListener('click', () => {
+                        customList.splice(idx, 1);
+                        commit();
+                    });
+                    li.appendChild(del);
+                    ul.appendChild(li);
+                });
+                bodyWrap.appendChild(ul);
+            } else {
+                bodyWrap.appendChild(h('p', 'tools-empty', 'No custom buffs yet.'));
+            }
+
+            // Add form: formula + target + type + Add (same options as item buffs).
+            const form = h('div', 'feat-buff-menu-add');
+            const formulaIn = h('input', 'edit-field');
+            formulaIn.type = 'text';
+            formulaIn.placeholder = 'Formula (e.g. 2 or +1)';
+            formulaIn.title = 'Numeric formula';
+            const targetSel = h('select', 'edit-field');
+            for (const t of INV_TARGET_OPTIONS) {
+                const opt = document.createElement('option');
+                opt.value = t;
+                opt.textContent = SD?.targetLabel?.(t) || t;
+                targetSel.appendChild(opt);
+            }
+            targetSel.value = 'ac';
+            const typeSel = h('select', 'edit-field');
+            for (const t of INV_TYPE_OPTIONS) {
+                const opt = document.createElement('option');
+                opt.value = t;
+                opt.textContent = t === 'untyped' ? 'untyped' : (SD?.typeLabel?.(t) || t);
+                typeSel.appendChild(opt);
+            }
+            const addBtn = h('button', 'inv-btn', 'Add buff');
+            addBtn.type = 'button';
+            addBtn.addEventListener('click', () => {
+                let formula = String(formulaIn.value || '').trim();
+                if (!formula) { formulaIn.focus(); return; }
+                if (/^\+\d+$/.test(formula)) formula = formula.slice(1);
+                const entry = featureCustomEntry(data, name, sourceKind);
+                entry.changes.push({
+                    formula,
+                    target: targetSel.value,
+                    type: typeSel.value || 'untyped',
+                    operator: 'add',
+                    priority: 0,
+                });
+                commit();
+            });
+            form.append(formulaIn, targetSel, typeSel, addBtn);
+            bodyWrap.appendChild(form);
+
+            bodyWrap.appendChild(h('p', 'feat-buff-menu-hint',
+                'Applies to the whole sheet. Also manageable on the Buffs & Conditions tab.'));
+        }
+
+        redraw();
+        document.body.appendChild(menu);
+        const r = anchor.getBoundingClientRect();
+        const w = menu.offsetWidth || 260;
+        menu.style.top = (window.scrollY + r.bottom + 4) + 'px';
+        menu.style.left = (window.scrollX
+            + Math.max(4, Math.min(r.left, window.innerWidth - w - 8))) + 'px';
+
+        const close = () => {
+            menu.remove();
+            document.removeEventListener('mousedown', onDoc, true);
+            document.removeEventListener('keydown', onKey, true);
+        };
+        const onDoc = (e) => {
+            if (!menu.contains(e.target) && e.target !== anchor) close();
+        };
+        const onKey = (e) => { if (e.key === 'Escape') close(); };
+        setTimeout(() => {
+            document.addEventListener('mousedown', onDoc, true);
+            document.addEventListener('keydown', onKey, true);
+        }, 0);
+    }
+
     /**
      * Foundry-style feature row (pf1 actor-features.hbs item rows):
      * name (expandable) | type chips | uses | post-to-chat | remove ×.
@@ -4481,11 +4671,24 @@
         li.dataset.featName = String(opts.name).toLowerCase();
         li.dataset.dndId = String(opts.name);
 
+        const SD = window.SheetDetails;
+        const buffGroup = opts.data ? featureBuffGroup(opts.name) : null;
+        const sourceKind = opts.sourceKind || 'feat';
+
         const nameCell = h('div', 'feat-cell feat-cell-name');
         nameCell.appendChild(dndHandle());
         nameCell.appendChild(opts.descHtml
             ? details(opts.title, opts.descHtml, 'feat-details')
             : h('span', 'feat-title', opts.title));
+        // ✦ marker when this feature carries built-in modifiers (dimmed if toggled off).
+        if (buffGroup) {
+            const active = isBuffSourceActive(opts.data, buffGroup.source, buffGroup.sourceKind);
+            const mark = h('span', 'feat-buff-mark' + (active ? '' : ' buff-off'), '✦');
+            const bits = buffGroup.lines.map((c) => formatChangeLine(c, SD)).join('; ');
+            mark.title = (active ? 'Built-in buffs (active): ' : 'Built-in buffs (inactive): ')
+                + bits;
+            nameCell.appendChild(mark);
+        }
         li.appendChild(nameCell);
 
         const typeCell = h('div', 'feat-cell feat-cell-type');
@@ -4494,10 +4697,24 @@
         li.appendChild(typeCell);
 
         const usesCell = h('div', 'feat-cell feat-cell-uses');
-        if (opts.data) usesCell.appendChild(renderUsesControls(opts.data, opts.name));
+        if (opts.data && opts.showUses !== false) {
+            usesCell.appendChild(renderUsesControls(opts.data, opts.name));
+        }
         li.appendChild(usesCell);
 
         const chatCell = h('div', 'feat-cell feat-cell-chat no-print');
+        // ⚙ buff settings — on every feature (add custom buffs, toggle built-in ones).
+        if (opts.data) {
+            const gear = h('button', 'inv-btn feat-buff-btn', '⚙');
+            gear.type = 'button';
+            gear.title = 'Buff settings — add your own modifiers or toggle built-in ones';
+            gear.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openFeatureBuffMenu(gear, opts.data, opts.name, sourceKind);
+            });
+            chatCell.appendChild(gear);
+        }
         const chat = h('button', 'inv-btn feat-chat-btn', '🎲');
         chat.type = 'button';
         chat.title = 'Post to the roll log';
@@ -4674,6 +4891,7 @@
     }
 
     function renderFeats(data) {
+        refreshFeatureLedger(data);
         const descs = data.homebrew_feat_desc_dict || {};
         const groups = FEAT_GROUPS
             .map((g) => ({
@@ -4731,6 +4949,7 @@
                     typeLabel: tags[0] || 'Feat',
                     tags: tags.slice(1),
                     data,
+                    sourceKind: 'feat',
                     chatKind: 'Feat',
                     extraClass: tax.length ? 'has-feat-tax' : '',
                     onRemove: (nm) => {
@@ -4759,6 +4978,7 @@
     }
 
     function renderTraits(data) {
+        refreshFeatureLedger(data);
         const keyMap = {
             Traits: 'selected_traits',
             Background: 'background_traits',
@@ -4818,6 +5038,9 @@
                     title: t,
                     descHtml: desc,
                     typeLabel: typeLabels[title] || 'Trait',
+                    data,
+                    sourceKind: 'trait',
+                    showUses: false,
                     chatKind: typeLabels[title] || 'Trait',
                     onRemove: (nm) => {
                         removeFromArrayField(data, fieldKey, nm);
@@ -4838,6 +5061,7 @@
     }
 
     function renderClassFeatures(data) {
+        refreshFeatureLedger(data);
         const list = data.class_ability;
         const classes = [data.c_class, data.c_class_2];
         const items = [];
@@ -4909,6 +5133,7 @@
                 descHtml: desc,
                 typeLabel: cls || 'Class',
                 data,
+                sourceKind: 'classFeat',
                 chatKind: 'Class Feature',
                 onRemove: (nm) => {
                     const idx = rawList.findIndex((raw) => {

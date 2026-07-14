@@ -274,7 +274,7 @@ window.SheetDetails = (function () {
         for (const ch of entry?.changes || []) {
             ledger.changes.push({ source, sourceKind, formula: ch.formula, target: ch.target,
                 type: ch.type || 'untyped', operator: ch.operator || 'add',
-                priority: ch.priority || 0 });
+                priority: ch.priority || 0, custom: !!ch.custom });
         }
         for (const note of entry?.contextNotes || []) {
             const text = typeof note === 'string' ? note : note.text;
@@ -330,6 +330,15 @@ window.SheetDetails = (function () {
             seenClassFeats.add(name);
             const entry = lookupClassFeature(name, classes);
             if (entry) pushEntry(ledger, entry.name || name, 'classFeat', entry);
+        }
+
+        // User-authored buffs attached to a feature (feat/trait/class feature) on the
+        // Features tab. Keyed by the feature's display name; tagged custom so the editor
+        // popover can tell them apart from compendium-supplied changes.
+        for (const [name, entry] of Object.entries(data._sheet?.featureChanges || {})) {
+            if (!entry?.changes?.length) continue;
+            pushEntry(ledger, name, entry.sourceKind || 'feat',
+                { changes: entry.changes.map((c) => ({ ...c, custom: true })) });
         }
 
         for (const t of [...(data.magic_talent_items || []), ...(data.combat_talent_items || [])]) {

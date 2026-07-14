@@ -1500,6 +1500,75 @@ button:disabled { opacity: 0.55; cursor: wait; }
 .feat-type { font-size: 0.75rem; color: var(--dim); white-space: nowrap; }
 .feat-cell-uses { justify-self: end; }
 .feat-chat-btn { padding: 0.05rem 0.3rem !important; font-size: 0.8rem; }
+.feat-cell-chat { display: flex; gap: 0.2rem; justify-content: flex-end; align-items: center; }
+.feat-buff-btn { padding: 0.05rem 0.3rem !important; font-size: 0.8rem; }
+/* ✦ built-in-buff marker on a feature name (mirrors .inv-buff-mark). */
+.feat-buff-mark {
+    color: var(--accent-dark);
+    font-size: 0.72rem;
+    flex: 0 0 auto;
+    cursor: help;
+}
+.feat-buff-mark.buff-off { color: var(--dim); opacity: 0.6; }
+/* Anchored popover listing a feature's built-in modifiers with an Active toggle. */
+.feat-buff-menu {
+    position: absolute;
+    z-index: 60;
+    min-width: 17rem;
+    max-width: 22rem;
+    padding: 0.5rem 0.6rem;
+    background: var(--panel, var(--bg));
+    border: 1px solid var(--border, var(--accent));
+    border-radius: 6px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+    font-size: 0.82rem;
+}
+.feat-buff-menu-title { font-weight: 600; margin-bottom: 0.35rem; }
+.feat-buff-menu-body { display: flex; flex-direction: column; }
+.feat-buff-menu-section {
+    font-weight: 700;
+    font-variant: small-caps;
+    letter-spacing: 0.03em;
+    color: var(--accent-dark);
+    margin: 0.35rem 0 0.15rem;
+}
+.feat-buff-menu-toggle {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+    cursor: pointer;
+}
+.feat-buff-menu-list {
+    list-style: none;
+    margin: 0 0 0.35rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+.feat-buff-menu-list li { color: var(--accent-dark); }
+/* Custom-buff rows: modifier text on the left, delete × on the right. */
+.feat-buff-menu-custom li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+}
+.feat-buff-menu-custom .feat-buff-line { min-width: 0; word-break: break-word; }
+.feat-buff-menu-custom .inv-btn-danger { flex: 0 0 auto; padding: 0 0.35rem; }
+/* Stacked add form so the two selects don't overflow the popover width. */
+.feat-buff-menu-add {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin: 0.2rem 0 0.4rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid var(--row-border, var(--border, var(--accent)));
+}
+.feat-buff-menu-add .edit-field { width: 100%; }
+.feat-buff-menu-add .inv-btn { align-self: flex-start; }
+.feat-buff-menu-hint { margin: 0; color: var(--dim); font-size: 0.72rem; }
 @media (max-width: 560px) {
     .feat-item.feat-grid { grid-template-columns: 1fr auto auto auto; }
     .feat-item .feat-cell-name { grid-column: 1 / -1; }
