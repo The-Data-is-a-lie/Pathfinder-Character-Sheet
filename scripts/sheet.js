@@ -8043,6 +8043,22 @@
         return TABS.some((t) => t.id === saved) ? saved : 'summary';
     }
 
+    /**
+     * Wrap every <table> in a horizontal-scroll container so wide, dense tables
+     * (skills, saves, abilities, spells) scroll within their column on narrow screens
+     * instead of forcing the whole page to overflow sideways. Idempotent per render.
+     */
+    function wrapWideTables(root) {
+        if (!root) return;
+        for (const table of root.querySelectorAll('table')) {
+            if (table.closest('.table-scroll')) continue; // already wrapped (incl. nested)
+            const wrap = document.createElement('div');
+            wrap.className = 'table-scroll';
+            table.replaceWith(wrap);
+            wrap.appendChild(table);
+        }
+    }
+
     function setActiveTab(id) {
         const prev = localStorage.getItem(TAB_KEY);
         localStorage.setItem(TAB_KEY, id);
@@ -8071,6 +8087,7 @@
         pane.innerHTML = '';
         pane.appendChild(h('h2', 'print-only tab-print-title', tab.label));
         pane.appendChild(tab.render(currentData) || emptyState('Nothing here.'));
+        wrapWideTables(pane);
         pane.scrollTop = keepScroll;
     }
 
@@ -8108,6 +8125,7 @@
 
         if (viewMode() === 'simple') {
             sheet.appendChild(renderSimpleSheet(data));
+            wrapWideTables(sheet);
             syncThemeControls(themePreference());
             window.SheetRoll?.setCharacter(data);
             return;
@@ -8129,6 +8147,7 @@
             pane.appendChild(h('h2', 'print-only tab-print-title', tab.label));
             const content = tab.render(data);
             pane.appendChild(content || emptyState('Nothing here.'));
+            wrapWideTables(pane);
             panes.appendChild(pane);
         }
         sheet.append(nav, panes);

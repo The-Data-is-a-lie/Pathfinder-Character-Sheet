@@ -657,11 +657,23 @@ html[data-theme="arcane"] {
 
 * { box-sizing: border-box; }
 
+/* Responsive "reference scale" (game-design style): the whole rem/em-based layout
+   rides one knob — the root font size. It stays at the tuned reference size on
+   ~1180px+ desktops (so large monitors look exactly as before) and scales smoothly
+   down to a legible floor on tablets and phones, where grids also reflow (auto-fit
+   minmax) and wide tables scroll (.table-scroll). 16px @ ≥~1180px → 13.5px on phones. */
+html {
+    font-size: clamp(13.5px, 11.9px + 0.34vw, 16px);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
 body {
     margin: 0;
     background: var(--paper);
     color: var(--ink);
-    font: 15px/1.45 Georgia, 'Times New Roman', serif;
+    /* 0.94rem ≈ 15px at the 16px reference; scales with the root above. */
+    font: 0.94rem/1.45 Georgia, 'Times New Roman', serif;
 }
 
 h1, h2, h3 { font-family: Georgia, serif; margin: 0; }
@@ -676,7 +688,8 @@ h1, h2, h3 { font-family: Georgia, serif; margin: 0; }
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
     padding: 0.6rem 1rem;
     background: linear-gradient(var(--topbar-from), var(--topbar-to));
     color: var(--topbar-fg);
@@ -899,8 +912,35 @@ button:disabled { opacity: 0.55; cursor: wait; }
     color: var(--ink);
 }
 
+/* Wide, dense tables (skills, saves, abilities, spells) scroll within their own
+   column on narrow screens instead of forcing the whole page to sprawl sideways.
+   renderSheet wraps every tab-pane <table> in one of these. */
+.table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    /* faint edge hint that content scrolls, without a permanent scrollbar gutter */
+    scrollbar-width: thin;
+}
+.table-scroll > table { margin-top: 0; margin-bottom: 0; }
+
 /* ------------------------------------------------ sheet */
 #sheet { max-width: 1100px; margin: 0.8rem auto 3rem; padding: 0 0.8rem; }
+
+/* Phone / very small screens: tighten chrome so content owns the width. The rem
+   layout has already scaled down via the root clamp; this just trims container
+   padding and section gaps that would otherwise waste narrow real estate. */
+@media (max-width: 600px) {
+    #sheet { padding: 0 0.4rem; margin-top: 0.5rem; }
+    .panel { padding: 0.7rem 0.6rem; margin: 0.5rem auto; }
+    .tab-btn { padding: 0.3rem 0.55rem; }
+    /* Stack the topbar so the title and both button clusters get their own rows
+       instead of overlapping in a single cramped line. */
+    .topbar { padding: 0.5rem 0.6rem; gap: 0.4rem; justify-content: center; }
+    .topbar h1 { flex: 1 1 100%; text-align: center; font-size: 1.05rem; }
+    .topbar-buttons { justify-content: center; }
+    .topbar .roster { flex: 1 1 100%; }
+}
 .placeholder { text-align: center; color: var(--dim); margin-top: 3rem; }
 .placeholder.error { color: var(--accent-dark); }
 
@@ -3885,6 +3925,10 @@ html[data-theme="high-contrast"] .roll-card-result.is-nat20 {
 /* ------------------------------------------------ print — always light ink-on-paper */
 @media print {
     .no-print { display: none !important; }
+    /* Pin the reference size for paper so rem-based print layout is unchanged by the
+       screen scaling knob; let wrapped tables print in full rather than scroll-clip. */
+    html { font-size: 16px; }
+    .table-scroll { overflow: visible; }
     body {
         background: #fff !important;
         color: #000 !important;
