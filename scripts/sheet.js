@@ -6858,15 +6858,17 @@
         return order.map((label) => ({ label, ...buckets.get(label) }));
     }
 
-    /** Bucket a save block's parts: Base / Abl / Resist / Feat / Trait / Misc / Temp. */
+    /** Bucket a save block's parts: Base / Abl / Enhance / Resist / Feat / Trait / Misc / Temp. */
     function saveBuckets(block) {
-        const out = { base: 0, ability: 0, resist: 0, feat: 0, trait: 0, misc: 0, temp: 0 };
+        const out = { base: 0, ability: 0, enh: 0, resist: 0,
+            feat: 0, trait: 0, misc: 0, temp: 0 };
         for (const p of block?.parts || []) {
             if (p.info || p.unresolved) continue;
             const v = Number(p.value) || 0;
             if (p.kind === 'base') out.base += v;
             else if (p.kind === 'ability') out.ability += v;
             else if (p.kind === 'manual' || p.sourceKind === 'buff') out.temp += v;
+            else if (p.type === 'enh') out.enh += v;
             else if (p.type === 'resist') out.resist += v;
             else if (p.sourceKind === 'feat') out.feat += v;
             else if (p.sourceKind === 'trait') out.trait += v;
@@ -6919,7 +6921,7 @@
         // --- Saves breakdown (rollable — every ledger boost is already in block.total)
         const table = h('table', 'skills-table saves-breakdown');
         const hd = h('tr');
-        ['', 'Save', 'Base', 'Abl', 'Resist', 'Feat', 'Trait', 'Misc', 'Temp', 'Total']
+        ['', 'Save', 'Base', 'Abl', 'Enhance', 'Resist', 'Feat', 'Trait', 'Misc', 'Temp', 'Total']
             .forEach((t) => hd.appendChild(h('th', null, t)));
         table.appendChild(hd);
         for (const [label, block] of [
@@ -6931,7 +6933,7 @@
             rollTd.appendChild(rollBtn(label + ' save', block.total));
             tr.appendChild(rollTd);
             tr.appendChild(h('td', null, label));
-            for (const key of ['base', 'ability', 'resist', 'feat', 'trait', 'misc', 'temp']) {
+            for (const key of ['base', 'ability', 'enh', 'resist', 'feat', 'trait', 'misc', 'temp']) {
                 tr.appendChild(h('td', 'num', bk[key] ? fmt(bk[key]) : '—'));
             }
             tr.appendChild(h('td', 'num skill-total', fmt(block.total)));
