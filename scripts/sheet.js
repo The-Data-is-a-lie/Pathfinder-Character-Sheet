@@ -728,16 +728,21 @@
     const mod = (score) => Math.floor((Number(score) - 10) / 2);
 
     /**
-     * Effective ability score & modifier, pf1-style: base + ledger changes (belts,
-     * buffs) + user Misc − Drain; ability Damage penalizes the MOD (−1 per 2 points).
-     * User boxes persist on _sheet.abilityAdjust[ab] = { damage, drain, misc }.
+     * Effective ability score & modifier, pf1-style: base + typed manual bonuses
+     * (racial + enhancement + inherent + misc) + ledger changes (belts, buffs) − Drain;
+     * ability Damage penalizes the MOD (−1 per 2 points).
+     * User boxes persist on _sheet.abilityAdjust[ab] =
+     * { racial, enhancement, inherent, misc, damage, drain }.
      */
     function abilityInfo(data, ab) {
         const base = Number(data?.[ab]);
         const adj = data?._sheet?.abilityAdjust?.[ab] || {};
+        const racial = Number(adj.racial) || 0;
+        const enhancement = Number(adj.enhancement) || 0;
+        const inherent = Number(adj.inherent) || 0;
+        const misc = Number(adj.misc) || 0;
         const damage = Number(adj.damage) || 0;
         const drain = Number(adj.drain) || 0;
-        const misc = Number(adj.misc) || 0;
         const bits = [];
         let ledgerSum = 0;
         const SD = window.SheetDetails;
@@ -751,20 +756,25 @@
                 }
             }
         }
+        const parts = { base, racial, enhancement, inherent, misc, damage, drain };
         if (!Number.isFinite(base)) {
-            return { base: null, total: null, mod: 0, damage, drain, misc, formula: 'no score' };
+            return { ...parts, base: null, total: null, mod: 0, formula: 'no score' };
         }
-        const total = base + ledgerSum + misc - drain;
+        const manual = racial + enhancement + inherent + misc;
+        const total = base + ledgerSum + manual - drain;
         const damagePen = Math.floor(damage / 2);
         const formula = [
             'base ' + base,
+            racial ? 'racial ' + fmt(racial) : null,
             ...bits,
+            enhancement ? 'enhancement ' + fmt(enhancement) : null,
+            inherent ? 'inherent ' + fmt(inherent) : null,
             misc ? 'misc ' + fmt(misc) : null,
             drain ? 'drain ' + drain : null,
         ].filter(Boolean).join(' + ').replace(/\+ drain/g, '− drain')
             + ' = ' + total
             + (damagePen ? ` · mod −${damagePen} (${damage} ability damage)` : '');
-        return { base, total, mod: mod(total) - damagePen, damage, drain, misc, formula };
+        return { ...parts, base, total, mod: mod(total) - damagePen, formula };
     }
 
     /** Effective ability modifier (ledger + damage/drain/misc aware). */
@@ -6487,7 +6497,8 @@
         }
 
         // FoundryVTT-style ability rows: spelled-out name + Total / Modifier /
-        // Damage / Drain / Misc, full width. Total hover shows the formula.
+        // typed bonuses (Racial / Enhance / Inherent / Misc) / Damage / Drain,
+        // full width. Total hover shows the full source formula.
         const ABILITY_NAMES = {
             str: 'Strength', dex: 'Dexterity', con: 'Constitution',
             int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma',
@@ -6495,7 +6506,8 @@
         const st = sheetState(data);
         const abT = h('table', 'skills-table ability-table');
         const abHd = h('tr');
-        ['Ability', 'Total', 'Modifier', 'Damage', 'Drain', 'Misc']
+        ['Ability', 'Total', 'Modifier', 'Racial', 'Enhance', 'Inherent',
+            'Misc', 'Damage', 'Drain']
             .forEach((t) => abHd.appendChild(h('th', null, t)));
         abT.appendChild(abHd);
         const rerenderAttrs = () => {
@@ -6523,8 +6535,19 @@
                 + (info.damage ? ` − ${Math.floor(info.damage / 2)} (ability damage)` : '');
             tr.appendChild(modTd);
 
+            const ADJ_HINTS = {
+                racial: 'Racial ability modifier (e.g. +2 from race/heritage).',
+                enhancement: 'Enhancement bonus (belts, bull’s strength). Highest one '
+                    + 'applies — don’t add belt bonuses already tracked as buffs.',
+                inherent: 'Inherent bonus (tomes/manuals, wish). Max +5, stacks with '
+                    + 'enhancement.',
+                misc: 'Any other untyped/situational adjustment to the score.',
+                damage: 'Ability damage: −1 to the modifier per 2 points.',
+                drain: 'Ability drain: −1 to the score per point (permanent).',
+            };
             const adjCell = (field, signed) => {
                 const td = h('td', 'num');
+                if (ADJ_HINTS[field]) td.title = ADJ_HINTS[field];
                 const bag = { v: (st.abilityAdjust?.[ab]?.[field]) || 0 };
                 td.appendChild(dblclickEditable(bag, 'v', {
                     type: 'number', min: signed ? -99 : 0, max: 99,
@@ -6542,9 +6565,12 @@
                 }));
                 return td;
             };
+            tr.appendChild(adjCell('racial', true));
+            tr.appendChild(adjCell('enhancement', true));
+            tr.appendChild(adjCell('inherent', true));
+            tr.appendChild(adjCell('misc', true));
             tr.appendChild(adjCell('damage', false));
             tr.appendChild(adjCell('drain', false));
-            tr.appendChild(adjCell('misc', true));
             abT.appendChild(tr);
         }
         body.appendChild(abT);

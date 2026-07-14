@@ -2324,6 +2324,10 @@ button:disabled { opacity: 0.55; cursor: wait; }
 
 /* FoundryVTT-style ability table (Attributes tab) — full width */
 .ability-table { width: 100%; }
+/* Six typed-bonus columns (Racial/Enhance/Inherent/Misc/Damage/Drain) — keep them
+   compact so the name + total keep priority, and stop headers from wrapping. */
+.ability-table th { white-space: nowrap; font-size: 0.72rem; }
+.ability-table td.num { width: 3.1rem; }
 .ability-table td.ability-name { font-weight: 600; }
 .ability-table td.ability-total .dbl-edit-display {
     font-weight: bold;
