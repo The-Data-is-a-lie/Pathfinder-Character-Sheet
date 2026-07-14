@@ -3448,14 +3448,16 @@ details .desc p { margin: 0.3rem 0; }
     box-shadow: 2px 2px 8px var(--shadow);
 }
 .tools-toggle:hover { background: var(--accent-hover); }
-body.tools-open .tools-toggle { left: min(20rem, 92vw); }
+/* Open handle rides the drawer's live width (set by the resize drag, JS-managed). */
+body.tools-open .tools-toggle { left: var(--tools-width, min(20rem, 92vw)); }
 
 .tools-drawer {
     position: fixed;
     left: 0;
     top: 0;
     bottom: 0;
-    width: min(20rem, 92vw);
+    /* User-resizable: --tools-width is updated live by the drag handle and persisted. */
+    width: var(--tools-width, min(20rem, 92vw));
     z-index: 1000;
     display: flex;
     flex-direction: column;
@@ -3467,6 +3469,39 @@ body.tools-open .tools-toggle { left: min(20rem, 92vw); }
     font-family: Georgia, 'Times New Roman', serif;
 }
 body.tools-open .tools-drawer { transform: translateX(0); }
+
+/* Drag strip on the drawer's right edge to resize it. Collapsing past the close
+   threshold (JS) acts like the × button. */
+.tools-resize {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: -3px;            /* straddle the 3px right border for an easy grab */
+    width: 10px;
+    z-index: 2;
+    cursor: ew-resize;
+    touch-action: none;     /* let pointer drags work on touch without scrolling */
+}
+.tools-resize::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 3px;
+    width: 2px;
+    height: 2.2rem;
+    transform: translateY(-50%);
+    border-radius: 2px;
+    background: var(--accent-dark);
+    opacity: 0.35;
+    transition: opacity 0.15s ease, background 0.15s ease;
+}
+.tools-resize:hover::after,
+.tools-resize:focus-visible::after { opacity: 0.7; }
+/* While dragging: no text selection, and the drawer border warns when release will close. */
+body.tools-resizing { user-select: none; cursor: ew-resize; }
+body.tools-resizing .tools-drawer { transition: none; }
+.tools-drawer.will-close { border-right-color: var(--danger, #b23); }
+.tools-drawer.will-close .tools-resize::after { opacity: 0.85; background: var(--danger, #b23); }
 
 .tools-header {
     display: flex;

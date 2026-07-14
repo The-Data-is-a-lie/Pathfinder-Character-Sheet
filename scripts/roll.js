@@ -5,6 +5,7 @@ window.SheetRoll = (function () {
     'use strict';
 
     const TOOLS_OPEN_KEY = 'sheet.toolsOpen';
+    const TOOLS_WIDTH_KEY = 'sheet.toolsWidth';
     const TOOLS_SECTIONS_KEY = 'sheet.toolsSectionsCollapsed';
     const LOG_MAX = 50;
     const QUICK_DICE = [4, 6, 8, 10, 12, 20, 100];
@@ -1409,6 +1410,72 @@ window.SheetRoll = (function () {
         setOpen(!isOpen());
     }
 
+    // ---------------------------------------------------------------- drawer resize
+    const TOOLS_DEFAULT_W = 320;   // ≈ 20rem, the original fixed width
+    const TOOLS_MIN_W = 220;       // usable floor while resizing
+    const TOOLS_CLOSE_AT = 140;    // release narrower than this → close (acts like ×)
+
+    function toolsMaxW() { return Math.round(window.innerWidth * 0.95); }
+    function clampToolsW(px) { return Math.max(TOOLS_MIN_W, Math.min(toolsMaxW(), px)); }
+    function applyToolsWidth(px) {
+        document.documentElement.style.setProperty('--tools-width', px + 'px');
+    }
+    function storedToolsWidth() {
+        const v = parseInt(localStorage.getItem(TOOLS_WIDTH_KEY), 10);
+        return Number.isFinite(v) ? clampToolsW(v) : TOOLS_DEFAULT_W;
+    }
+    function persistToolsWidth(px) {
+        try { localStorage.setItem(TOOLS_WIDTH_KEY, String(px)); } catch { /* private mode */ }
+    }
+
+    function initDrawerResize() {
+        const handle = document.getElementById('tools-resize');
+        const drawer = document.getElementById('tools-drawer');
+        if (!handle || !drawer) return;
+        applyToolsWidth(storedToolsWidth());
+
+        let dragging = false;
+        const widthAt = (clientX) => Math.max(40, Math.min(toolsMaxW(), clientX));
+        const onMove = (ev) => {
+            if (!dragging) return;
+            const w = widthAt(ev.clientX); // drawer left edge is at x=0
+            applyToolsWidth(w);
+            drawer.classList.toggle('will-close', w <= TOOLS_CLOSE_AT);
+        };
+        const finish = (w) => {
+            if (w <= TOOLS_CLOSE_AT) {
+                applyToolsWidth(storedToolsWidth()); // restore a usable width for next open
+                setOpen(false);
+            } else {
+                const c = clampToolsW(w);
+                applyToolsWidth(c);
+                persistToolsWidth(c);
+            }
+        };
+        const onUp = (ev) => {
+            if (!dragging) return;
+            dragging = false;
+            document.body.classList.remove('tools-resizing');
+            drawer.classList.remove('will-close');
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+            finish(widthAt(ev.clientX));
+        };
+        handle.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            dragging = true;
+            document.body.classList.add('tools-resizing');
+            window.addEventListener('pointermove', onMove);
+            window.addEventListener('pointerup', onUp);
+        });
+        // Keyboard affordance: arrows nudge width; narrowing past the threshold closes.
+        handle.addEventListener('keydown', (e) => {
+            const cur = parseInt(getComputedStyle(drawer).width, 10) || storedToolsWidth();
+            if (e.key === 'ArrowLeft') { e.preventDefault(); finish(cur - 28); }
+            else if (e.key === 'ArrowRight') { e.preventDefault(); finish(cur + 28); }
+        });
+    }
+
     // ---------------------------------------------------------------- public
     function setCharacter(data) {
         currentData = data && typeof data === 'object' && !data.error ? data : null;
@@ -1452,6 +1519,7 @@ window.SheetRoll = (function () {
         });
 
         initSectionMinimize();
+        initDrawerResize();
         setOpen(localStorage.getItem(TOOLS_OPEN_KEY) === '1');
         renderLog();
         renderAttacks();
