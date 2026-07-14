@@ -2971,7 +2971,18 @@
                 results.appendChild(h('p', 'catalog-empty dim', 'Start typing to search the catalog.'));
                 return;
             }
-            const hits = window.SheetDetails?.searchCatalog?.(activeKind, q, { limit: 50 }) || [];
+            // Catalog hits (if the active kind has bundled data) plus any caller-supplied
+            // local options (e.g. previously-used archetypes), deduped by name.
+            const catalogHits = window.SheetDetails?.searchCatalog?.(activeKind, q, { limit: 50 }) || [];
+            const localHits = opts.localSource ? (opts.localSource(q) || []) : [];
+            const seen = new Set();
+            const hits = [];
+            for (const hit of [...localHits, ...catalogHits]) {
+                const key = String(hit?.name || '').toLowerCase();
+                if (!key || seen.has(key)) continue;
+                seen.add(key);
+                hits.push(hit);
+            }
             if (!hits.length) {
                 results.appendChild(h('p', 'catalog-empty dim',
                     'No matches. Use “Add custom” below for homebrew names.'));
@@ -6323,6 +6334,62 @@
             + archetypeDescHtml(v)).join('');
     }
 
+    // ---- Classes & archetypes as ordered, catalog-backed lists ----
+    // class_list is the source of truth; c_class / c_class_2 mirror its first two entries
+    // so every existing consumer (casting detection, multiclass saves, class-feature
+    // lookup, header fields) keeps working unchanged.
+    function ensureClassList(data) {
+        if (!Array.isArray(data.class_list)) {
+            const seed = [data.c_class, data.c_class_2]
+                .map((c) => String(c || '').trim()).filter(Boolean);
+            const seen = new Set();
+            data.class_list = seed.filter((c) => {
+                const k = c.toLowerCase();
+                if (seen.has(k)) return false;
+                seen.add(k); return true;
+            });
+        }
+        return data.class_list;
+    }
+    function syncLegacyClasses(data) {
+        const list = ensureClassList(data);
+        data.c_class = list[0] || '';
+        data.c_class_2 = list[1] || '';
+    }
+    function ensureArchetypeList(data) {
+        if (!Array.isArray(data.archetype_list)) {
+            let obj = data.archetype_info;
+            if (typeof obj === 'string') { try { obj = JSON.parse(obj); } catch { obj = null; } }
+            data.archetype_list = (obj && typeof obj === 'object') ? Object.keys(obj) : [];
+        }
+        return data.archetype_list;
+    }
+
+    // Previously-used archetype names, persisted across characters ("saved data" the
+    // archetype picker offers). Grows as you add archetypes or load characters that have them.
+    const USED_ARCHETYPES_KEY = 'sheet.usedArchetypes';
+    function usedArchetypeArr() {
+        try {
+            const arr = JSON.parse(localStorage.getItem(USED_ARCHETYPES_KEY));
+            return Array.isArray(arr) ? arr : [];
+        } catch { return []; }
+    }
+    function recordUsedArchetype(name) {
+        const nm = String(name || '').trim();
+        if (!nm) return;
+        const arr = usedArchetypeArr();
+        if (arr.some((x) => x.toLowerCase() === nm.toLowerCase())) return;
+        arr.push(nm);
+        try { localStorage.setItem(USED_ARCHETYPES_KEY, JSON.stringify(arr)); } catch { /* private */ }
+    }
+    function usedArchetypeHits(query) {
+        const q = String(query || '').toLowerCase();
+        return usedArchetypeArr()
+            .filter((nm) => nm.toLowerCase().includes(q))
+            .sort((a, b) => a.localeCompare(b))
+            .map((nm) => ({ name: nm, kind: 'archetypes', subtitle: 'Used before' }));
+    }
+
     /** Class detail popup — defaults line + editable chassis + class-skill checkboxes. */
     function openClassSheet(data, clsName) {
         document.getElementById('class-sheet-modal')?.remove();
@@ -6441,10 +6508,14 @@
         document.body.appendChild(overlay);
     }
 
-    /** Archetype popup — scraped description, base level 0. */
-    function openArchetypeSheet(data) {
-        const info = archetypeInfoOf(data);
-        if (!info) return;
+    /** Archetype popup — scraped description (if any) for the named archetype, base level 0. */
+    function openArchetypeSheet(data, name) {
+        let obj = data?.archetype_info;
+        if (typeof obj === 'string') { try { obj = JSON.parse(obj); } catch { obj = null; } }
+        const archName = name
+            || (obj && typeof obj === 'object' ? Object.keys(obj)[0] : null);
+        if (!archName) return;
+        const info = { name: archName, raw: (obj && typeof obj === 'object') ? obj[archName] : null };
         document.getElementById('class-sheet-modal')?.remove();
         const overlay = h('div', 'catalog-picker item-sheet-overlay no-print');
         overlay.id = 'class-sheet-modal';
@@ -6612,30 +6683,127 @@
             showGeneric: true,
         });
 
-        // --- Class & Archetype
-        body.appendChild(h('h3', null, 'Class & Archetype'));
-        const classRow = (label, blurb, onOpen) => {
-            const btn = h('button', 'class-row');
-            btn.type = 'button';
-            btn.appendChild(h('span', 'class-row-arrow', '▸'));
-            btn.appendChild(h('span', 'class-row-name', label));
-            if (blurb) btn.appendChild(h('span', 'class-row-blurb dim', blurb));
-            btn.addEventListener('click', onOpen);
-            body.appendChild(btn);
+        // --- Classes & Archetypes (selectable from saved data, drag to reorder)
+        ensureClassList(data);
+        ensureArchetypeList(data);
+        (data.archetype_list || []).forEach(recordUsedArchetype); // grow the used-set
+
+        const summaryRerender = () => { quietSave(); renderSheet(data); setActiveTab('summary'); };
+
+        const entitySection = (cfg) => {
+            body.appendChild(h('h3', null, cfg.title));
+            if (cfg.hint) body.appendChild(h('p', 'dbl-edit-hint no-print', cfg.hint));
+            body.appendChild(sectionCatalogToolbar(cfg.toolbar));
+            const list = data[cfg.listKey] || [];
+            if (!list.length) {
+                body.appendChild(h('p', 'tools-empty', cfg.emptyText));
+                return;
+            }
+            const ul = h('ul', 'plain-list entity-list dnd-list');
+            list.forEach((name) => {
+                const li = h('li', 'entity-row dnd-item');
+                li.dataset.dndId = String(name);
+                li.appendChild(dndHandle());
+                const btn = h('button', 'entity-row-btn');
+                btn.type = 'button';
+                const meta = cfg.metaFor(name);
+                btn.appendChild(h('span', 'class-row-name', meta.label));
+                if (meta.blurb) btn.appendChild(h('span', 'class-row-blurb dim', meta.blurb));
+                btn.addEventListener('click', () => cfg.onOpen(name));
+                li.appendChild(btn);
+                const rm = h('button', 'inv-btn inv-btn-danger entity-row-rm no-print', '×');
+                rm.type = 'button';
+                rm.title = 'Remove ' + cfg.noun;
+                rm.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    removeFromArrayField(data, cfg.listKey, name);
+                    cfg.afterMutate?.();
+                    summaryRerender();
+                });
+                li.appendChild(rm);
+                ul.appendChild(li);
+            });
+            body.appendChild(ul);
+            bindDragReorder(ul, '.entity-row', (from, to) => {
+                reorderArray(data[cfg.listKey], from, to);
+                cfg.afterMutate?.();
+                summaryRerender();
+            });
         };
-        for (const cls of [data.c_class, data.c_class_2]) {
-            if (!cls) continue;
-            const info = classInfoFor(data, cls);
-            classRow(
-                titleCase(cls) + ' — level ' + (Number(data.level) || 0),
-                info.hd ? `d${info.hd} · BAB ${info.bab} · ${info.casting}` : 'click for class details',
-                () => openClassSheet(data, cls));
-        }
-        const arch = archetypeInfoOf(data);
-        if (arch) {
-            classRow('Archetype: ' + arch.name, 'base level 0 — click for description',
-                () => openArchetypeSheet(data));
-        }
+
+        entitySection({
+            title: 'Classes',
+            noun: 'class',
+            listKey: 'class_list',
+            emptyText: 'No classes yet — “Browse classes” to add one.',
+            hint: 'Drag ⋮⋮ to reorder. The top two classes drive saves, casting, and class features.',
+            afterMutate: () => syncLegacyClasses(data),
+            metaFor: (name) => {
+                const info = classInfoFor(data, name);
+                return {
+                    label: titleCase(name) + ' — level ' + (Number(data.level) || 0),
+                    blurb: info.hd
+                        ? `d${info.hd} · BAB ${info.bab} · ${info.casting}`
+                        : 'click for class details',
+                };
+            },
+            onOpen: (name) => openClassSheet(data, name),
+            toolbar: {
+                browseLabel: 'Browse classes',
+                picker: {
+                    title: 'Add class',
+                    kinds: ['classes'],
+                    kindLabels: { classes: 'Classes' },
+                    allowCustom: true,
+                    customPlaceholder: 'Custom class name',
+                    onPick: (hit) => {
+                        addToArrayField(data, 'class_list', hit.name);
+                        syncLegacyClasses(data);
+                        summaryRerender();
+                    },
+                    onCustom: (name) => {
+                        addToArrayField(data, 'class_list', name);
+                        syncLegacyClasses(data);
+                        summaryRerender();
+                    },
+                },
+            },
+        });
+
+        entitySection({
+            title: 'Archetypes',
+            noun: 'archetype',
+            listKey: 'archetype_list',
+            emptyText: 'No archetypes yet — “Browse archetypes” for used ones or add a custom name.',
+            hint: 'Drag ⋮⋮ to reorder. The picker offers archetypes you have used before.',
+            metaFor: (name) => ({
+                label: titleCase(name),
+                blurb: 'base level 0 — click for description',
+            }),
+            onOpen: (name) => openArchetypeSheet(data, name),
+            toolbar: {
+                browseLabel: 'Browse archetypes',
+                picker: {
+                    title: 'Add archetype',
+                    kinds: ['archetypes'],
+                    kindLabels: { archetypes: 'Archetypes' },
+                    allowCustom: true,
+                    customPlaceholder: 'Archetype name',
+                    localSource: usedArchetypeHits,
+                    onPick: (hit) => {
+                        addToArrayField(data, 'archetype_list', hit.name);
+                        recordUsedArchetype(hit.name);
+                        summaryRerender();
+                    },
+                    onCustom: (name) => {
+                        addToArrayField(data, 'archetype_list', name);
+                        recordUsedArchetype(name);
+                        summaryRerender();
+                    },
+                },
+            },
+        });
         return sec;
     }
 

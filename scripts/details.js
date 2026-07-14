@@ -564,6 +564,31 @@ window.SheetDetails = (function () {
      * Search a loaded catalog (feats, traits, spells, items, weapons, classFeatures, talents).
      * Returns [{ key, name, kind, subtitle?, entry }] ranked by name match.
      */
+    // Distinct class names derived from the class-feature compendium (each entry carries
+    // a `.classes` array). Memoized — the maps don't change after load.
+    let classNameList = null;
+    function classNames() {
+        if (classNameList) return classNameList;
+        const m = maps.classFeatures;
+        const seen = new Map(); // lowercase -> display
+        if (m?.byKey) {
+            for (const entry of Object.values(m.byKey)) {
+                const entries = Array.isArray(entry) ? entry : [entry];
+                for (const e of entries) {
+                    for (const c of e?.classes || []) {
+                        const name = String(c || '').trim();
+                        if (!name) continue;
+                        const key = name.toLowerCase();
+                        if (!seen.has(key)) seen.set(key, name);
+                    }
+                }
+            }
+        }
+        classNameList = [...seen.entries()]
+            .sort((a, b) => a[1].localeCompare(b[1]));
+        return classNameList;
+    }
+
     function searchCatalog(kind, query, opts = {}) {
         const limit = opts.limit || 40;
         const q = String(query || '').toLowerCase().trim();
@@ -574,6 +599,20 @@ window.SheetDetails = (function () {
             if (out.length >= limit) return;
             out.push(row);
         };
+
+        if (kind === 'classes') {
+            for (const [key, name] of classNames()) {
+                if (!key.includes(q)) continue;
+                push({ key, name, kind: 'classes', subtitle: 'Class', entry: { name } });
+                if (out.length >= limit) break;
+            }
+            out.sort((a, b) => {
+                const ap = a.key.startsWith(q) ? 0 : 1;
+                const bp = b.key.startsWith(q) ? 0 : 1;
+                return ap !== bp ? ap - bp : a.name.localeCompare(b.name);
+            });
+            return out.slice(0, limit);
+        }
 
         if (kind === 'talents') {
             for (const [norm, cond] of Object.entries(talentConditionals)) {
@@ -641,7 +680,7 @@ window.SheetDetails = (function () {
     }
 
     function catalogKinds() {
-        return Object.keys(maps).concat(['talents']);
+        return Object.keys(maps).concat(['talents', 'classes']);
     }
 
     return {
