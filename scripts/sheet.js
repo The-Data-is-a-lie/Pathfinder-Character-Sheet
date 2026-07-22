@@ -659,6 +659,8 @@
     // Good-save progressions per class, extracted from the pf1e_random_char_generator module's
     // every_class.json (pf1 + pf1-pow compendium export). Stalker/Zealot are absent from that
     // compendium; their entries follow the d20pfsrd Path of War class tables.
+    // FALLBACK ONLY for payloads without save_bases — the backend now stacks saves per class
+    // server-side (Backend/utils/data.py good_saves in the generator repo). Keep in sync.
     const GOOD_SAVES = {
         'alchemist': ['fort', 'ref'], 'antipaladin': ['fort', 'will'], 'arcanist': ['will'],
         'barbarian': ['fort'], 'barbarian (unchained)': ['fort'], 'bard': ['ref', 'will'],
@@ -1281,8 +1283,13 @@
         const shieldName = (data.shield_name || '').trim() || 'Shield';
         const className = String(data.c_class || '').toLowerCase();
         const goods = GOOD_SAVES[className];
-        const multiclassSaves = Boolean(data.c_class_2);
+        // multiclass payloads carry save_bases stacked per class server-side — authoritative;
+        // GOOD_SAVES + level is the fallback for older cached payloads (first class only)
+        const saveBases = (data.save_bases && typeof data.save_bases === 'object')
+            ? data.save_bases : null;
+        const multiclassSaves = Boolean(data.c_class_2) && !saveBases;
         const classBase = (save) => {
+            if (saveBases && Number.isFinite(Number(saveBases[save]))) return Number(saveBases[save]);
             if (!goods || !level) return null;
             return goods.includes(save) ? 2 + Math.floor(level / 2) : Math.floor(level / 3);
         };
@@ -1328,6 +1335,10 @@
                 parts.push(part('Class base (unknown class progression)', 0, {
                     kind: 'base', unresolved: true, formula: '?',
                 }));
+            } else if (saveBases && Array.isArray(data.classes) && data.classes.length > 1) {
+                parts.push(part(
+                    `Class base (stacked: ${data.classes.map((c) => `${titleCase(c.display || c.name)} ${c.level}`).join(' / ')})`,
+                    base, { kind: 'base' }));
             } else {
                 const good = !!(goods && goods.includes(save));
                 parts.push(part(
@@ -5266,8 +5277,9 @@
 
     function isPreparedCaster(data) {
         const strip = (s) => String(s || '').toLowerCase().replace(/\s*\(.*?\)\s*/g, '').trim();
-        if (PREPARED_CASTERS.has(strip(data.c_class))) return true;
-        if (PREPARED_CASTERS.has(strip(data.c_class_2))) return true;
+        for (const cls of ensureClassList(data)) {
+            if (PREPARED_CASTERS.has(strip(cls))) return true;
+        }
         const prep = data.spells_prepared_per_level;
         return Array.isArray(prep) && prep.some((n) => Number(n) > 0);
     }
@@ -6370,7 +6382,7 @@
         const st = sheetState(data);
         if (st.classSkillsSeeded) return;
         st.classSkillsSeeded = true;
-        for (const cls of [data.c_class, data.c_class_2]) {
+        for (const cls of ensureClassList(data)) {
             if (!cls) continue;
             for (const id of classInfoFor(data, cls).classSkills || []) {
                 setSkillBonus(data, id, 'cs', true);
@@ -6410,8 +6422,12 @@
     // lookup, header fields) keeps working unchanged.
     function ensureClassList(data) {
         if (!Array.isArray(data.class_list)) {
-            const seed = [data.c_class, data.c_class_2]
-                .map((c) => String(c || '').trim()).filter(Boolean);
+            // multiclass payloads carry classes: [{name, display, level}, ...] (up to 4);
+            // older payloads seed from the legacy c_class / c_class_2 pair
+            const seed = (Array.isArray(data.classes) && data.classes.length
+                ? data.classes.map((c) => String(c.name || '').trim())
+                : [data.c_class, data.c_class_2].map((c) => String(c || '').trim())
+            ).filter(Boolean);
             const seen = new Set();
             data.class_list = seed.filter((c) => {
                 const k = c.toLowerCase();
@@ -7778,9 +7794,18 @@
 
         const clsWrap = h('span', 'simple-inline-edits');
         clsWrap.appendChild(edit(data, 'c_class', { format: titled, rerender: true }));
-        if (data.c_class_2) clsWrap.appendChild(h('span', null, ' / ' + titleCase(data.c_class_2)));
-        clsWrap.appendChild(document.createTextNode(' '));
-        clsWrap.appendChild(editNum(data, 'level', { min: 1, max: 40, rerender: true }));
+        if (Array.isArray(data.classes) && data.classes.length > 1) {
+            // multiclass payload: "Fighter 6 / Wizard 4 / ..." — the editable level is the
+            // primary class's level ("level" keeps that meaning in multiclass payloads)
+            clsWrap.appendChild(document.createTextNode(' '));
+            clsWrap.appendChild(editNum(data, 'level', { min: 1, max: 40, rerender: true }));
+            clsWrap.appendChild(h('span', null, ' / '
+                + data.classes.slice(1).map((c) => `${titleCase(c.display || c.name)} ${c.level}`).join(' / ')));
+        } else {
+            if (data.c_class_2) clsWrap.appendChild(h('span', null, ' / ' + titleCase(data.c_class_2)));
+            clsWrap.appendChild(document.createTextNode(' '));
+            clsWrap.appendChild(editNum(data, 'level', { min: 1, max: 40, rerender: true }));
+        }
         const id = h('div', 'simple-id-grid');
         id.appendChild(spCell('Alignment', edit(data, 'alignment', {
             format: (v) => {
