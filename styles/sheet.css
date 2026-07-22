@@ -2625,6 +2625,43 @@ button:disabled { opacity: 0.55; cursor: wait; }
     box-shadow: inset 0 2px 0 0 var(--accent);
 }
 .feat-cell-name .dnd-handle { margin-right: 0.15rem; align-self: center; }
+/* Chosen class-choice sub-rows (hexes, rage powers, talents…) under a class feature. */
+.feat-subitem {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin: 0 0 0 1.6rem;
+    padding: 0.1rem 0.35rem 0.1rem 0.6rem;
+    border-left: 2px solid var(--row-border);
+    font-size: 0.86rem;
+}
+.feat-subitem-tag {
+    flex: 0 0 auto;
+    font-size: 0.68rem;
+    font-variant: small-caps;
+    letter-spacing: 0.03em;
+    font-weight: 700;
+    color: var(--dim);
+}
+.feat-subitem-name { color: var(--accent-dark); font-weight: 600; }
+.feat-subitem-level { flex: 0 0 auto; font-size: 0.72rem; color: var(--dim); white-space: nowrap; }
+.feat-subitem-details { flex: 1 1 auto; min-width: 0; }
+.feat-subitem-details > summary { color: var(--accent-dark); font-weight: 600; cursor: pointer; }
+/* Parent header for a class-choice bucket (Hexes, Rage Powers, …). */
+.feat-choice-group {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin: 0.35rem 0 0.1rem;
+    padding: 0.1rem 0.35rem;
+}
+.feat-choice-group-name { font-weight: 700; }
+.feat-choice-chip {
+    font-size: 0.62rem;
+    font-variant: small-caps;
+    letter-spacing: 0.04em;
+    color: var(--dim);
+}
 .skill-ability-select {
     font-size: 0.75rem !important;
     padding: 0.1rem 0.2rem !important;

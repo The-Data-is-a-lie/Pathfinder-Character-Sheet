@@ -5171,10 +5171,51 @@
         return sec;
     }
 
+    // Foundry-style class choices live in the exported `class_features` dict, shaped
+    // { bucketName: { choiceName: description } } — e.g. { hexes: { "Evil Eye": … } }.
+    // Each bucket becomes a parent row with its chosen options as sub-rows. Known buckets
+    // get a nice label + singular "(Chosen)" tag; unknown / colon-keyed keys fall back to
+    // a prettified label with no tag.
+    const CLASS_CHOICE_BUCKETS = {
+        hexes: { label: 'Hexes', singular: 'Hex' },
+        rage_powers: { label: 'Rage Powers', singular: 'Rage Power' },
+        discoveries: { label: 'Discoveries', singular: 'Discovery' },
+        arcana: { label: 'Magus Arcana', singular: 'Arcana' },
+        exploits: { label: 'Arcanist Exploits', singular: 'Exploit' },
+        mysteries: { label: 'Mystery & Revelations', singular: 'Revelation' },
+        revelations: { label: 'Revelations', singular: 'Revelation' },
+        curses: { label: 'Oracle Curse', singular: 'Curse' },
+        rogue_talents: { label: 'Rogue Talents', singular: 'Rogue Talent' },
+        ninja_talents: { label: 'Ninja Talents', singular: 'Ninja Talent' },
+        slayer_talents: { label: 'Slayer Talents', singular: 'Slayer Talent' },
+        investigator_talents: { label: 'Investigator Talents', singular: 'Talent' },
+        vigilante_talents: { label: 'Vigilante Talents', singular: 'Talent' },
+        orders: { label: 'Order', singular: 'Order' },
+        blessings: { label: 'Blessings', singular: 'Blessing' },
+        inquisitions: { label: 'Inquisitions', singular: 'Inquisition' },
+        bloodline: { label: 'Bloodline', singular: 'Bloodline' },
+        spirits: { label: 'Spirits', singular: 'Spirit' },
+    };
+    function classChoiceLabels(bucket) {
+        const known = CLASS_CHOICE_BUCKETS[String(bucket).toLowerCase()];
+        if (known) return known;
+        // Prettify at word starts only (not after an apostrophe, so "witch's" stays lower).
+        const label = String(bucket).replace(/_/g, ' ')
+            .replace(/(^|\s)\w/g, (c) => c.toUpperCase());
+        return { label, singular: null }; // unknown / "Skill Unlock: Bluff" → no tag
+    }
+    /** Render a class-choice's exported description (string / array / object) or '' if empty. */
+    function classChoiceDescHtml(desc) {
+        if (desc == null || desc === '') return '';
+        if (typeof desc === 'string') return desc.trim() ? archetypeDescHtml(desc) : '';
+        if (typeof desc === 'object' && !Object.keys(desc).length) return '';
+        return archetypeDescHtml(desc);
+    }
+
     function renderClassFeatures(data) {
         refreshFeatureLedger(data);
         const list = data.class_ability;
-        const classes = [data.c_class, data.c_class_2];
+        const classes = ensureClassList(data);
         const items = [];
         if (nonEmpty(list)) {
             for (const entry of list) {
@@ -5226,7 +5267,11 @@
             ['Domains', nonEmpty(data.full_domain) ? data.full_domain.join(', ') : null],
         ];
         for (const [k, v] of extras) if (v) kv(body, k, titleCase(String(v)));
-        if (!items.length) {
+        // Chosen class options exported in class_features: { bucket: { choice: desc } }.
+        const cfBuckets = Object.entries(data.class_features || {})
+            .filter(([, choices]) => choices && typeof choices === 'object'
+                && !Array.isArray(choices) && Object.keys(choices).length);
+        if (!items.length && !cfBuckets.length) {
             body.appendChild(h('p', 'tools-empty', 'No class features yet — browse the catalog.'));
             return sec;
         }
@@ -5277,6 +5322,35 @@
                 renderSheet(data);
                 setActiveTab('features');
             });
+        }
+
+        // Foundry-style chosen class options: one parent group per class_features bucket
+        // with each selected option as an indented sub-row (expandable when it has text).
+        for (const [bucket, choices] of cfBuckets) {
+            const { label, singular } = classChoiceLabels(bucket);
+            const groupLi = h('li', 'feat-choice-group');
+            groupLi.appendChild(h('span', 'feat-choice-group-name', label));
+            groupLi.appendChild(h('span', 'feat-tag feat-choice-chip', 'Class Choice'));
+            ul.appendChild(groupLi);
+            const bucketLevels = data.class_feature_levels?.[bucket] || {};
+            for (const [choiceName, desc] of Object.entries(choices)) {
+                const li = h('li', 'feat-subitem');
+                if (singular) {
+                    li.appendChild(h('span', 'feat-subitem-tag', singular + ' (Chosen)'));
+                }
+                const descHtml = classChoiceDescHtml(desc);
+                if (descHtml) {
+                    li.appendChild(details(choiceName, descHtml, 'feat-subitem-details'));
+                } else {
+                    li.appendChild(h('span', 'feat-subitem-name', choiceName));
+                }
+                // Level the option was picked at (exported by the generator, when present).
+                const lvl = Number(bucketLevels[choiceName]);
+                if (Number.isFinite(lvl) && lvl > 0) {
+                    li.appendChild(h('span', 'feat-subitem-level', '· level ' + lvl));
+                }
+                ul.appendChild(li);
+            }
         }
         return sec;
     }
