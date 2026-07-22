@@ -8521,7 +8521,9 @@
             const savedForm = JSON.parse(localStorage.getItem(FORM_KEY) || 'null');
             if (savedForm) {
                 for (const [k, v] of Object.entries(savedForm)) {
-                    if (form.elements[k]) form.elements[k].value = v;
+                    // Disabled controls keep their default; a stale saved value may no longer
+                    // be a valid option.
+                    if (form.elements[k] && !form.elements[k].disabled) form.elements[k].value = v;
                 }
             }
         } catch (err) {
