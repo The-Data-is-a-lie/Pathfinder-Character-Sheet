@@ -502,6 +502,21 @@ window.SheetDetails = (function () {
     }
 
     /**
+     * Backend-parsed {changes, contextNotes} for an item name — the payload's
+     * item_changes_dict (built from items_best.json descriptions). Case-insensitive.
+     */
+    function lookupBackendItemBuff(data, name) {
+        const dict = data?.item_changes_dict;
+        if (!dict || typeof dict !== 'object') return null;
+        if (dict[name]) return dict[name];
+        const lc = String(name).toLowerCase();
+        for (const [k, v] of Object.entries(dict)) {
+            if (String(k).toLowerCase() === lc) return v;
+        }
+        return null;
+    }
+
+    /**
      * Normalize one equipment_list entry to a stable inventory shape (does not mutate).
      * Prefer stored object fields; fill gaps from equip_descrip + item_details.
      * Non-customized empty change lists re-hydrate from the compendium (avoids a race
@@ -517,6 +532,7 @@ window.SheetDetails = (function () {
         const foundry = lookupItem(name);
         const fromDesc = data?.equip_descrip?.[name];
         const customized = !!(isObj && raw.changesCustomized);
+        const backendBuff = lookupBackendItemBuff(data, name);
 
         let changes;
         if (customized && isObj && Array.isArray(raw.changes)) {
@@ -538,6 +554,26 @@ window.SheetDetails = (function () {
             contextNotes = raw.contextNotes.map((n) => ({ ...n }));
         } else {
             contextNotes = [];
+        }
+
+        // Backend-parsed buffs (item_changes_dict) merge on top of whatever source won above,
+        // deduped by change target / note text so compendium-automated items don't double-apply.
+        // Skipped entirely once the user customizes the item's changes (their edits win).
+        if (!customized && backendBuff) {
+            const haveTargets = new Set(changes.map((c) => c && c.target));
+            for (const c of (backendBuff.changes || [])) {
+                if (c && c.target && !haveTargets.has(c.target)) {
+                    changes.push({ ...c });
+                    haveTargets.add(c.target);
+                }
+            }
+            const haveTexts = new Set(contextNotes.map((n) => n && n.text));
+            for (const n of (backendBuff.contextNotes || [])) {
+                if (n && n.text && !haveTexts.has(n.text)) {
+                    contextNotes.push({ ...n });
+                    haveTexts.add(n.text);
+                }
+            }
         }
 
         const weight = isObj && raw.weight != null && raw.weight !== ''

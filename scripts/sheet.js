@@ -2895,6 +2895,35 @@
             + '<code>enhancement_desc_dict</code>.</p>';
     }
 
+    /**
+     * One-line mechanics summary for a weapon/armor quality from the backend's
+     * enhancement_effects_dict (quality_effects.json): change bonuses, conditional
+     * riders (with the [[ ]] roll markup stripped for display), and context notes.
+     */
+    function enhancementEffectHtml(data, enh, kind) {
+        const eff = data?.enhancement_effects_dict || {};
+        const section = kind === 'armor'
+            ? { ...(eff.armor || {}), ...(eff.shield || {}) }
+            : (eff.weapon || {});
+        const key = String(enh).toLowerCase().trim();
+        const hit = Object.entries(section)
+            .find(([k]) => String(k).toLowerCase().trim() === key)?.[1];
+        if (!hit) return '';
+        const bits = [];
+        for (const c of hit.changes || []) {
+            const sign = c.operator === 'set' ? '=' : '+';
+            bits.push(`${sign}${c.formula} ${c.type || 'untyped'} → ${c.target}`);
+        }
+        for (const cond of hit.conditionals || []) {
+            if (cond?.name) bits.push(String(cond.name).replace(/\[\[|\]\]/g, ''));
+        }
+        for (const n of hit.contextNotes || []) {
+            if (n?.text) bits.push(n.text);
+        }
+        if (!bits.length) return '';
+        return '<p class="item-sheet-enh-fx dim">' + bits.map(escapeHtml).join(' • ') + '</p>';
+    }
+
     /** Empty item shell (no compendium link) — filled in via the item sheet. */
     function addBlankInventoryItem(data, itemType) {
         ensureInventoryObjects(data);
@@ -3522,7 +3551,8 @@
             for (const enh of enhList) {
                 descPane.appendChild(htmlBlock('desc item-sheet-enh',
                     `<p><strong>${escapeHtml(titleCase(enh))}</strong></p>`
-                    + enhancementDescHtml(data, enh, enhKind)));
+                    + enhancementDescHtml(data, enh, enhKind)
+                    + enhancementEffectHtml(data, enh, enhKind)));
             }
         }
         panes.description = descPane;
