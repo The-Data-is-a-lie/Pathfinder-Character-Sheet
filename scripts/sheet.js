@@ -6354,6 +6354,88 @@
      * Freeform identity prose (Foundry-style biography/notes).
      * One-time seed from generator micro-fields when empty; then fully editable on Notes.
      */
+    /** Prose backstory minus the legacy closing labeled list (Personality:/Mannerisms:/...): the
+     * structured formatted_bio block already shows those facts. Covers old backend payloads. */
+    function cleanBackstory(data) {
+        const paragraphs = String(data.backstory || '').trim().split(/\n\s*\n/);
+        while (paragraphs.length
+               && /^(personality|mannerisms|appearance|flaws|traits)\s*:/i.test(paragraphs[paragraphs.length - 1].trim())) {
+            paragraphs.pop();
+        }
+        return paragraphs.join('\n\n').trim();
+    }
+
+    /** The freeform backstory prose only. The generator's structured fact block (formatted_bio)
+     * is rendered on its own by renderBioFacts, so it's no longer dumped into the editable notes
+     * (that dump was what pushed the simple printed sheet onto a third page). */
+    function seedNotesText(data) {
+        return cleanBackstory(data);
+    }
+
+    /**
+     * Parse the backend's structured_bio block into sections. Each section is a header line
+     * followed by "- …" bullets, sections separated by a blank line (see backstory.py). Returns
+     * [{ header, bullets: [{ label, value }] }] — a bullet with no "Label: " prefix has label ''.
+     */
+    function parseFormattedBio(text) {
+        const raw = String(text || '').trim();
+        if (!raw) return [];
+        const sections = [];
+        for (const chunk of raw.split(/\n\s*\n/)) {
+            const lines = chunk.split('\n').map((l) => l.trim()).filter(Boolean);
+            if (!lines.length) continue;
+            const header = lines[0].replace(/^-\s*/, '');
+            const bullets = [];
+            for (const line of lines.slice(1)) {
+                const b = line.replace(/^-\s*/, '');
+                const m = /^([A-Z][\w' ]{0,22}?):\s*(.+)$/.exec(b);
+                if (m) bullets.push({ label: m[1], value: m[2] });
+                else bullets.push({ label: '', value: b });
+            }
+            sections.push({ header, bullets });
+        }
+        return sections;
+    }
+
+    // Identity bullets that already appear in the sheet's header id-grid — dropped from the
+    // rendered background so nothing is shown twice.
+    const BIO_HEADER_DUP = new Set(['alignment', 'deity', 'race', 'class', 'homeland']);
+
+    /**
+     * Compact, read-only structured background from data.formatted_bio: a grid of labelled fact
+     * cards (Build / Vocation / Family / Personality / Appearance) that lays out horizontally
+     * instead of stacking a wall of text vertically. Returns null when there's nothing to show.
+     */
+    function renderBioFacts(data, { compact = false, vertical = false } = {}) {
+        const sections = parseFormattedBio(data.formatted_bio);
+        if (!sections.length) return null;
+        const grid = h('div', 'simple-bg'
+            + (compact ? ' simple-bg-compact' : '')
+            + (vertical ? ' simple-bg-vertical' : ''));
+        sections.forEach((sec, i) => {
+            let { header, bullets } = sec;
+            if (i === 0) {
+                // First section is Identity (headed by the name); most of it repeats the header
+                // row, so relabel it "Build" and keep only the bullets not shown up top.
+                header = 'Build';
+                bullets = bullets.filter((b) => !BIO_HEADER_DUP.has(b.label.toLowerCase()));
+            }
+            if (!bullets.length) return;
+            const card = h('div', 'simple-bg-card');
+            card.appendChild(h('div', 'simple-bg-head', header));
+            const ul = h('ul', 'simple-bg-list');
+            for (const b of bullets) {
+                const li = h('li');
+                if (b.label) li.appendChild(h('span', 'simple-bg-k', b.label + ': '));
+                li.appendChild(document.createTextNode(b.value));
+                ul.appendChild(li);
+            }
+            card.appendChild(ul);
+            grid.appendChild(card);
+        });
+        return grid.children.length ? grid : null;
+    }
+
     function ensureProse(data) {
         const st = sheetState(data);
         st.prose ??= {};
@@ -6384,24 +6466,30 @@
             p.personality = personBits.join('\n');
 
             const noteBits = [];
-            if (data.backstory) noteBits.push(String(data.backstory).trim());
+            // Only the backstory prose is seeded into the editable notes now; the structured
+            // fact block (formatted_bio) renders separately via renderBioFacts. The family lines
+            // below are still assembled for older payloads that predate formatted_bio.
+            const seeded = seedNotesText(data);
+            if (seeded) noteBits.push(seeded);
             if (st.notes) noteBits.push(String(st.notes).trim());
-            const parents = joinProseField(data.parents);
-            if (parents) noteBits.push('Parents: ' + parents);
-            const family = [
-                ['Older brothers', data.older_brothers],
-                ['Younger brothers', data.younger_brothers],
-                ['Older sisters', data.older_sisters],
-                ['Younger sisters', data.younger_sisters],
-            ].map(([lab, v]) => {
-                const n = v == null || v === '' ? '' : String(v).trim();
-                return n && n !== '0' ? lab + ': ' + n : '';
-            }).filter(Boolean);
-            if (family.length) noteBits.push(family.join('\n'));
+            if (!data.formatted_bio) {
+                const parents = joinProseField(data.parents);
+                if (parents) noteBits.push('Parents: ' + parents);
+                const family = [
+                    ['Older brothers', data.older_brothers],
+                    ['Younger brothers', data.younger_brothers],
+                    ['Older sisters', data.older_sisters],
+                    ['Younger sisters', data.younger_sisters],
+                ].map(([lab, v]) => {
+                    const n = v == null || v === '' ? '' : String(v).trim();
+                    return n && n !== '0' ? lab + ': ' + n : '';
+                }).filter(Boolean);
+                if (family.length) noteBits.push(family.join('\n'));
+            }
             p.notes = noteBits.filter(Boolean).join('\n\n');
         } else {
             if (!p.notes && st.notes) p.notes = String(st.notes);
-            if (!p.notes && data.backstory) p.notes = String(data.backstory);
+            if (!p.notes) p.notes = seedNotesText(data);
         }
         p.description = p.description || '';
         p.personality = p.personality || '';
@@ -7843,8 +7931,11 @@
         body.appendChild(h('p', 'dbl-edit-hint no-print',
             'Freeform identity & session text (biography/notes). Auto-saves with the character.'));
 
-        const mkBlock = (title, key, placeholder, extraClass) => {
+        const mkBlock = (title, key, placeholder, extraClass, prefixNode) => {
             body.appendChild(h('h3', 'notes-prose-title', title));
+            // Optional read-only content (e.g. the structured background) sits under the heading,
+            // above the editable textarea, so it reads as part of this section.
+            if (prefixNode) body.appendChild(prefixNode);
             const ta = h('textarea', 'notes-text' + (extraClass ? ' ' + extraClass : ''));
             ta.id = 'notes-prose-' + key;
             ta.placeholder = placeholder;
@@ -7857,9 +7948,11 @@
             'Appearance, hair, eyes, build, clothing, distinguishing marks…');
         mkBlock('Personality', 'personality',
             'Traits, mannerisms, voice, ideals, flaws, how they act at the table…');
+        // The structured background (from the generator's formatted_bio) lives inside the
+        // Notes & background section, stacked vertically above the editable notes textarea.
         mkBlock('Notes & background', 'notes',
             'Backstory, family, relationships, session plans, secrets…',
-            'notes-text-main');
+            'notes-text-main', renderBioFacts(data, { vertical: true }));
         // Legacy id for re-render flush of the main notes field
         const main = body.querySelector('#notes-prose-notes');
         if (main) main.dataset.legacyNotes = '1';
@@ -8627,6 +8720,28 @@
                 { text: 'Known', cls: 'num' }, { text: 'DC', cls: 'num' }, 'Spell List'],
             spellRows));
         p2.appendChild(sp);
+
+        // Biography & Notes — a full-width band at the very bottom (below spells) so the structured
+        // background (from the generator's formatted_bio) lays out horizontally and flows across
+        // the two printed pages instead of claiming a page of its own. The notes-prose-notes id
+        // lets renderSheet's flush keep un-debounced edits.
+        const bioProse = ensureProse(data);
+        const bioBand = h('div', 'simple-bio-band');
+        bioBand.appendChild(spHeading('Biography & Notes'));
+        const facts = renderBioFacts(data, { compact: true });
+        if (facts) bioBand.appendChild(facts);
+
+        const notesBlock = h('div', 'simple-bio-block simple-bio-notes');
+        notesBlock.appendChild(h('div', 'simple-bio-label', 'Notes & background'));
+        const notesTa = h('textarea', 'notes-text simple-bio-text simple-bio-main');
+        notesTa.id = 'notes-prose-notes';
+        notesTa.placeholder = 'Backstory, family, relationships, session notes…';
+        notesTa.value = bioProse.notes || '';
+        notesTa.rows = 4;
+        bindProseTextarea(notesTa, data, 'notes');
+        notesBlock.appendChild(notesTa);
+        bioBand.appendChild(notesBlock);
+        p2.appendChild(bioBand);
 
         wrap.appendChild(p2);
         return wrap;

@@ -4185,6 +4185,53 @@ html[data-theme="high-contrast"] .roll-card-result.is-nat20 {
 
 .simple-col > .simple-h:first-child { margin-top: 0; }
 
+/* Biography & Notes — full-width band below the two columns (simple sheet, page 1). */
+.simple-bio-band { margin-top: 0.5rem; }
+.simple-bio-block { display: flex; flex-direction: column; gap: 0.12rem; }
+.simple-bio-notes { margin-top: 0.3rem; }
+.simple-bio-label {
+    font-size: 0.68rem;
+    font-variant: small-caps;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    color: var(--dim);
+}
+.simple-bio-text {
+    min-height: 0;
+    font: 0.82rem/1.4 Georgia, serif;
+    resize: vertical;
+}
+
+/* Structured background: labelled fact cards that flow horizontally across the page. */
+.simple-bg {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+    gap: 0.25rem 1.2rem;
+    align-items: start;
+    margin: 0.2rem 0 0.4rem;
+}
+.simple-bg-card { break-inside: avoid; }
+.simple-bg-head {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    color: var(--dim);
+    border-bottom: 1px solid var(--row-border);
+    margin-bottom: 0.1rem;
+}
+.simple-bg-list { list-style: none; margin: 0; padding: 0; }
+.simple-bg-list li { font: 0.78rem/1.35 Georgia, serif; padding: 0.02rem 0; }
+.simple-bg-k { font-weight: 700; }
+
+/* Vertical variant (full-sheet Notes tab): stack the fact cards in a single column. */
+.simple-bg-vertical {
+    grid-template-columns: 1fr;
+    gap: 0.35rem 0;
+    margin: 0.15rem 0 0.5rem;
+    max-width: 34rem;
+}
+
 .simple-table {
     width: 100%;
     border-collapse: collapse;
@@ -4374,6 +4421,18 @@ html[data-theme="high-contrast"] .roll-card-result.is-nat20 {
         border-bottom-width: 1px;
     }
     .simple-cols { gap: 0 16px; }
+
+    /* Compact background grid: pack the fact cards across the full page width. */
+    .simple-bio-band { margin-top: 5px; }
+    .simple-bg {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1px 14px;
+        margin: 2px 0 3px;
+    }
+    .simple-bg-head { font-size: 6.5px; }
+    .simple-bg-list li { font-size: 8px; line-height: 1.28; }
+    .simple-bio-notes { margin-top: 3px; }
+    .simple-bio-text { font-size: 8.5px; line-height: 1.3; }
 
     .simple-table { font-size: 8.5px; }
     .simple-table th { font-size: 6px; padding: 1px 3px; }
