@@ -949,58 +949,68 @@ button:disabled { opacity: 0.55; cursor: wait; }
     padding-bottom: 0.5rem;
     margin-bottom: 0.8rem;
 }
-.sheet-header-top { display: flex; gap: 0.7rem; align-items: flex-start; }
+.sheet-header-top { display: flex; gap: 0.9rem; align-items: flex-start; }
 .sheet-header-idcol { flex: 1 1 auto; min-width: 0; }
 
-/* Character portrait (header): click / drag-drop / paste an image */
+/* Character portrait (header). --portrait-size sets the square tile's edge length.
+   Single click enlarges; double-click / right-click changes; buttons sit underneath. */
 .sheet-portrait {
-    position: relative;
     flex: 0 0 auto;
-    width: 104px;
-    height: 104px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    width: var(--portrait-size, 260px);
+}
+.portrait-tile {
+    position: relative;
+    width: var(--portrait-size, 260px);
+    height: var(--portrait-size, 260px);
     border-radius: 6px;
     overflow: hidden;
     cursor: pointer;
     background: var(--panel);
     outline: none;
 }
-.sheet-portrait.drag-over { box-shadow: 0 0 0 2px var(--accent) inset; }
+.portrait-tile.drag-over { box-shadow: 0 0 0 2px var(--accent) inset; }
 .portrait-img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .portrait-empty {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.15rem;
+    gap: 0.2rem;
     width: 100%;
     height: 100%;
     box-sizing: border-box;
     border: 1px dashed var(--row-border);
     border-radius: 6px;
     color: var(--dim);
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     text-align: center;
 }
-.portrait-empty-icon { font-size: 1.7rem; line-height: 1; opacity: 0.55; }
-.sheet-portrait:hover .portrait-empty { border-color: var(--accent); color: var(--ink); }
-.portrait-remove {
-    position: absolute;
-    top: 3px;
-    right: 3px;
-    width: 1.15rem;
-    height: 1.15rem;
-    padding: 0;
-    border: none;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.55);
-    color: #fff;
-    font-size: 0.85rem;
-    line-height: 1;
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.12s ease;
+.portrait-empty-icon { font-size: 2.4rem; line-height: 1; opacity: 0.55; }
+.portrait-tile:hover .portrait-empty { border-color: var(--accent); color: var(--ink); }
+.portrait-actions { display: flex; gap: 0.3rem; }
+.portrait-btn { flex: 1 1 auto; font-size: 0.7rem; padding: 0.2rem 0.3rem; }
+
+/* Click-to-enlarge lightbox */
+.portrait-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3vmin;
+    background: rgba(0, 0, 0, 0.8);
+    cursor: zoom-out;
 }
-.sheet-portrait.has-img:hover .portrait-remove { opacity: 1; }
+.portrait-lightbox-img {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 6px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+}
 
 /* Simple / print sheet portrait */
 .simple-id-withportrait { display: flex; gap: 12px; align-items: flex-start; }
@@ -1013,9 +1023,12 @@ button:disabled { opacity: 0.55; cursor: wait; }
     border-radius: 4px;
     border: 1px solid var(--row-border);
 }
+@media (max-width: 760px) {
+    .sheet-portrait { --portrait-size: 132px; }
+    .id-edit-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 @media print {
     .sheet-portrait:not(.has-img) { display: none; }
-    .portrait-remove { display: none; }
     .simple-portrait { width: 88px; height: 88px; }
 }
 .char-name { font-size: 1.9rem; color: var(--accent-dark); font-variant: small-caps; }
@@ -1042,7 +1055,7 @@ button:disabled { opacity: 0.55; cursor: wait; }
 
 .id-edit-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.35rem 0.6rem;
     margin: 0.35rem 0 0.6rem;
 }

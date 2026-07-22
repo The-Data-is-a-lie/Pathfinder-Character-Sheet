@@ -2652,20 +2652,43 @@
         reader.readAsDataURL(file);
     }
 
+    /** Full-screen lightbox showing the portrait at its stored resolution. */
+    function openPortraitLightbox(url) {
+        if (!url) return;
+        document.getElementById('portrait-lightbox')?.remove();
+        const overlay = h('div', 'portrait-lightbox no-print');
+        overlay.id = 'portrait-lightbox';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-label', 'Character portrait');
+        const img = h('img', 'portrait-lightbox-img');
+        img.src = url;
+        img.alt = 'Character portrait';
+        overlay.appendChild(img);
+        const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); close(); } };
+        const close = () => { document.removeEventListener('keydown', onKey); overlay.remove(); };
+        document.addEventListener('keydown', onKey);
+        overlay.addEventListener('click', close); // click anywhere (image or backdrop) closes
+        document.body.appendChild(overlay);
+    }
+
     /**
-     * Portrait tile for the header: shows the stored image (with a remove ×) or an
-     * "Add portrait" dropzone. Accepts click-to-pick, drag-drop and paste, and refreshes in
-     * place (no full re-render) so the active tab and scroll position are preserved.
+     * Portrait tile for the header. With an image: single click enlarges it, double-click /
+     * right-click changes it, and Change / Remove buttons sit underneath. When empty it's an
+     * "Add portrait" dropzone (click to add). Drag-drop and paste set the image in either state.
+     * Refreshes in place (no full re-render) so the active tab and scroll position are kept.
      */
     function renderPortrait(data) {
         const wrap = h('div', 'sheet-portrait');
-        wrap.tabIndex = 0;
-        wrap.title = 'Click, drag-drop, or paste an image';
+        const tile = h('div', 'portrait-tile');
+        tile.tabIndex = 0;
+        const actions = h('div', 'portrait-actions no-print');
         const fileInput = h('input');
         fileInput.type = 'file';
         fileInput.accept = 'image/*';
         fileInput.style.display = 'none';
 
+        const pick = () => fileInput.click();
         const store = (url) => {
             const st = sheetState(data);
             if (url) st.portrait = url; else delete st.portrait;
@@ -2675,41 +2698,62 @@
         const take = (file) => processPortraitFile(file, (url) => { if (url) store(url); });
 
         function refresh() {
-            [...wrap.children].forEach((n) => { if (n !== fileInput) n.remove(); });
+            tile.innerHTML = '';
+            actions.innerHTML = '';
             const url = sheetState(data).portrait;
+            wrap.classList.toggle('has-img', !!url);
             if (url) {
                 const img = h('img', 'portrait-img');
                 img.src = url;
                 img.alt = 'Character portrait';
-                wrap.appendChild(img);
-                const rm = h('button', 'portrait-remove no-print', '×');
+                img.title = 'Click to enlarge · double-click or right-click to change';
+                tile.appendChild(img);
+                const change = h('button', 'inv-btn portrait-btn', 'Change image');
+                change.type = 'button';
+                change.addEventListener('click', pick);
+                const rm = h('button', 'inv-btn inv-btn-danger portrait-btn', 'Remove');
                 rm.type = 'button';
-                rm.title = 'Remove portrait';
-                rm.addEventListener('click', (e) => { e.stopPropagation(); store(''); });
-                wrap.appendChild(rm);
-                wrap.classList.add('has-img');
+                rm.addEventListener('click', () => store(''));
+                actions.append(change, rm);
             } else {
-                const empty = h('div', 'portrait-empty no-print');
+                const empty = h('div', 'portrait-empty');
                 empty.appendChild(h('div', 'portrait-empty-icon', '👤'));
                 empty.appendChild(h('div', 'portrait-empty-text', 'Add portrait'));
-                wrap.appendChild(empty);
-                wrap.classList.remove('has-img');
+                tile.appendChild(empty);
             }
         }
 
-        wrap.addEventListener('click', () => fileInput.click());
+        // Single click = enlarge (or add when empty); delayed so a double-click doesn't also
+        // fire the single-click action. Double-click / right-click = change.
+        let clickTimer = null;
+        tile.addEventListener('click', () => {
+            if (clickTimer) return;
+            clickTimer = setTimeout(() => {
+                clickTimer = null;
+                const url = sheetState(data).portrait;
+                if (url) openPortraitLightbox(url); else pick();
+            }, 230);
+        });
+        const changeNow = (e) => {
+            e.preventDefault();
+            if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+            pick();
+        };
+        tile.addEventListener('dblclick', changeNow);
+        tile.addEventListener('contextmenu', changeNow);
+
         fileInput.addEventListener('change', () => {
             take(fileInput.files && fileInput.files[0]);
             fileInput.value = '';
         });
-        wrap.addEventListener('dragover', (e) => { e.preventDefault(); wrap.classList.add('drag-over'); });
-        wrap.addEventListener('dragleave', () => wrap.classList.remove('drag-over'));
-        wrap.addEventListener('drop', (e) => {
+        tile.addEventListener('dragover', (e) => { e.preventDefault(); tile.classList.add('drag-over'); });
+        tile.addEventListener('dragleave', () => tile.classList.remove('drag-over'));
+        tile.addEventListener('drop', (e) => {
             e.preventDefault();
-            wrap.classList.remove('drag-over');
+            tile.classList.remove('drag-over');
             take(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
         });
-        wrap.addEventListener('paste', (e) => {
+        tile.addEventListener('paste', (e) => {
             const items = (e.clipboardData && e.clipboardData.items) || [];
             for (const it of items) {
                 if (it.type && it.type.indexOf('image/') === 0) {
@@ -2720,7 +2764,7 @@
             }
         });
 
-        wrap.appendChild(fileInput);
+        wrap.append(tile, actions, fileInput);
         refresh();
         return wrap;
     }
@@ -2739,12 +2783,17 @@
         nameInput.placeholder = 'Character name';
         idCol.appendChild(nameInput);
 
+        // 10 fields → a clean 5×2 grid that lines up beside the portrait. Row 1 groups the
+        // four class slots + level; row 2 is the rest of the identity. Class 3/4 are plain
+        // label fields (multiclass that drives the sheet is managed on the Summary tab).
         const idGrid = h('div', 'id-edit-grid no-print');
         const idFields = [
-            ['Race', 'chosen_race'],
             ['Class', 'c_class'],
             ['Class 2', 'c_class_2'],
+            ['Class 3', 'c_class_3'],
+            ['Class 4', 'c_class_4'],
             ['Level', 'level', { type: 'number', min: 1, max: 30 }],
+            ['Race', 'chosen_race'],
             ['Alignment', 'alignment'],
             ['Gender', 'gender'],
             ['Region', 'region'],
