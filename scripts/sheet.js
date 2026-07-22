@@ -6190,40 +6190,52 @@
             },
         }));
 
-        if (!nonEmpty(data.spheres_chosen) && !talents.length) {
+        // Every NPC carries a casting tradition now (latent for non-casters), so a martial with no
+        // spheres/talents still shows their tradition -- just without the spell-point pool row.
+        const ct0 = data.casting_tradition || {};
+        const hasTradition = !!(ct0.casting_ability_modifier
+            || nonEmpty(data.sphere_drawbacks) || nonEmpty(data.sphere_boons));
+        const traditionOnly = !nonEmpty(data.spheres_chosen) && !talents.length;
+        if (traditionOnly && !hasTradition) {
             body.appendChild(h('p', 'tools-empty', 'No spheres or talents yet — browse to add.'));
             return sec;
         }
+        if (traditionOnly) {
+            body.appendChild(h('p', 'dim',
+                'Latent casting tradition — how this character’s magic would work if they ever pick any up.'));
+        }
 
-        const st = sheetState(data);
-        const poolMax = Number(data.sphere_mana_pool) || 0;
-        if (st.spellPointsMax == null && poolMax) st.spellPointsMax = poolMax;
-        if (st.spellPointsCurrent == null) st.spellPointsCurrent = st.spellPointsMax ?? poolMax;
+        if (!traditionOnly) {
+            const st = sheetState(data);
+            const poolMax = Number(data.sphere_mana_pool) || 0;
+            if (st.spellPointsMax == null && poolMax) st.spellPointsMax = poolMax;
+            if (st.spellPointsCurrent == null) st.spellPointsCurrent = st.spellPointsMax ?? poolMax;
 
-        const spRow = h('div', 'kv kv-stat');
-        spRow.appendChild(h('span', 'k', 'Spell Points'));
-        const spV = h('span', 'v');
-        const spBoxes = h('div', 'hp-boxes');
-        const curBox = h('div', 'hp-box');
-        curBox.appendChild(h('span', 'hp-box-label', 'Current'));
-        curBox.appendChild(dblclickEditable(st, 'spellPointsCurrent', {
-            type: 'number', min: 0,
-            format: (v) => String(v ?? 0),
-            parse: (s) => parseIntLoose(s, 0),
-            onChange: () => quietSave(),
-        }));
-        const maxBox = h('div', 'hp-box');
-        maxBox.appendChild(h('span', 'hp-box-label', 'Max'));
-        maxBox.appendChild(dblclickEditable(st, 'spellPointsMax', {
-            type: 'number', min: 0,
-            format: (v) => String(v ?? 0),
-            parse: (s) => parseIntLoose(s, 0),
-            onChange: () => quietSave(),
-        }));
-        spBoxes.append(curBox, maxBox);
-        spV.appendChild(spBoxes);
-        spRow.appendChild(spV);
-        body.appendChild(spRow);
+            const spRow = h('div', 'kv kv-stat');
+            spRow.appendChild(h('span', 'k', 'Spell Points'));
+            const spV = h('span', 'v');
+            const spBoxes = h('div', 'hp-boxes');
+            const curBox = h('div', 'hp-box');
+            curBox.appendChild(h('span', 'hp-box-label', 'Current'));
+            curBox.appendChild(dblclickEditable(st, 'spellPointsCurrent', {
+                type: 'number', min: 0,
+                format: (v) => String(v ?? 0),
+                parse: (s) => parseIntLoose(s, 0),
+                onChange: () => quietSave(),
+            }));
+            const maxBox = h('div', 'hp-box');
+            maxBox.appendChild(h('span', 'hp-box-label', 'Max'));
+            maxBox.appendChild(dblclickEditable(st, 'spellPointsMax', {
+                type: 'number', min: 0,
+                format: (v) => String(v ?? 0),
+                parse: (s) => parseIntLoose(s, 0),
+                onChange: () => quietSave(),
+            }));
+            spBoxes.append(curBox, maxBox);
+            spV.appendChild(spBoxes);
+            spRow.appendChild(spV);
+            body.appendChild(spRow);
+        }
 
         const ct = data.casting_tradition || {};
         if (ct.casting_ability_modifier) kv(body, 'Casting Ability', ct.casting_ability_modifier);
