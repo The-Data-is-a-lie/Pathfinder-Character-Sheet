@@ -2107,6 +2107,41 @@ button:disabled { opacity: 0.55; cursor: wait; }
 .pow-ready-check { width: 1.05rem; height: 1.05rem; accent-color: var(--accent); cursor: pointer; }
 .pow-maneuver-row details, .pow-maneuver-name { flex: 1; min-width: 0; }
 .pow-ready-count { font-weight: normal; }
+.pow-mod-edit-btn { flex: 0 0 auto; align-self: flex-start; }
+
+/* Stances as toggleable buffs */
+.pow-stance-list { display: flex; flex-direction: column; gap: 0.25rem; margin: 0.3rem 0; }
+.pow-stance-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.25rem 0.4rem;
+    background: var(--row-bg);
+    border: 1px solid var(--row-border);
+    border-radius: 4px;
+}
+.pow-stance-row.is-active {
+    border-color: var(--accent);
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+.pow-stance-toggle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    flex: 0 0 auto;
+    font-size: 0.65rem;
+    color: var(--dim);
+    cursor: pointer;
+    user-select: none;
+}
+.pow-stance-check { width: 1.05rem; height: 1.05rem; accent-color: var(--accent); cursor: pointer; }
+.pow-stance-main { flex: 1; min-width: 0; }
+.pow-stance-main details, .pow-stance-main > span { display: block; }
+.pow-stance-nomods { font-size: 0.72rem; margin-top: 0.15rem; }
+
+/* Path of War modifier editor (reuses .inv-buffs-* layout) */
+.pow-mod-editor { margin-top: 0.4rem; }
 
 /* Combat conditionals */
 .cond-panel { margin-top: 0.55rem; }

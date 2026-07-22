@@ -955,6 +955,20 @@
         renderSheet(data);
     }
 
+    /** Path of War stances the character is currently in (independent toggles). */
+    function activeStanceSet(data) {
+        const arr = data?._sheet?.activeStances;
+        return new Set(Array.isArray(arr) ? arr : []);
+    }
+
+    function setStanceActive(data, name, on) {
+        if (!data || !name) return;
+        const set = activeStanceSet(data);
+        if (on) set.add(name);
+        else set.delete(name);
+        (data._sheet ??= {}).activeStances = [...set];
+    }
+
     /**
      * Situational contextNotes for a set of change targets, deduped and plain-text —
      * shown as hover tooltips on the relevant skill / attack rows (not a panel).
@@ -5751,6 +5765,143 @@
         return meta + desc;
     }
 
+    /**
+     * Inline editor for a maneuver/stance's mechanical modifiers, stored per-character as a
+     * Path of War override. Both the roll conditionals and (for stances) the sheet math read
+     * through SheetDetails.resolvePowConditional, so an edit here shows up in both places.
+     */
+    function openPowModifierEditor(data, name, host, opts = {}) {
+        const existing = host.querySelector('.pow-mod-editor');
+        if (existing) { existing.remove(); return; }
+        // Only one editor open at a time within Path of War.
+        host.closest('.section-body')?.querySelectorAll('.pow-mod-editor')
+            .forEach((p) => p.remove());
+        const SD = window.SheetDetails;
+        // 'changes' = stance always-on benefits (pf1 change shape, feed the sheet math);
+        // 'modifiers' = maneuver per-roll conditionals (feed the roll dialog).
+        const isStance = opts.mode === 'changes';
+
+        // Working array of edit rows in their native shape.
+        let rows;
+        let rider = '';
+        if (isStance) {
+            const resolved = SD?.resolveStanceEntry?.(data, name) || { changes: [], contextNotes: [] };
+            rows = (resolved.changes || []).map((c) => ({ ...c }));
+        } else {
+            const resolved = SD?.resolvePowConditional?.(data, name) || {};
+            rows = (resolved.modifiers || []).map((m) => ({ ...m }));
+            rider = resolved.rider || '';
+        }
+
+        const panel = h('div', 'pow-mod-editor inv-buffs-editor no-print');
+        panel.appendChild(h('div', 'inv-buffs-title',
+            (isStance ? 'Edit benefits · ' : 'Edit modifiers · ') + name));
+        panel.appendChild(h('p', 'dbl-edit-hint', isStance
+            ? 'These apply to the sheet while the stance is active.'
+            : 'These feed the roll conditionals for this maneuver.'));
+
+        const persist = () => {
+            if (isStance) SD?.setStanceOverride?.(data, name, { changes: rows, contextNotes: [] });
+            else SD?.setPowOverride?.(data, name, { modifiers: rows, rider });
+            quietSave();
+            refreshDerived();
+        };
+
+        // A working row -> a change object for display (stances already are changes).
+        const asChange = (r) => (isStance
+            ? r
+            : (SD?.stanceChangesFromModifiers?.([r])?.[0]
+                || { formula: r.formula, target: r.target, type: r.type }));
+
+        const list = h('div', 'inv-buffs-list');
+        function redraw() {
+            list.innerHTML = '';
+            if (!rows.length) {
+                list.appendChild(h('p', 'tools-empty',
+                    isStance ? 'No benefits — add one below.' : 'No modifiers — add one below.'));
+                return;
+            }
+            rows.forEach((r, idx) => {
+                const row = h('div', 'inv-buffs-row');
+                row.appendChild(h('span', 'inv-buffs-line', formatChangeLine(asChange(r), SD)));
+                const del = h('button', 'inv-btn inv-btn-danger', '×');
+                del.type = 'button';
+                del.addEventListener('click', () => {
+                    rows.splice(idx, 1);
+                    persist();
+                    redraw();
+                });
+                row.appendChild(del);
+                list.appendChild(row);
+            });
+        }
+        redraw();
+        panel.appendChild(list);
+
+        const form = h('div', 'inv-buffs-add');
+        const formulaIn = h('input', 'edit-field');
+        formulaIn.placeholder = 'Formula (e.g. 2 or 1d6)';
+        const targetSel = h('select', 'edit-field');
+        for (const t of INV_TARGET_OPTIONS) {
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = SD?.targetLabel?.(t) || t;
+            targetSel.appendChild(opt);
+        }
+        targetSel.value = isStance ? 'ac' : 'damage';
+        const typeSel = h('select', 'edit-field');
+        for (const t of INV_TYPE_OPTIONS) {
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = t === 'untyped' ? 'untyped' : (SD?.typeLabel?.(t) || t);
+            typeSel.appendChild(opt);
+        }
+        const addBtn = h('button', 'inv-btn', isStance ? 'Add benefit' : 'Add modifier');
+        addBtn.type = 'button';
+        addBtn.addEventListener('click', () => {
+            let formula = String(formulaIn.value || '').trim();
+            if (!formula) { formulaIn.focus(); return; }
+            if (/^\+\d+$/.test(formula)) formula = formula.slice(1);
+            const target = targetSel.value;
+            const type = typeSel.value || 'untyped';
+            if (isStance) {
+                rows.push({ formula, target, type, operator: 'add', priority: 0 });
+            } else {
+                const mod = { formula, target, type, critical: 'normal' };
+                if (target === 'attack') mod.subTarget = 'allAttack';
+                else if (target === 'damage') mod.subTarget = 'allDamage';
+                rows.push(mod);
+            }
+            formulaIn.value = '';
+            persist();
+            redraw();
+        });
+        form.append(formulaIn, targetSel, typeSel, addBtn);
+        panel.appendChild(form);
+
+        const actions = h('div', 'inv-buffs-actions');
+        const resetBtn = h('button', 'inv-btn', 'Reset to default');
+        resetBtn.type = 'button';
+        resetBtn.title = 'Discard custom edits and restore the compendium values';
+        resetBtn.addEventListener('click', () => {
+            if (isStance) SD?.clearStanceOverride?.(data, name);
+            else SD?.clearPowOverride?.(data, name);
+            quietSave();
+            refreshDerived();
+            renderSheet(data);
+            setActiveTab('path-of-war');
+        });
+        const closeBtn = h('button', 'inv-btn', 'Close');
+        closeBtn.type = 'button';
+        closeBtn.addEventListener('click', () => {
+            renderSheet(data);
+            setActiveTab('path-of-war');
+        });
+        actions.append(resetBtn, closeBtn);
+        panel.appendChild(actions);
+        host.appendChild(panel);
+    }
+
     function renderPathOfWar(data) {
         const known = knownManeuverNames(data);
         const hasPoW = Number(data.initiator_level) > 0
@@ -5850,6 +6001,11 @@
                 } else {
                     row.appendChild(h('span', 'pow-maneuver-name', bits.join(' · ')));
                 }
+                const mEdit = h('button', 'inv-btn pow-mod-edit-btn no-print', 'Edit');
+                mEdit.type = 'button';
+                mEdit.title = 'Adjust this maneuver’s attack/damage modifiers (also updates the roll conditionals)';
+                mEdit.addEventListener('click', () => openPowModifierEditor(data, name, row));
+                row.appendChild(mEdit);
                 list.appendChild(row);
             }
             body.appendChild(list);
@@ -5864,16 +6020,54 @@
         }
 
         if (nonEmpty(data.stances_chosen)) {
-            body.appendChild(h('h3', null, 'Stances'));
-            const ul = h('ul', 'plain-list');
+            body.appendChild(h('h3', null, 'Stances (check = active · boosts apply to the sheet)'));
+            const SD = window.SheetDetails;
+            const active = activeStanceSet(data);
+            const list = h('div', 'pow-stance-list');
             for (const s of data.stances_chosen) {
                 const d = descs[s] || {};
                 const summary = [d.discipline, d.type || 'stance', s].filter(Boolean).join(' · ');
                 const bodyHtml = maneuverDetailHtml(d);
-                ul.appendChild(h('li', null, null))
-                    .appendChild(bodyHtml ? details(summary, bodyHtml) : h('span', null, summary));
+                const row = h('div', 'pow-stance-row' + (active.has(s) ? ' is-active' : ''));
+
+                const lab = h('label', 'pow-stance-toggle');
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.className = 'pow-stance-check';
+                cb.checked = active.has(s);
+                cb.title = 'Active — boosts apply to the sheet';
+                cb.addEventListener('change', () => {
+                    setStanceActive(data, s, cb.checked);
+                    quietSave();
+                    renderSheet(data);
+                    setActiveTab('path-of-war');
+                });
+                lab.appendChild(cb);
+                lab.appendChild(h('span', 'pow-stance-tag', 'On'));
+                row.appendChild(lab);
+
+                const main = h('div', 'pow-stance-main');
+                main.appendChild(bodyHtml ? details(summary, bodyHtml) : h('span', null, summary));
+                // Effect preview: the always-on benefits this stance applies while active.
+                const benefit = SD?.resolveStanceEntry?.(data, s) || { changes: [] };
+                if (benefit.changes.length) {
+                    main.appendChild(h('div', 'buff-source-effects',
+                        benefit.changes.map((c) => formatChangeLine(c, SD)).join('; ')));
+                } else {
+                    main.appendChild(h('div', 'dim pow-stance-nomods',
+                        'No mechanical benefits on file — add one with Edit.'));
+                }
+                row.appendChild(main);
+
+                const sEdit = h('button', 'inv-btn pow-mod-edit-btn no-print', 'Edit');
+                sEdit.type = 'button';
+                sEdit.title = 'Adjust this stance’s benefits';
+                sEdit.addEventListener('click', () => openPowModifierEditor(data, s, row, { mode: 'changes' }));
+                row.appendChild(sEdit);
+
+                list.appendChild(row);
             }
-            body.appendChild(ul);
+            body.appendChild(list);
         }
         return sec;
     }

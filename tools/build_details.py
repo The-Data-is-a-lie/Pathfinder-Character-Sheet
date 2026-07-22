@@ -42,6 +42,7 @@ VERBATIM = [
     "combat_talent_conditionals.json",
     "magic_talent_conditionals.json",
     "maneuver_changes.json",  # Path of War per-roll conditionals (Foundry attach table)
+    "stance_changes.json",  # Path of War stance always-on benefits (pf1 changes shape)
 ]
 
 # sizeRoll(n, s, @size) at Medium == n d s. Also allow plain "NdX" / "N".

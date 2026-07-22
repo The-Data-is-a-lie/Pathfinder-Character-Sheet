@@ -17,6 +17,7 @@ window.SheetDetails = (function () {
     };
     const CONDITIONAL_FILES = ['data/combat_talent_conditionals.json', 'data/magic_talent_conditionals.json'];
     const MANEUVER_CHANGES_URL = 'data/maneuver_changes.json';
+    const STANCE_CHANGES_URL = 'data/stance_changes.json';
 
     // kind -> { byKey: {lowercase name -> entry|entry[]}, aliases: {paren-stripped -> full key} }
     const maps = {};
@@ -24,6 +25,8 @@ window.SheetDetails = (function () {
     const talentConditionals = {};
     // powNorm(name) -> { modifiers, rider } from maneuver_changes.json
     const maneuverConditionals = {};
+    // powNorm(name) -> { changes, contextNotes } from stance_changes.json (always-on benefits)
+    const stanceBenefits = {};
 
     async function fetchJson(url) {
         const resp = await fetch(url);
@@ -79,6 +82,17 @@ window.SheetDetails = (function () {
         }
     }
 
+    function indexStanceChanges(data) {
+        for (const [name, entry] of Object.entries(data || {})) {
+            if (!entry) continue;
+            stanceBenefits[powNorm(name)] = {
+                name,
+                changes: Array.isArray(entry.changes) ? entry.changes : [],
+                contextNotes: Array.isArray(entry.contextNotes) ? entry.contextNotes : [],
+            };
+        }
+    }
+
     const ready = Promise.all([
         ...Object.entries(FILES).map(([kind, url]) =>
             fetchJson(url).then((data) => indexDetails(kind, data))
@@ -88,6 +102,8 @@ window.SheetDetails = (function () {
                 .catch((err) => console.warn('SheetDetails: could not load ' + url, err))),
         fetchJson(MANEUVER_CHANGES_URL).then(indexManeuverChanges)
             .catch((err) => console.warn('SheetDetails: could not load ' + MANEUVER_CHANGES_URL, err)),
+        fetchJson(STANCE_CHANGES_URL).then(indexStanceChanges)
+            .catch((err) => console.warn('SheetDetails: could not load ' + STANCE_CHANGES_URL, err)),
     ]).then(() => true);
 
     // Exact lowercase match, then paren-stripped both ways (backend "Weapon Focus (Longsword)"
@@ -140,6 +156,102 @@ window.SheetDetails = (function () {
         return maneuverConditionals[powNorm(name)] || null;
     }
 
+    // --- Per-character overrides for Path of War maneuver/stance modifiers -------------
+    // Stored on data._sheet.powOverrides[powNorm(name)] in the same conditional-modifier
+    // shape as maneuver_changes.json ({ modifiers, rider }). One resolver feeds every
+    // consumer (roll conditionals + stance sheet-math), so an edit in one place shows up
+    // everywhere.
+    function powOverrideStore(data, create) {
+        const st = data && data._sheet;
+        if (!st) return null;
+        if (!st.powOverrides && create) st.powOverrides = {};
+        return st.powOverrides || null;
+    }
+
+    function resolvePowConditional(data, name) {
+        if (!name) return null;
+        const store = powOverrideStore(data, false);
+        const ov = store && store[powNorm(name)];
+        if (ov) return { name, modifiers: ov.modifiers || [], rider: ov.rider || '' };
+        return lookupManeuverConditional(name);
+    }
+
+    function setPowOverride(data, name, entry) {
+        if (!data || !name) return;
+        const store = powOverrideStore(data, true);
+        store[powNorm(name)] = {
+            modifiers: Array.isArray(entry?.modifiers) ? entry.modifiers : [],
+            rider: entry?.rider || '',
+        };
+    }
+
+    function clearPowOverride(data, name) {
+        const store = powOverrideStore(data, false);
+        if (store) delete store[powNorm(name)];
+    }
+
+    // --- Stance always-on benefits (stance_changes.json, pf1 changes shape) --------------
+    // Distinct from maneuver_changes.json: stances apply persistent bonuses (AC, saves,
+    // skills, abilities, attack/damage...) while active, so they live in the sheet-math
+    // ledger rather than the per-roll conditional table.
+    function lookupStanceBenefit(name) {
+        if (!name) return null;
+        return stanceBenefits[powNorm(name)] || null;
+    }
+
+    function stanceOverrideStore(data, create) {
+        const st = data && data._sheet;
+        if (!st) return null;
+        if (!st.stanceOverrides && create) st.stanceOverrides = {};
+        return st.stanceOverrides || null;
+    }
+
+    // Resolved always-on benefit for a stance: user override wins, else the compendium
+    // entry, else an empty benefit. Returns { changes, contextNotes }.
+    function resolveStanceEntry(data, name) {
+        if (!name) return { changes: [], contextNotes: [] };
+        const store = stanceOverrideStore(data, false);
+        const ov = store && store[powNorm(name)];
+        if (ov) {
+            return {
+                changes: Array.isArray(ov.changes) ? ov.changes : [],
+                contextNotes: Array.isArray(ov.contextNotes) ? ov.contextNotes : [],
+            };
+        }
+        const base = lookupStanceBenefit(name);
+        return base
+            ? { changes: base.changes || [], contextNotes: base.contextNotes || [] }
+            : { changes: [], contextNotes: [] };
+    }
+
+    function setStanceOverride(data, name, entry) {
+        if (!data || !name) return;
+        const store = stanceOverrideStore(data, true);
+        store[powNorm(name)] = {
+            changes: Array.isArray(entry?.changes) ? entry.changes : [],
+            contextNotes: Array.isArray(entry?.contextNotes) ? entry.contextNotes : [],
+        };
+    }
+
+    function clearStanceOverride(data, name) {
+        const store = stanceOverrideStore(data, false);
+        if (store) delete store[powNorm(name)];
+    }
+
+    // Conditional modifier -> always-on ledger change. Attack/damage targets are valid
+    // change targets and pass straight through; everything else passes through as-is.
+    function stanceChangesFromModifiers(mods) {
+        return (mods || [])
+            .filter((m) => m && m.formula != null && m.target)
+            .map((m) => ({
+                formula: String(m.formula),
+                target: m.target,
+                type: m.type || 'untyped',
+                operator: m.operator || 'add',
+                priority: m.priority || 0,
+            }));
+    }
+
     /**
      * Unified per-roll toggles for this character (Foundry attack-dialog conditionals).
      * Returns [{ id, label, sourceKind, defaultOn, modifiers, rider, source }].
@@ -166,7 +278,7 @@ window.SheetDetails = (function () {
             });
         }
         for (const name of known) {
-            const cond = lookupManeuverConditional(name);
+            const cond = resolvePowConditional(data, name);
             if (!cond) continue;
             const typeCap = String(descs[name]?.type || 'Strike')
                 .replace(/^\w/, (c) => c.toUpperCase());
@@ -184,7 +296,7 @@ window.SheetDetails = (function () {
             });
         }
         for (const name of (data.stances_chosen || [])) {
-            const cond = lookupManeuverConditional(name);
+            const cond = resolvePowConditional(data, name);
             if (!cond?.modifiers?.length) continue; // Foundry only attaches stances with mods
             const label = cond.rider
                 ? `(Stance) ${name}: ${cond.rider}`
@@ -377,6 +489,15 @@ window.SheetDetails = (function () {
             }
         }
 
+        // Active Path of War stances behave like always-on buffs: their (possibly
+        // user-overridden) benefits feed every sheet total while the stance is toggled on.
+        for (const name of (data._sheet?.activeStances || [])) {
+            const entry = resolveStanceEntry(data, name);
+            if (entry.changes.length || entry.contextNotes.length) {
+                pushEntry(ledger, name, 'stance', entry);
+            }
+        }
+
         return ledger;
     }
 
@@ -533,6 +654,13 @@ window.SheetDetails = (function () {
         const hd = Number(data?.level) || Number(data?.attributes?.hd?.total) || 0;
         s = s.replace(/@attributes\.hd\.total/gi, String(hd));
         s = s.replace(/@attributes\.hd\.max/gi, String(hd));
+        // Path of War: initiator level and initiation-stat modifier (stance/maneuver scaling)
+        const initLevel = Number(data?.initiator_level) || 0;
+        s = s.replace(/@pow\.initLevel/gi, String(initLevel));
+        const initKey = String(data?.initiation_stat || '').toLowerCase();
+        const initMod = (initKey && data?.[initKey] != null)
+            ? Math.floor((Number(data[initKey]) - 10) / 2) : 0;
+        s = s.replace(/@INITMOD/gi, String(initMod));
         // Allow max/min/floor/ceil after substitution (common in pf1 changes)
         s = s.replace(/\s+/g, '');
         if (!/^[0-9+\-*/().,a-zA-Z]+$/.test(s)) return { ok: false, formula: String(formula).trim() };
@@ -685,7 +813,9 @@ window.SheetDetails = (function () {
 
     return {
         ready, lookup, lookupClassFeature, lookupWeapon, lookupItem,
-        lookupManeuverConditional, conditionalForTalent, collectChanges,
+        lookupManeuverConditional, resolvePowConditional, setPowOverride, clearPowOverride,
+        stanceChangesFromModifiers, lookupStanceBenefit, resolveStanceEntry,
+        setStanceOverride, clearStanceOverride, conditionalForTalent, collectChanges,
         collectRollConditionals, normalizeInventoryEntry, powNorm,
         targetLabel, typeLabel, evalSimpleFormula, changesForTargets,
         searchCatalog, catalogKinds,
