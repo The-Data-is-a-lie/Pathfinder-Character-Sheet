@@ -1,5 +1,7 @@
 # Pathfinder Character Sheet
 
+**🔗 Live sheet:** <https://the-data-is-a-lie.github.io/Pathfinder-Character-Sheet/> — hosted free on GitHub Pages, no install needed.
+
 Static web character sheet for the [Pathfinder 1E Randomized Character Generator](https://github.com/The-Data-is-a-lie/Pathfinder_Char_Creator).
 Pure HTML/JS/CSS — host it on any static host (GitHub Pages, `python -m http.server`).
 Character **generation** still happens on the Flask backend; this page just POSTs to it and renders the JSON.
