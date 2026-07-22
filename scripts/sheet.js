@@ -7427,14 +7427,9 @@
             const tr = h('tr');
             tr.appendChild(h('td', 'ability-name', ABILITY_NAMES[ab]));
 
-            const totTd = h('td', 'num ability-total');
-            totTd.title = info.formula + ' — double-click to edit the base score';
-            totTd.appendChild(dblclickEditable(data, ab, {
-                type: 'number', min: 1, max: 99,
-                format: () => (abilityInfo(data, ab).total ?? '—') + '',
-                parse: (s) => parseIntLoose(s, 10),
-                onChange: rerenderAttrs,
-            }));
+            // Total = computed effective score (read-only); hover shows the full formula.
+            const totTd = h('td', 'num ability-total', (info.total ?? '—') + '');
+            totTd.title = info.formula;
             tr.appendChild(totTd);
 
             const modTd = h('td', 'num ability-mod', fmt(info.mod));
