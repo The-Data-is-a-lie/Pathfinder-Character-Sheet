@@ -1435,7 +1435,10 @@ window.SheetRoll = (function () {
         applyToolsWidth(storedToolsWidth());
 
         let dragging = false;
+        let capturedId = null;
         const widthAt = (clientX) => Math.max(40, Math.min(toolsMaxW(), clientX));
+        // Belt-and-suspenders against the browser starting a text selection mid-drag.
+        const blockSelect = (ev) => ev.preventDefault();
         const onMove = (ev) => {
             if (!dragging) return;
             const w = widthAt(ev.clientX); // drawer left edge is at x=0
@@ -1459,12 +1462,21 @@ window.SheetRoll = (function () {
             drawer.classList.remove('will-close');
             window.removeEventListener('pointermove', onMove);
             window.removeEventListener('pointerup', onUp);
+            document.removeEventListener('selectstart', blockSelect);
+            if (capturedId != null) {
+                try { handle.releasePointerCapture(capturedId); } catch { /* */ }
+                capturedId = null;
+            }
             finish(widthAt(ev.clientX));
         };
         handle.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             dragging = true;
             document.body.classList.add('tools-resizing');
+            // Capture so every move/up targets the handle, and kill any selection attempt.
+            try { handle.setPointerCapture(e.pointerId); capturedId = e.pointerId; } catch { /* */ }
+            window.getSelection?.()?.removeAllRanges?.();
+            document.addEventListener('selectstart', blockSelect);
             window.addEventListener('pointermove', onMove);
             window.addEventListener('pointerup', onUp);
         });

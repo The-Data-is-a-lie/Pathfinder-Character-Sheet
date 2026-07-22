@@ -3507,23 +3507,24 @@ body.tools-open .tools-drawer { transform: translateX(0); }
     position: absolute;
     top: 0;
     bottom: 0;
-    right: -3px;            /* straddle the 3px right border for an easy grab */
-    width: 10px;
-    z-index: 2;
+    right: 0;               /* sit fully inside the drawer edge (clear of the ☰ toggle) */
+    width: 14px;
+    z-index: 3;             /* above drawer content so the grab always lands here */
     cursor: ew-resize;
     touch-action: none;     /* let pointer drags work on touch without scrolling */
+    user-select: none;      /* the handle itself never selects */
 }
 .tools-resize::after {
     content: "";
     position: absolute;
     top: 50%;
     right: 3px;
-    width: 2px;
-    height: 2.2rem;
+    width: 3px;
+    height: 2.4rem;
     transform: translateY(-50%);
     border-radius: 2px;
     background: var(--accent-dark);
-    opacity: 0.35;
+    opacity: 0.4;
     transition: opacity 0.15s ease, background 0.15s ease;
 }
 .tools-resize:hover::after,
