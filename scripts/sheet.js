@@ -2618,14 +2618,126 @@
         ? name + (nonEmpty(enhList) ? ' [' + enhList.join(', ') + ']' : '') : null;
 
     // ---------------------------------------------------------------- section renderers
+    // --- Character portrait ---------------------------------------------------------
+    // A single character image kept on _sheet.portrait as a compressed data URL, so it
+    // rides along with every save (IndexedDB + disk mirror) and JSON export/import with no
+    // extra plumbing. Uploads are downscaled to keep those payloads small.
+    const PORTRAIT_MAX = 768; // longest edge, px
+
+    function processPortraitFile(file, cb) {
+        if (!file || !/^image\//.test(file.type || '')) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+                let iw = img.naturalWidth || img.width;
+                let ih = img.naturalHeight || img.height;
+                if (!iw || !ih) return;
+                const scale = Math.min(1, PORTRAIT_MAX / Math.max(iw, ih));
+                iw = Math.max(1, Math.round(iw * scale));
+                ih = Math.max(1, Math.round(ih * scale));
+                const canvas = document.createElement('canvas');
+                canvas.width = iw;
+                canvas.height = ih;
+                canvas.getContext('2d').drawImage(img, 0, 0, iw, ih);
+                // WebP where supported (smaller); fall back to JPEG otherwise.
+                let url = '';
+                try { url = canvas.toDataURL('image/webp', 0.85); } catch (e) { url = ''; }
+                if (url.slice(0, 15) !== 'data:image/webp') url = canvas.toDataURL('image/jpeg', 0.85);
+                cb(url);
+            };
+            img.onerror = () => { /* unreadable image — ignore */ };
+            img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    /**
+     * Portrait tile for the header: shows the stored image (with a remove ×) or an
+     * "Add portrait" dropzone. Accepts click-to-pick, drag-drop and paste, and refreshes in
+     * place (no full re-render) so the active tab and scroll position are preserved.
+     */
+    function renderPortrait(data) {
+        const wrap = h('div', 'sheet-portrait');
+        wrap.tabIndex = 0;
+        wrap.title = 'Click, drag-drop, or paste an image';
+        const fileInput = h('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.style.display = 'none';
+
+        const store = (url) => {
+            const st = sheetState(data);
+            if (url) st.portrait = url; else delete st.portrait;
+            quietSave();
+            refresh();
+        };
+        const take = (file) => processPortraitFile(file, (url) => { if (url) store(url); });
+
+        function refresh() {
+            [...wrap.children].forEach((n) => { if (n !== fileInput) n.remove(); });
+            const url = sheetState(data).portrait;
+            if (url) {
+                const img = h('img', 'portrait-img');
+                img.src = url;
+                img.alt = 'Character portrait';
+                wrap.appendChild(img);
+                const rm = h('button', 'portrait-remove no-print', '×');
+                rm.type = 'button';
+                rm.title = 'Remove portrait';
+                rm.addEventListener('click', (e) => { e.stopPropagation(); store(''); });
+                wrap.appendChild(rm);
+                wrap.classList.add('has-img');
+            } else {
+                const empty = h('div', 'portrait-empty no-print');
+                empty.appendChild(h('div', 'portrait-empty-icon', '👤'));
+                empty.appendChild(h('div', 'portrait-empty-text', 'Add portrait'));
+                wrap.appendChild(empty);
+                wrap.classList.remove('has-img');
+            }
+        }
+
+        wrap.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', () => {
+            take(fileInput.files && fileInput.files[0]);
+            fileInput.value = '';
+        });
+        wrap.addEventListener('dragover', (e) => { e.preventDefault(); wrap.classList.add('drag-over'); });
+        wrap.addEventListener('dragleave', () => wrap.classList.remove('drag-over'));
+        wrap.addEventListener('drop', (e) => {
+            e.preventDefault();
+            wrap.classList.remove('drag-over');
+            take(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
+        });
+        wrap.addEventListener('paste', (e) => {
+            const items = (e.clipboardData && e.clipboardData.items) || [];
+            for (const it of items) {
+                if (it.type && it.type.indexOf('image/') === 0) {
+                    take(it.getAsFile());
+                    e.preventDefault();
+                    break;
+                }
+            }
+        });
+
+        wrap.appendChild(fileInput);
+        refresh();
+        return wrap;
+    }
+
     function renderHeader(data) {
         const head = h('div', 'sheet-header');
+
+        const top = h('div', 'sheet-header-top');
+        top.appendChild(renderPortrait(data));
+        const idCol = h('div', 'sheet-header-idcol');
+
         const nameInput = editableField(data, 'character_full_name', {
             onChange: () => { /* roster name updates on save */ },
         });
         nameInput.className = 'edit-field char-name-input';
         nameInput.placeholder = 'Character name';
-        head.appendChild(nameInput);
+        idCol.appendChild(nameInput);
 
         const idGrid = h('div', 'id-edit-grid no-print');
         const idFields = [
@@ -2650,7 +2762,10 @@
             cell.appendChild(editableField(data, key, opts || {}));
             idGrid.appendChild(cell);
         }
-        head.appendChild(idGrid);
+        idCol.appendChild(idGrid);
+
+        top.appendChild(idCol);
+        head.appendChild(top);
 
         head.appendChild(renderAbilities(data));
         return head;
@@ -8224,7 +8339,6 @@
         const nameRow = h('div', 'simple-name-row');
         nameRow.appendChild(spCell('Character Name', edit(data, 'character_full_name'), 'simple-name-cell'));
         nameRow.appendChild(spCell('Player', edit(st, 'player')));
-        p1.appendChild(nameRow);
 
         const clsWrap = h('span', 'simple-inline-edits');
         clsWrap.appendChild(edit(data, 'c_class', { format: titled, rerender: true }));
@@ -8262,7 +8376,23 @@
         id.appendChild(spCell('Age', editNum(data, 'age_number', { min: 0 })));
         id.appendChild(spCell('Height', edit(data, 'height_number')));
         id.appendChild(spCell('Weight', editNum(data, 'weight_number', { min: 0 })));
-        p1.appendChild(id);
+
+        // Identity block (name + id grid); a stored portrait sits beside it when present.
+        const idBlock = h('div', 'simple-id-block');
+        idBlock.appendChild(nameRow);
+        idBlock.appendChild(id);
+        const portraitUrl = data?._sheet?.portrait;
+        if (portraitUrl) {
+            const row = h('div', 'simple-id-withportrait');
+            const pImg = h('img', 'simple-portrait');
+            pImg.src = portraitUrl;
+            pImg.alt = 'Character portrait';
+            row.appendChild(pImg);
+            row.appendChild(idBlock);
+            p1.appendChild(row);
+        } else {
+            p1.appendChild(idBlock);
+        }
 
         const cols = h('div', 'simple-cols');
         const left = h('div', 'simple-col');

@@ -949,6 +949,75 @@ button:disabled { opacity: 0.55; cursor: wait; }
     padding-bottom: 0.5rem;
     margin-bottom: 0.8rem;
 }
+.sheet-header-top { display: flex; gap: 0.7rem; align-items: flex-start; }
+.sheet-header-idcol { flex: 1 1 auto; min-width: 0; }
+
+/* Character portrait (header): click / drag-drop / paste an image */
+.sheet-portrait {
+    position: relative;
+    flex: 0 0 auto;
+    width: 104px;
+    height: 104px;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--panel);
+    outline: none;
+}
+.sheet-portrait.drag-over { box-shadow: 0 0 0 2px var(--accent) inset; }
+.portrait-img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.portrait-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    border: 1px dashed var(--row-border);
+    border-radius: 6px;
+    color: var(--dim);
+    font-size: 0.68rem;
+    text-align: center;
+}
+.portrait-empty-icon { font-size: 1.7rem; line-height: 1; opacity: 0.55; }
+.sheet-portrait:hover .portrait-empty { border-color: var(--accent); color: var(--ink); }
+.portrait-remove {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 1.15rem;
+    height: 1.15rem;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 0.85rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+}
+.sheet-portrait.has-img:hover .portrait-remove { opacity: 1; }
+
+/* Simple / print sheet portrait */
+.simple-id-withportrait { display: flex; gap: 12px; align-items: flex-start; }
+.simple-id-withportrait .simple-id-block { flex: 1 1 auto; min-width: 0; }
+.simple-portrait {
+    flex: 0 0 auto;
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid var(--row-border);
+}
+@media print {
+    .sheet-portrait:not(.has-img) { display: none; }
+    .portrait-remove { display: none; }
+    .simple-portrait { width: 88px; height: 88px; }
+}
 .char-name { font-size: 1.9rem; color: var(--accent-dark); font-variant: small-caps; }
 .char-name-input {
     width: 100%;
