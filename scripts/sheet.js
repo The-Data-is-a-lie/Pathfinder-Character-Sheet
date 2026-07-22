@@ -728,9 +728,12 @@
     const mod = (score) => Math.floor((Number(score) - 10) / 2);
 
     /**
-     * Effective ability score & modifier, pf1-style: base + typed manual bonuses
-     * (racial + enhancement + inherent + misc) + ledger changes (belts, buffs) − Drain;
-     * ability Damage penalizes the MOD (−1 per 2 points).
+     * Effective ability score & modifier, pf1-style. The generator's exported score
+     * (data[ab]) already bakes in the racial modifier; the backend also ships per-stat
+     * inherent (data.inherents) and level-up (data.level_up_stats) dicts that are NOT in
+     * that base, so they are added here. On top sit the user's manual boxes and the buff
+     * ledger. ability Damage penalizes the MOD (−1 per 2). Optional data.racial_stats, if
+     * the generator exports it, only splits the racial part out of the base for display.
      * User boxes persist on _sheet.abilityAdjust[ab] =
      * { racial, enhancement, inherent, misc, damage, drain }.
      */
@@ -740,11 +743,22 @@
         const racial = Number(adj.racial) || 0;
         const enhancement = Number(adj.enhancement) || 0;
         const inherent = Number(adj.inherent) || 0;
+        const levelup = Number(adj.levelup) || 0;
         const misc = Number(adj.misc) || 0;
         const damage = Number(adj.damage) || 0;
         const drain = Number(adj.drain) || 0;
+        // Generator's racial modifier is inside the base score only until seedRacialColumn
+        // moves it into the Racial column; after that the split is already explicit.
+        const autoRacial = data?._sheet?.racialSeeded ? 0 : Number(data?.racial_stats?.[ab]) || 0;
         const bits = [];
         let ledgerSum = 0;
+        // Ledger bonuses (equipped items, buffs, feats…) bucketed into the ability table's typed
+        // columns so an equipped belt's enhancement shows in the Enhance column instead of only in
+        // the Total's hover. enh/inherent/racial map to their columns; anything else lands in Misc,
+        // so the displayed columns always reconcile with the Total.
+        const TYPE_TO_COL = { enh: 'enhancement', inherent: 'inherent', racial: 'racial' };
+        const autoByCol = { racial: 0, enhancement: 0, inherent: 0, misc: 0 };
+        const autoSrc = { racial: [], enhancement: [], inherent: [], misc: [] };
         const SD = window.SheetDetails;
         if (SD && data) {
             for (const c of (effectiveLedger(data).changes || [])) {
@@ -753,20 +767,29 @@
                 if (ev?.ok && ev.value) {
                     ledgerSum += ev.value;
                     bits.push(`${c.source} ${fmt(ev.value)}`);
+                    const col = TYPE_TO_COL[c.type] || 'misc';
+                    autoByCol[col] += ev.value;
+                    autoSrc[col].push(`${c.source} ${fmt(ev.value)}`);
                 }
             }
         }
-        const parts = { base, racial, enhancement, inherent, misc, damage, drain };
+        const parts = { base, racial, enhancement, inherent, levelup, misc, damage, drain,
+            autoRacial, autoByCol, autoSrc };
         if (!Number.isFinite(base)) {
             return { ...parts, base: null, total: null, mod: 0, formula: 'no score' };
         }
-        const manual = racial + enhancement + inherent + misc;
+        // Inherent + level-up now live in their own columns (seeded from the backend), so
+        // the total is simply base + every typed bonus − drain.
+        const manual = racial + enhancement + inherent + levelup + misc;
         const total = base + ledgerSum + manual - drain;
         const damagePen = Math.floor(damage / 2);
+        const rollBase = base - autoRacial; // base already includes the racial modifier
         const formula = [
-            'base ' + base,
-            racial ? 'racial ' + fmt(racial) : null,
+            'base ' + rollBase,
+            autoRacial ? 'racial ' + fmt(autoRacial) : null,
+            racial ? (autoRacial ? 'racial+ ' : 'racial ') + fmt(racial) : null,
             ...bits,
+            levelup ? 'level-up ' + fmt(levelup) : null,
             enhancement ? 'enhancement ' + fmt(enhancement) : null,
             inherent ? 'inherent ' + fmt(inherent) : null,
             misc ? 'misc ' + fmt(misc) : null,
@@ -780,6 +803,53 @@
     /** Effective ability modifier (ledger + damage/drain/misc aware). */
     function abModOf(data, ab) {
         return abilityInfo(data, ab).mod;
+    }
+
+    /**
+     * One-time copy of the generator's per-stat inherent (data.inherents) and level-up
+     * (data.level_up_stats) bonuses into the editable Inherent / Level-up columns, so they
+     * show in the ability table and feed the total. Flag-guarded so later user edits
+     * (including clearing to 0) are not overwritten on re-render.
+     */
+    function seedBackendStatBonuses(data) {
+        if (!data || typeof data !== 'object') return;
+        const st = sheetState(data);
+        if (st.statSeeded) return;
+        st.statSeeded = true;
+        const seed = (dict, field) => {
+            if (!dict || typeof dict !== 'object') return;
+            for (const ab of ['str', 'dex', 'con', 'int', 'wis', 'cha']) {
+                const v = Number(dict[ab]) || 0;
+                if (!v) continue;
+                st.abilityAdjust ??= {};
+                st.abilityAdjust[ab] ??= {};
+                if (st.abilityAdjust[ab][field] == null) st.abilityAdjust[ab][field] = v;
+            }
+        };
+        seed(data.inherents, 'inherent');
+        seed(data.level_up_stats, 'levelup');
+    }
+
+    /**
+     * One-time move of the generator's racial share out of the base score and into the
+     * editable Racial column: the backend bakes racial_stats into the exported score, so
+     * seeding subtracts it from data[ab] and adds it to abilityAdjust[ab].racial — every
+     * total is unchanged, but the Racial column shows real numbers instead of "—".
+     * Own flag (not statSeeded) so characters saved before this feature still upgrade.
+     */
+    function seedRacialColumn(data) {
+        if (!data || typeof data !== 'object') return;
+        const st = sheetState(data);
+        if (st.racialSeeded || !data.racial_stats || typeof data.racial_stats !== 'object') return;
+        st.racialSeeded = true;
+        for (const ab of ['str', 'dex', 'con', 'int', 'wis', 'cha']) {
+            const v = Number(data.racial_stats[ab]) || 0;
+            if (!v || !Number.isFinite(Number(data[ab]))) continue;
+            data[ab] = Number(data[ab]) - v;
+            st.abilityAdjust ??= {};
+            st.abilityAdjust[ab] ??= {};
+            st.abilityAdjust[ab].racial = (Number(st.abilityAdjust[ab].racial) || 0) + v;
+        }
     }
     const fmt = (n) => (n >= 0 ? '+' + n : String(n));
     const toInt = (v) => {
@@ -6913,8 +6983,9 @@
         }
 
         // FoundryVTT-style ability rows: spelled-out name + Total / Modifier /
-        // typed bonuses (Racial / Enhance / Inherent / Misc) / Damage / Drain,
-        // full width. Total hover shows the full source formula.
+        // typed bonuses (Racial / Enhance / Inherent / Level-up / Misc) / Damage / Drain,
+        // full width. Inherent & Level-up are pre-filled from the generator. Total hover
+        // shows the full source formula.
         const ABILITY_NAMES = {
             str: 'Strength', dex: 'Dexterity', con: 'Constitution',
             int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma',
@@ -6922,8 +6993,8 @@
         const st = sheetState(data);
         const abT = h('table', 'skills-table ability-table');
         const abHd = h('tr');
-        ['Ability', 'Total', 'Modifier', 'Racial', 'Enhance', 'Inherent',
-            'Misc', 'Damage', 'Drain']
+        ['Ability', 'Total', 'Modifier', 'Base', 'Racial', 'Enhance', 'Inherent',
+            'Level-up', 'Misc', 'Damage', 'Drain']
             .forEach((t) => abHd.appendChild(h('th', null, t)));
         abT.appendChild(abHd);
         const rerenderAttrs = () => {
@@ -6951,13 +7022,32 @@
                 + (info.damage ? ` − ${Math.floor(info.damage / 2)} (ability damage)` : '');
             tr.appendChild(modTd);
 
+            // Base = the rolled score; racial is split into the Racial column once seeded
+            // (older unseeded saves that carry racial_stats still have it baked in).
+            const baseTd = h('td', 'num ability-base');
+            const racialBaked = !st.racialSeeded && data?.racial_stats;
+            baseTd.title = (racialBaked
+                ? 'Rolled base score (includes racial modifier). '
+                : 'Rolled base score. ') + 'Double-click to edit.';
+            baseTd.appendChild(dblclickEditable(data, ab, {
+                type: 'number', min: 1, max: 99,
+                format: (v) => (Number(v) ? String(Number(v)) : '—'),
+                parse: (s) => parseIntLoose(s, 10),
+                onChange: rerenderAttrs,
+            }));
+            tr.appendChild(baseTd);
+
             const ADJ_HINTS = {
-                racial: 'Racial ability modifier (e.g. +2 from race/heritage).',
-                enhancement: 'Enhancement bonus (belts, bull’s strength). Highest one '
-                    + 'applies — don’t add belt bonuses already tracked as buffs.',
+                racial: 'Racial ability modifier (e.g. +2 from race/heritage). '
+                    + 'Pre-filled from the generator; editable.',
+                enhancement: 'Enhancement bonus (belts, bull’s strength). Equipped items and buffs '
+                    + 'add the dim auto value; the editable box is a manual override on top.',
                 inherent: 'Inherent bonus (tomes/manuals, wish). Max +5, stacks with '
-                    + 'enhancement.',
-                misc: 'Any other untyped/situational adjustment to the score.',
+                    + 'enhancement. Pre-filled from the generator; editable.',
+                levelup: 'Level-up ability increases (+1 per 4 levels). Pre-filled from '
+                    + 'the generator; editable.',
+                misc: 'Any other untyped/situational adjustment to the score. Untyped bonuses '
+                    + 'from items/buffs add the dim auto value.',
                 damage: 'Ability damage: −1 to the modifier per 2 points.',
                 drain: 'Ability drain: −1 to the score per point (permanent).',
             };
@@ -6979,17 +7069,32 @@
                         rerenderAttrs();
                     },
                 }));
+                // Auto value from equipped items / buffs (the ledger), shown dim beside the manual
+                // box so the enhancement from a belt etc. is visible in its own column.
+                const auto = info.autoByCol?.[field] || 0;
+                if (auto) {
+                    const badge = h('span', 'ability-auto', fmt(auto));
+                    badge.title = 'From items/buffs: ' + (info.autoSrc?.[field] || []).join(', ');
+                    td.appendChild(badge);
+                }
                 return td;
             };
             tr.appendChild(adjCell('racial', true));
             tr.appendChild(adjCell('enhancement', true));
             tr.appendChild(adjCell('inherent', true));
+            tr.appendChild(adjCell('levelup', true));
             tr.appendChild(adjCell('misc', true));
             tr.appendChild(adjCell('damage', false));
             tr.appendChild(adjCell('drain', false));
             abT.appendChild(tr);
         }
         body.appendChild(abT);
+        body.appendChild(h('p', 'dim attr-cols-note',
+            'Racial, Inherent and Level-up columns are pre-filled from the generator (editable). '
+            + (st.racialSeeded || !data?.racial_stats
+                ? 'Older characters without generator racial data keep the Racial column blank.'
+                : 'Racial modifiers are already included in the base score.')));
+
         return sec;
     }
 
@@ -8290,6 +8395,9 @@
         // Hydrate equipment (and re-fill empty non-customized changes from compendium)
         // before any tab computes AC / attacks / buffs.
         ensureInventoryObjects(data);
+        // Seed the Inherent / Level-up / Racial columns from the generator before any ability math.
+        seedBackendStatBonuses(data);
+        seedRacialColumn(data);
 
         if (viewMode() === 'simple') {
             sheet.appendChild(renderSimpleSheet(data));
