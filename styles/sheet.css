@@ -3643,8 +3643,10 @@ details .desc p { margin: 0.3rem 0; }
     font-size: 1.1rem;
     line-height: 1;
     box-shadow: 2px 2px 8px var(--shadow);
+    touch-action: none;   /* let a hold-and-drag resize work on touch without scrolling */
 }
 .tools-toggle:hover { background: var(--accent-hover); }
+body.tools-resizing .tools-toggle { cursor: ew-resize; }
 /* Open handle rides the drawer's live width (set by the resize drag, JS-managed). */
 body.tools-open .tools-toggle { left: var(--tools-width, min(20rem, 92vw)); }
 
