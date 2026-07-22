@@ -720,7 +720,9 @@ window.SheetDetails = (function () {
     function searchCatalog(kind, query, opts = {}) {
         const limit = opts.limit || 40;
         const q = String(query || '').toLowerCase().trim();
-        if (!q || q.length < 1) return [];
+        // Classes are a bounded list, so an empty query lists them all alphabetically
+        // (lets "Browse classes" show every option before the user types).
+        if ((!q || q.length < 1) && kind !== 'classes') return [];
 
         const out = [];
         const push = (row) => {
@@ -730,7 +732,7 @@ window.SheetDetails = (function () {
 
         if (kind === 'classes') {
             for (const [key, name] of classNames()) {
-                if (!key.includes(q)) continue;
+                if (q && !key.includes(q)) continue;
                 push({ key, name, kind: 'classes', subtitle: 'Class', entry: { name } });
                 if (out.length >= limit) break;
             }

@@ -3062,13 +3062,17 @@
         function runSearch() {
             results.innerHTML = '';
             const q = input.value.trim();
-            if (q.length < 1) {
+            // showAllOnEmpty lets a local source (e.g. per-class archetypes) list every
+            // option before the user types; the bundled catalog still needs a query.
+            if (q.length < 1 && !(opts.showAllOnEmpty && opts.localSource)) {
                 results.appendChild(h('p', 'catalog-empty dim', 'Start typing to search the catalog.'));
                 return;
             }
             // Catalog hits (if the active kind has bundled data) plus any caller-supplied
             // local options (e.g. previously-used archetypes), deduped by name.
-            const catalogHits = window.SheetDetails?.searchCatalog?.(activeKind, q, { limit: 50 }) || [];
+            const catalogHits = q.length >= 1
+                ? (window.SheetDetails?.searchCatalog?.(activeKind, q, { limit: 50 }) || [])
+                : [];
             const localHits = opts.localSource ? (opts.localSource(q) || []) : [];
             const seen = new Set();
             const hits = [];
@@ -6670,6 +6674,33 @@
             .map((nm) => ({ name: nm, kind: 'archetypes', subtitle: 'Used before' }));
     }
 
+    // Per-class archetype catalog (slim class -> [names] extract, data/archetypes_by_class.json).
+    let archetypesByClass = null;
+    function loadArchetypesByClass() {
+        if (archetypesByClass) return;
+        fetch('data/archetypes_by_class.json')
+            .then((r) => (r.ok ? r.json() : null))
+            .then((j) => { if (j && typeof j === 'object') archetypesByClass = j; })
+            .catch(() => { /* offline / missing file — picker falls back to used + custom */ });
+    }
+    /** Archetypes available to the character's current classes, filtered by query. */
+    function classArchetypeHits(data, query) {
+        if (!archetypesByClass) return [];
+        const q = String(query || '').toLowerCase();
+        const seen = new Set();
+        const out = [];
+        for (const cls of ensureClassList(data)) {
+            const key = String(cls).toLowerCase();
+            for (const name of archetypesByClass[key] || []) {
+                const k = name.toLowerCase();
+                if (seen.has(k) || !k.includes(q)) continue;
+                seen.add(k);
+                out.push({ name, kind: 'archetypes', subtitle: titleCase(cls) + ' archetype' });
+            }
+        }
+        return out.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
     /** Class detail popup — defaults line + editable chassis + class-skill checkboxes. */
     function openClassSheet(data, clsName) {
         document.getElementById('class-sheet-modal')?.remove();
@@ -6966,6 +6997,7 @@
         // --- Classes & Archetypes (selectable from saved data, drag to reorder)
         ensureClassList(data);
         ensureArchetypeList(data);
+        loadArchetypesByClass(); // per-class archetype options for the picker
         (data.archetype_list || []).forEach(recordUsedArchetype); // grow the used-set
 
         const summaryRerender = () => { quietSave(); renderSheet(data); setActiveTab('summary'); };
@@ -7036,6 +7068,9 @@
                     kinds: ['classes'],
                     kindLabels: { classes: 'Classes' },
                     allowCustom: true,
+                    // List every class alphabetically before the user types.
+                    showAllOnEmpty: true,
+                    localSource: (q) => window.SheetDetails?.searchCatalog?.('classes', q, { limit: 500 }) || [],
                     customPlaceholder: 'Custom class name',
                     onPick: (hit) => {
                         addToArrayField(data, 'class_list', hit.name);
@@ -7070,7 +7105,8 @@
                     kindLabels: { archetypes: 'Archetypes' },
                     allowCustom: true,
                     customPlaceholder: 'Archetype name',
-                    localSource: usedArchetypeHits,
+                    showAllOnEmpty: true,
+                    localSource: (q) => [...classArchetypeHits(data, q), ...usedArchetypeHits(q)],
                     onPick: (hit) => {
                         addToArrayField(data, 'archetype_list', hit.name);
                         recordUsedArchetype(hit.name);
