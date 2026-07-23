@@ -9025,6 +9025,10 @@
     }
 
     function renderSheet(data) {
+        // Any render of something other than the sample retires the sample banner (Generate,
+        // Load JSON, picking from the roster). Re-rendering the sample itself keeps it.
+        if (demoData && data !== demoData) clearDemoBanner();
+
         // Keep un-debounced prose edits when re-rendering (details-ready, manual save, …).
         if (currentData) {
             const prose = ensureProse(currentData);
@@ -9141,6 +9145,52 @@
         localStorage.setItem(CURRENT_KEY, record.id);
         if (!quiet) await refreshRoster(record.id);
         return record;
+    }
+
+    // ------------------------------------------------------------ demo character
+    // A first-time visitor otherwise lands on an empty placeholder, and the only way out
+    // is Generate — which cold-starts the free backend and can take up to a minute. So we
+    // render a bundled sample instead: a level-20 cleric who also walks the Path of War
+    // Martial Training chain, which fills the Spells and Path of War tabs at once.
+    //
+    // Render-only, deliberately: the sample is NEVER written to the library, so it can't
+    // pollute a real roster or turn into a record someone has to delete. It shows only
+    // when the library is genuinely empty, so returning users never see it.
+    let demoData = null;
+
+    function clearDemoBanner() {
+        demoData = null;
+        document.getElementById('demo-banner')?.remove();
+    }
+
+    function showDemoBanner() {
+        document.getElementById('demo-banner')?.remove();
+        const bar = h('div', 'demo-banner no-print');
+        bar.id = 'demo-banner';
+        bar.appendChild(h('span', '', 'Sample character — a level 20 cleric, to show the sheet with something in it. Hit Generate to roll your own.'));
+        const close = h('button', 'demo-banner-x', '×');
+        close.type = 'button';
+        close.title = 'Dismiss';
+        close.addEventListener('click', clearDemoBanner);
+        bar.appendChild(close);
+        document.getElementById('sheet')?.before(bar);
+    }
+
+    async function loadDemoCharacter() {
+        try {
+            const records = await window.SheetLibrary.list().catch(() => []);
+            if (records.length) return false;             // real characters win, always
+            const resp = await fetch('data/demo-character.json', { cache: 'no-store' });
+            if (!resp.ok) return false;
+            const data = await resp.json();
+            if (!data || typeof data !== 'object' || data.error) return false;
+            demoData = data;
+            renderSheet(data);
+            showDemoBanner();
+            return true;
+        } catch {
+            return false;                                  // no demo file / offline: fall through
+        }
     }
 
     async function loadCharacter(id) {
@@ -9344,7 +9394,10 @@
             }
             await refreshRoster(startId);
         }
-        // No character (or missing id): still render Settings so themes/backend/folder are visible.
+        // Nothing to restore: an empty library means a first-time visitor, so show the
+        // bundled sample rather than an empty sheet (see loadDemoCharacter).
+        if (!loaded) loaded = await loadDemoCharacter();
+        // Still nothing: render Settings so themes/backend/folder are visible.
         if (!loaded) renderSheet(null);
 
         // The details data usually lands after first paint — re-render once so descriptions

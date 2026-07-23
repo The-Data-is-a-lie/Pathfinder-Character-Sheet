@@ -944,6 +944,35 @@ button:disabled { opacity: 0.55; cursor: wait; }
 .placeholder { text-align: center; color: var(--dim); margin-top: 3rem; }
 .placeholder.error { color: var(--accent-dark); }
 
+/* Sample-character notice — only ever shown to a first-time visitor with an empty
+   library (see loadDemoCharacter in sheet.js). Theme vars only, so it inherits
+   whichever of the 15+ themes is active. */
+.demo-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    max-width: 60rem;
+    margin: 0.75rem auto 0;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+    border-radius: 4px;
+    color: var(--dim);
+    font-size: 0.9rem;
+}
+.demo-banner span { flex: 1; }
+.demo-banner-x {
+    flex: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--dim);
+    font-size: 1.2rem;
+    line-height: 1;
+    padding: 0 0.25rem;
+}
+.demo-banner-x:hover { color: var(--accent); }
+
 .sheet-header {
     border-bottom: 3px double var(--accent);
     padding-bottom: 0.5rem;
