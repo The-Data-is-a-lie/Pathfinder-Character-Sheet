@@ -1,6 +1,8 @@
 __pycache__/
 *.pyc
 .venv/
+# stray pip target (Pillow) — never part of the site
+Lib/
 .DS_Store
 Thumbs.db
 screenshots/
