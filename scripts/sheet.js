@@ -18,12 +18,30 @@
     const BACKEND_KEY = 'sheet.backendUrl';
     const TAB_KEY = 'sheet.activeTab';
     const VIEW_KEY = 'sheet.viewMode'; // 'full' (tabbed) | 'simple' (classic printable sheet)
+    // Unset means a first-time visitor, who starts on the simple sheet and with plain-English
+    // hints on. Both stick to whatever the user picks after that. The stored view value stays
+    // 'full'/'simple' — only the user-facing word for 'full' became "Complex".
+    const EXPLAIN_KEY = 'sheet.explainMode'; // '1' | '0'
+    // Who is holding the sheet. Owns the DEFAULT for every beginner-facing surface below
+    // (view, explain, rail, the Start-here card) so there is one place to lean harder into
+    // newcomers — or, for an experienced player, to strip the training wheels in one move.
+    // Once the user touches an individual toggle, that stored value wins from then on.
+    const AUDIENCE_KEY = 'sheet.audience';       // 'beginner' | 'expert'; unset ⇒ beginner
+    const START_SEEN_KEY = 'sheet.seenStartHere'; // '1' once the Start-here card has been shown
+    const RAIL_OPEN_KEY = 'sheet.railOpen';       // '1' | '0'
+    const RAIL_SIZE_KEY = 'sheet.railWidth';      // px; converted to --rail-scale
     const CURRENT_KEY = 'sheet.currentId';
     const THEME_KEY = 'sheet.theme';
     const THEME_SKIP_PROMPT_KEY = 'sheet.themePromptSkip'; // '1' = don't auto-open modal on load
     const CUSTOM_THEME_KEY = 'sheet.customTheme'; // {paper, accent, ink} hex
     const CUSTOM_THEME_TOKENS_KEY = 'sheet.customThemeTokens'; // derived token map for pre-paint boot
     const SAVED_THEMES_KEY = 'sheet.savedThemes'; // [{id: 'saved-…', label, colors: {paper, accent, ink}}]
+    // What a profile that has never picked a theme gets. Sepia rather than 'system': it is
+    // the dullest light theme in the set (paper 15% down from white, warm monochrome, no
+    // saturated field anywhere), so a newcomer lands on something restful without being
+    // asked, and two machines side by side look identical regardless of their OS dark-mode
+    // setting. MIRRORED in the pre-paint script in index.html — change both together.
+    const DEFAULT_THEME = 'sepia';
     const DEFAULT_BACKEND = 'https://pathfinder-char-creator-web-public-use.onrender.com';
 
     // Themes map to html[data-theme] tokens in styles/sheet.css (OKF color-theory roles).
@@ -55,9 +73,9 @@
     }
 
     function themePreference() {
-        let v = localStorage.getItem(THEME_KEY) || 'system';
+        let v = localStorage.getItem(THEME_KEY) || DEFAULT_THEME;
         if (v === 'foundry-classic') v = 'parchment'; // retired theme
-        return isThemeChoice(v) ? v : 'system';
+        return isThemeChoice(v) ? v : DEFAULT_THEME;
     }
 
     function skipThemePrompt() {
@@ -430,7 +448,7 @@
     }
 
     function syncThemeControls(pref) {
-        const choice = isThemeChoice(pref) ? pref : 'system';
+        const choice = isThemeChoice(pref) ? pref : DEFAULT_THEME;
         document.querySelectorAll('input[name="sheet-theme"]').forEach((r) => {
             r.checked = r.value === choice;
         });
@@ -453,7 +471,7 @@
     }
 
     function applyTheme(pref) {
-        const choice = isThemeChoice(pref) ? pref : 'system';
+        const choice = isThemeChoice(pref) ? pref : DEFAULT_THEME;
         const saved = savedThemeById(choice);
         const resolved = saved ? 'custom' : resolveTheme(choice);
         if (resolved === 'custom') {
@@ -565,54 +583,118 @@
         syncThemeControls(themePreference());
     }
 
+    // Backdrop / Escape / scroll-lock / focus all come from SheetOverlay; this only supplies
+    // the content and remembers the "don't show again" choice on the way out.
+    let themeOverlay = null;
+
     function closeThemeModal() {
-        const modal = document.getElementById('theme-modal');
-        if (!modal) return;
-        const skip = document.getElementById('theme-modal-skip');
-        if (skip) setSkipThemePrompt(!!skip.checked);
-        modal.classList.add('hidden');
-        modal.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('theme-modal-open');
-        document.getElementById('theme-btn')?.focus();
+        themeOverlay?.close();
     }
 
-    function openThemeModal(opts) {
-        const modal = document.getElementById('theme-modal');
-        if (!modal) return;
+    function openThemeModal() {
+        if (themeOverlay) return;
+        const body = document.getElementById('theme-modal-body');
+        if (!body || !window.SheetOverlay) return;
         buildThemeModalGrid();
         syncThemeControls(themePreference());
         const skip = document.getElementById('theme-modal-skip');
         if (skip) skip.checked = skipThemePrompt();
-        modal.classList.remove('hidden');
-        modal.setAttribute('aria-hidden', 'false');
-        document.body.classList.add('theme-modal-open');
-        // Focus first selected pick or Continue.
-        const selected = modal.querySelector('.theme-modal-pick.is-selected');
-        (selected || document.getElementById('theme-modal-done'))?.focus();
-        if (opts?.force) { /* opened from topbar — no extra flags */ }
+        themeOverlay = window.SheetOverlay.open({
+            title: 'Choose a theme',
+            body,
+            cls: 'theme-overlay',
+            footer: [
+                document.getElementById('theme-modal-skip-row'),
+                document.getElementById('theme-modal-help'),
+                document.getElementById('theme-modal-done'),
+            ],
+            onClose() {
+                const box = document.getElementById('theme-modal-skip');
+                if (box) setSkipThemePrompt(!!box.checked);
+                themeOverlay = null;
+            },
+        });
+        // Prefer the currently-selected swatch over the first tabbable control.
+        themeOverlay.card.querySelector('.theme-modal-pick.is-selected')?.focus();
+    }
+
+    // ---------------------------------------------------------------- instructions
+    let guideOverlay = null;
+
+    function openInstructions() {
+        if (guideOverlay) {
+            guideOverlay.close();
+            return;
+        }
+        if (!window.SheetOverlay || !window.SheetGuide) return;
+        guideOverlay = window.SheetOverlay.open({
+            title: 'How to use this sheet',
+            body: window.SheetGuide.buildInstructions(),
+            cls: 'guide-overlay',
+            onClose() { guideOverlay = null; },
+        });
+    }
+
+    // ---------------------------------------------------------------- start here
+    // The short on-ramp. "Show me everything" opens the full instructions ON TOP of it — the
+    // overlay stack handles that, and Escape peels them back one at a time.
+    let startOverlay = null;
+
+    function openStartHere() {
+        if (startOverlay) {
+            startOverlay.close();
+            return;
+        }
+        if (!window.SheetOverlay || !window.SheetGuide) return;
+        localStorage.setItem(START_SEEN_KEY, '1');
+        startOverlay = window.SheetOverlay.open({
+            title: 'Start here',
+            cls: 'start-overlay',
+            body: window.SheetGuide.buildStartHere({
+                onGenerate() {
+                    startOverlay?.close();
+                    const panel = document.getElementById('gen-panel');
+                    if (panel && panel.classList.contains('hidden')) togglePanel('gen-panel');
+                },
+                onFull: () => openInstructions(),
+                onExpert() {
+                    startOverlay?.close();
+                    setAudience('expert');
+                    // Someone who has played before is exactly who the theme picker was
+                    // written for, so it becomes their first screen instead of this one.
+                    openThemeModal();
+                },
+            }),
+            onClose() { startOverlay = null; },
+        });
+    }
+
+    /** First visit only, and only for someone who hasn't said they've played before. */
+    function shouldAutoOpenStartHere() {
+        return audienceDefault('startHere') && localStorage.getItem(START_SEEN_KEY) !== '1';
     }
 
     function shouldAutoOpenThemeModal() {
-        // First-time and every load until the user checks "Don't show this on load".
-        return !skipThemePrompt();
+        // Experienced players only. A newcomer gets a known-good default look (DEFAULT_THEME)
+        // and Start here instead — being asked to choose between sixteen colour schemes
+        // before you've been told what the page is helps nobody. The Theme button in the top
+        // bar still opens it for anyone, anytime.
+        return audience() === 'expert' && !skipThemePrompt();
     }
 
     function initTheme() {
         applyTheme(themePreference());
         const themeBtn = document.getElementById('theme-btn');
         if (themeBtn) {
-            themeBtn.addEventListener('click', () => openThemeModal({ force: true }));
+            themeBtn.addEventListener('click', () => openThemeModal());
         }
         document.getElementById('theme-modal-done')?.addEventListener('click', closeThemeModal);
-        document.querySelectorAll('[data-theme-modal-dismiss]').forEach((el) => {
-            el.addEventListener('click', closeThemeModal);
-        });
-        document.addEventListener('keydown', (e) => {
-            const modal = document.getElementById('theme-modal');
-            if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
-                e.preventDefault();
-                closeThemeModal();
-            }
+        // The way back. Only an expert ever sees this picker, so "New here?" means they said
+        // they'd played before and hadn't — undo it, then stack the on-ramp on top rather
+        // than dismissing the picker underneath.
+        document.getElementById('theme-modal-help')?.addEventListener('click', () => {
+            setAudience('beginner');
+            openStartHere();
         });
         try {
             const mq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -623,8 +705,12 @@
             else if (mq.addListener) mq.addListener(onChange);
         } catch { /* ignore */ }
 
-        if (shouldAutoOpenThemeModal()) {
-            // After first paint so the sheet is under the overlay.
+        // After first paint so the sheet is under the overlay. Start here comes first: a
+        // newcomer needs to know what the page IS before being asked what colour it should
+        // be. The picker is what an expert gets instead, never both at once.
+        if (shouldAutoOpenStartHere()) {
+            requestAnimationFrame(() => openStartHere());
+        } else if (shouldAutoOpenThemeModal()) {
             requestAnimationFrame(() => openThemeModal());
         }
     }
@@ -650,6 +736,13 @@
         'Samurai', 'Shaman', 'Shifter', 'Skald', 'Slayer', 'Sorcerer', 'Summoner',
         'Summoner (Unchained)', 'Swashbuckler', 'Vigilante', 'Warpriest', 'Witch', 'Wizard',
         'Warlord', 'Warder', 'Harbinger', 'Mystic', 'Medic', 'Stalker', 'Zealot'];
+    // Beginner grouping for the quick generate form: these float to a "Common" optgroup and
+    // everything else falls into "More…". Membership only — RACES/CLASSES above stay the
+    // single source of truth, so a new entry there still shows up (just under More).
+    const CORE_RACES = new Set(['Human', 'Elf', 'Dwarf', 'Halfling', 'Gnome', 'Half-Elf', 'Half-Orc']);
+    const CORE_CLASSES = new Set(['Fighter', 'Wizard', 'Rogue', 'Cleric', 'Ranger', 'Paladin',
+        'Barbarian', 'Bard', 'Druid', 'Monk', 'Sorcerer']);
+
     const DEITIES = ['random', 'Abadar', 'Achaekek', 'Ahriman', 'Alazhra', 'Alseta', 'Apsu',
         'Arazni', 'Asmodeus', 'Besmara', 'Calistria', 'Cayden Cailean', 'Desna', 'Easivra',
         'Erastil', 'Erecura', 'Gorum', 'Gozreh', 'Groetus', 'Hanspur', 'Iomedae', 'Irori',
@@ -715,9 +808,22 @@
         return { sec, body };
     }
 
+    /**
+     * Label cell for the complex view's key/value rows, carrying an Explain-mode hint when
+     * the glossary knows the term. Shared by kv and kvStat, which is most of the Summary,
+     * Defenses and Combat surface. Defined lazily via termHint so a glossary miss costs
+     * nothing.
+     */
+    function kLabel(label) {
+        const span = h('span', 'k', label);
+        const hint = termHint(label);
+        if (hint) span.appendChild(hint);
+        return span;
+    }
+
     function kv(body, label, value) {
         const row = h('div', 'kv');
-        row.appendChild(h('span', 'k', label));
+        row.appendChild(kLabel(label));
         const v = h('span', 'v');
         if (value instanceof Node) v.appendChild(value);
         else v.textContent = value == null ? '' : String(value);
@@ -1552,7 +1658,7 @@
     /** kv row with total + collapsible source list */
     function kvStat(body, label, block, opts = {}) {
         const row = h('div', 'kv kv-stat');
-        row.appendChild(h('span', 'k', label));
+        row.appendChild(kLabel(label));
         const v = h('span', 'v');
         const totalEl = h('span', 'stat-total',
             opts.formatTotal ? opts.formatTotal(block.total) : String(block.total));
@@ -1929,11 +2035,41 @@
         return abModOf(data, key);
     }
 
+    /**
+     * Total character level across every class.
+     *
+     * DERIVED, never read from the payload's stored `total_level`: `level` is editable in the header
+     * (and means the PRIMARY class's level -- see the "Fighter 6 / Wizard 4" block in the identity
+     * section), while classes[] and total_level are not editable anywhere, so the stored total goes
+     * stale the moment someone edits a level. classes[] arrives level-descending from the backend, so
+     * classes[0] is the primary and slice(1) is exactly the static "/ Wizard 4" tail the header prints.
+     * Single-class and pre-multiclass payloads fall through to `level`, unchanged.
+     */
+    function totalLevel(data) {
+        const primary = Number(data?.level) || 0;
+        const rest = (Array.isArray(data?.classes) ? data.classes.slice(1) : [])
+            .reduce((n, c) => n + (Number(c.level) || 0), 0);
+        return primary + rest;
+    }
+
+    /**
+     * Caster level. `caster_level` is user-entered only (the generator never ships it), so an explicit
+     * override always wins; otherwise use the campaign's homebrew COMBINED caster level -- every
+     * casting class contributes its full class level, or level-3 for a 'low' caster, summed and
+     * floored to 1. The backend already bakes the -3 into each spellbook's casting_level_num, so
+     * summing the books reproduces the rule (this mirrors spellCLExpr() in the Foundry module).
+     * Falls back to total level for payloads with no spellbooks.
+     */
     function casterLevelValue(data) {
         const n = Number(data.caster_level);
         if (Number.isFinite(n) && n > 0) return n;
-        const lv = Number(data.level) || 1;
-        return lv;
+        const books = data?.spellbooks;
+        if (Array.isArray(books) && books.length) {
+            const combined = books.reduce(
+                (sum, b) => sum + Math.max(0, Number(b?.casting_level_num) || 0), 0);
+            if (combined > 0) return combined;
+        }
+        return totalLevel(data) || 1;
     }
 
     function spellSaveDC(data, level) {
@@ -5173,7 +5309,9 @@
     /** pf1 features footer: feat counts vs the odd-level budget (info boxes). */
     function renderFeatCounts(data) {
         const owned = (data.feats || []).length;
-        const byLevel = Math.ceil((Number(data.level) || 0) / 2); // PF1 feats at 1, 3, 5, …
+        // PF1 feats at 1, 3, 5, … — off TOTAL level, not `level` (the primary class's level), which
+        // told a level-20 multiclass character it was owed 4 feats and flagged the rest as "Excess".
+        const byLevel = Math.ceil(totalLevel(data) / 2);
         let bonus = 0;
         for (const g of FEAT_GROUPS) {
             if (g.listKey === 'feats') continue;
@@ -6781,6 +6919,7 @@
             }
             box.appendChild(head);
             box.appendChild(h('div', 'summary-stat-val', value));
+            attachStatHint(box, label);
             strip.appendChild(box);
         };
         add('Init', fmt(d.blocks.init.total), { rollTotal: d.blocks.init.total, rollLabel: 'Initiative' });
@@ -6801,6 +6940,7 @@
             parse: (s) => parseIntLoose(s, 0),
             onChange: () => quietSave(),
         }));
+        attachStatHint(srBox, 'SR');
         strip.appendChild(srBox);
         body.appendChild(strip);
     }
@@ -6924,6 +7064,19 @@
 
     function classKeyOf(name) {
         return String(name || '').toLowerCase().trim();
+    }
+
+    /**
+     * Level of ONE named class, for per-class labels. Without this every class card showed the
+     * PRIMARY class's level, so the Wizard card on a Monk 8 / Wizard 5 read "Wizard — level 8".
+     * Falls back to the legacy `level` so old payloads (no classes[]) and user-added classes with no
+     * payload entry render exactly as they do today, rather than inheriting a fabricated total.
+     */
+    function classLevelFor(data, clsName) {
+        const key = classKeyOf(clsName);
+        const hit = (Array.isArray(data?.classes) ? data.classes : [])
+            .find((c) => classKeyOf(c.name) === key || classKeyOf(c.display) === key);
+        return Number(hit?.level) || (Number(data?.level) || 0);
     }
 
     /** Built-in chassis + per-character overrides (_sheet.classInfo[key]). */
@@ -7095,7 +7248,7 @@
         const card = h('div', 'item-sheet-card class-sheet-card');
         const head = h('div', 'item-sheet-head');
         head.appendChild(h('h3', 'class-sheet-title',
-            titleCase(clsName) + ' — level ' + (Number(data.level) || 0)));
+            titleCase(clsName) + ' — level ' + classLevelFor(data, clsName)));
         const closeBtn = h('button', 'catalog-picker-close', '×');
         closeBtn.type = 'button';
         closeBtn.addEventListener('click', close);
@@ -7268,6 +7421,7 @@
             if (content instanceof Node) val.appendChild(content);
             else val.textContent = String(content);
             b.appendChild(val);
+            attachStatHint(b, label);
             if (opts.title) b.title = opts.title;
             if (opts.cls) b.classList.add(opts.cls);
             strip.appendChild(b);
@@ -7425,7 +7579,7 @@
             metaFor: (name) => {
                 const info = classInfoFor(data, name);
                 return {
-                    label: titleCase(name) + ' — level ' + (Number(data.level) || 0),
+                    label: titleCase(name) + ' — level ' + classLevelFor(data, name),
                     blurb: info.hd
                         ? `d${info.hd} · BAB ${info.bab} · ${info.casting}`
                         : 'click for class details',
@@ -8042,6 +8196,7 @@
             }
             b.appendChild(head);
             b.appendChild(h('div', 'summary-stat-val', value));
+            attachStatHint(b, label);
             if (opts.title) b.title = opts.title;
             strip.appendChild(b);
             return b;
@@ -8167,6 +8322,73 @@
         customPanel.classList.toggle('hidden', pref !== 'custom');
         body.appendChild(customPanel);
 
+        // Beginner helpers — same state the rail toggles, reachable from a settled place.
+        body.appendChild(h('h3', null, 'Beginner helpers'));
+        body.appendChild(h('p', 'dim', 'Pick who is holding the sheet and everything below follows. Fine-tune any of it afterwards — your choice sticks. Explain and the view switch are also on the action rail and in the top bar.'));
+
+        // The parent switch: picking one sets everything below it in one move. The rows that
+        // follow stay editable, so a mostly-expert player can keep any single helper on.
+        const audienceRow = h('div', 'settings-row');
+        audienceRow.appendChild(h('span', 'settings-row-label', "Who's using this sheet?"));
+        const audienceGroup = h('div', 'view-segmented');
+        audienceGroup.setAttribute('role', 'group');
+        audienceGroup.setAttribute('aria-label', 'Beginner or experienced player');
+        for (const [value, label, hint] of [
+            ['beginner', 'New to this', 'Plain-English notes, the one-page sheet, and the big action buttons'],
+            ['expert', 'I know Pathfinder', 'Hides the beginner helpers and starts on the detailed tabbed sheet'],
+        ]) {
+            const on = audience() === value;
+            const segBtn = h('button', 'view-seg' + (on ? ' is-on' : ''));
+            segBtn.type = 'button';
+            segBtn.title = hint;
+            segBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            segBtn.appendChild(h('span', 'view-seg-dot', on ? '●' : ''));
+            segBtn.appendChild(h('span', 'view-seg-label', label));
+            segBtn.addEventListener('click', () => {
+                if (audience() === value) return;
+                setAudience(value);
+            });
+            audienceGroup.appendChild(segBtn);
+        }
+        audienceRow.appendChild(audienceGroup);
+        body.appendChild(audienceRow);
+
+        const explainRow = h('div', 'settings-row');
+        const explainLabel = h('label', 'settings-check');
+        const explainBox = h('input');
+        explainBox.type = 'checkbox';
+        explainBox.checked = explainMode();
+        explainBox.addEventListener('change', () => setExplainMode(explainBox.checked));
+        explainLabel.append(explainBox, h('span', null, 'Explain mode — plain-English notes under the numbers'));
+        explainRow.appendChild(explainLabel);
+        body.appendChild(explainRow);
+
+        const viewRow = h('div', 'settings-row');
+        viewRow.appendChild(h('span', 'settings-row-label', 'Start on'));
+        const viewSel = h('select');
+        viewSel.className = 'settings-row-select';
+        for (const [value, label] of [['simple', 'Simple sheet'], ['full', 'Complex sheet']]) {
+            const opt = h('option', null, label);
+            opt.value = value;
+            viewSel.appendChild(opt);
+        }
+        viewSel.value = viewMode();
+        viewSel.addEventListener('change', () => {
+            setViewMode(viewSel.value);
+            renderSheet(currentData);
+        });
+        viewRow.appendChild(viewSel);
+        body.appendChild(viewRow);
+
+        const guideRow = h('div', 'settings-row');
+        for (const [label, run] of [['Start here', openStartHere], ['Full instructions', openInstructions]]) {
+            const btn = h('button', null, label);
+            btn.type = 'button';
+            btn.addEventListener('click', run);
+            guideRow.appendChild(btn);
+        }
+        body.appendChild(guideRow);
+
         body.appendChild(h('h3', null, 'Generation Backend'));
         const urlRow = h('div', 'settings-row');
         const urlInput = h('input');
@@ -8254,25 +8476,249 @@
         return sec;
     }
 
+    /** Brief non-modal confirmation (scripts/overlay.js). No-ops if overlay.js is absent. */
+    function toast(text) {
+        window.SheetOverlay?.toast?.(text);
+    }
+
+    // ---------------------------------------------------------------- audience
+    // One switch behind every beginner-facing default. Nothing reads a hard-coded fallback
+    // any more — they all come through AUDIENCE_DEFAULTS, so adding or removing "basic
+    // stuff" for newcomers is a single-table edit.
+    const AUDIENCE_DEFAULTS = {
+        beginner: { view: 'simple', explain: true, railOpen: true, startHere: true },
+        expert: { view: 'full', explain: false, railOpen: false, startHere: false },
+    };
+
+    function audience() {
+        return localStorage.getItem(AUDIENCE_KEY) === 'expert' ? 'expert' : 'beginner';
+    }
+
+    function audienceDefault(feature) {
+        return AUDIENCE_DEFAULTS[audience()][feature];
+    }
+
+    /**
+     * Explicit command, not a default: switching audience REWRITES the per-feature keys, so
+     * "I've played before" strips the training wheels in one move even if the user has
+     * already toggled some of them by hand.
+     */
+    function setAudience(level) {
+        const next = level === 'expert' ? 'expert' : 'beginner';
+        const want = AUDIENCE_DEFAULTS[next];
+        localStorage.setItem(AUDIENCE_KEY, next);
+        localStorage.setItem(VIEW_KEY, want.view);
+        localStorage.setItem(EXPLAIN_KEY, want.explain ? '1' : '0');
+        localStorage.setItem(RAIL_OPEN_KEY, want.railOpen ? '1' : '0');
+        applyExplainMode();
+        railPanel?.[want.railOpen ? 'open' : 'close']();
+        renderSheet(currentData);
+        toast(next === 'expert'
+            ? '🎓 Beginner helpers are off — turn them back on in Settings'
+            : '🌱 Beginner helpers are on');
+    }
+
     // ---------------------------------------------------------------- simple printable sheet
     // Classic paper-style sheet (PZO1110-like): static values, write-in blanks, two print pages.
     function viewMode() {
-        return localStorage.getItem(VIEW_KEY) === 'simple' ? 'simple' : 'full';
+        const stored = localStorage.getItem(VIEW_KEY);
+        if (stored === 'simple' || stored === 'full') return stored;
+        return audienceDefault('view');
     }
 
     function setViewMode(mode) {
         localStorage.setItem(VIEW_KEY, mode === 'simple' ? 'simple' : 'full');
-        syncViewToggle();
+        syncPrimaryActions();
     }
 
-    function syncViewToggle() {
-        const btn = document.getElementById('view-toggle');
-        if (!btn) return;
-        const simple = viewMode() === 'simple';
-        btn.textContent = simple ? 'Full sheet' : 'Simple sheet';
-        btn.title = simple
-            ? 'Switch back to the full tabbed sheet'
-            : 'Switch to the simple printable sheet';
+    // ---------------------------------------------------------------- explain mode
+    // Plain-English sublabels (see scripts/guide.js) on stat labels in BOTH views. Purely a
+    // body class so toggling never re-renders — in-flight edits and scroll position survive.
+    function explainMode() {
+        const stored = localStorage.getItem(EXPLAIN_KEY);
+        if (stored === '1' || stored === '0') return stored === '1';
+        return audienceDefault('explain');
+    }
+
+    function applyExplainMode() {
+        document.body.classList.toggle('explain', explainMode());
+    }
+
+    function setExplainMode(on) {
+        localStorage.setItem(EXPLAIN_KEY, on ? '1' : '0');
+        applyExplainMode();
+        syncPrimaryActions();
+        // The button colour alone is easy to miss, and if you happen to be looking at a part
+        // of the sheet with no glossary hits, nothing else visibly changes.
+        toast(on
+            ? '💡 Explain is ON — plain-English notes now show under the numbers'
+            : '💡 Explain is OFF — just the numbers now');
+    }
+
+    /** Plain-English hint node for a stat label, or null when the glossary has no entry. */
+    function termHint(label) {
+        const text = window.SheetGuide?.hintFor(label);
+        return text ? h('span', 'term-hint', text) : null;
+    }
+
+    /** Hangs a hint under a complex-view .summary-stat-box (label / value / hint). */
+    function attachStatHint(box, label) {
+        const hint = termHint(label);
+        if (hint) box.appendChild(hint);
+        return box;
+    }
+
+    // ---------------------------------------------------------------- primary actions
+    // The three-and-a-bit beginner actions, declared once and rendered into both the top bar
+    // and the right-hand rail so the two surfaces can never disagree about state or wording.
+    const PRIMARY_ACTIONS = [
+        {
+            id: 'generate',
+            kind: 'button',
+            icon: '🎲',
+            label: 'Generate',
+            hint: 'Make a new character',
+            run: () => togglePanel('gen-panel'),
+        },
+        {
+            id: 'view',
+            kind: 'segmented',
+            icon: '🔀',
+            label: 'View',
+            hint: 'Swap between the one-page sheet and the detailed tabs',
+            segments: [
+                { value: 'simple', label: 'Simple', hint: 'One page, like a paper sheet' },
+                { value: 'full', label: 'Complex', hint: 'Every detail, across tabs' },
+            ],
+            current: () => viewMode(),
+            pick: (value) => {
+                if (viewMode() === value) return;
+                setViewMode(value);
+                renderSheet(currentData);
+            },
+        },
+        {
+            id: 'explain',
+            kind: 'button',
+            icon: '💡',
+            label: 'Explain',
+            hint: 'Show or hide plain-English notes under the numbers',
+            pressed: () => explainMode(),
+            run: () => setExplainMode(!explainMode()),
+        },
+        {
+            // The short on-ramp, not the manual — the manual is one click deeper, inside it.
+            id: 'start',
+            kind: 'button',
+            icon: '❓',
+            label: 'Start here',
+            hint: 'Four steps to your first character',
+            run: () => openStartHere(),
+        },
+    ];
+
+    function renderPrimaryActions(host, variant) {
+        if (!host) return;
+        host.innerHTML = '';
+        host.classList.add('primary-actions', 'primary-actions-' + variant);
+        for (const action of PRIMARY_ACTIONS) {
+            if (action.kind === 'segmented') {
+                const group = h('div', 'view-segmented');
+                group.setAttribute('role', 'group');
+                group.setAttribute('aria-label', action.hint);
+                if (variant === 'rail') {
+                    group.appendChild(h('span', 'view-segmented-cap', action.icon + ' ' + action.label));
+                }
+                const active = action.current();
+                for (const seg of action.segments) {
+                    const on = seg.value === active;
+                    const btn = h('button', 'view-seg' + (on ? ' is-on' : ''));
+                    btn.type = 'button';
+                    btn.title = seg.hint;
+                    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+                    btn.appendChild(h('span', 'view-seg-dot', on ? '●' : ''));
+                    btn.appendChild(h('span', 'view-seg-label', seg.label));
+                    btn.addEventListener('click', () => action.pick(seg.value));
+                    group.appendChild(btn);
+                }
+                host.appendChild(group);
+                continue;
+            }
+            const btn = h('button', 'primary-action pa-' + action.id);
+            btn.type = 'button';
+            btn.title = action.hint;
+            if (action.id === 'generate') btn.id = variant === 'topbar' ? 'toggle-gen' : 'rail-gen';
+            if (action.pressed) {
+                const on = action.pressed();
+                btn.classList.toggle('is-on', on);
+                btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            }
+            btn.appendChild(h('span', 'pa-icon', action.icon));
+            btn.appendChild(h('span', 'pa-label', action.label));
+            btn.addEventListener('click', action.run);
+            host.appendChild(btn);
+        }
+    }
+
+    function syncPrimaryActions() {
+        renderPrimaryActions(document.getElementById('topbar-primary'), 'topbar');
+        // #rail-actions, not #action-rail — renderPrimaryActions clears its host, and the
+        // resize grip is a sibling that has to survive every repaint.
+        renderPrimaryActions(document.getElementById('rail-actions'), 'rail');
+    }
+
+    // ---------------------------------------------------------------- action rail
+    // Same drag / collapse behaviour as the left Tools drawer, from the same module. The one
+    // difference: the measured width drives --rail-scale rather than a raw width, because the
+    // rail is sized off that single knob (styles/sheet.css) — so dragging it wider grows the
+    // icons and labels too, which is what "make it bigger" means to a newcomer.
+    const RAIL_UNIT = 104;          // px per 1.0 of --rail-scale (6.5rem at a 16px root)
+    const RAIL_MIN_SCALE = 1.0;     // compact but still legible
+    const RAIL_MAX_SCALE = 3.5;
+    const RAIL_DEFAULT_W = Math.round(RAIL_UNIT * 2.5);  // the scale the rail shipped with
+    let railPanel = null;
+
+    function initRail() {
+        const rail = document.getElementById('action-rail');
+        const toggleBtn = document.getElementById('rail-toggle');
+        if (!rail || !window.SheetEdgePanel) return;
+        const narrow = () => window.matchMedia('(max-width: 899px)').matches;
+        railPanel = window.SheetEdgePanel.attach({
+            side: 'right',
+            panel: rail,
+            handle: toggleBtn,
+            grip: document.getElementById('rail-resize'),
+            openClass: 'rail-open',
+            resizingClass: 'rail-resizing',
+            keys: { open: RAIL_OPEN_KEY, size: RAIL_SIZE_KEY },
+            min: Math.round(RAIL_UNIT * RAIL_MIN_SCALE),
+            max: Math.round(RAIL_UNIT * RAIL_MAX_SCALE),
+            closeAt: 90,
+            defaultSize: RAIL_DEFAULT_W,
+            defaultOpen: audienceDefault('railOpen'),
+            applySize: (px) => {
+                const scale = Math.max(RAIL_MIN_SCALE,
+                    Math.min(RAIL_MAX_SCALE, px / RAIL_UNIT));
+                document.documentElement.style.setProperty('--rail-scale', scale.toFixed(3));
+            },
+            onToggle: (open) => {
+                if (toggleBtn) {
+                    toggleBtn.title = (open ? 'Hide the main actions' : 'Show the main actions')
+                        + (narrow() ? '' : ' · hold and drag to resize');
+                }
+            },
+            // A full-width bottom bar has no horizontal extent to drag; tap to collapse only.
+            dragDisabled: narrow,
+        });
+    }
+
+    function togglePanel(id) {
+        const panel = document.getElementById(id);
+        if (!panel) return;
+        panel.classList.toggle('hidden');
+        if (!panel.classList.contains('hidden')) {
+            panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
     }
 
     /** value: string/number, or a Node (e.g. dblclickEditable) hosted inside the cell. */
@@ -8286,26 +8732,41 @@
             const text = value == null ? '' : String(value).trim();
             cell.appendChild(h('div', 'simple-id-v', text || ' '));
         }
-        cell.appendChild(h('div', 'simple-id-k', label));
+        const key = h('div', 'simple-id-k', label);
+        const keyHint = termHint(label);
+        if (keyHint) key.appendChild(keyHint);
+        cell.appendChild(key);
         return cell;
     }
 
     function spHeading(text) {
-        return h('h2', 'simple-h', text);
+        const head = h('h2', 'simple-h', text);
+        const hint = termHint(text);
+        if (hint) {
+            hint.classList.add('term-hint-block');
+            head.appendChild(hint);
+        }
+        return head;
     }
 
     function spBoxBig(label, value) {
         const box = h('div', 'simple-stat-box');
+        const lab = () => {
+            const el = h('div', 'simple-stat-lab', label);
+            const hint = termHint(label);
+            if (hint) el.appendChild(hint);
+            return el;
+        };
         if (value instanceof Node) {
             const v = h('div', 'simple-stat-val');
             v.appendChild(value);
             box.appendChild(v);
-            box.appendChild(h('div', 'simple-stat-lab', label));
+            box.appendChild(lab());
             return box;
         }
         const text = value == null ? '' : String(value);
         box.appendChild(h('div', 'simple-stat-val', text || ' '));
-        box.appendChild(h('div', 'simple-stat-lab', label));
+        box.appendChild(lab());
         return box;
     }
 
@@ -8323,7 +8784,20 @@
             const isRowObj = raw && !Array.isArray(raw) && typeof raw === 'object' && Array.isArray(raw.cells);
             const row = isRowObj ? raw.cells : raw;
             const tr = h('tr', isRowObj ? raw.cls : null);
+            let firstCell = true;
             for (const c of row) {
+                // The leading cell names the row (STR, Fortitude, a skill…), so that is where
+                // an Explain-mode hint belongs. Rows whose label isn't in the glossary — every
+                // skill, for instance — simply get nothing.
+                const rowHint = firstCell ? termHint(typeof c === 'object' ? c.text : c) : null;
+                firstCell = false;
+                if (rowHint) {
+                    const text = typeof c === 'object' ? c.text : c;
+                    const td = h('td', typeof c === 'object' ? c.cls : null, String(text ?? ''));
+                    td.appendChild(rowHint);
+                    tr.appendChild(td);
+                    continue;
+                }
                 if (c instanceof Node) {
                     tr.appendChild(h('td', null, c));
                     continue;
@@ -9230,6 +9704,37 @@
         }
     }
 
+    /**
+     * Same as fillSelect, but splits the list into a "Common" optgroup and a "More…" one so a
+     * beginner isn't scrolling past Yaddithian to find Gnome. `core` is a Set of labels; the
+     * Random entry always leads. Nothing is removed — everything stays reachable.
+     */
+    function fillGroupedSelect(sel, options, core, moreLabel, valueFn) {
+        const opt = (o, text) => {
+            const node = document.createElement('option');
+            node.value = valueFn ? valueFn(o) : o;
+            node.textContent = text || o;
+            return node;
+        };
+        const isRandom = (o) => String(o).toLowerCase() === 'random';
+        const random = options.filter(isRandom);
+        const common = options.filter((o) => !isRandom(o) && core.has(o));
+        const rest = options.filter((o) => !isRandom(o) && !core.has(o));
+
+        const top = document.createElement('optgroup');
+        top.label = 'Common';
+        for (const o of random) top.appendChild(opt(o, 'Surprise me (Random)'));
+        for (const o of common) top.appendChild(opt(o));
+        sel.appendChild(top);
+
+        if (rest.length) {
+            const more = document.createElement('optgroup');
+            more.label = `${moreLabel} (${rest.length})`;
+            for (const o of rest) more.appendChild(opt(o));
+            sel.appendChild(more);
+        }
+    }
+
     // /update_character_data unpacks the payload POSITIONALLY (spheres_of_power is popped by
     // name), so this key order must stay exactly in sync with the Foundry module's button.js,
     // with use_backstory_api + backstory_focus appended as the optional 20th/21st inputs.
@@ -9261,6 +9766,70 @@
         };
     }
 
+    // ------------------------------------------------------------ quick generate form
+    // The quick block drives the same named controls the advanced grid always used. Level is
+    // the one exception: the generator takes a RANGE (highestLevel/lowestLevel), so the single
+    // kid-facing select mirrors into both. Set them to different values in More options and
+    // the quick select shows the range instead of pretending it's one number.
+    const QUICK_LEVEL_MAX = 20;
+
+    function quickLevelSelect(form) {
+        return form?.elements?.quickLevel || null;
+    }
+
+    function fillQuickLevel(form) {
+        const sel = quickLevelSelect(form);
+        if (!sel || sel.options.length) return;
+        for (let i = 1; i <= QUICK_LEVEL_MAX; i++) {
+            const opt = document.createElement('option');
+            opt.value = String(i);
+            opt.textContent = 'Level ' + i;
+            sel.appendChild(opt);
+        }
+        const range = document.createElement('option');
+        range.value = 'range';
+        range.textContent = 'a range (see More options)';
+        range.disabled = true;
+        sel.appendChild(range);
+    }
+
+    /** Quick select → the two real level inputs. */
+    function applyQuickLevel(form) {
+        const sel = quickLevelSelect(form);
+        if (!sel || sel.value === 'range') return;
+        form.elements.highestLevel.value = sel.value;
+        form.elements.lowestLevel.value = sel.value;
+    }
+
+    /** The two real level inputs → quick select (after a form restore or an advanced edit). */
+    function syncQuickLevel(form) {
+        const sel = quickLevelSelect(form);
+        if (!sel) return;
+        const hi = parseIntLoose(form.elements.highestLevel.value, 5);
+        const lo = parseIntLoose(form.elements.lowestLevel.value, hi);
+        if (hi === lo && hi >= 1 && hi <= QUICK_LEVEL_MAX) {
+            sel.value = String(hi);
+            sel.querySelector('option[value="range"]').textContent = 'a range (see More options)';
+        } else {
+            const opt = sel.querySelector('option[value="range"]');
+            opt.textContent = `levels ${lo}–${hi} (More options)`;
+            opt.disabled = false;
+            sel.value = 'range';
+        }
+    }
+
+    function surpriseMe(form) {
+        const pick = (sel) => {
+            const opts = Array.from(sel.options).filter((o) => !o.disabled
+                && String(o.value).toLowerCase() !== 'random');
+            if (opts.length) sel.value = opts[Math.floor(Math.random() * opts.length)].value;
+        };
+        pick(form.elements.race);
+        pick(form.elements.class);
+        applyQuickLevel(form);
+        generate(form);
+    }
+
     async function adoptCharacter(data) {
         renderSheet(data);
         await saveCurrent(); // auto-save: every generated/loaded character lands in the library
@@ -9268,11 +9837,13 @@
 
     async function generate(form) {
         const status = document.getElementById('gen-status');
-        const btn = document.getElementById('gen-submit');
+        // Two ways in now — the quick "Roll it!" and the advanced "Generate Character".
+        const buttons = ['gen-roll', 'gen-submit', 'gen-surprise']
+            .map((id) => document.getElementById(id)).filter(Boolean);
         const payload = buildPayload(form);
         localStorage.setItem(FORM_KEY, JSON.stringify(payload));
-        btn.disabled = true;
-        status.textContent = 'Generating… (the backend can take up to a minute)';
+        for (const b of buttons) b.disabled = true;
+        status.textContent = 'Rolling up your hero… this can take up to a minute the first time.';
         try {
             const resp = await fetch(backendUrl() + '/update_character_data', {
                 method: 'POST',
@@ -9287,7 +9858,7 @@
         } catch (err) {
             status.textContent = 'Failed: ' + err.message;
         } finally {
-            btn.disabled = false;
+            for (const b of buttons) b.disabled = false;
         }
     }
 
@@ -9305,15 +9876,13 @@
     document.addEventListener('DOMContentLoaded', async () => {
         // Core topbar buttons FIRST, before anything that can throw — a bad stored
         // theme/form value must never take Print or Generate down with it.
-        const toggle = (id) => document.getElementById(id).classList.toggle('hidden');
-        document.getElementById('toggle-gen').addEventListener('click', () => toggle('gen-panel'));
-        document.getElementById('toggle-load').addEventListener('click', () => toggle('load-panel'));
+        document.getElementById('toggle-load').addEventListener('click', () => togglePanel('load-panel'));
         document.getElementById('print-btn').addEventListener('click', () => window.print());
-        document.getElementById('view-toggle').addEventListener('click', () => {
-            setViewMode(viewMode() === 'simple' ? 'full' : 'simple');
-            renderSheet(currentData);
-        });
-        syncViewToggle();
+        // Generate / view switch / Explain / Start here render into the top bar AND the rail
+        // from one definition, so the two can't disagree about state or wording.
+        applyExplainMode();
+        syncPrimaryActions();
+        initRail();
 
         // Theme: topbar + Settings + localStorage; ?theme=parchment|dusk|…|system applies (persisted).
         try {
@@ -9332,9 +9901,16 @@
 
         const form = document.getElementById('gen-form');
         fillSelect(form.elements.region, REGIONS);
-        fillSelect(form.elements.race, RACES, (r) => r.toLowerCase().replace(/\s/g, '-'));
-        fillSelect(form.elements.class, CLASSES, (c) => c.toLowerCase().replace(/\s/g, '-'));
+        // Race/class are the two kid-facing picks, so the iconic options float to the top of
+        // the list instead of being buried alphabetically among 50 and 46 entries.
+        fillGroupedSelect(form.elements.race, RACES, CORE_RACES, 'More races',
+            (r) => r.toLowerCase().replace(/\s/g, '-'));
+        fillGroupedSelect(form.elements.class, CLASSES, CORE_CLASSES, 'More classes',
+            (c) => c.toLowerCase().replace(/\s/g, '-'));
         fillSelect(form.elements.deity, DEITIES);
+        fillQuickLevel(form);
+        form.elements.highestLevel.value = '5';
+        form.elements.lowestLevel.value = '5';
 
         // Restore the saved generator form; a corrupt value self-heals instead of
         // killing the rest of the boot.
@@ -9352,7 +9928,18 @@
             localStorage.removeItem(FORM_KEY);
         }
 
-        form.addEventListener('submit', (e) => { e.preventDefault(); generate(form); });
+        syncQuickLevel(form);
+        quickLevelSelect(form)?.addEventListener('change', () => applyQuickLevel(form));
+        for (const name of ['highestLevel', 'lowestLevel']) {
+            form.elements[name].addEventListener('change', () => syncQuickLevel(form));
+        }
+        document.getElementById('gen-surprise')?.addEventListener('click', () => surpriseMe(form));
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            applyQuickLevel(form);
+            generate(form);
+        });
         document.getElementById('render-paste').addEventListener('click', () =>
             loadJsonText(document.getElementById('json-paste').value));
         document.getElementById('json-file').addEventListener('change', (e) => {

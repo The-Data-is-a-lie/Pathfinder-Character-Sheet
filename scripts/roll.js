@@ -1390,150 +1390,55 @@ window.SheetRoll = (function () {
     // Note: quick-dice and freeform use pushLog → dice SFX automatically.
 
     // ---------------------------------------------------------------- drawer open/close
+    // Open/close/resize all belong to the shared SheetEdgePanel (scripts/edgepanel.js); this
+    // keeps the same three functions as its public face so nothing else has to know.
+    let drawerPanel = null;
+
     function isOpen() {
         return document.body.classList.contains('tools-open');
     }
 
     function setOpen(open) {
-        document.body?.classList.toggle('tools-open', open);
-        try { localStorage.setItem(TOOLS_OPEN_KEY, open ? '1' : '0'); } catch { /* private mode */ }
-        const btn = document.getElementById('tools-toggle');
-        if (btn) {
-            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-            btn.title = (open ? 'Close tools menu' : 'Open tools menu') + ' · hold and drag to resize';
-        }
-        const panel = document.getElementById('tools-drawer');
-        if (panel) panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+        if (drawerPanel) (open ? drawerPanel.open() : drawerPanel.close());
     }
 
     function toggle() {
-        setOpen(!isOpen());
+        drawerPanel?.toggle();
     }
 
     // ---------------------------------------------------------------- drawer resize
     const TOOLS_DEFAULT_W = 320;   // ≈ 20rem, the original fixed width
     const TOOLS_MIN_W = 220;       // usable floor while resizing
     const TOOLS_CLOSE_AT = 140;    // release narrower than this → close (acts like ×)
-    let toolsDragged = false;      // a ☰ press that became a resize — swallow the trailing click
 
-    function toolsMaxW() { return Math.round(window.innerWidth * 0.95); }
-    function clampToolsW(px) { return Math.max(TOOLS_MIN_W, Math.min(toolsMaxW(), px)); }
-    function applyToolsWidth(px) {
-        document.documentElement.style.setProperty('--tools-width', px + 'px');
-    }
-    function storedToolsWidth() {
-        const v = parseInt(localStorage.getItem(TOOLS_WIDTH_KEY), 10);
-        return Number.isFinite(v) ? clampToolsW(v) : TOOLS_DEFAULT_W;
-    }
-    function persistToolsWidth(px) {
-        try { localStorage.setItem(TOOLS_WIDTH_KEY, String(px)); } catch { /* private mode */ }
-    }
-
-    function initDrawerResize() {
-        const handle = document.getElementById('tools-resize');
+    function initDrawer() {
         const drawer = document.getElementById('tools-drawer');
         const toggleBtn = document.getElementById('tools-toggle');
-        if (!drawer) return;
-        applyToolsWidth(storedToolsWidth());
-
-        let dragging = false;
-        let captureEl = null;
-        let capturedId = null;
-        const widthAt = (clientX) => Math.max(40, Math.min(toolsMaxW(), clientX));
-        // Belt-and-suspenders against the browser starting a text selection mid-drag.
-        const blockSelect = (ev) => ev.preventDefault();
-        const onMove = (ev) => {
-            if (!dragging) return;
-            const w = widthAt(ev.clientX); // drawer left edge is at x=0
-            applyToolsWidth(w);
-            drawer.classList.toggle('will-close', w <= TOOLS_CLOSE_AT);
-        };
-        const finish = (w) => {
-            if (w <= TOOLS_CLOSE_AT) {
-                applyToolsWidth(storedToolsWidth()); // restore a usable width for next open
-                setOpen(false);
-            } else {
-                const c = clampToolsW(w);
-                applyToolsWidth(c);
-                persistToolsWidth(c);
-            }
-        };
-        const endDrag = (ev) => {
-            if (!dragging) return;
-            dragging = false;
-            document.body.classList.remove('tools-resizing');
-            drawer.classList.remove('will-close');
-            window.removeEventListener('pointermove', onMove);
-            window.removeEventListener('pointerup', endDrag);
-            document.removeEventListener('selectstart', blockSelect);
-            if (captureEl && capturedId != null) {
-                try { captureEl.releasePointerCapture(capturedId); } catch { /* */ }
-            }
-            captureEl = null;
-            capturedId = null;
-            finish(widthAt(ev.clientX));
-        };
-        // Begin a live resize drag from `target` (the edge handle or the ☰ toggle). Capture so
-        // every move/up targets it, and kill any selection attempt.
-        const beginDrag = (ev, target) => {
-            dragging = true;
-            document.body.classList.add('tools-resizing');
-            try {
-                target.setPointerCapture(ev.pointerId);
-                captureEl = target;
-                capturedId = ev.pointerId;
-            } catch { /* capture unsupported — window listeners still track the drag */ }
-            window.getSelection?.()?.removeAllRanges?.();
-            document.addEventListener('selectstart', blockSelect);
-            window.addEventListener('pointermove', onMove);
-            window.addEventListener('pointerup', endDrag);
-            onMove(ev);
-        };
-
-        // Edge handle: dragging starts immediately.
-        if (handle) {
-            handle.addEventListener('pointerdown', (e) => {
-                e.preventDefault();
-                beginDrag(e, handle);
-            });
-            // Keyboard affordance: arrows nudge width; narrowing past the threshold closes.
-            handle.addEventListener('keydown', (e) => {
-                const cur = parseInt(getComputedStyle(drawer).width, 10) || storedToolsWidth();
-                if (e.key === 'ArrowLeft') { e.preventDefault(); finish(cur - 28); }
-                else if (e.key === 'ArrowRight') { e.preventDefault(); finish(cur + 28); }
-            });
-        }
-
-        // ☰ toggle: a tap opens/closes (its click listener), but press-and-drag past a small
-        // threshold turns it into a live resize handle — opening the drawer first if needed, so
-        // you can fling it open to any width. toolsDragged swallows the click after a drag.
-        if (toggleBtn) {
-            const DRAG_START = 5; // px of movement before a hold becomes a resize
-            toggleBtn.addEventListener('pointerdown', (e) => {
-                if (e.button != null && e.button > 0) return; // primary button / touch only
-                toolsDragged = false;
-                const startX = e.clientX;
-                let started = false;
-                // Watch on window, not the button: once the press moves off the small button
-                // the button stops getting pointermove, so the threshold must be tracked globally.
-                const watchMove = (ev) => {
-                    if (started || Math.abs(ev.clientX - startX) < DRAG_START) return;
-                    started = true;
-                    window.removeEventListener('pointermove', watchMove);
-                    window.removeEventListener('pointerup', watchUp);
-                    toolsDragged = true;          // this press is a drag, not a click
-                    if (!isOpen()) setOpen(true);  // open so the resize is visible
-                    beginDrag(ev, toggleBtn);      // hand off to the live resize
-                };
-                const watchUp = () => {
-                    window.removeEventListener('pointermove', watchMove);
-                    window.removeEventListener('pointerup', watchUp);
-                };
-                window.addEventListener('pointermove', watchMove);
-                window.addEventListener('pointerup', watchUp);
-            });
-        }
+        if (!drawer || !window.SheetEdgePanel) return;
+        drawerPanel = window.SheetEdgePanel.attach({
+            side: 'left',
+            panel: drawer,
+            handle: toggleBtn,
+            grip: document.getElementById('tools-resize'),
+            openClass: 'tools-open',
+            resizingClass: 'tools-resizing',
+            keys: { open: TOOLS_OPEN_KEY, size: TOOLS_WIDTH_KEY },
+            min: TOOLS_MIN_W,
+            closeAt: TOOLS_CLOSE_AT,
+            defaultSize: TOOLS_DEFAULT_W,
+            defaultOpen: false,
+            applySize: (px) => {
+                document.documentElement.style.setProperty('--tools-width', px + 'px');
+            },
+            onToggle: (open) => {
+                if (toggleBtn) {
+                    toggleBtn.title = (open ? 'Close tools menu' : 'Open tools menu')
+                        + ' · hold and drag to resize';
+                }
+            },
+        });
     }
+
 
     // ---------------------------------------------------------------- public
     function setCharacter(data) {
@@ -1543,16 +1448,12 @@ window.SheetRoll = (function () {
     }
 
     function init() {
-        const toggleBtn = document.getElementById('tools-toggle');
         const closeBtn = document.getElementById('tools-close');
         const rollBtn = document.getElementById('tools-dice-roll');
         const input = document.getElementById('tools-dice-input');
         const quick = document.getElementById('tools-quick-dice');
 
-        if (toggleBtn) toggleBtn.addEventListener('click', () => {
-            if (toolsDragged) { toolsDragged = false; return; } // just finished a resize drag
-            toggle();
-        });
+        // The ☰ toggle's own click/drag wiring lives in SheetEdgePanel.
         if (closeBtn) closeBtn.addEventListener('click', () => setOpen(false));
         if (rollBtn) rollBtn.addEventListener('click', doFreeformRoll);
         if (input) {
@@ -1581,8 +1482,7 @@ window.SheetRoll = (function () {
         });
 
         initSectionMinimize();
-        initDrawerResize();
-        setOpen(localStorage.getItem(TOOLS_OPEN_KEY) === '1');
+        initDrawer();   // attaches SheetEdgePanel, which restores the stored width + open state
         renderLog();
         renderAttacks();
     }

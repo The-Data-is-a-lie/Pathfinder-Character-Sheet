@@ -699,7 +699,335 @@ h1, h2, h3 { font-family: Georgia, serif; margin: 0; }
 .topbar h1 { font-size: 1.15rem; letter-spacing: 0.04em; }
 
 .topbar-buttons { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
-.topbar .roster { flex: 1; justify-content: center; min-width: 0; }
+/* Roster + utilities ride to the right of the big actions and wrap together onto a second
+   row when the bar runs out of width. (They used to be flex:1 and centred, which fought the
+   primary-action cluster for space and pushed the character picker onto its own line.) */
+.topbar .roster { flex: 0 1 auto; justify-content: flex-end; min-width: 0; margin-left: auto; }
+.topbar .utility { flex: 0 0 auto; }
+/* Utility cluster is visually demoted so the big beginner actions read first. */
+.topbar-buttons.utility button { font-size: 0.85rem; opacity: 0.92; }
+
+/* ------------------------------------------------ primary actions (top bar + rail)
+   Both surfaces render from PRIMARY_ACTIONS in sheet.js, so keep the two variants here
+   purely about layout — never about which actions exist or what they say. */
+.primary-actions { display: flex; align-items: stretch; gap: 0.5rem; }
+.topbar-primary { flex-wrap: wrap; }
+
+.primary-action {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font: inherit;
+    font-weight: bold;
+    font-size: 0.95rem;
+    padding: 0.5rem 0.85rem;
+    background: var(--accent);
+    color: var(--on-accent);
+    border: 2px solid var(--accent-dark);
+    border-radius: 6px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px var(--shadow);
+}
+.primary-action:hover { background: var(--accent-hover); }
+.primary-action .pa-icon { font-size: 1.15rem; line-height: 1; }
+/* Explain is a toggle: off reads as an outline, on reads as filled + pressed. */
+.primary-action.pa-explain {
+    background: transparent;
+    color: var(--topbar-fg);
+    border-color: color-mix(in srgb, var(--topbar-fg) 45%, transparent);
+    box-shadow: none;
+}
+.primary-action.pa-explain.is-on {
+    background: var(--accent);
+    color: var(--on-accent);
+    border-color: var(--accent-dark);
+}
+
+.view-segmented {
+    display: flex;
+    align-items: stretch;
+    border: 2px solid var(--accent-dark);
+    border-radius: 6px;
+    overflow: hidden;
+    /* Dim trough so only the active segment reads as chosen — a light background here made
+       the INACTIVE half look selected. */
+    background: color-mix(in srgb, var(--accent-dark) 55%, transparent);
+}
+.view-seg {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font: inherit;
+    font-size: 0.9rem;
+    padding: 0.45rem 0.75rem;
+    background: transparent;
+    color: var(--on-accent);
+    /* Muted, but kept well clear of the washed-out end so the inactive half stays readable
+       against the trough (the sheet targets WCAG AA body contrast throughout). */
+    opacity: 0.88;
+    border: none;
+    cursor: pointer;
+}
+.view-seg + .view-seg { border-left: 1px solid var(--accent-dark); }
+.view-seg:hover { background: var(--accent-hover); color: var(--on-accent); opacity: 1; }
+.view-seg.is-on {
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: bold;
+    opacity: 1;
+}
+.view-seg-dot { font-size: 0.6rem; line-height: 1; width: 0.6rem; }
+.view-segmented-cap {
+    display: none;
+    font-size: 0.75rem;
+    font-weight: bold;
+    padding: 0.3rem 0.5rem;
+    background: var(--accent-dark);
+    color: var(--on-accent);
+}
+
+/* ------------------------------------------------ action rail (right edge)
+   Reserves its own width on body so it never covers the sheet — unlike the ☰ tools handle,
+   which is a deliberate overlay. Under 900px it becomes a bottom bar instead. */
+/* --rail-scale is the one knob: everything in the rail is sized off it, so bumping this
+   number resizes the whole thing coherently (1 = the original compact rail). */
+:root {
+    --rail-scale: 2.5;
+    --rail-w: calc(6.5rem * var(--rail-scale));
+    --rail-h: 3.6rem;
+}
+.action-rail {
+    position: fixed;
+    top: 50%;
+    right: 0;
+    /* Collapsed by default; body.rail-open slides it in. Mirrors the tools drawer, which
+       parks off its own edge the same way. */
+    transform: translateY(-50%) translateX(100%);
+    transition: transform 0.2s ease;
+    z-index: 1001;
+    width: var(--rail-w);
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-right: none;
+    border-radius: 8px 0 0 8px;
+    box-shadow: -2px 2px 12px var(--shadow);
+}
+body.rail-open .action-rail { transform: translateY(-50%) translateX(0); }
+body.rail-resizing .action-rail { transition: none; }
+/* The buttons scroll; the rail itself does not, so the absolutely-positioned grip below
+   stays put instead of scrolling away from the edge. */
+.rail-actions {
+    display: flex;
+    flex-direction: column;
+    gap: calc(0.5rem * var(--rail-scale));
+    max-height: 100vh;
+    overflow-y: auto;
+    padding: calc(0.6rem * var(--rail-scale)) calc(0.5rem * var(--rail-scale));
+    padding-left: calc(0.5rem * var(--rail-scale) + 10px);   /* clear the grip */
+}
+
+/* ☰ handle riding the rail's outer edge — the mirror of .tools-toggle on the left. */
+.rail-toggle {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1002;
+    width: 2rem;
+    padding: 0.7rem 0.25rem;
+    border-radius: 6px 0 0 6px;
+    border: 1px solid var(--accent-dark);
+    border-right: none;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: 1.1rem;
+    line-height: 1;
+    box-shadow: -2px 2px 8px var(--shadow);
+    transition: right 0.2s ease;
+    touch-action: none;   /* let a hold-and-drag resize work on touch without scrolling */
+}
+.rail-toggle:hover { background: var(--accent-hover); }
+body.rail-resizing .rail-toggle { cursor: ew-resize; transition: none; }
+body.rail-open .rail-toggle { right: var(--rail-w); }
+
+/* Drag strip on the rail's inner (left) edge — mirror of .tools-resize. */
+.rail-resize {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 24px;
+    z-index: 3;
+    cursor: ew-resize;
+    touch-action: none;
+    user-select: none;
+    transition: background 0.15s ease;
+}
+.rail-resize:hover,
+.rail-resize:focus-visible,
+body.rail-resizing .rail-resize { background: rgba(127, 127, 127, 0.12); }
+.rail-resize::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 3px;
+    background: var(--accent-dark);
+    opacity: 0;
+    transition: opacity 0.15s ease, background 0.15s ease;
+}
+.rail-resize:hover::before,
+.rail-resize:focus-visible::before,
+body.rail-resizing .rail-resize::before { opacity: 0.55; }
+body.rail-resizing { user-select: none; cursor: ew-resize; }
+.action-rail.will-close { border-color: var(--danger, #b23); }
+.action-rail.will-close .rail-resize::before { background: var(--danger, #b23); opacity: 0.75; }
+.action-rail .primary-action {
+    flex-direction: column;
+    gap: calc(0.15rem * var(--rail-scale));
+    padding: calc(0.5rem * var(--rail-scale)) calc(0.3rem * var(--rail-scale));
+    font-size: calc(0.72rem * var(--rail-scale));
+    line-height: 1.15;
+    text-align: center;
+}
+.action-rail .primary-action .pa-icon { font-size: calc(1.5rem * var(--rail-scale)); }
+.action-rail .view-segmented { flex-direction: column; }
+.action-rail .view-segmented-cap {
+    display: block;
+    text-align: center;
+    font-size: calc(0.75rem * var(--rail-scale));
+    padding: calc(0.3rem * var(--rail-scale)) calc(0.5rem * var(--rail-scale));
+}
+.action-rail .view-seg {
+    justify-content: center;
+    font-size: calc(0.75rem * var(--rail-scale));
+    padding: calc(0.4rem * var(--rail-scale)) calc(0.3rem * var(--rail-scale));
+}
+.action-rail .view-seg-dot { font-size: calc(0.6rem * var(--rail-scale)); width: auto; }
+.action-rail .view-seg + .view-seg { border-left: none; border-top: 1px solid var(--accent-dark); }
+
+/* Reserved gutter only while the rail is actually showing — collapsed, the sheet reclaims it. */
+@media (min-width: 900px) {
+    body.rail-open { padding-right: var(--rail-w); }
+}
+@media (max-width: 899px) {
+    /* A bottom bar spends VERTICAL space, which phones have least of — so the big-rail
+       scale is dialled back here rather than inherited, and pinned: horizontal drag-resize
+       is meaningless on a full-width bar, so the handle is tap-to-collapse only. */
+    .action-rail {
+        /* Beats the :root value the drag writes — a rule on the element itself wins over
+           an inherited one, so no !important needed. */
+        --rail-scale: 1.35;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        transform: translateY(100%);
+        width: auto;
+        border-radius: 0;
+        border: none;
+        border-top: 2px solid var(--accent);
+        box-shadow: 0 -2px 12px var(--shadow);
+    }
+    body.rail-open .action-rail { transform: translateY(0); }
+    .rail-actions {
+        flex-direction: row;
+        justify-content: center;
+        align-items: stretch;
+        max-height: none;
+        overflow: visible;
+        gap: 0.4rem;
+        padding: 0.35rem 0.5rem;
+    }
+    .rail-resize { display: none; }
+    /* Handle sits above the bar's top-right corner and rides it up and down. */
+    .rail-toggle {
+        top: auto;
+        right: 0.5rem;
+        bottom: 0;
+        transform: none;
+        border-radius: 6px 6px 0 0;
+        border: 1px solid var(--accent-dark);
+        border-bottom: none;
+        transition: bottom 0.2s ease;
+    }
+    body.rail-open .rail-toggle { right: 0.5rem; bottom: calc(var(--rail-h) * 1.35); }
+    .action-rail .primary-action { flex: 1; max-width: 8.5rem; }
+    .action-rail .primary-action .pa-icon { font-size: 1.6rem; }
+    .action-rail .view-segmented { flex-direction: row; flex: 1; max-width: 13rem; }
+    .action-rail .view-segmented-cap { display: none; }
+    .action-rail .view-seg + .view-seg { border-top: none; border-left: 1px solid var(--accent-dark); }
+    body.rail-open { padding-bottom: calc(var(--rail-h) * 1.35); }
+}
+
+/* ------------------------------------------------ explain mode hints (scripts/guide.js)
+   Always rendered, revealed by a body class — so toggling costs no re-render and can never
+   disturb an in-flight inline edit. */
+.term-hint {
+    display: none;
+    font-size: 0.72rem;
+    font-weight: normal;
+    font-variant: normal;
+    font-style: italic;
+    letter-spacing: 0;
+    text-transform: none;
+    line-height: 1.25;
+    color: var(--dim);
+    opacity: 0.95;
+}
+body.explain .term-hint { display: block; margin-top: 0.1rem; }
+body.explain .term-hint-block { margin-top: 0.15rem; }
+.kv .term-hint { max-width: 16rem; }
+/* Complex-view stat tiles: hint sits under the value, centred and width-capped so a long
+   phrase can't stretch the tile and break the strip's rhythm. */
+.summary-stat-box .term-hint {
+    max-width: 9rem;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+/* ------------------------------------------------ quick generate form */
+.gen-quick { margin-bottom: 0.9rem; }
+.gen-quick-h {
+    font-size: 1.25rem;
+    font-variant: small-caps;
+    letter-spacing: 0.04em;
+    color: var(--accent-dark);
+    margin: 0 0 0.15rem;
+}
+.gen-quick-lead { margin: 0 0 0.6rem; color: var(--dim); }
+.gen-quick-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+.gen-quick-field { display: flex; flex-direction: column; gap: 0.2rem; min-width: 9rem; }
+.gen-quick-field select { font-size: 1.05rem; padding: 0.45rem 0.5rem; }
+.gen-quick-field > span { font-size: 0.8rem; color: var(--dim); text-align: center; }
+.gen-quick-actions { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.gen-roll {
+    font-size: 1.1rem;
+    font-weight: bold;
+    padding: 0.6rem 1.4rem;
+    border-width: 2px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px var(--shadow);
+}
+.gen-surprise { font-size: 0.95rem; padding: 0.55rem 1rem; }
+.gen-advanced > summary {
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--dim);
+    padding: 0.3rem 0;
+}
+.gen-advanced[open] > summary { margin-bottom: 0.5rem; color: var(--ink); }
+
+.settings-check { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+.settings-check input { width: 1.05rem; height: 1.05rem; accent-color: var(--accent); }
+.settings-row-label { min-width: 6rem; }
 /* Shared select language — WCAG ink on elevated menu surface (OKF color roles) */
 select,
 .form-grid select,
@@ -745,8 +1073,11 @@ select:focus-visible,
     padding: 0.35rem 0.45rem;
 }
 
-/* ------------------------------------------------ theme modal (first load / Theme button) */
-.theme-modal {
+/* ------------------------------------------------ overlay shell (scripts/overlay.js)
+   One shell for every modal built on SheetOverlay — the theme picker and the instructions
+   today, the remaining hand-rolled popups later. Backdrop is painted on the root itself so a
+   click landing on the root (and not the card) is unambiguously a backdrop click. */
+.sheet-overlay {
     position: fixed;
     inset: 0;
     z-index: 2000;
@@ -754,33 +1085,204 @@ select:focus-visible,
     align-items: center;
     justify-content: center;
     padding: 1rem;
-}
-.theme-modal.hidden { display: none; }
-.theme-modal-backdrop {
-    position: absolute;
-    inset: 0;
     background: rgba(0, 0, 0, 0.55);
 }
-.theme-modal-card {
+/* Stacked overlays (instructions opened from the theme picker) dim a little further. */
+.sheet-overlay ~ .sheet-overlay { background: rgba(0, 0, 0, 0.35); }
+.overlay-card {
     position: relative;
     z-index: 1;
-    width: min(36rem, 100%);
-    max-height: min(92vh, 40rem);
-    overflow: auto;
-    padding: 1.25rem 1.35rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    width: min(38rem, 100%);
+    max-height: min(92vh, 44rem);
     background: var(--panel);
     color: var(--ink);
     border: 2px solid var(--accent);
     border-radius: 10px;
     box-shadow: 0 12px 40px var(--shadow);
 }
-.theme-modal-card h2 {
+.overlay-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 1.1rem 1.35rem 0.35rem;
+}
+.overlay-title {
+    flex: 1;
     font-size: 1.45rem;
     font-variant: small-caps;
     letter-spacing: 0.04em;
     color: var(--accent-dark);
-    margin: 0 0 0.35rem;
+    margin: 0;
 }
+.overlay-x {
+    flex: none;
+    font: inherit;
+    font-size: 1.35rem;
+    line-height: 1;
+    padding: 0.1rem 0.45rem;
+    background: transparent;
+    color: var(--dim);
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.overlay-x:hover { background: var(--accent); color: var(--on-accent); }
+.overlay-body {
+    flex: 1;
+    overflow: auto;
+    padding: 0.5rem 1.35rem 0.5rem;
+}
+.overlay-foot {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    padding: 0.75rem 1.35rem 1.1rem;
+    border-top: 1px solid var(--rule);
+}
+/* Skip checkbox takes the slack so Continue sits hard right. */
+.overlay-foot .theme-modal-skip { flex: 1; margin: 0; }
+.theme-modal-help {
+    background: transparent;
+    color: var(--accent-dark);
+    border: 1px solid var(--rule);
+}
+.theme-modal-help:hover { background: var(--accent); color: var(--on-accent); }
+body.overlay-open { overflow: hidden; }
+#overlay-stash { display: none; }
+
+/* ------------------------------------------------ toast (SheetOverlay.toast)
+   Non-modal confirmation. Bottom-centre so it is visible wherever you are on a long sheet,
+   and lifted clear of the mobile action bar. Never interactive — pointer-events stay off so
+   it can't swallow a click on whatever is underneath. */
+.sheet-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 1.25rem;
+    transform: translate(-50%, 0.75rem);
+    /* Above overlays (2000): a confirmation fired from inside a modal — flipping audience
+       from the theme picker, say — must still be readable. Safe to sit on top because the
+       toast is pointer-events: none, so it can never swallow a click on the card beneath. */
+    z-index: 2100;
+    max-width: min(26rem, 92vw);
+    padding: 0.6rem 1rem;
+    background: var(--panel);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    box-shadow: 0 4px 16px var(--shadow);
+    font-size: 0.95rem;
+    line-height: 1.35;
+    text-align: center;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+}
+.sheet-toast.is-on {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+}
+@media (max-width: 899px) {
+    body.rail-open .sheet-toast { bottom: calc(var(--rail-h) * 1.35 + 0.75rem); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .sheet-toast { transition: opacity 0.18s ease, visibility 0.18s; transform: translate(-50%, 0); }
+}
+
+/* Instructions overlay content (built by scripts/guide.js) */
+.guide-h {
+    font-size: 1.1rem;
+    font-variant: small-caps;
+    letter-spacing: 0.03em;
+    color: var(--accent-dark);
+    margin: 1.1rem 0 0.35rem;
+    padding-bottom: 0.2rem;
+    border-bottom: 1px solid var(--rule);
+}
+.guide-h:first-child { margin-top: 0.2rem; }
+.guide-h4 {
+    font-size: 0.95rem;
+    margin: 0.9rem 0 0.3rem;
+    color: var(--ink);
+}
+.guide-p { margin: 0 0 0.6rem; line-height: 1.5; }
+.guide-steps { margin: 0 0 0.7rem 1.2rem; line-height: 1.55; }
+.guide-steps li { margin-bottom: 0.25rem; }
+.guide-note {
+    margin: 0 0 0.7rem;
+    padding: 0.45rem 0.6rem;
+    font-size: 0.9rem;
+    color: var(--dim);
+    border-left: 3px solid var(--accent);
+    background: var(--panel-alt, transparent);
+}
+.guide-terms {
+    display: grid;
+    grid-template-columns: minmax(5.5rem, auto) 1fr;
+    gap: 0.25rem 0.8rem;
+    margin: 0 0 0.5rem;
+    font-size: 0.92rem;
+}
+.guide-terms dt { font-weight: bold; color: var(--accent-dark); }
+.guide-terms dd { margin: 0; color: var(--ink); }
+
+/* ------------------------------------------------ Start here card (scripts/guide.js)
+   Deliberately larger type and more air than the instructions overlay: this is four steps
+   for someone's first ten seconds, not a document to read. */
+.start-overlay .overlay-card { max-width: 34rem; }
+.start-lead {
+    margin: 0 0 0.9rem;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--accent-dark);
+}
+.start-steps {
+    margin: 0 0 1.2rem 1.4rem;
+    padding: 0;
+    font-size: 1.05rem;
+    line-height: 1.55;
+}
+.start-steps li { margin-bottom: 0.55rem; }
+.start-go {
+    display: block;
+    width: 100%;
+    padding: 0.8rem 1rem;
+    font-size: 1.15rem;
+    font-weight: bold;
+    background: var(--accent);
+    color: var(--on-accent);
+    border: 1px solid var(--accent-dark);
+    border-radius: 6px;
+    cursor: pointer;
+}
+.start-go:hover { background: var(--accent-hover); }
+.start-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 0.9rem;
+}
+/* Quiet by design — neither of these should compete with "Make a character". */
+.start-link {
+    padding: 0.25rem 0;
+    background: none;
+    border: none;
+    font: inherit;
+    font-size: 0.9rem;
+    color: var(--dim);
+    text-decoration: underline;
+    cursor: pointer;
+}
+.start-link:hover { color: var(--accent-dark); }
+
+/* ------------------------------------------------ theme picker content */
 .theme-modal-lead {
     margin: 0 0 0.9rem;
     font-size: 0.92rem;
@@ -850,13 +1352,7 @@ select:focus-visible,
     height: 1.05rem;
     accent-color: var(--accent);
 }
-.theme-modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-}
 /* Continue uses the same button tokens as topbar (global button rule) */
-body.theme-modal-open { overflow: hidden; }
 #reconnect-chip {
     background: var(--reconnect-bg);
     border-color: var(--reconnect-border);
@@ -4193,6 +4689,18 @@ html[data-theme="high-contrast"] .roll-card-result.is-nat20 {
 /* ------------------------------------------------ print — always light ink-on-paper */
 @media print {
     .no-print { display: none !important; }
+    /* The rail reserves body padding on screen; paper has no rail, so give the width back. */
+    body { padding-right: 0 !important; padding-bottom: 0 !important; }
+    /* Explain-mode hints DO print — a sheet that says what CMD means is the thing a kid
+       actually takes home. Tightened so the simple sheet keeps its two-page fit; if it ever
+       spills to a third page, switch this to display:none rather than reflowing the layout. */
+    body.explain .term-hint {
+        display: block;
+        font-size: 0.6rem;
+        line-height: 1.15;
+        opacity: 1;
+        color: #444;
+    }
     /* Pin the reference size for paper so rem-based print layout is unchanged by the
        screen scaling knob; let wrapped tables print in full rather than scroll-clip. */
     html { font-size: 16px; }
