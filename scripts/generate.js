@@ -7,7 +7,7 @@ window.SheetGenerate = (function () {
     const { parseIntLoose } = window.SheetUI;
     const { adoptCharacter } = window.SheetRoster;
     const backendUrl = () => window.SheetApp.backendUrl();
-    const togglePanel = (id) => window.SheetApp.togglePanel(id);
+    const { togglePanel } = window.SheetShellUI;
 
     // ---------------------------------------------------------------- generate form
     function fillSelect(sel, options, valueFn) {

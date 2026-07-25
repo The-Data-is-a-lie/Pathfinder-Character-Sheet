@@ -7,18 +7,12 @@ window.SheetTabSettings = (function () {
     const { h, section } = window.SheetUI;
     const { buildCustomThemeControls, renderThemeCards, themePreference } = window.SheetTheme;
     const { refreshRoster } = window.SheetRoster;
+    const {
+        audience, setAudience, viewMode, setViewMode, explainMode, setExplainMode,
+        densityCompact, setDensityCompact, openStartHere, openInstructions,
+    } = window.SheetShellUI;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const backendUrl = () => window.SheetApp.backendUrl();
-    const openStartHere = () => window.SheetApp.openStartHere();
-    const openInstructions = () => window.SheetApp.openInstructions();
-    const audience = (...a) => window.SheetApp.audience(...a);
-    const setAudience = (...a) => window.SheetApp.setAudience(...a);
-    const viewMode = (...a) => window.SheetApp.viewMode(...a);
-    const setViewMode = (...a) => window.SheetApp.setViewMode(...a);
-    const explainMode = (...a) => window.SheetApp.explainMode(...a);
-    const setExplainMode = (...a) => window.SheetApp.setExplainMode(...a);
-    const densityCompact = (...a) => window.SheetApp.densityCompact(...a);
-    const setDensityCompact = (...a) => window.SheetApp.setDensityCompact(...a);
 
     function tabSettings() {
         const { sec, body } = section('Settings');
