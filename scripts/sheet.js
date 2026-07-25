@@ -114,6 +114,7 @@
         renderFeaturesToolbar, renderFeats, renderTraits, renderClassFeatures,
         refreshFeatureLedger, featureBuffGroup,
     } = window.SheetTabFeatures;
+    const { tabCombat } = window.SheetTabCombat;
 
     const LEGACY_CHAR_KEY = 'sheet.characterData'; // pre-library single slot (migrated once)
     const FORM_KEY = 'sheet.formData';
@@ -1986,70 +1987,6 @@
     }
 
 
-    function tabCombat(data) {
-        const d = computeDerived(data);
-        const { sec, body } = section('Combat', 'combat');
-        body.appendChild(h('p', 'dbl-edit-hint no-print',
-            'Attack hub: bonus strip on top, weapon fields, and the attack roller. AC / saves / DR live on Defenses; HP and speeds on Summary.'));
-
-        // Top strip: BAB iteratives + core attack bonuses (rollable where useful)
-        const strip = h('div', 'summary-combat-strip combat-top-strip');
-        const box = (label, value, opts = {}) => {
-            const b = h('div', 'summary-stat-box');
-            const head = h('div', 'summary-stat-head');
-            head.appendChild(document.createTextNode(label + ' '));
-            if (opts.rollTotal != null) {
-                head.appendChild(rollBtn(opts.rollLabel || label, opts.rollTotal));
-            }
-            b.appendChild(head);
-            b.appendChild(h('div', 'summary-stat-val', value));
-            attachStatHint(b, label);
-            if (opts.title) b.title = opts.title;
-            strip.appendChild(b);
-            return b;
-        };
-        box('BAB', babIterativesStr(d.bab), { title: 'Iterative attacks (up to 4 shown)' });
-        box('CMB', fmt(d.blocks.cmb.total), { rollTotal: d.blocks.cmb.total, rollLabel: 'CMB' });
-        const meleeBox = box('Melee', fmt(d.blocks.melee.total),
-            { rollTotal: d.blocks.melee.total, rollLabel: 'Melee attack' });
-        attachNotesHover(meleeBox, data, ['attack', 'mattack']);
-        const rangedBox = box('Ranged', fmt(d.blocks.ranged.total),
-            { rollTotal: d.blocks.ranged.total, rollLabel: 'Ranged attack' });
-        attachNotesHover(rangedBox, data, ['attack', 'rattack']);
-        box('Init', fmt(d.blocks.init.total),
-            { rollTotal: d.blocks.init.total, rollLabel: 'Initiative' });
-        body.appendChild(strip);
-
-        // Weapons — the same rows as Inventory (name / ⚙ opens the full item sheet)
-        body.appendChild(h('h3', null, 'Weapons'));
-        migrateCoreGear(data);
-        const invList = ensureInventoryObjects(data);
-        const weaponRows = [];
-        invList.forEach((item, i) => {
-            if (inventoryCategory(item) === 'weapons') weaponRows.push({ item, index: i });
-        });
-        if (weaponRows.length) {
-            const pack = h('div', 'inv-list combat-weapons');
-            for (const { item, index } of weaponRows) {
-                pack.appendChild(renderInventoryItemCard(data, item, index));
-            }
-            body.appendChild(pack);
-        } else {
-            body.appendChild(h('p', 'dim no-print',
-                'No weapons in inventory — add one on the Inventory tab (Browse items → Weapons).'));
-        }
-
-        body.appendChild(h('h3', null, 'Attack'));
-        const attackHost = h('div', null);
-        attackHost.id = 'combat-attack-panel';
-        body.appendChild(attackHost);
-        window.SheetRoll?.renderAttackCard?.(attackHost, {
-            showConditionals: true,
-            showGeneric: true,
-        });
-
-        return sec;
-    }
 
     function tabDefenses(data) {
         const d = computeDerived(data);
@@ -2496,6 +2433,8 @@
         gearLine: (...a) => gearLine(...a),
         addInventoryItem: (...a) => addInventoryItem(...a),
         renderUsesControls: (...a) => renderUsesControls(...a),
+        renderInventoryItemCard: (...a) => renderInventoryItemCard(...a),
+        migrateCoreGear: (...a) => migrateCoreGear(...a),
         // settings.js late-binds the shell view-state getters/setters + the backend key.
         viewMode: () => viewMode(),
         setViewMode: (m) => setViewMode(m),
