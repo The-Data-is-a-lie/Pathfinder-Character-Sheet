@@ -5137,3 +5137,42 @@ html[data-theme="high-contrast"] .roll-card-result.is-nat20 {
        otherwise jump wholesale to a fresh sheet, wasting most of a page). */
     .simple-stat-grid, .simple-id-grid { break-inside: avoid; }
 }
+
+/* ------------------------------------------------ command palette (Ctrl-K, scripts/shortcuts.js) */
+.cmdk-overlay .overlay-card { width: min(560px, 92vw); }
+.cmdk-wrap { display: flex; flex-direction: column; gap: 0.5rem; }
+.cmdk-input {
+    width: 100%;
+    font-size: 1.05rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--paper);
+    color: var(--ink);
+}
+.cmdk-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.cmdk-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 46vh;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+.cmdk-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+}
+.cmdk-item:last-child { border-bottom: none; }
+.cmdk-item.is-sel { background: var(--accent); color: var(--paper); }
+.cmdk-item.is-sel .cmdk-group { color: var(--paper); opacity: 0.85; }
+.cmdk-label { font-size: 1rem; }
+.cmdk-group { font-size: 0.75rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.03em; }
+.cmdk-empty { padding: 0.75rem; color: var(--dim); text-align: center; }
+.cmdk-foot { font-size: 0.78rem; color: var(--dim); text-align: center; padding-top: 0.1rem; }
