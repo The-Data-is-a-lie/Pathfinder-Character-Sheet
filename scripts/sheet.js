@@ -9818,6 +9818,48 @@
         }
     }
 
+    // One-click starting points for the 20 advanced generator fields. Each preset sets ONLY
+    // its listed fields (never race/class/level) and does not submit, so a power user can
+    // dial in a baseline and then tweak before rolling. Values must match option values in
+    // the index.html advanced grid.
+    const GEN_PRESETS = {
+        standard: {
+            label: 'Standard',
+            fields: { bab: 'random', caster_level: 'random', multiclass: 'n',
+                inherents: 'n', spheres_of_power: 'n', modded_char_sheet: 'n',
+                homebrew_feat_amount: 'n' },
+        },
+        high: {
+            label: 'High-powered',
+            fields: { bab: 'h', caster_level: 'high', inherents: 'y' },
+        },
+        multiclass: {
+            label: 'Multiclass',
+            fields: { multiclass: 'y' },
+        },
+        spheres: {
+            label: 'Spheres',
+            fields: { spheres_of_power: 'y', modded_char_sheet: 'y' },
+        },
+    };
+
+    function applyGenPreset(form, id) {
+        const preset = GEN_PRESETS[id];
+        if (!preset) return;
+        // Open the advanced panel so a changed field is seen, not silently set behind a fold.
+        const adv = document.querySelector('.gen-advanced');
+        if (adv && !adv.open) adv.open = true;
+        for (const [name, value] of Object.entries(preset.fields)) {
+            const el = form.elements[name];
+            if (!el || el.disabled) continue;
+            // Only assign a value that exists as a real option, so a stale preset can't wedge
+            // a select onto a nonexistent entry.
+            if (el.tagName === 'SELECT' && !Array.from(el.options).some((o) => o.value === value)) continue;
+            el.value = value;
+        }
+        window.SheetOverlay?.toast?.(preset.label + ' preset applied');
+    }
+
     function surpriseMe(form) {
         const pick = (sel) => {
             const opts = Array.from(sel.options).filter((o) => !o.disabled
@@ -9934,6 +9976,9 @@
             form.elements[name].addEventListener('change', () => syncQuickLevel(form));
         }
         document.getElementById('gen-surprise')?.addEventListener('click', () => surpriseMe(form));
+        document.querySelectorAll('.gen-preset').forEach((btn) => {
+            btn.addEventListener('click', () => applyGenPreset(form, btn.dataset.preset));
+        });
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();

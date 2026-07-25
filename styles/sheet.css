@@ -1047,6 +1047,20 @@ body.explain .term-hint-block { margin-top: 0.15rem; }
 .gen-advanced-gear { color: var(--accent); }
 /* The expanded controls go back to normal left-aligned form flow. */
 .gen-advanced > .form-grid { text-align: left; }
+/* Preset chips: one-click baselines for the advanced fields. */
+.gen-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-bottom: 0.8rem; text-align: left; }
+.gen-presets-label { font-size: 0.85rem; color: var(--dim); margin-right: 0.15rem; }
+.gen-preset {
+    font-size: 0.9rem;
+    padding: 0.35rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--panel);
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.gen-preset:hover { background: var(--hover); border-color: var(--accent); }
 
 .settings-check { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
 .settings-check input { width: 1.05rem; height: 1.05rem; accent-color: var(--accent); }

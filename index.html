@@ -188,6 +188,15 @@
 
         <details class="gen-advanced">
             <summary><span class="gen-advanced-gear">⚙</span> More options</summary>
+        <!-- One-click starting points for the advanced fields. They only set the toggles
+             below (never race/class/level), so you can still tweak before rolling. -->
+        <div class="gen-presets" role="group" aria-label="Generation presets">
+            <span class="gen-presets-label">Presets:</span>
+            <button type="button" class="gen-preset" data-preset="standard">Standard</button>
+            <button type="button" class="gen-preset" data-preset="high">High-powered</button>
+            <button type="button" class="gen-preset" data-preset="multiclass">Multiclass</button>
+            <button type="button" class="gen-preset" data-preset="spheres">Spheres</button>
+        </div>
         <div class="form-grid">
             <label>Region
                 <select name="region"></select>
