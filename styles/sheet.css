@@ -5152,6 +5152,13 @@ html[data-theme="high-contrast"] .roll-card-result.is-nat20 {
     .simple-stat-grid, .simple-id-grid { break-inside: avoid; }
 }
 
+/* ------------------------------------------------ compact density (Settings → complex view only) */
+/* Purely opt-in; scoped to .tab-pane so the simple sheet and print (.simple-*) are untouched. */
+body.density-compact .tab-pane { font-size: 0.94rem; line-height: 1.28; }
+body.density-compact .tab-pane th,
+body.density-compact .tab-pane td { padding-top: 0.18rem; padding-bottom: 0.18rem; }
+body.density-compact .tab-pane h3 { margin-top: 0.5rem; margin-bottom: 0.3rem; }
+
 /* ------------------------------------------------ command palette (Ctrl-K, scripts/shortcuts.js) */
 .cmdk-overlay .overlay-card { width: min(560px, 92vw); }
 .cmdk-wrap { display: flex; flex-direction: column; gap: 0.5rem; }

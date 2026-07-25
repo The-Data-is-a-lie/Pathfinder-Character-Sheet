@@ -22,6 +22,7 @@
     // hints on. Both stick to whatever the user picks after that. The stored view value stays
     // 'full'/'simple' — only the user-facing word for 'full' became "Complex".
     const EXPLAIN_KEY = 'sheet.explainMode'; // '1' | '0'
+    const DENSITY_KEY = 'sheet.density';     // 'compact' | unset (comfortable); complex view only
     // Who is holding the sheet. Owns the DEFAULT for every beginner-facing surface below
     // (view, explain, rail, the Start-here card) so there is one place to lean harder into
     // newcomers — or, for an experienced player, to strip the training wheels in one move.
@@ -8380,6 +8381,17 @@
         viewRow.appendChild(viewSel);
         body.appendChild(viewRow);
 
+        // Power-user display density for the complex/tabbed sheet.
+        const densityRow = h('div', 'settings-row');
+        const densityLabel = h('label', 'settings-check');
+        const densityBox = h('input');
+        densityBox.type = 'checkbox';
+        densityBox.checked = densityCompact();
+        densityBox.addEventListener('change', () => setDensityCompact(densityBox.checked));
+        densityLabel.append(densityBox, h('span', null, 'Compact density — tighter tables and type on the detailed sheet'));
+        densityRow.appendChild(densityLabel);
+        body.appendChild(densityRow);
+
         const guideRow = h('div', 'settings-row');
         for (const [label, run] of [['Start here', openStartHere], ['Full instructions', openInstructions]]) {
             const btn = h('button', null, label);
@@ -8542,6 +8554,22 @@
 
     function applyExplainMode() {
         document.body.classList.toggle('explain', explainMode());
+    }
+
+    // Compact density: a power-user preference that tightens the tabbed (complex) view's
+    // tables and type. Like explain, it is purely a body class, so it never re-renders and
+    // leaves the simple/print sheets (which use .simple-*) untouched.
+    function densityCompact() {
+        return localStorage.getItem(DENSITY_KEY) === 'compact';
+    }
+
+    function applyDensity() {
+        document.body.classList.toggle('density-compact', densityCompact());
+    }
+
+    function setDensityCompact(on) {
+        localStorage.setItem(DENSITY_KEY, on ? 'compact' : 'comfortable');
+        applyDensity();
     }
 
     function setExplainMode(on) {
@@ -9923,6 +9951,7 @@
         // Generate / view switch / Explain / Start here render into the top bar AND the rail
         // from one definition, so the two can't disagree about state or wording.
         applyExplainMode();
+        applyDensity();
         syncPrimaryActions();
         initRail();
 
