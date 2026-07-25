@@ -25,6 +25,24 @@
         bindDragReorder, reorderArray, dndHandle,
     } = window.SheetUI;
 
+    // Derived-stat math, lifted into scripts/derive.js (window.SheetDerive). Pulled back into
+    // this scope so the many existing call sites (computeDerived, part, saveBuckets, …) stay
+    // untouched. derive.js late-binds its state deps via the window.SheetState bridge below.
+    const {
+        part, sumParts, appendLedgerParts, abilityInfo, abModOf, effectiveLedger,
+        groupChangesBySource, computeDerived, combatStats, carryLimits, loadCategory,
+        castingAbilityMod, totalLevel, casterLevelValue, spellSaveDC, concentrationBonus,
+        acTypeTotals, saveBuckets, srTotal, babIterativesStr, GOOD_SAVES,
+    } = window.SheetDerive;
+
+    // TEMP bridge (Part B split): derive.js late-binds a few state helpers via
+    // window.SheetState. Until state.js is extracted, the shell still owns them, so expose
+    // them here. Delete this block when state.js takes over window.SheetState.
+    window.SheetState = window.SheetState || {};
+    Object.assign(window.SheetState, {
+        sheetState, disabledBuffSet, removedBuffSet, buffSourceKey, ensureCastingAbility,
+    });
+
     const LEGACY_CHAR_KEY = 'sheet.characterData'; // pre-library single slot (migrated once)
     const FORM_KEY = 'sheet.formData';
     const BACKEND_KEY = 'sheet.backendUrl';
@@ -762,116 +780,9 @@
         'Kurgess', 'Lamashtu', 'Lissala', 'Nethys', 'Norgorber', 'Pharasma', 'Rovagug',
         'Sarenrae', 'Shelyn', 'Torag', 'Urgathoa', 'Zon-Kuthon', 'Zyphus'];
 
-    // Good-save progressions per class, extracted from the pf1e_random_char_generator module's
-    // every_class.json (pf1 + pf1-pow compendium export). Stalker/Zealot are absent from that
-    // compendium; their entries follow the d20pfsrd Path of War class tables.
-    // FALLBACK ONLY for payloads without save_bases — the backend now stacks saves per class
-    // server-side (Backend/utils/data.py good_saves in the generator repo). Keep in sync.
-    const GOOD_SAVES = {
-        'alchemist': ['fort', 'ref'], 'antipaladin': ['fort', 'will'], 'arcanist': ['will'],
-        'barbarian': ['fort'], 'barbarian (unchained)': ['fort'], 'bard': ['ref', 'will'],
-        'bloodrager': ['fort'], 'brawler': ['fort', 'ref'], 'cavalier': ['fort'],
-        'cleric': ['fort', 'will'], 'druid': ['fort', 'will'], 'fighter': ['fort'],
-        'gunslinger': ['fort', 'ref'], 'harbinger': ['fort', 'will'], 'hunter': ['fort', 'ref'],
-        'inquisitor': ['fort', 'will'], 'investigator': ['ref', 'will'],
-        'kineticist': ['fort', 'ref'], 'magus': ['fort', 'will'], 'medic': ['fort', 'will'],
-        'medium': ['will'], 'mesmerist': ['ref', 'will'], 'monk': ['fort', 'ref', 'will'],
-        'monk (unchained)': ['fort', 'ref'], 'mystic': ['will'], 'ninja': ['ref'],
-        'occultist': ['fort', 'will'], 'oracle': ['will'], 'paladin': ['fort', 'will'],
-        'psychic': ['will'], 'ranger': ['fort', 'ref'], 'rogue': ['ref'],
-        'rogue (unchained)': ['ref'], 'samurai': ['fort'], 'shaman': ['will'],
-        'shifter': ['fort', 'ref'], 'skald': ['fort', 'will'], 'slayer': ['fort', 'ref'],
-        'sorcerer': ['will'], 'spiritualist': ['fort', 'will'], 'stalker': ['will'],
-        'summoner': ['will'], 'summoner (unchained)': ['will'], 'swashbuckler': ['ref'],
-        'vigilante': ['ref', 'will'], 'warder': ['fort', 'will'], 'warlord': ['fort'],
-        'warpriest': ['fort', 'will'], 'witch': ['will'], 'wizard': ['will'],
-        'zealot': ['fort', 'will'],
-    };
-
-    // ---------------------------------------------------------------- tiny DOM helpers
-    // h / htmlBlock / details / section now live in scripts/ui.js (window.SheetUI).
-
-    // kLabel / kv / kvStat now live in scripts/ui.js (window.SheetUI).
-
-    // titleCase / mod now live in scripts/ui.js (window.SheetUI).
-
-    /**
-     * Effective ability score & modifier, pf1-style. The generator's exported score
-     * (data[ab]) already bakes in the racial modifier; the backend also ships per-stat
-     * inherent (data.inherents) and level-up (data.level_up_stats) dicts that are NOT in
-     * that base, so they are added here. On top sit the user's manual boxes and the buff
-     * ledger. ability Damage penalizes the MOD (−1 per 2). Optional data.racial_stats, if
-     * the generator exports it, only splits the racial part out of the base for display.
-     * User boxes persist on _sheet.abilityAdjust[ab] =
-     * { racial, enhancement, inherent, misc, damage, drain }.
-     */
-    function abilityInfo(data, ab) {
-        const base = Number(data?.[ab]);
-        const adj = data?._sheet?.abilityAdjust?.[ab] || {};
-        const racial = Number(adj.racial) || 0;
-        const enhancement = Number(adj.enhancement) || 0;
-        const inherent = Number(adj.inherent) || 0;
-        const levelup = Number(adj.levelup) || 0;
-        const misc = Number(adj.misc) || 0;
-        const damage = Number(adj.damage) || 0;
-        const drain = Number(adj.drain) || 0;
-        // Generator's racial modifier is inside the base score only until seedRacialColumn
-        // moves it into the Racial column; after that the split is already explicit.
-        const autoRacial = data?._sheet?.racialSeeded ? 0 : Number(data?.racial_stats?.[ab]) || 0;
-        const bits = [];
-        let ledgerSum = 0;
-        // Ledger bonuses (equipped items, buffs, feats…) bucketed into the ability table's typed
-        // columns so an equipped belt's enhancement shows in the Enhance column instead of only in
-        // the Total's hover. enh/inherent/racial map to their columns; anything else lands in Misc,
-        // so the displayed columns always reconcile with the Total.
-        const TYPE_TO_COL = { enh: 'enhancement', inherent: 'inherent', racial: 'racial' };
-        const autoByCol = { racial: 0, enhancement: 0, inherent: 0, misc: 0 };
-        const autoSrc = { racial: [], enhancement: [], inherent: [], misc: [] };
-        const SD = window.SheetDetails;
-        if (SD && data) {
-            for (const c of (effectiveLedger(data).changes || [])) {
-                if (c.target !== ab) continue;
-                const ev = SD.evalSimpleFormula(c.formula, data);
-                if (ev?.ok && ev.value) {
-                    ledgerSum += ev.value;
-                    bits.push(`${c.source} ${fmt(ev.value)}`);
-                    const col = TYPE_TO_COL[c.type] || 'misc';
-                    autoByCol[col] += ev.value;
-                    autoSrc[col].push(`${c.source} ${fmt(ev.value)}`);
-                }
-            }
-        }
-        const parts = { base, racial, enhancement, inherent, levelup, misc, damage, drain,
-            autoRacial, autoByCol, autoSrc };
-        if (!Number.isFinite(base)) {
-            return { ...parts, base: null, total: null, mod: 0, formula: 'no score' };
-        }
-        // Inherent + level-up now live in their own columns (seeded from the backend), so
-        // the total is simply base + every typed bonus − drain.
-        const manual = racial + enhancement + inherent + levelup + misc;
-        const total = base + ledgerSum + manual - drain;
-        const damagePen = Math.floor(damage / 2);
-        const rollBase = base - autoRacial; // base already includes the racial modifier
-        const formula = [
-            'base ' + rollBase,
-            autoRacial ? 'racial ' + fmt(autoRacial) : null,
-            racial ? (autoRacial ? 'racial+ ' : 'racial ') + fmt(racial) : null,
-            ...bits,
-            levelup ? 'level-up ' + fmt(levelup) : null,
-            enhancement ? 'enhancement ' + fmt(enhancement) : null,
-            inherent ? 'inherent ' + fmt(inherent) : null,
-            misc ? 'misc ' + fmt(misc) : null,
-            drain ? 'drain ' + drain : null,
-        ].filter(Boolean).join(' + ').replace(/\+ drain/g, '− drain')
-            + ' = ' + total
-            + (damagePen ? ` · mod −${damagePen} (${damage} ability damage)` : '');
-        return { ...parts, base, total, mod: mod(total) - damagePen, formula };
-    }
-
-    /** Effective ability modifier (ledger + damage/drain/misc aware). */
-    function abModOf(data, ab) {
-        return abilityInfo(data, ab).mod;
-    }
+    // ---------------------------------------------------------------- moved-out kits
+    // DOM helpers (h / section / kv / kvStat / titleCase / mod …) live in scripts/ui.js.
+    // Derived-stat math (computeDerived / part / saveBuckets …) lives in scripts/derive.js.
 
     /**
      * One-time copy of the generator's per-stat inherent (data.inherents) and level-up
@@ -1032,23 +943,6 @@
         (markHost || el).appendChild(mark);
     }
 
-    /** Full ledger with inactive sources' changes stripped (notes/conditionals kept for UI). */
-    function effectiveLedger(data) {
-        const SD = window.SheetDetails;
-        const full = SD ? SD.collectChanges(data) : (window.sheetChangesFull || window.sheetChanges
-            || { changes: [], notes: [], conditionals: [] });
-        const disabled = disabledBuffSet(data);
-        const removed = removedBuffSet(data);
-        if (!disabled.size && !removed.size) return full;
-        return {
-            changes: (full.changes || []).filter((c) => {
-                const key = buffSourceKey(c.source, c.sourceKind);
-                return !disabled.has(key) && !removed.has(key);
-            }),
-            notes: full.notes || [],
-            conditionals: full.conditionals || [],
-        };
-    }
 
     function refreshDerived() {
         if (currentData && !currentData.error) {
@@ -1057,374 +951,13 @@
         }
     }
 
-    /** Group always-on changes by source for per-buff toggles. */
-    function groupChangesBySource(changes) {
-        const map = new Map();
-        for (const c of changes || []) {
-            const key = buffSourceKey(c.source, c.sourceKind);
-            if (!map.has(key)) {
-                map.set(key, {
-                    key,
-                    source: c.source,
-                    sourceKind: c.sourceKind || 'buff',
-                    lines: [],
-                });
-            }
-            map.get(key).lines.push(c);
-        }
-        return [...map.values()].sort((a, b) =>
-            String(a.source).localeCompare(String(b.source)));
-    }
 
     // editableField / kvEdit / dblclickEditable / kvDbl live in ui.js (window.SheetUI).
 
-    // ---------------------------------------------------------------- derived stats + sources
-    function part(label, value, opts = {}) {
-        return {
-            label,
-            value: value == null ? 0 : value,
-            kind: opts.kind || 'base',
-            type: opts.type || '',
-            sourceKind: opts.sourceKind || '', // feat/trait/item/buff… for defense buckets
-            unresolved: !!opts.unresolved,
-            formula: opts.formula || '',
-            info: !!opts.info, // listed but not added to total (e.g. HP ledger)
-        };
-    }
 
-    function sumParts(parts) {
-        let total = 0;
-        for (const p of parts) {
-            if (p.unresolved || p.info) continue;
-            total += Number(p.value) || 0;
-        }
-        return total;
-    }
 
-    function appendLedgerParts(parts, data, ledger, targets, opts = {}) {
-        const SD = window.SheetDetails;
-        if (!SD || !ledger) return;
-        const list = SD.changesForTargets(ledger, targets);
-        const skipDodge = !!opts.skipDodge;
-        const skipArmorShield = !!opts.skipArmorShield; // for touch: drop aac/sac targets
-        for (const c of list) {
-            if (skipDodge && (c.type === 'dodge')) continue;
-            if (skipArmorShield && (c.target === 'aac' || c.target === 'sac')) continue;
-            // On touch AC, only keep dodge/deflect/insight/luck/etc. and tac — still include
-            // generic `ac` non-armor types; skip enhancement armor-ish is hard without more data.
-            if (opts.touchOnly) {
-                if (c.target === 'aac' || c.target === 'sac') continue;
-                if (c.type === 'armor' || c.type === 'shield') continue;
-            }
-            const typeStr = SD.typeLabel(c.type);
-            const label = (typeStr ? typeStr + ' ' : '') + `(${c.source})`;
-            const ev = SD.evalSimpleFormula(c.formula, data);
-            if (ev.ok) {
-                parts.push(part(label, ev.value, {
-                    kind: 'ledger', type: c.type || '', sourceKind: c.sourceKind || '',
-                    info: !!opts.infoOnly,
-                }));
-            } else {
-                parts.push(part(label, 0, {
-                    kind: 'ledger', type: c.type || '', sourceKind: c.sourceKind || '',
-                    unresolved: true,
-                    formula: ev.formula || c.formula, info: !!opts.infoOnly,
-                }));
-            }
-        }
-    }
 
-    /**
-     * Full derived combat numbers with source parts (base + gear + ability + change ledger).
-     */
-    function computeDerived(data) {
-        const SD = window.SheetDetails;
-        // Full ledger for Buffs tab; effective (maybe empty changes) for math
-        const fullLedger = SD ? SD.collectChanges(data) : (window.sheetChangesFull || { changes: [] });
-        window.sheetChangesFull = fullLedger;
-        const ledger = effectiveLedger(data);
-        window.sheetChanges = ledger;
 
-        // Simple-sheet total edits land here as flat deltas (visible in every sources list).
-        const manual = sheetState(data).manualAdjust || {};
-        const manualPart = (parts, key) => {
-            const v = Number(manual[key]) || 0;
-            if (v) parts.push(part('Manual adjustment', v, { kind: 'manual' }));
-        };
-
-        // PF1 negative levels: −1 per level on attack rolls, saves, skill and ability
-        // checks; −5 HP each. (CL / spell-slot loss is flagged on Attributes, not automated.)
-        const negLv = Number(sheetState(data).negativeLevels) || 0;
-        const negPart = (parts) => {
-            if (negLv) {
-                parts.push(part('Negative levels', -negLv, { kind: 'ledger', type: 'penalty' }));
-            }
-        };
-
-        const level = Number(data.level) || 0;
-        const bab = Number(data.bab_total) || 0;
-        const strM = abModOf(data, 'str'), dexM = abModOf(data, 'dex'), conM = abModOf(data, 'con');
-        const wisM = abModOf(data, 'wis'), intM = abModOf(data, 'int'), chaM = abModOf(data, 'cha');
-        const armorAc = toInt(data.armor_ac) ?? 0;
-        const shieldAc = toInt(data.shield_ac) ?? 0;
-        const maxDex = toInt(data.armor_max_dex_bonus);
-        const dexCapped = maxDex !== null && dexM > maxDex;
-        const effDex = dexCapped ? maxDex : dexM;
-        const armorName = (data.armor_name || '').trim() || 'Armor';
-        const shieldName = (data.shield_name || '').trim() || 'Shield';
-        const className = String(data.c_class || '').toLowerCase();
-        const goods = GOOD_SAVES[className];
-        // multiclass payloads carry save_bases stacked per class server-side — authoritative;
-        // GOOD_SAVES + level is the fallback for older cached payloads (first class only)
-        const saveBases = (data.save_bases && typeof data.save_bases === 'object')
-            ? data.save_bases : null;
-        const multiclassSaves = Boolean(data.c_class_2) && !saveBases;
-        const classBase = (save) => {
-            if (saveBases && Number.isFinite(Number(saveBases[save]))) return Number(saveBases[save]);
-            if (!goods || !level) return null;
-            return goods.includes(save) ? 2 + Math.floor(level / 2) : Math.floor(level / 3);
-        };
-
-        // ---- AC ----
-        const acParts = [part('Base', 10)];
-        if (armorAc || data.armor_name) {
-            acParts.push(part(`Armor (${armorName})`, armorAc, { kind: 'gear' }));
-        }
-        if (shieldAc || data.shield_name) {
-            acParts.push(part(`Shield (${shieldName})`, shieldAc, { kind: 'gear' }));
-        }
-        acParts.push(part(
-            dexCapped ? `Dex (capped by armor max ${maxDex})` : 'Dex',
-            effDex, { kind: 'ability' }));
-        appendLedgerParts(acParts, data, ledger, ['ac', 'aac', 'sac', 'nac']);
-        manualPart(acParts, 'ac');
-
-        const touchParts = [part('Base', 10)];
-        touchParts.push(part(
-            dexCapped ? `Dex (capped by armor max ${maxDex})` : 'Dex',
-            effDex, { kind: 'ability' }));
-        appendLedgerParts(touchParts, data, ledger, ['ac', 'tac', 'nac'], { touchOnly: true });
-        manualPart(touchParts, 'touch');
-
-        const flatParts = [part('Base', 10)];
-        if (armorAc || data.armor_name) {
-            flatParts.push(part(`Armor (${armorName})`, armorAc, { kind: 'gear' }));
-        }
-        if (shieldAc || data.shield_name) {
-            flatParts.push(part(`Shield (${shieldName})`, shieldAc, { kind: 'gear' }));
-        }
-        appendLedgerParts(flatParts, data, ledger, ['ac', 'ffac', 'aac', 'sac', 'nac'], {
-            skipDodge: true,
-        });
-        manualPart(flatParts, 'flat');
-
-        // ---- Saves ----
-        function saveBlock(save, abLabel, abMod) {
-            const parts = [];
-            const base = classBase(save);
-            if (base == null) {
-                parts.push(part('Class base (unknown class progression)', 0, {
-                    kind: 'base', unresolved: true, formula: '?',
-                }));
-            } else if (saveBases && Array.isArray(data.classes) && data.classes.length > 1) {
-                parts.push(part(
-                    `Class base (stacked: ${data.classes.map((c) => `${titleCase(c.display || c.name)} ${c.level}`).join(' / ')})`,
-                    base, { kind: 'base' }));
-            } else {
-                const good = !!(goods && goods.includes(save));
-                parts.push(part(
-                    `Class base (${good ? 'good' : 'poor'}${className ? ', ' + titleCase(className) : ''})`,
-                    base, { kind: 'base' }));
-            }
-            parts.push(part(abLabel, abMod, { kind: 'ability' }));
-            appendLedgerParts(parts, data, ledger, [save, 'allSavingThrows']);
-            manualPart(parts, save);
-            negPart(parts);
-            return { total: sumParts(parts), parts };
-        }
-        const fort = saveBlock('fort', 'Constitution', conM);
-        const ref = saveBlock('ref', 'Dexterity', dexM);
-        const will = saveBlock('will', 'Wisdom', wisM);
-
-        // ---- Init / attacks / CMB / CMD ----
-        const initParts = [part('Dexterity', dexM, { kind: 'ability' })];
-        appendLedgerParts(initParts, data, ledger, ['init']);
-        manualPart(initParts, 'init');
-        negPart(initParts);
-
-        const meleeParts = [
-            part('BAB', bab, { kind: 'base' }),
-            part('Strength', strM, { kind: 'ability' }),
-        ];
-        appendLedgerParts(meleeParts, data, ledger, ['attack', 'mattack']);
-        manualPart(meleeParts, 'melee');
-        negPart(meleeParts);
-
-        const rangedParts = [
-            part('BAB', bab, { kind: 'base' }),
-            part('Dexterity', dexM, { kind: 'ability' }),
-        ];
-        appendLedgerParts(rangedParts, data, ledger, ['attack', 'rattack']);
-        manualPart(rangedParts, 'ranged');
-        negPart(rangedParts);
-
-        // ---- Weapon damage (dice + ability + enh + ledger) — same breakdown style as attacks ----
-        const wName = (data.weapon_name || '').trim();
-        const wStats = wName && SD ? SD.lookupWeapon(wName) : null;
-        let weaponEnh = 0;
-        if (Array.isArray(data.weapon_enhancement_chosen_list)) {
-            for (const raw of data.weapon_enhancement_chosen_list) {
-                const m = String(raw).match(/^\s*\+(\d+)\b/);
-                if (m) weaponEnh = Math.max(weaponEnh, parseInt(m[1], 10));
-            }
-        }
-        const dmgAbKey = (wStats?.damageAbility || 'str').toLowerCase();
-        const dmgAbMod = ({ str: strM, dex: dexM, con: conM, int: intM, wis: wisM, cha: chaM })[dmgAbKey] ?? 0;
-        const damageParts = [];
-        if (wStats?.dice) {
-            // Dice is not a flat number — list as info so sources show it without double-counting
-            damageParts.push(part('Weapon dice', 0, {
-                kind: 'base', info: true, formula: wStats.dice,
-            }));
-        } else if (wName) {
-            damageParts.push(part('Weapon dice', 0, {
-                kind: 'base', unresolved: true, formula: 'no weapon stats',
-            }));
-        }
-        if (wStats || wName) {
-            damageParts.push(part(dmgAbKey.toUpperCase(), dmgAbMod, { kind: 'ability' }));
-        }
-        if (weaponEnh) {
-            damageParts.push(part('Enhancement', weaponEnh, { kind: 'gear' }));
-        }
-        const dmgTargets = wStats && (wStats.actionType === 'rwak' || wStats.actionType === 'rsak' || wStats.actionType === 'twak')
-            ? ['damage', 'rdamage', 'wdamage']
-            : ['damage', 'mdamage', 'wdamage'];
-        appendLedgerParts(damageParts, data, ledger, dmgTargets);
-        const damageFlat = sumParts(damageParts);
-        const damageDice = wStats?.dice || '';
-        let damageTotal;
-        if (damageDice && damageFlat) {
-            damageTotal = damageDice + (damageFlat >= 0 ? '+' : '') + damageFlat;
-        } else if (damageDice) {
-            damageTotal = damageDice;
-        } else if (damageParts.length) {
-            damageTotal = (damageFlat >= 0 ? '+' : '') + damageFlat;
-        } else {
-            damageTotal = '';
-        }
-        const damage = damageParts.length
-            ? { total: damageTotal, parts: damageParts }
-            : null;
-
-        const cmbParts = [
-            part('BAB', bab, { kind: 'base' }),
-            part('Strength', strM, { kind: 'ability' }),
-        ];
-        appendLedgerParts(cmbParts, data, ledger, ['cmb']);
-        manualPart(cmbParts, 'cmb');
-        negPart(cmbParts);
-
-        const cmdParts = [
-            part('Base', 10),
-            part('BAB', bab, { kind: 'base' }),
-            part('Strength', strM, { kind: 'ability' }),
-            part('Dexterity', dexM, { kind: 'ability' }),
-        ];
-        appendLedgerParts(cmdParts, data, ledger, ['cmd']);
-        manualPart(cmdParts, 'cmd');
-
-        // Flat-footed CMD (PF1): CMD without Dexterity and dodge bonuses
-        const cmdFFParts = cmdParts.filter((p) =>
-            !(p.kind === 'ability' && p.label === 'Dexterity') && p.type !== 'dodge');
-
-        // ---- HP: rolled dice + CON×level, then mhp feats (Toughness, …) on top ----
-        // Mirrors Foundry: total_rolled_hp → hp.base; Con is ability contribution; Toughness → mhp.
-        const hpParts = [];
-        let rolled = toInt(data.total_rolled_hp);
-        const hadRolledField = data.total_rolled_hp != null && data.total_rolled_hp !== '';
-        const genTotal = toInt(data.Total_HP);
-        const conHp = level > 0 ? conM * level : 0;
-
-        // Pre-sum mhp ledger so we can reverse-estimate dice from Total_HP if needed
-        let mhpBonus = 0;
-        if (SD && ledger) {
-            for (const c of SD.changesForTargets(ledger, ['mhp', 'hp'])) {
-                const ev = SD.evalSimpleFormula(c.formula, data);
-                if (ev.ok) mhpBonus += ev.value;
-            }
-        }
-        if (rolled == null && genTotal != null) {
-            rolled = genTotal - conHp - mhpBonus;
-        }
-
-        if (rolled != null) {
-            hpParts.push(part(
-                hadRolledField ? 'Hit dice (rolled)' : 'Hit dice (estimated from total − Con − feats)',
-                rolled, { kind: 'base' }));
-        } else {
-            hpParts.push(part('Hit dice (rolled)', 0, {
-                kind: 'base', unresolved: true, formula: 'missing total_rolled_hp',
-            }));
-        }
-        if (level > 0) {
-            hpParts.push(part(
-                `Constitution (${fmt(conM)} × ${level} HD)`,
-                conHp, { kind: 'ability' }));
-        } else {
-            hpParts.push(part('Constitution (no level/HD)', 0, { kind: 'ability' }));
-        }
-        // Feats/traits/talents that grant mhp/hp (Toughness: max(3, HD), etc.) — additive
-        appendLedgerParts(hpParts, data, ledger, ['mhp', 'hp'], { infoOnly: false });
-        if (negLv) {
-            hpParts.push(part('Negative levels (−5 each)', -5 * negLv, {
-                kind: 'ledger', type: 'penalty',
-            }));
-        }
-
-        const ac = { total: sumParts(acParts), parts: acParts };
-        const touch = { total: sumParts(touchParts), parts: touchParts };
-        const flat = { total: sumParts(flatParts), parts: flatParts };
-        const init = { total: sumParts(initParts), parts: initParts };
-        const melee = { total: sumParts(meleeParts), parts: meleeParts };
-        const ranged = { total: sumParts(rangedParts), parts: rangedParts };
-        const cmb = { total: sumParts(cmbParts), parts: cmbParts };
-        const cmd = { total: sumParts(cmdParts), parts: cmdParts };
-        const cmdFF = { total: sumParts(cmdFFParts), parts: cmdFFParts };
-
-        const computedHp = sumParts(hpParts);
-        let hpNote = null;
-        if (rolled == null && genTotal == null) {
-            hpNote = 'Set hit-dice rolls (total_rolled_hp) and Con/level to compute HP.';
-        } else if (!hadRolledField) {
-            hpNote = 'Hit-dice rolls estimated — double-click “dice” to set total_rolled_hp.';
-        }
-        if (hadRolledField || rolled != null) data.Total_HP = computedHp;
-        const hp = {
-            total: computedHp,
-            parts: hpParts,
-            note: hpNote,
-        };
-
-        // Legacy-compatible flat fields for older call sites
-        return {
-            level, bab, strM, dexM, conM, wisM, intM, chaM,
-            armorAc, shieldAc, maxDex, effDex,
-            ac: ac.total, touch: touch.total, flat: flat.total,
-            cmb: cmb.total, cmd: cmd.total,
-            blocks: { ac, touch, flat, fort, ref, will, init, melee, ranged, damage, cmb, cmd, cmdFF, hp },
-            multiclassSaves,
-            savesText: goods && level
-                ? `Fort ${fmt(fort.total)}, Ref ${fmt(ref.total)}, Will ${fmt(will.total)}`
-                    + (multiclassSaves ? ' (class base: first class only)' : '')
-                : null,
-        };
-    }
-
-    /** @deprecated use computeDerived — kept name as alias for readability at call sites */
-    function combatStats(data) {
-        return computeDerived(data);
-    }
 
     /** kv row with total + collapsible source list */
     // kvStat now lives in scripts/ui.js (window.SheetUI).
@@ -1680,33 +1213,7 @@
         quietSave();
     }
 
-    /** PF1 heavy-load lbs (medium creature); light = ⌊H/3⌋, medium = ⌊2H/3⌋. */
-    function carryLimits(strScore) {
-        const s = Math.max(1, Math.min(40, Number(strScore) || 10));
-        const table = {
-            1: 10, 2: 20, 3: 30, 4: 40, 5: 50, 6: 60, 7: 70, 8: 80, 9: 90, 10: 100,
-            11: 115, 12: 130, 13: 150, 14: 175, 15: 200, 16: 230, 17: 260, 18: 300,
-            19: 350, 20: 400, 21: 460, 22: 520, 23: 600, 24: 700, 25: 800, 26: 920,
-            27: 1040, 28: 1200, 29: 1400, 30: 1600,
-        };
-        let heavy = table[s];
-        if (heavy == null) {
-            heavy = Math.round(1600 * Math.pow(1.2, s - 30));
-        }
-        return {
-            light: Math.floor(heavy / 3),
-            medium: Math.floor((2 * heavy) / 3),
-            heavy,
-        };
-    }
 
-    function loadCategory(totalLbs, strScore) {
-        const lim = carryLimits(strScore);
-        if (totalLbs <= lim.light) return { label: 'Light', lim, cls: 'load-light' };
-        if (totalLbs <= lim.medium) return { label: 'Medium', lim, cls: 'load-medium' };
-        if (totalLbs <= lim.heavy) return { label: 'Heavy', lim, cls: 'load-heavy' };
-        return { label: 'Over capacity', lim, cls: 'load-over' };
-    }
 
     function doRest(data) {
         if (!data) return;
@@ -1771,56 +1278,10 @@
         return ab;
     }
 
-    function castingAbilityMod(data) {
-        const key = ensureCastingAbility(data);
-        return abModOf(data, key);
-    }
 
-    /**
-     * Total character level across every class.
-     *
-     * DERIVED, never read from the payload's stored `total_level`: `level` is editable in the header
-     * (and means the PRIMARY class's level -- see the "Fighter 6 / Wizard 4" block in the identity
-     * section), while classes[] and total_level are not editable anywhere, so the stored total goes
-     * stale the moment someone edits a level. classes[] arrives level-descending from the backend, so
-     * classes[0] is the primary and slice(1) is exactly the static "/ Wizard 4" tail the header prints.
-     * Single-class and pre-multiclass payloads fall through to `level`, unchanged.
-     */
-    function totalLevel(data) {
-        const primary = Number(data?.level) || 0;
-        const rest = (Array.isArray(data?.classes) ? data.classes.slice(1) : [])
-            .reduce((n, c) => n + (Number(c.level) || 0), 0);
-        return primary + rest;
-    }
 
-    /**
-     * Caster level. `caster_level` is user-entered only (the generator never ships it), so an explicit
-     * override always wins; otherwise use the campaign's homebrew COMBINED caster level -- every
-     * casting class contributes its full class level, or level-3 for a 'low' caster, summed and
-     * floored to 1. The backend already bakes the -3 into each spellbook's casting_level_num, so
-     * summing the books reproduces the rule (this mirrors spellCLExpr() in the Foundry module).
-     * Falls back to total level for payloads with no spellbooks.
-     */
-    function casterLevelValue(data) {
-        const n = Number(data.caster_level);
-        if (Number.isFinite(n) && n > 0) return n;
-        const books = data?.spellbooks;
-        if (Array.isArray(books) && books.length) {
-            const combined = books.reduce(
-                (sum, b) => sum + Math.max(0, Number(b?.casting_level_num) || 0), 0);
-            if (combined > 0) return combined;
-        }
-        return totalLevel(data) || 1;
-    }
 
-    function spellSaveDC(data, level) {
-        const sl = Math.max(0, Number(level) || 0);
-        return 10 + sl + castingAbilityMod(data);
-    }
 
-    function concentrationBonus(data) {
-        return casterLevelValue(data) + castingAbilityMod(data);
-    }
 
     function ensureInitiationStat(data) {
         if (!data) return 'int';
@@ -7531,51 +6992,7 @@
     const ENERGY_TYPES = ['acid', 'cold', 'electricity', 'fire', 'sonic', 'force',
         'negative energy', 'positive energy'];
 
-    /** Bucket AC parts into per-bonus-type totals for the Defenses grid. */
-    function acTypeTotals(parts) {
-        const order = ['Armor', 'Shield', 'Deflection', 'Dodge', 'Natural Armor',
-            'Enhancement', 'Insight', 'Luck', 'Profane', 'Sacred', 'Trait', 'Other'];
-        const typeMap = {
-            armor: 'Armor', shield: 'Shield', deflect: 'Deflection', dodge: 'Dodge',
-            nac: 'Natural Armor', enh: 'Enhancement', insight: 'Insight', luck: 'Luck',
-            profane: 'Profane', sacred: 'Sacred', trait: 'Trait',
-        };
-        const buckets = new Map(order.map((k) => [k, { total: 0, sources: [] }]));
-        for (const p of parts || []) {
-            if (p.info || p.unresolved) continue;
-            let bucket = null;
-            if (p.kind === 'gear') {
-                bucket = /^Shield/.test(p.label) ? 'Shield'
-                    : (/^Armor/.test(p.label) ? 'Armor' : null);
-            } else if (p.kind === 'ledger' || p.kind === 'manual') {
-                bucket = typeMap[p.type] || 'Other';
-            }
-            if (!bucket) continue; // Base 10 / Dex are not bonuses
-            const b = buckets.get(bucket);
-            b.total += Number(p.value) || 0;
-            b.sources.push(p.label + ' ' + fmt(Number(p.value) || 0));
-        }
-        return order.map((label) => ({ label, ...buckets.get(label) }));
-    }
 
-    /** Bucket a save block's parts: Base / Abl / Enhance / Resist / Feat / Trait / Misc / Temp. */
-    function saveBuckets(block) {
-        const out = { base: 0, ability: 0, enh: 0, resist: 0,
-            feat: 0, trait: 0, misc: 0, temp: 0 };
-        for (const p of block?.parts || []) {
-            if (p.info || p.unresolved) continue;
-            const v = Number(p.value) || 0;
-            if (p.kind === 'base') out.base += v;
-            else if (p.kind === 'ability') out.ability += v;
-            else if (p.kind === 'manual' || p.sourceKind === 'buff') out.temp += v;
-            else if (p.type === 'enh') out.enh += v;
-            else if (p.type === 'resist') out.resist += v;
-            else if (p.sourceKind === 'feat') out.feat += v;
-            else if (p.sourceKind === 'trait') out.trait += v;
-            else out.misc += v;
-        }
-        return out;
-    }
 
     function ensureDefenses(data) {
         const st = sheetState(data);
@@ -7588,13 +7005,6 @@
 
     const DAMAGE_TYPES = [...ENERGY_TYPES, 'bludgeoning', 'piercing', 'slashing'];
 
-    /** SR = editable base (seeded from the generator) + feat/trait/class/misc boxes. */
-    function srTotal(data) {
-        const st = sheetState(data);
-        const b = st.srBonus || {};
-        return (Number(st.sr) || 0) + (Number(b.feat) || 0) + (Number(b.trait) || 0)
-            + (Number(b.class) || 0) + (Number(b.misc) || 0);
-    }
 
     function renderDefenses(body, data, d) {
         body.appendChild(h('p', 'dbl-edit-hint no-print',
@@ -7834,13 +7244,6 @@
         body.appendChild(srRow);
     }
 
-    /** Iterative attack string from BAB: "+11/+6/+1" (max 4 attacks, PF1-style). */
-    function babIterativesStr(bab) {
-        const b = Number(bab) || 0;
-        const parts = [fmt(b)];
-        for (let a = b - 5; a > 0 && parts.length < 4; a -= 5) parts.push(fmt(a));
-        return parts.join('/');
-    }
 
     function tabCombat(data) {
         const d = computeDerived(data);
