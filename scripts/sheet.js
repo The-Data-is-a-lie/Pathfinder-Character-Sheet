@@ -19,6 +19,10 @@
         h, htmlBlock, details, section, emptyState, compose, wrapWideTables,
         fmt, termHint, kLabel, kv, kvStat, attachStatHint,
         spCell, spHeading, spBoxBig, spTable,
+        titleCase, mod, toInt, nonEmpty, escapeHtml, parseIntLoose, fmtWeight, fmtPrice,
+        foundry, highlightInlineRolls,
+        editableField, kvEdit, dblclickEditable, kvDbl,
+        bindDragReorder, reorderArray, dndHandle,
     } = window.SheetUI;
 
     const LEGACY_CHAR_KEY = 'sheet.characterData'; // pre-library single slot (migrated once)
@@ -789,8 +793,7 @@
 
     // kLabel / kv / kvStat now live in scripts/ui.js (window.SheetUI).
 
-    const titleCase = (s) => String(s).replace(/\b\w/g, (c) => c.toUpperCase());
-    const mod = (score) => Math.floor((Number(score) - 10) / 2);
+    // titleCase / mod now live in scripts/ui.js (window.SheetUI).
 
     /**
      * Effective ability score & modifier, pf1-style. The generator's exported score
@@ -916,45 +919,7 @@
             st.abilityAdjust[ab].racial = (Number(st.abilityAdjust[ab].racial) || 0) + v;
         }
     }
-    // fmt now lives in scripts/ui.js (window.SheetUI).
-    const toInt = (v) => {
-        const n = parseInt(v, 10);
-        return Number.isFinite(n) ? n : null;
-    };
-    // true only for non-empty arrays/objects (strings like 'N/A' don't count)
-    const nonEmpty = (v) => Array.isArray(v) ? v.length > 0
-        : Boolean(v && typeof v === 'object' && Object.keys(v).length > 0);
-    const escapeHtml = (s) => String(s).replace(/[&<>"]/g,
-        (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    // Foundry inline-roll markup ("[[1d4]]") → accent chips (see .inline-roll).
-    /** Escape HTML and wrap [[formula]] as .inline-roll chips (delegates to SheetRoll when ready). */
-    function highlightInlineRolls(text) {
-        if (window.SheetRoll?.highlightInlineRolls) {
-            return window.SheetRoll.highlightInlineRolls(text);
-        }
-        // Fallback before tools init: same chip markup (+ expanded [[total¦formula]])
-        const s = String(text || '');
-        let out = '';
-        let last = 0;
-        const re = /\[\[([^\]]+)\]\]/g;
-        let m;
-        while ((m = re.exec(s)) !== null) {
-            out += escapeHtml(s.slice(last, m.index));
-            const inner = String(m[1] || '').trim();
-            const sep = inner.indexOf('\u00a6');
-            const display = sep >= 0 ? inner.slice(0, sep).trim() : inner;
-            const formula = sep >= 0 ? inner.slice(sep + 1).trim() : inner;
-            const title = formula && formula !== display
-                ? `Rolled ${display} from ${formula}`
-                : `Inline roll: ${display}`;
-            out += `<span class="inline-roll" title="${escapeHtml(title)}">`
-                + escapeHtml(display) + '</span>';
-            last = re.lastIndex;
-        }
-        out += escapeHtml(s.slice(last));
-        return out;
-    }
-    const foundry = (kind, name) => window.SheetDetails?.lookup(kind, name) ?? null;
+    // fmt / toInt / nonEmpty / escapeHtml / highlightInlineRolls / foundry live in ui.js.
 
     // Debounced quiet save for inline edits (notes / fields / ready toggles).
     let quietSaveTimer = null;
@@ -1111,158 +1076,7 @@
             String(a.source).localeCompare(String(b.source)));
     }
 
-    /**
-     * Editable value control bound to data[key].
-     * @param {object} data
-     * @param {string} key
-     * @param {{ type?: string, parse?: function, format?: function, asArray?: boolean, onChange?: function }} opts
-     */
-    function editableField(data, key, opts = {}) {
-        const type = opts.type || 'text';
-        const input = h('input', 'edit-field');
-        input.type = type === 'number' ? 'number' : 'text';
-        if (type === 'number') {
-            if (opts.min != null) input.min = opts.min;
-            if (opts.max != null) input.max = opts.max;
-            if (opts.step != null) input.step = opts.step;
-        }
-        const raw = data[key];
-        if (opts.asArray) {
-            input.value = Array.isArray(raw) ? raw.join(', ') : (raw == null ? '' : String(raw));
-        } else if (opts.format) {
-            input.value = opts.format(raw);
-        } else {
-            input.value = raw == null ? '' : String(raw);
-        }
-        input.addEventListener('change', () => {
-            let v = input.value;
-            if (opts.asArray) {
-                data[key] = v.split(',').map((s) => s.trim()).filter(Boolean);
-            } else if (opts.parse) {
-                data[key] = opts.parse(v);
-            } else if (type === 'number') {
-                const n = v === '' ? null : Number(v);
-                data[key] = Number.isFinite(n) ? n : v;
-            } else {
-                data[key] = v;
-            }
-            opts.onChange?.(data[key], data);
-            quietSave();
-            refreshDerived();
-        });
-        // Live ability-mod updates without waiting for change blur
-        if (opts.live) {
-            input.addEventListener('input', () => {
-                if (type === 'number') {
-                    const n = input.value === '' ? null : Number(input.value);
-                    if (Number.isFinite(n)) data[key] = n;
-                }
-                opts.live(data[key], data, input);
-            });
-        }
-        return input;
-    }
-
-    function kvEdit(body, label, data, key, opts) {
-        return kv(body, label, editableField(data, key, opts));
-    }
-
-    /**
-     * Display value that becomes an input on double-click (Foundry-ish sheet feel).
-     * Visual: plain text + hover hint; editing: outlined field. Commits on blur/Enter.
-     */
-    function dblclickEditable(data, key, opts = {}) {
-        const wrap = h('span', 'dbl-edit');
-        wrap.title = 'Double-click to edit';
-        const display = h('span', 'dbl-edit-display');
-        const input = editableField(data, key, {
-            ...opts,
-            onChange: (v, d) => {
-                opts.onChange?.(v, d);
-                exitEdit();
-            },
-        });
-        input.classList.add('dbl-edit-input', 'edit-field');
-        input.classList.add('hidden');
-
-        function formatDisplay() {
-            const raw = data[key];
-            if (opts.format) {
-                display.textContent = opts.format(raw) || '—';
-            } else if (opts.asArray) {
-                display.textContent = Array.isArray(raw) && raw.length
-                    ? raw.join(', ')
-                    : (raw == null || raw === '' ? '—' : String(raw));
-            } else if (raw == null || raw === '') {
-                display.textContent = '—';
-            } else {
-                display.textContent = String(raw);
-            }
-            if (opts.suffix && display.textContent !== '—') {
-                display.textContent += opts.suffix;
-            }
-        }
-
-        function enterEdit(e) {
-            e?.preventDefault?.();
-            if (wrap.classList.contains('is-editing')) return;
-            wrap.classList.add('is-editing');
-            display.classList.add('hidden');
-            input.classList.remove('hidden');
-            // Sync input from current data (may have changed)
-            if (opts.asArray) {
-                input.value = Array.isArray(data[key]) ? data[key].join(', ') : '';
-            } else if (opts.format) {
-                input.value = opts.format(data[key]) ?? '';
-            } else {
-                input.value = data[key] == null ? '' : String(data[key]);
-            }
-            input.focus();
-            input.select?.();
-        }
-
-        function exitEdit() {
-            wrap.classList.remove('is-editing');
-            input.classList.add('hidden');
-            display.classList.remove('hidden');
-            formatDisplay();
-        }
-
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                e.preventDefault();
-                // revert input without writing
-                formatDisplay();
-                if (opts.asArray) {
-                    input.value = Array.isArray(data[key]) ? data[key].join(', ') : '';
-                } else {
-                    input.value = data[key] == null ? '' : String(data[key]);
-                }
-                exitEdit();
-            }
-            if (e.key === 'Enter' && input.type !== 'textarea') {
-                e.preventDefault();
-                input.blur(); // triggers change via editableField if value changed
-                // If unchanged, still leave edit mode
-                setTimeout(() => { if (wrap.classList.contains('is-editing')) exitEdit(); }, 0);
-            }
-        });
-        input.addEventListener('blur', () => {
-            // change event fires before blur when value changed; always leave edit UI
-            setTimeout(() => { if (wrap.classList.contains('is-editing')) exitEdit(); }, 0);
-        });
-
-        wrap.addEventListener('dblclick', enterEdit);
-        display.addEventListener('dblclick', enterEdit);
-
-        formatDisplay();
-        wrap.append(display, input);
-        return wrap;
-    }
-
-    function kvDbl(body, label, data, key, opts) {
-        return kv(body, label, dblclickEditable(data, key, opts));
-    }
+    // editableField / kvEdit / dblclickEditable / kvDbl live in ui.js (window.SheetUI).
 
     // ---------------------------------------------------------------- derived stats + sources
     function part(label, value, opts = {}) {
@@ -1645,10 +1459,6 @@
         if (map && map[name] && !map[name].changes?.length) delete map[name];
     }
 
-    function parseIntLoose(s, fallback = 0) {
-        const n = parseInt(String(s).replace(/[^\d-]/g, ''), 10);
-        return Number.isFinite(n) ? n : fallback;
-    }
 
     /** Roll 1d20+bonus into tools log (opens tools drawer). */
     function rollCheck(label, total) {
@@ -2993,13 +2803,6 @@
         'inherent', 'racial', 'size', 'trait', 'penalty',
     ];
 
-    function fmtWeight(lbs) {
-        if (lbs == null || !Number.isFinite(Number(lbs))) return '—';
-        const n = Number(lbs);
-        if (n === 0) return '0 lb';
-        const s = Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
-        return s + (Math.abs(n) === 1 ? ' lb' : ' lbs');
-    }
 
     function cloneChanges(list) {
         return (list || []).map((c) => ({
@@ -3863,13 +3666,6 @@
         document.body.appendChild(overlay);
     }
 
-    function fmtPrice(gp) {
-        if (gp == null || !Number.isFinite(Number(gp))) return '—';
-        const n = Number(gp);
-        if (n === 0) return '0 gp';
-        const s = Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
-        return s + ' gp';
-    }
 
     /** Foundry-style inventory category for grouping. */
     function inventoryCategory(item) {
@@ -4465,73 +4261,8 @@
      * @param {string} itemSelector - children that are reorderable
      * @param {(fromIndex: number, toIndex: number) => void} onReorder
      */
-    function bindDragReorder(container, itemSelector, onReorder) {
-        if (!container || container.dataset.dragBound === '1') return;
-        container.dataset.dragBound = '1';
-        let dragEl = null;
 
-        container.querySelectorAll(itemSelector).forEach((el) => {
-            el.classList.add('dnd-item');
-            const handle = el.querySelector('.dnd-handle') || el;
-            handle.setAttribute('draggable', 'true');
 
-            const start = (e) => {
-                dragEl = el;
-                el.classList.add('is-dragging');
-                try {
-                    e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/plain', el.dataset.dndId || 'x');
-                } catch { /* */ }
-            };
-            const end = () => {
-                el.classList.remove('is-dragging');
-                container.querySelectorAll('.dnd-over').forEach((n) => n.classList.remove('dnd-over'));
-                dragEl = null;
-            };
-            // Listen on handle (the draggable node) and on the row as fallback
-            handle.addEventListener('dragstart', start);
-            handle.addEventListener('dragend', end);
-            el.addEventListener('dragstart', (e) => {
-                if (e.target === handle || handle.contains(e.target)) start(e);
-            });
-            el.addEventListener('dragend', end);
-
-            el.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                if (!dragEl || dragEl === el) return;
-                el.classList.add('dnd-over');
-                try { e.dataTransfer.dropEffect = 'move'; } catch { /* */ }
-            });
-            el.addEventListener('dragleave', (e) => {
-                if (!el.contains(e.relatedTarget)) el.classList.remove('dnd-over');
-            });
-            el.addEventListener('drop', (e) => {
-                e.preventDefault();
-                el.classList.remove('dnd-over');
-                if (!dragEl || dragEl === el) return;
-                const items = [...container.querySelectorAll(itemSelector)];
-                const from = items.indexOf(dragEl);
-                const to = items.indexOf(el);
-                if (from < 0 || to < 0 || from === to) return;
-                onReorder(from, to);
-            });
-        });
-    }
-
-    function reorderArray(arr, from, to) {
-        if (!Array.isArray(arr) || from === to) return arr;
-        if (from < 0 || to < 0 || from >= arr.length || to >= arr.length) return arr;
-        const [item] = arr.splice(from, 1);
-        arr.splice(to, 0, item);
-        return arr;
-    }
-
-    function dndHandle() {
-        const el = h('span', 'dnd-handle no-print', '⋮⋮');
-        el.title = 'Drag to reorder';
-        el.setAttribute('draggable', 'true');
-        return el;
-    }
 
     /** Ensure skill_ranks is a mutable object; return map used for display. */
     function ensureSkillRanksObject(data) {
