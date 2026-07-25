@@ -72,6 +72,12 @@
     // Identity header (portrait / id grid / ability rows), lifted into scripts/header.js.
     const { renderHeader, renderPortrait, renderAbilities } = window.SheetHeader;
 
+    // Character library ops, lifted into scripts/roster.js (window.SheetRoster). currentData /
+    // CURRENT_KEY / ensureProse are shell-owned; roster.js reaches them via SheetApp below.
+    const {
+        rosterSelect, refreshRoster, saveCurrent, loadCharacter, deleteCurrent, adoptCharacter,
+    } = window.SheetRoster;
+
     const LEGACY_CHAR_KEY = 'sheet.characterData'; // pre-library single slot (migrated once)
     const FORM_KEY = 'sheet.formData';
     const BACKEND_KEY = 'sheet.backendUrl';
@@ -5972,6 +5978,11 @@
         refreshDerived,
         isBuffSourceActive: (source, kind) => isBuffSourceActive(currentData, source, kind),
         get current() { return currentData; },
+        // roster.js writes the shell's currentData pointer through this, and reads CURRENT_KEY /
+        // ensureProse (a deferred state fn) from here.
+        setCurrent(v) { currentData = v; },
+        get CURRENT_KEY() { return CURRENT_KEY; },
+        ensureProse: (d) => ensureProse(d),
         // state.js late-binds these (renderSheet / saveCurrent are shell-owned).
         renderSheet: (d) => renderSheet(d),
         saveCurrent: (opts) => saveCurrent(opts),
@@ -5999,46 +6010,8 @@
         get ALL_SKILLS() { return ALL_SKILLS; },
     };
 
-    // ---------------------------------------------------------------- character roster
-    function rosterSelect() { return document.getElementById('char-select'); }
 
-    async function refreshRoster(selectedId) {
-        const sel = rosterSelect();
-        const lib = window.SheetLibrary;
-        if (!sel || !lib) return;
-        const records = await lib.list().catch(() => []);
-        sel.innerHTML = '';
-        const placeholder = h('option', null, records.length ? '— pick a character —' : '(no saved characters)');
-        placeholder.value = '';
-        sel.appendChild(placeholder);
-        for (const r of records) {
-            const opt = h('option', null, `${r.name} — ${titleCase(r.klass || '?')} ${r.level}`);
-            opt.value = r.id;
-            sel.appendChild(opt);
-        }
-        const want = selectedId ?? currentData?._sheet?.id ?? localStorage.getItem(CURRENT_KEY);
-        if (want && records.some((r) => r.id === want)) sel.value = want;
-    }
 
-    async function saveCurrent({ quiet } = {}) {
-        if (!currentData || currentData.error) return;
-        if (currentData) {
-            const prose = ensureProse(currentData);
-            for (const key of ['description', 'personality', 'notes']) {
-                const el = document.getElementById('notes-prose-' + key);
-                if (el) prose[key] = el.value;
-            }
-            const legacy = document.getElementById('notes-text');
-            if (legacy && !document.getElementById('notes-prose-notes')) {
-                prose.notes = legacy.value;
-            }
-            (currentData._sheet ??= {}).notes = prose.notes || '';
-        }
-        const record = await window.SheetLibrary.save(currentData);
-        localStorage.setItem(CURRENT_KEY, record.id);
-        if (!quiet) await refreshRoster(record.id);
-        return record;
-    }
 
     // ------------------------------------------------------------ demo character
     // A first-time visitor otherwise lands on an empty placeholder, and the only way out
@@ -6086,29 +6059,7 @@
         }
     }
 
-    async function loadCharacter(id) {
-        const record = await window.SheetLibrary.get(id);
-        if (!record) return;
-        localStorage.setItem(CURRENT_KEY, record.id);
-        renderSheet(record.data);
-        await refreshRoster(record.id);
-    }
 
-    async function deleteCurrent() {
-        const id = currentData?._sheet?.id || rosterSelect()?.value;
-        if (!id) return;
-        const name = currentData?.character_full_name || 'this character';
-        if (!confirm(`Delete ${name} from the library${window.SheetLibrary.status().state === 'connected' ? ' and its file in the connected folder' : ''}?`)) return;
-        await window.SheetLibrary.remove(id);
-        localStorage.removeItem(CURRENT_KEY);
-        currentData = null;
-        const records = await window.SheetLibrary.list().catch(() => []);
-        if (records.length) await loadCharacter(records[0].id);
-        else {
-            renderSheet(null);
-            await refreshRoster();
-        }
-    }
 
     // ---------------------------------------------------------------- generate form
     function fillSelect(sel, options, valueFn) {
@@ -6288,10 +6239,6 @@
         generate(form);
     }
 
-    async function adoptCharacter(data) {
-        renderSheet(data);
-        await saveCurrent(); // auto-save: every generated/loaded character lands in the library
-    }
 
     async function generate(form) {
         const status = document.getElementById('gen-status');
