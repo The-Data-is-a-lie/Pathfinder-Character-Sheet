@@ -531,6 +531,18 @@ window.SheetUI = (function () {
         return el;
     }
 
+    // Shallow-normalize a pf1 `changes` array into fresh plain objects (used by buffs, inventory
+    // items, and item sheets — anywhere a change list is copied rather than referenced).
+    function cloneChanges(list) {
+        return (list || []).map((c) => ({
+            formula: c.formula,
+            target: c.target,
+            type: c.type || 'untyped',
+            operator: c.operator || 'add',
+            priority: c.priority || 0,
+        }));
+    }
+
     return {
         h, htmlBlock, details, section, emptyState, compose, wrapWideTables,
         fmt, termHint, kLabel, kv, kvStat, attachStatHint,
@@ -538,6 +550,6 @@ window.SheetUI = (function () {
         titleCase, mod, toInt, nonEmpty, escapeHtml, parseIntLoose, fmtWeight, fmtPrice,
         foundry, highlightInlineRolls,
         editableField, kvEdit, dblclickEditable, kvDbl,
-        bindDragReorder, reorderArray, dndHandle,
+        bindDragReorder, reorderArray, dndHandle, cloneChanges,
     };
 })();
