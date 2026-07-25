@@ -7,3 +7,6 @@ Lib/
 Thumbs.db
 screenshots/
 CLAUDE.local.md
+# local dev scratch — resume notes + ad-hoc verify harness, never for main
+RESUME-PART-B.md
+verify_split.js
