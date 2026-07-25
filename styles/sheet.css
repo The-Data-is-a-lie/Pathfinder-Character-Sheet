@@ -5152,6 +5152,20 @@ html[data-theme="high-contrast"] .roll-card-result.is-nat20 {
     .simple-stat-grid, .simple-id-grid { break-inside: avoid; }
 }
 
+/* ------------------------------------------------ bulk "Roll all" bars (Skills / Defenses) */
+.roll-all-bar { margin: 0.3rem 0 0.5rem; }
+.roll-all-btn {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--panel);
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.roll-all-btn:hover { background: var(--hover); border-color: var(--accent); }
+
 /* ------------------------------------------------ compact density (Settings → complex view only) */
 /* Purely opt-in; scoped to .tab-pane so the simple sheet and print (.simple-*) are untouched. */
 body.density-compact .tab-pane { font-size: 0.94rem; line-height: 1.28; }

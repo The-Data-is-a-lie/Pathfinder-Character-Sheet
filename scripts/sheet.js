@@ -1757,6 +1757,24 @@
         return btn;
     }
 
+    /**
+     * A "Roll all" bar that fires every per-row Roll button inside `scopeTable` — the buttons
+     * already own the totals and log formatting, so bulk rolling stays DRY. Returns the bar.
+     */
+    function rollAllBar(label, title, scopeTable) {
+        const bar = h('div', 'roll-all-bar no-print');
+        const btn = h('button', 'roll-all-btn', label);
+        btn.type = 'button';
+        btn.title = title;
+        btn.addEventListener('click', () => {
+            const rolls = scopeTable.querySelectorAll('.skill-roll-cell .stat-roll-btn');
+            rolls.forEach((b) => b.click());
+            toast(`Rolled ${rolls.length} into the Tools log`);
+        });
+        bar.appendChild(btn);
+        return bar;
+    }
+
     function kvSaves(body, d) {
         const b = d.blocks;
         const wrap = h('div', 'saves-block');
@@ -4660,6 +4678,11 @@
         ['', 'Skill', 'Abl', 'Ranks', 'Mod', 'Racial', 'Feat', 'Trait', 'Misc', 'Buffs', 'CS', 'Total']
             .forEach((t) => hd.appendChild(h('th', null, t)));
         table.appendChild(hd);
+
+        // Bulk roll: drive the per-row Roll buttons this table already builds, so the totals
+        // and log formatting stay in one place.
+        body.appendChild(rollAllBar('🎲 Roll all skills',
+            'Roll 1d20 for every skill into the Tools log', table));
 
         // Editable user-bonus cell (Racial / Feat / Trait / Misc)
         const bonusCell = (key, field, entry) => {
@@ -7979,6 +8002,8 @@
             tr.appendChild(h('td', 'num skill-total', fmt(block.total)));
             table.appendChild(tr);
         }
+        body.appendChild(rollAllBar('🎲 Roll all saves',
+            'Roll Fort, Ref and Will into the Tools log', table));
         body.appendChild(table);
 
         // --- shared chip-list builder (DR, resistances, immunities, vulnerabilities)
