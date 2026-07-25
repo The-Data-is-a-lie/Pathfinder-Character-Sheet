@@ -11,8 +11,7 @@ window.SheetTabDefenses = (function () {
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
     const { rollBtn, rollAllBar } = window.SheetStatKit;
-    const migrateCoreGear = (...a) => window.SheetApp.migrateCoreGear(...a);
-    const inventoryCategory = (...a) => window.SheetApp.inventoryCategory(...a);
+    const { migrateCoreGear, inventoryCategory } = window.SheetInventoryModel;
     const renderInventoryItemCard = (...a) => window.SheetApp.renderInventoryItemCard(...a);
 
     // ---------------------------------------------------------------- defenses block

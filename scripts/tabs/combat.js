@@ -10,9 +10,8 @@ window.SheetTabCombat = (function () {
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
     const { rollBtn } = window.SheetStatKit;
-    const inventoryCategory = (...a) => window.SheetApp.inventoryCategory(...a);
+    const { inventoryCategory, migrateCoreGear } = window.SheetInventoryModel;
     const renderInventoryItemCard = (...a) => window.SheetApp.renderInventoryItemCard(...a);
-    const migrateCoreGear = (...a) => window.SheetApp.migrateCoreGear(...a);
 
     function tabCombat(data) {
         const d = computeDerived(data);

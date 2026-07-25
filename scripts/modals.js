@@ -20,7 +20,7 @@ window.SheetModals = (function () {
     // Shell/tab helpers, late-bound via SheetApp (read at call time).
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
-    const inventoryCategory = (...a) => window.SheetApp.inventoryCategory(...a);
+    const { inventoryCategory } = window.SheetInventoryModel;
     const invRerender = (...a) => window.SheetApp.invRerender(...a);
     const { skillAbilityKey, skillBonusEntry, setSkillBonus } = window.SheetSkillMath;
     const { setClassInfo, classInfoFor, classLevelFor, archetypeDescHtml } = window.SheetClassInfo;

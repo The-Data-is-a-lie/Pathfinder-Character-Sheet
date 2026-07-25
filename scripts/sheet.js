@@ -125,12 +125,9 @@
     const { tabDefenses } = window.SheetTabDefenses;
     // renderUsesControls is consumed by features.js via SheetApp; this re-points its delegate.
     const { renderModifiers, renderUsesControls } = window.SheetTabBuffs;
-    // inventory.js owns the gear helpers combat/defenses/simple + modals reach via SheetApp; these
-    // destructured names back those delegates.
-    const {
-        renderGear, inventoryCategory, renderInventoryItemCard, migrateCoreGear,
-        addInventoryItem, gearLine, invRerender,
-    } = window.SheetTabInventory;
+    // inventory render helpers; the shared render-cycle ones (renderInventoryItemCard, invRerender)
+    // stay tab-owned and late-bind via SheetApp for combat/defenses/modals.
+    const { renderGear, renderInventoryItemCard, invRerender } = window.SheetTabInventory;
 
     const LEGACY_CHAR_KEY = 'sheet.characterData'; // pre-library single slot (migrated once)
     const FORM_KEY = 'sheet.formData';
@@ -581,12 +578,8 @@
         // generate.js reads these shell-owned bits.
         backendUrl: () => backendUrl(),
         get FORM_KEY() { return FORM_KEY; },
-        // Inventory helpers simple.js/combat/defenses read.
-        gearLine: (...a) => gearLine(...a),
-        addInventoryItem: (...a) => addInventoryItem(...a),
         renderUsesControls: (...a) => renderUsesControls(...a),
         renderInventoryItemCard: (...a) => renderInventoryItemCard(...a),
-        migrateCoreGear: (...a) => migrateCoreGear(...a),
         get BACKEND_KEY() { return BACKEND_KEY; },
         // state.js late-binds these (renderSheet / saveCurrent are shell-owned).
         renderSheet: (d) => renderSheet(d),
@@ -602,7 +595,6 @@
         // modals.js late-binds these tab/shell helpers (each moves to its tab module later,
         // when the shell re-points the delegate).
         setActiveTab: (id) => setActiveTab(id),
-        inventoryCategory: (...a) => inventoryCategory(...a),
         invRerender: (...a) => invRerender(...a),
         refreshFeatureLedger: (...a) => refreshFeatureLedger(...a),
         featureBuffGroup: (...a) => featureBuffGroup(...a),

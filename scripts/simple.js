@@ -21,8 +21,7 @@ window.SheetSimple = (function () {
         skillAbilityKey, ranksEditor,
     } = window.SheetSkillMath;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
-    const gearLine = (...a) => window.SheetApp.gearLine(...a);
-    const addInventoryItem = (...a) => window.SheetApp.addInventoryItem(...a);
+    const { gearLine, addInventoryItem } = window.SheetInventoryModel;
     const { kvHp } = window.SheetStatKit;
 
     function renderSimpleSheet(data) {
