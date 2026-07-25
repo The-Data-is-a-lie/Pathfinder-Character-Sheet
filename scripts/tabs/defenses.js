@@ -10,8 +10,7 @@ window.SheetTabDefenses = (function () {
     const { PF1_CONDITIONS } = window.SheetData;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
-    const rollBtn = (...a) => window.SheetApp.rollBtn(...a);
-    const rollAllBar = (...a) => window.SheetApp.rollAllBar(...a);
+    const { rollBtn, rollAllBar } = window.SheetStatKit;
     const migrateCoreGear = (...a) => window.SheetApp.migrateCoreGear(...a);
     const inventoryCategory = (...a) => window.SheetApp.inventoryCategory(...a);
     const renderInventoryItemCard = (...a) => window.SheetApp.renderInventoryItemCard(...a);

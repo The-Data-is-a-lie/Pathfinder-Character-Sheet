@@ -8,7 +8,7 @@ window.SheetTabAttributes = (function () {
     const { sheetState, quietSave } = window.SheetState;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
-    const rollBtn = (...a) => window.SheetApp.rollBtn(...a);
+    const { rollBtn } = window.SheetStatKit;
 
     function kvInitiative(body, d) {
         const block = d.blocks.init;

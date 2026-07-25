@@ -9,7 +9,7 @@ window.SheetTabCombat = (function () {
     const { attachNotesHover, ensureInventoryObjects } = window.SheetState;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
-    const rollBtn = (...a) => window.SheetApp.rollBtn(...a);
+    const { rollBtn } = window.SheetStatKit;
     const inventoryCategory = (...a) => window.SheetApp.inventoryCategory(...a);
     const renderInventoryItemCard = (...a) => window.SheetApp.renderInventoryItemCard(...a);
     const migrateCoreGear = (...a) => window.SheetApp.migrateCoreGear(...a);

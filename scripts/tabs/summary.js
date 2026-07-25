@@ -17,8 +17,7 @@ window.SheetTabSummary = (function () {
     const { CLASS_STATS, DEFAULT_CLASS_INFO } = window.SheetData;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
-    const rollBtn = (...a) => window.SheetApp.rollBtn(...a);
-    const rollCheck = (...a) => window.SheetApp.rollCheck(...a);
+    const { rollBtn, rollCheck } = window.SheetStatKit;
     // Per-class archetype catalog cache (slim class -> [names] extract), closed over by
     // loadArchetypesByClass / classArchetypeHits.
     let archetypesByClass = null;

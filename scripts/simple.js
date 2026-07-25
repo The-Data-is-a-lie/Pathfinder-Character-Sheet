@@ -22,7 +22,7 @@ window.SheetSimple = (function () {
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const gearLine = (...a) => window.SheetApp.gearLine(...a);
     const addInventoryItem = (...a) => window.SheetApp.addInventoryItem(...a);
-    const kvHp = (...a) => window.SheetApp.kvHp(...a);
+    const { kvHp } = window.SheetStatKit;
 
     function renderSimpleSheet(data) {
         const d = computeDerived(data);

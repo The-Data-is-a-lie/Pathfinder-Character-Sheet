@@ -12,8 +12,7 @@ window.SheetTabSkills = (function () {
     const { sheetState, quietSave, ensureSkillRanksObject, attachNotesHover } = window.SheetState;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
-    const rollBtn = (...a) => window.SheetApp.rollBtn(...a);
-    const rollAllBar = (...a) => window.SheetApp.rollAllBar(...a);
+    const { rollBtn, rollAllBar } = window.SheetStatKit;
 
     function parseSkillRanks(data) {
         let ranks = data.skill_ranks;
