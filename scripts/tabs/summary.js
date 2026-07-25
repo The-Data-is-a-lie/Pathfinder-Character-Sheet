@@ -13,7 +13,10 @@ window.SheetTabSummary = (function () {
     const { abModOf, computeDerived, srTotal, babIterativesStr } = window.SheetDerive;
     const { quietSave, sheetState, ensureClassList, syncLegacyClasses, ensureArchetypeList } = window.SheetState;
     const { sectionCatalogToolbar, openClassSheet, openArchetypeSheet } = window.SheetModals;
-    const { skillAbilityKey, setSkillBonus } = window.SheetTabSkills;
+    const {
+        getSkillAbility, parseSkillRanks, ranksForSkill, setSkillBonus, skillAbilityKey,
+        skillMiscBonus, skillUserBonus,
+    } = window.SheetSkillMath;
     const { CLASS_STATS, DEFAULT_CLASS_INFO } = window.SheetData;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);

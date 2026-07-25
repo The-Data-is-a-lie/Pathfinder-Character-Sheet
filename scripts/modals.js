@@ -22,14 +22,12 @@ window.SheetModals = (function () {
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
     const inventoryCategory = (...a) => window.SheetApp.inventoryCategory(...a);
     const invRerender = (...a) => window.SheetApp.invRerender(...a);
-    const skillAbilityKey = (...a) => window.SheetApp.skillAbilityKey(...a);
+    const { skillAbilityKey, skillBonusEntry, setSkillBonus } = window.SheetSkillMath;
     const setClassInfo = (...a) => window.SheetApp.setClassInfo(...a);
     const classInfoFor = (...a) => window.SheetApp.classInfoFor(...a);
     const classLevelFor = (...a) => window.SheetApp.classLevelFor(...a);
     const refreshFeatureLedger = (...a) => window.SheetApp.refreshFeatureLedger(...a);
     const featureBuffGroup = (...a) => window.SheetApp.featureBuffGroup(...a);
-    const skillBonusEntry = (...a) => window.SheetApp.skillBonusEntry(...a);
-    const setSkillBonus = (...a) => window.SheetApp.setSkillBonus(...a);
     const archetypeDescHtml = (...a) => window.SheetApp.archetypeDescHtml(...a);
 
     function openBuffEditor(data, buff, host) {

@@ -112,11 +112,7 @@
     const { renderBiographyVitals } = window.SheetTabBiography;
     const { tabSettings } = window.SheetTabSettings;
     const { tabAttributes } = window.SheetTabAttributes;
-    // skills.js owns the skill-math helpers other tabs + modals consume (via SheetApp delegates).
-    const {
-        parseSkillRanks, ranksForSkill, skillAbilityKey, getSkillAbility, skillBonusEntry,
-        setSkillBonus, skillUserBonus, skillMiscBonus, skillRankKey, ranksEditor, renderSkills,
-    } = window.SheetTabSkills;
+    const { renderSkills } = window.SheetTabSkills;
     const { renderSpells } = window.SheetTabSpells;
     const { renderSimpleSheet } = window.SheetSimple;
     // summary.js owns the class/archetype helpers the Features tab (still in the shell) and the
@@ -615,14 +611,11 @@
         setActiveTab: (id) => setActiveTab(id),
         inventoryCategory: (...a) => inventoryCategory(...a),
         invRerender: (...a) => invRerender(...a),
-        skillAbilityKey: (...a) => skillAbilityKey(...a),
         setClassInfo: (...a) => setClassInfo(...a),
         classInfoFor: (...a) => classInfoFor(...a),
         classLevelFor: (...a) => classLevelFor(...a),
         refreshFeatureLedger: (...a) => refreshFeatureLedger(...a),
         featureBuffGroup: (...a) => featureBuffGroup(...a),
-        skillBonusEntry: (...a) => skillBonusEntry(...a),
-        setSkillBonus: (...a) => setSkillBonus(...a),
         archetypeDescHtml: (...a) => archetypeDescHtml(...a),
     };
 

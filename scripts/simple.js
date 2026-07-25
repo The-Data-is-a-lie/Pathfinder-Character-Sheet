@@ -19,7 +19,7 @@ window.SheetSimple = (function () {
     const {
         ranksForSkill, skillMiscBonus, skillUserBonus, skillRankKey, getSkillAbility,
         skillAbilityKey, ranksEditor,
-    } = window.SheetTabSkills;
+    } = window.SheetSkillMath;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const gearLine = (...a) => window.SheetApp.gearLine(...a);
     const addInventoryItem = (...a) => window.SheetApp.addInventoryItem(...a);
