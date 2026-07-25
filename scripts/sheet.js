@@ -351,57 +351,6 @@
         return bar;
     }
 
-    function kvSaves(body, d) {
-        const b = d.blocks;
-        const wrap = h('div', 'saves-block');
-        for (const [name, block] of [
-            ['Fortitude', b.fort],
-            ['Reflex', b.ref],
-            ['Will', b.will],
-        ]) {
-            const row = h('div', 'kv kv-stat save-row');
-            const k = h('span', 'k');
-            k.append(document.createTextNode(name + ' '), rollBtn(name + ' save', block.total));
-            row.appendChild(k);
-            const v = h('span', 'v');
-            v.appendChild(h('span', 'stat-total', fmt(block.total)));
-            if (block.parts?.length) {
-                const det = h('details', 'stat-sources');
-                det.appendChild(h('summary', null, 'sources'));
-                const list = h('ul', 'stat-source-list');
-                for (const p of block.parts) {
-                    const li = h('li', 'stat-source-line'
-                        + (p.unresolved ? ' unresolved' : '')
-                        + (p.info ? ' info' : ''));
-                    li.append(
-                        h('span', 'stat-source-label', p.label),
-                        h('span', 'stat-source-value',
-                            p.unresolved ? (p.formula || '?') : fmt(Number(p.value) || 0)),
-                    );
-                    list.appendChild(li);
-                }
-                det.appendChild(list);
-                v.appendChild(det);
-            }
-            row.appendChild(v);
-            wrap.appendChild(row);
-        }
-        if (d.multiclassSaves) {
-            wrap.appendChild(h('p', 'stat-footnote',
-                'Class save bases use the first class only (multiclass not fully modeled).'));
-        }
-        if (!d.savesText) {
-            wrap.appendChild(h('p', 'stat-footnote',
-                'Unknown class progression — ability mods and feature bonuses only where listed.'));
-        }
-        const row = h('div', 'kv kv-stat kv-saves');
-        row.appendChild(h('span', 'k', 'Saves'));
-        const v = h('span', 'v');
-        v.appendChild(wrap);
-        row.appendChild(v);
-        body.appendChild(row);
-        return row;
-    }
 
     /**
      * HP: current / max / temp / nonlethal (Foundry-style) + hit-dice edit + sources.
@@ -548,40 +497,6 @@
 
 
 
-    /** Compact AC line: total + touch/ff + sources for each. */
-    function kvAc(body, d) {
-        const b = d.blocks;
-        const row = h('div', 'kv kv-stat');
-        row.appendChild(h('span', 'k', 'AC'));
-        const v = h('span', 'v');
-        v.appendChild(h('span', 'stat-total',
-            `${b.ac.total} (touch ${b.touch.total}, flat-footed ${b.flat.total})`));
-        const det = h('details', 'stat-sources');
-        det.appendChild(h('summary', null, 'sources'));
-        const list = h('ul', 'stat-source-list');
-        const addGroup = (title, block) => {
-            list.appendChild(h('li', 'stat-source-group', title + ' = ' + block.total));
-            for (const p of block.parts) {
-                const li = h('li', 'stat-source-line'
-                    + (p.unresolved ? ' unresolved' : '')
-                    + (p.info ? ' info' : ''));
-                li.append(
-                    h('span', 'stat-source-label', p.label),
-                    h('span', 'stat-source-value',
-                        p.unresolved ? (p.formula || '?') : fmt(Number(p.value) || 0)),
-                );
-                list.appendChild(li);
-            }
-        };
-        addGroup('Normal AC', b.ac);
-        addGroup('Touch AC', b.touch);
-        addGroup('Flat-footed AC', b.flat);
-        det.appendChild(list);
-        v.appendChild(det);
-        row.appendChild(v);
-        body.appendChild(row);
-        return row;
-    }
 
 
 
@@ -732,116 +647,11 @@
 
 
 
-    /** Currency row: pp / gp / sp / cp (reads legacy platnium typo). */
-    function kvCurrency(body, data) {
-        // Migrate legacy misspelling once
-        if (data.platinum == null && data.platnium != null) {
-            data.platinum = data.platnium;
-        }
-        const row = h('div', 'kv kv-stat currency-row');
-        row.appendChild(h('span', 'k', 'Currency'));
-        const v = h('span', 'v');
-        const boxes = h('div', 'currency-boxes');
-        for (const [label, key] of [
-            ['pp', 'platinum'],
-            ['gp', 'gold'],
-            ['sp', 'silver'],
-            ['cp', 'copper'],
-        ]) {
-            if (data[key] == null || data[key] === '') data[key] = key === 'gold' ? (data.gold || 0) : 0;
-            const box = h('div', 'currency-box');
-            box.appendChild(h('span', 'currency-label', label));
-            box.appendChild(dblclickEditable(data, key, {
-                type: 'number',
-                min: 0,
-                format: (raw) => (raw == null || raw === '' ? '0' : String(raw)),
-                parse: (s) => parseIntLoose(s, 0),
-                onChange: () => {
-                    if (key === 'platinum') data.platnium = data.platinum; // keep legacy in sync
-                    quietSave();
-                },
-            }));
-            boxes.appendChild(box);
-        }
-        v.appendChild(boxes);
-        row.appendChild(v);
-        body.appendChild(row);
-        return row;
-    }
 
     // ---------------------------------------------------------------- tab composites
     // emptyState / compose now live in scripts/ui.js (window.SheetUI).
 
-    function summaryCombatStrip(body, data, d) {
-        const strip = h('div', 'summary-combat-strip');
-        const add = (label, value, opts = {}) => {
-            const box = h('div', 'summary-stat-box');
-            const head = h('div', 'summary-stat-head');
-            head.appendChild(h('span', null, label));
-            if (opts.rollTotal != null) {
-                head.appendChild(rollBtn(opts.rollLabel || label, opts.rollTotal));
-            }
-            box.appendChild(head);
-            box.appendChild(h('div', 'summary-stat-val', value));
-            attachStatHint(box, label);
-            strip.appendChild(box);
-        };
-        add('Init', fmt(d.blocks.init.total), { rollTotal: d.blocks.init.total, rollLabel: 'Initiative' });
-        add('BAB', fmt(d.bab));
-        add('Melee', fmt(d.blocks.melee.total));
-        add('Ranged', fmt(d.blocks.ranged.total));
-        add('CMB', fmt(d.blocks.cmb.total), { rollTotal: d.blocks.cmb.total, rollLabel: 'CMB' });
-        add('CMD', String(d.blocks.cmd.total));
-        const st = sheetState(data);
-        if (st.sr == null && data.spell_resistance != null) st.sr = data.spell_resistance;
-        if (st.sr == null) st.sr = 0;
-        const srBox = h('div', 'summary-stat-box');
-        srBox.title = 'SR total (base + feat/trait/class/misc — see Combat → Defenses). Double-click edits the base.';
-        srBox.appendChild(h('div', 'summary-stat-head', 'SR'));
-        srBox.appendChild(dblclickEditable(st, 'sr', {
-            type: 'number', min: 0,
-            format: () => String(srTotal(data)),
-            parse: (s) => parseIntLoose(s, 0),
-            onChange: () => quietSave(),
-        }));
-        attachStatHint(srBox, 'SR');
-        strip.appendChild(srBox);
-        body.appendChild(strip);
-    }
 
-    function summarySpeeds(body, data) {
-        const st = sheetState(data);
-        st.speeds ??= {};
-        // Seed land from character field
-        if (st.speeds.land == null && data.land_speed != null) {
-            st.speeds.land = Number(data.land_speed) || 0;
-        }
-        const row = h('div', 'kv kv-stat');
-        row.appendChild(h('span', 'k', 'Speeds (ft)'));
-        const v = h('span', 'v');
-        const boxes = h('div', 'speed-boxes');
-        for (const [key, label] of [
-            ['land', 'Land'], ['climb', 'Climb'], ['swim', 'Swim'],
-            ['fly', 'Fly'], ['burrow', 'Burrow'],
-        ]) {
-            if (st.speeds[key] == null || st.speeds[key] === '') st.speeds[key] = key === 'land' ? (Number(data.land_speed) || 30) : 0;
-            const box = h('div', 'speed-box');
-            box.appendChild(h('span', 'speed-label', label));
-            box.appendChild(dblclickEditable(st.speeds, key, {
-                type: 'number', min: 0,
-                format: (raw) => String(raw == null || raw === '' ? 0 : raw),
-                parse: (s) => parseIntLoose(s, 0),
-                onChange: () => {
-                    if (key === 'land') data.land_speed = st.speeds.land;
-                    quietSave();
-                },
-            }));
-            boxes.appendChild(box);
-        }
-        v.appendChild(boxes);
-        row.appendChild(v);
-        body.appendChild(row);
-    }
 
 
     // ------------------------------------------------------------ class & archetype info
