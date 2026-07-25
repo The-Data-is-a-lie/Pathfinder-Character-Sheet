@@ -13,6 +13,10 @@
 (function () {
     'use strict';
 
+    // Pure DOM kit, lifted into scripts/ui.js. Pulled back into this scope so the ~hundreds
+    // of existing call sites (h(), section(), compose(), …) are untouched by the move.
+    const { h, htmlBlock, details, section, emptyState, compose, wrapWideTables } = window.SheetUI;
+
     const LEGACY_CHAR_KEY = 'sheet.characterData'; // pre-library single slot (migrated once)
     const FORM_KEY = 'sheet.formData';
     const BACKEND_KEY = 'sheet.backendUrl';
@@ -777,37 +781,7 @@
     };
 
     // ---------------------------------------------------------------- tiny DOM helpers
-    function h(tag, cls, content) {
-        const el = document.createElement(tag);
-        if (cls) el.className = cls;
-        if (content !== undefined && content !== null) {
-            if (content instanceof Node) el.appendChild(content);
-            else el.textContent = String(content);
-        }
-        return el;
-    }
-
-    // Descriptions come from our own backend / game data, so rendering them as HTML is fine.
-    function htmlBlock(cls, html) {
-        const el = h('div', cls);
-        el.innerHTML = html;
-        return el;
-    }
-
-    function details(summaryText, bodyHtml, cls) {
-        const d = h('details', cls);
-        d.appendChild(h('summary', null, summaryText));
-        if (bodyHtml) d.appendChild(htmlBlock('desc', bodyHtml));
-        return d;
-    }
-
-    function section(title, cls) {
-        const sec = h('section', 'sheet-section' + (cls ? ' ' + cls : ''));
-        sec.appendChild(h('h2', null, title));
-        const body = h('div', 'section-body');
-        sec.appendChild(body);
-        return { sec, body };
-    }
+    // h / htmlBlock / details / section now live in scripts/ui.js (window.SheetUI).
 
     /**
      * Label cell for the complex view's key/value rows, carrying an Explain-mode hint when
@@ -6924,13 +6898,7 @@
     }
 
     // ---------------------------------------------------------------- tab composites
-    const emptyState = (text) => h('p', 'placeholder tab-empty', text);
-
-    function compose(...sections) {
-        const frag = document.createDocumentFragment();
-        for (const s of sections) if (s) frag.appendChild(s);
-        return frag.childNodes.length ? frag : null;
-    }
+    // emptyState / compose now live in scripts/ui.js (window.SheetUI).
 
     function summaryCombatStrip(body, data, d) {
         const strip = h('div', 'summary-combat-strip');
@@ -9506,21 +9474,7 @@
         return TABS.some((t) => t.id === saved) ? saved : 'summary';
     }
 
-    /**
-     * Wrap every <table> in a horizontal-scroll container so wide, dense tables
-     * (skills, saves, abilities, spells) scroll within their column on narrow screens
-     * instead of forcing the whole page to overflow sideways. Idempotent per render.
-     */
-    function wrapWideTables(root) {
-        if (!root) return;
-        for (const table of root.querySelectorAll('table')) {
-            if (table.closest('.table-scroll')) continue; // already wrapped (incl. nested)
-            const wrap = document.createElement('div');
-            wrap.className = 'table-scroll';
-            table.replaceWith(wrap);
-            wrap.appendChild(table);
-        }
-    }
+    // wrapWideTables now lives in scripts/ui.js (window.SheetUI).
 
     function setActiveTab(id) {
         const prev = localStorage.getItem(TAB_KEY);
