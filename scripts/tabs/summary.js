@@ -14,6 +14,7 @@ window.SheetTabSummary = (function () {
     const { quietSave, sheetState, ensureClassList, syncLegacyClasses, ensureArchetypeList } = window.SheetState;
     const { sectionCatalogToolbar, openClassSheet, openArchetypeSheet } = window.SheetModals;
     const { skillAbilityKey, setSkillBonus } = window.SheetTabSkills;
+    const { CLASS_STATS, DEFAULT_CLASS_INFO } = window.SheetData;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
     const rollBtn = (...a) => window.SheetApp.rollBtn(...a);
@@ -94,9 +95,9 @@ window.SheetTabSummary = (function () {
     /** Built-in chassis + per-character overrides (_sheet.classInfo[key]). */
     function classInfoFor(data, clsName) {
         const key = classKeyOf(clsName);
-        const base = window.SheetApp.CLASS_STATS[key] || {};
+        const base = CLASS_STATS[key] || {};
         const over = data?._sheet?.classInfo?.[key] || {};
-        return { ...window.SheetApp.DEFAULT_CLASS_INFO, ...base, ...over };
+        return { ...DEFAULT_CLASS_INFO, ...base, ...over };
     }
     function setClassInfo(data, clsName, field, value) {
         const st = sheetState(data);

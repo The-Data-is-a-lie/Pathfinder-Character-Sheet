@@ -1,12 +1,13 @@
 // scripts/tabs/defenses.js -- the Defenses tab: AC composition, save buckets, armor/shield rows,
 // DR / resistances / immunities chip editors, SR (window.SheetTabDefenses). Extracted from
-// sheet.js (Part B split); bodies verbatim except PF1_CONDITIONS (shared with Buffs, read from
-// SheetApp). rollBtn/rollAllBar/renderSheet/setActiveTab and the inventory helpers late-bind.
+// sheet.js (Part B split); bodies verbatim. PF1_CONDITIONS (shared with Buffs) is from SheetData;
+// rollBtn/rollAllBar/renderSheet/setActiveTab and the inventory helpers late-bind via SheetApp.
 window.SheetTabDefenses = (function () {
     'use strict';
     const { h, section, fmt, titleCase, parseIntLoose, dblclickEditable } = window.SheetUI;
     const { acTypeTotals, saveBuckets, srTotal, computeDerived } = window.SheetDerive;
     const { quietSave, sheetState, ensureDefenses, ensureInventoryObjects } = window.SheetState;
+    const { PF1_CONDITIONS } = window.SheetData;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
     const rollBtn = (...a) => window.SheetApp.rollBtn(...a);
@@ -211,7 +212,7 @@ window.SheetTabDefenses = (function () {
         const typeChip = (chip, entry) => {
             chip.appendChild(h('span', 'def-chip-type', titleCase(entry.type || '?')));
         };
-        const condOptions = window.SheetApp.PF1_CONDITIONS.map((c) => c.label.toLowerCase());
+        const condOptions = PF1_CONDITIONS.map((c) => c.label.toLowerCase());
         chipSection('Damage Immunities', defs.dmgImmune, typeChip, DAMAGE_TYPES,
             (a, type) => defs.dmgImmune.push({ type }), { noAmount: true });
         chipSection('Damage Vulnerabilities', defs.dmgVuln, typeChip, DAMAGE_TYPES,

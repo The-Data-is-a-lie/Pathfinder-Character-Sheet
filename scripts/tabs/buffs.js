@@ -1,6 +1,6 @@
 // scripts/tabs/buffs.js -- the Buffs tab: conditions tray, buff sections, passive source toggles,
 // feature-uses controls (window.SheetTabBuffs). Extracted from sheet.js (Part B split); bodies
-// verbatim except PF1_CONDITIONS (shared with Defenses, read from SheetApp). renderUsesControls is
+// verbatim except PF1_CONDITIONS (shared with Defenses, from SheetData). renderUsesControls is
 // consumed by the Features tab via SheetApp -- the shell destructure re-points its delegate here.
 window.SheetTabBuffs = (function () {
     'use strict';
@@ -12,6 +12,7 @@ window.SheetTabBuffs = (function () {
         BUFF_SUBTYPES, addBuffFromCatalog, formatBuffDuration, restoreRemovedBuffSources,
     } = window.SheetState;
     const { formatChangeLine, openCatalogPicker, openBuffEditor } = window.SheetModals;
+    const { PF1_CONDITIONS } = window.SheetData;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
 
@@ -61,7 +62,7 @@ window.SheetTabBuffs = (function () {
         const active = activeConditions(data);
         const st = sheetState(data);
         st.conditionDurations ??= {};
-        for (const c of window.SheetApp.PF1_CONDITIONS) {
+        for (const c of PF1_CONDITIONS) {
             const on = active.has(c.id);
             const dur = st.conditionDurations[c.id];
             const btn = h('button', 'condition-chip' + (on ? ' is-active' : ''),
@@ -91,7 +92,7 @@ window.SheetTabBuffs = (function () {
             grid.appendChild(btn);
         }
         body.appendChild(grid);
-        const activeList = window.SheetApp.PF1_CONDITIONS.filter((c) => active.has(c.id));
+        const activeList = PF1_CONDITIONS.filter((c) => active.has(c.id));
         if (activeList.length) {
             body.appendChild(h('p', 'conditions-active-summary',
                 'Active: ' + activeList.map((c) => {
