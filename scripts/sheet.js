@@ -115,11 +115,7 @@
     const { renderSkills } = window.SheetTabSkills;
     const { renderSpells } = window.SheetTabSpells;
     const { renderSimpleSheet } = window.SheetSimple;
-    // summary.js owns the class/archetype helpers the Features tab (still in the shell) and the
-    // modals SheetApp delegates consume.
-    const {
-        tabSummary, classInfoFor, classLevelFor, setClassInfo, archetypeDescHtml,
-    } = window.SheetTabSummary;
+    const { tabSummary } = window.SheetTabSummary;
     // features.js owns refreshFeatureLedger / featureBuffGroup (modals delegates re-point here).
     const {
         renderFeaturesToolbar, renderFeats, renderTraits, renderClassFeatures,
@@ -395,9 +391,6 @@
 
 
 
-    // Previously-used archetype names, persisted across characters ("saved data" the
-    // archetype picker offers). Grows as you add archetypes or load characters that have them.
-    const USED_ARCHETYPES_KEY = 'sheet.usedArchetypes';
 
 
 
@@ -611,12 +604,8 @@
         setActiveTab: (id) => setActiveTab(id),
         inventoryCategory: (...a) => inventoryCategory(...a),
         invRerender: (...a) => invRerender(...a),
-        setClassInfo: (...a) => setClassInfo(...a),
-        classInfoFor: (...a) => classInfoFor(...a),
-        classLevelFor: (...a) => classLevelFor(...a),
         refreshFeatureLedger: (...a) => refreshFeatureLedger(...a),
         featureBuffGroup: (...a) => featureBuffGroup(...a),
-        archetypeDescHtml: (...a) => archetypeDescHtml(...a),
     };
 
 

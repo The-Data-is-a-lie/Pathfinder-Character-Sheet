@@ -23,12 +23,9 @@ window.SheetModals = (function () {
     const inventoryCategory = (...a) => window.SheetApp.inventoryCategory(...a);
     const invRerender = (...a) => window.SheetApp.invRerender(...a);
     const { skillAbilityKey, skillBonusEntry, setSkillBonus } = window.SheetSkillMath;
-    const setClassInfo = (...a) => window.SheetApp.setClassInfo(...a);
-    const classInfoFor = (...a) => window.SheetApp.classInfoFor(...a);
-    const classLevelFor = (...a) => window.SheetApp.classLevelFor(...a);
+    const { setClassInfo, classInfoFor, classLevelFor, archetypeDescHtml } = window.SheetClassInfo;
     const refreshFeatureLedger = (...a) => window.SheetApp.refreshFeatureLedger(...a);
     const featureBuffGroup = (...a) => window.SheetApp.featureBuffGroup(...a);
-    const archetypeDescHtml = (...a) => window.SheetApp.archetypeDescHtml(...a);
 
     function openBuffEditor(data, buff, host) {
         const existing = host.querySelector('.buff-editor-panel');

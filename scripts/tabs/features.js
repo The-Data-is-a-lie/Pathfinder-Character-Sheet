@@ -12,7 +12,7 @@ window.SheetTabFeatures = (function () {
     const { totalLevel } = window.SheetDerive;
     const { quietSave, isBuffSourceActive, ensureClassList } = window.SheetState;
     const { sectionCatalogToolbar, formatChangeLine, openFeatureBuffMenu } = window.SheetModals;
-    const { archetypeDescHtml } = window.SheetTabSummary;
+    const { archetypeDescHtml } = window.SheetClassInfo;
     const { FEAT_GROUPS } = window.SheetData;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
