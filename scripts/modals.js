@@ -24,8 +24,7 @@ window.SheetModals = (function () {
     const invRerender = (...a) => window.SheetApp.invRerender(...a);
     const { skillAbilityKey, skillBonusEntry, setSkillBonus } = window.SheetSkillMath;
     const { setClassInfo, classInfoFor, classLevelFor, archetypeDescHtml } = window.SheetClassInfo;
-    const refreshFeatureLedger = (...a) => window.SheetApp.refreshFeatureLedger(...a);
-    const featureBuffGroup = (...a) => window.SheetApp.featureBuffGroup(...a);
+    const { refreshFeatureLedger, featureBuffGroup } = window.SheetFeatureLedger;
 
     function openBuffEditor(data, buff, host) {
         const existing = host.querySelector('.buff-editor-panel');

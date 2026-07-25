@@ -116,10 +116,8 @@
     const { renderSpells } = window.SheetTabSpells;
     const { renderSimpleSheet } = window.SheetSimple;
     const { tabSummary } = window.SheetTabSummary;
-    // features.js owns refreshFeatureLedger / featureBuffGroup (modals delegates re-point here).
     const {
         renderFeaturesToolbar, renderFeats, renderTraits, renderClassFeatures,
-        refreshFeatureLedger, featureBuffGroup,
     } = window.SheetTabFeatures;
     const { tabCombat } = window.SheetTabCombat;
     const { tabDefenses } = window.SheetTabDefenses;
@@ -596,8 +594,6 @@
         // when the shell re-points the delegate).
         setActiveTab: (id) => setActiveTab(id),
         invRerender: (...a) => invRerender(...a),
-        refreshFeatureLedger: (...a) => refreshFeatureLedger(...a),
-        featureBuffGroup: (...a) => featureBuffGroup(...a),
     };
 
 

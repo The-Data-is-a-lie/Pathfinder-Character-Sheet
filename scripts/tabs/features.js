@@ -17,10 +17,7 @@ window.SheetTabFeatures = (function () {
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
     const renderUsesControls = (...a) => window.SheetApp.renderUsesControls(...a);
-    // Full changes ledger for the Features tab, recomputed once per feature-section render so each
-    // row can show its source's built-in buffs without re-collecting. Closed over by
-    // refreshFeatureLedger / featureBuffGroup.
-    let featureLedgerCache = null;
+    const { refreshFeatureLedger, featureBuffGroup } = window.SheetFeatureLedger;
 
     // Tags that read like Foundry "type" chips (skip edition/race noise).
     const FEAT_TAG_SHOW = new Set([
@@ -90,20 +87,6 @@ window.SheetTabFeatures = (function () {
             );
         }
         return parts.join('');
-    }
-    function refreshFeatureLedger(data) {
-        const SD = window.SheetDetails;
-        featureLedgerCache = SD ? SD.collectChanges(data)
-            : (window.sheetChangesFull || null);
-        return featureLedgerCache;
-    }
-    /** Grouped built-in changes a feature (feat/trait/class feature) contributes, or null. */
-    function featureBuffGroup(name) {
-        const led = featureLedgerCache;
-        if (!led || !name) return null;
-        const lines = (led.changes || []).filter((c) => c.source === name);
-        if (!lines.length) return null;
-        return { source: name, sourceKind: lines[0].sourceKind || 'feat', lines };
     }
     /**
      * Foundry-style feature row (pf1 actor-features.hbs item rows):
@@ -676,8 +659,5 @@ window.SheetTabFeatures = (function () {
         return sec;
     }
 
-    return {
-        renderFeaturesToolbar, renderFeats, renderTraits, renderClassFeatures,
-        refreshFeatureLedger, featureBuffGroup,
-    };
+    return { renderFeaturesToolbar, renderFeats, renderTraits, renderClassFeatures };
 })();
