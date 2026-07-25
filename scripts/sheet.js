@@ -94,6 +94,7 @@
     const {
         tabNotes, ensureProse, renderBioFacts, bindProseTextarea,
     } = window.SheetTabNotes;
+    const { renderBiographyVitals } = window.SheetTabBiography;
 
     const LEGACY_CHAR_KEY = 'sheet.characterData'; // pre-library single slot (migrated once)
     const FORM_KEY = 'sheet.formData';
@@ -3042,19 +3043,6 @@
 
 
 
-    /** Biography tab: vitals only — freeform description/personality live on Notes. */
-    function renderBiographyVitals(data) {
-        const { sec, body } = section('Biography');
-        body.appendChild(h('p', 'dbl-edit-hint no-print',
-            'Physical vitals. Description, personality, family, and backstory are freeform on the Notes tab.'));
-        kvDbl(body, 'Age', data, 'age_number', { type: 'number', min: 0 });
-        kvDbl(body, 'Height', data, 'height_number');
-        kvDbl(body, 'Weight (lbs)', data, 'weight_number', { type: 'number', min: 0 });
-        // Languages moved to Attributes (with senses / aura / proficiencies).
-        body.appendChild(h('p', 'dim no-print',
-            'Tip: open Notes for Description, Personality, and session / background text.'));
-        return sec;
-    }
 
     /** Currency row: pp / gp / sp / cp (reads legacy platnium typo). */
     function kvCurrency(body, data) {
