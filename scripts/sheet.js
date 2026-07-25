@@ -305,44 +305,6 @@
 
 
 
-    // Full PF1 skill list (display name, ability, optional pf1 id for ledger targets).
-    const ALL_SKILLS = [
-        { name: 'Acrobatics', ab: 'dex', id: 'acr', acp: true },
-        { name: 'Appraise', ab: 'int', id: 'apr' },
-        { name: 'Bluff', ab: 'cha', id: 'blf' },
-        { name: 'Climb', ab: 'str', id: 'clm', acp: true },
-        { name: 'Craft', ab: 'int', id: 'crf' },
-        { name: 'Diplomacy', ab: 'cha', id: 'dip' },
-        { name: 'Disable Device', ab: 'dex', id: 'dev', acp: true },
-        { name: 'Disguise', ab: 'cha', id: 'dis' },
-        { name: 'Escape Artist', ab: 'dex', id: 'esc', acp: true },
-        { name: 'Fly', ab: 'dex', id: 'fly', acp: true },
-        { name: 'Handle Animal', ab: 'cha', id: 'han' },
-        { name: 'Heal', ab: 'wis', id: 'hea' },
-        { name: 'Intimidate', ab: 'cha', id: 'int' },
-        { name: 'Knowledge (Arcana)', ab: 'int', id: 'kar' },
-        { name: 'Knowledge (Dungeoneering)', ab: 'int', id: 'kdu' },
-        { name: 'Knowledge (Engineering)', ab: 'int', id: 'ken' },
-        { name: 'Knowledge (Geography)', ab: 'int', id: 'kge' },
-        { name: 'Knowledge (History)', ab: 'int', id: 'khi' },
-        { name: 'Knowledge (Local)', ab: 'int', id: 'klo' },
-        { name: 'Knowledge (Nature)', ab: 'int', id: 'kna' },
-        { name: 'Knowledge (Nobility)', ab: 'int', id: 'kno' },
-        { name: 'Knowledge (Planes)', ab: 'int', id: 'kpl' },
-        { name: 'Knowledge (Religion)', ab: 'int', id: 'kre' },
-        { name: 'Linguistics', ab: 'int', id: 'lin' },
-        { name: 'Perception', ab: 'wis', id: 'per' },
-        { name: 'Perform', ab: 'cha', id: 'prf' },
-        { name: 'Profession', ab: 'wis', id: 'pro' },
-        { name: 'Ride', ab: 'dex', id: 'rid', acp: true },
-        { name: 'Sense Motive', ab: 'wis', id: 'sen' },
-        { name: 'Sleight of Hand', ab: 'dex', id: 'slt', acp: true },
-        { name: 'Spellcraft', ab: 'int', id: 'spl' },
-        { name: 'Stealth', ab: 'dex', id: 'ste', acp: true },
-        { name: 'Survival', ab: 'wis', id: 'sur' },
-        { name: 'Swim', ab: 'str', id: 'swm', acp: true },
-        { name: 'Use Magic Device', ab: 'cha', id: 'umd' },
-    ];
 
 
 
@@ -649,7 +611,7 @@
         openInstructions: () => openInstructions(),
         shouldAutoOpenStartHere: () => shouldAutoOpenStartHere(),
         // modals.js late-binds these tab/shell helpers (each moves to its tab module later,
-        // when the shell re-points the delegate). ALL_SKILLS is shared with the Skills tab.
+        // when the shell re-points the delegate).
         setActiveTab: (id) => setActiveTab(id),
         inventoryCategory: (...a) => inventoryCategory(...a),
         invRerender: (...a) => invRerender(...a),
@@ -662,7 +624,6 @@
         skillBonusEntry: (...a) => skillBonusEntry(...a),
         setSkillBonus: (...a) => setSkillBonus(...a),
         archetypeDescHtml: (...a) => archetypeDescHtml(...a),
-        get ALL_SKILLS() { return ALL_SKILLS; },
     };
 
 

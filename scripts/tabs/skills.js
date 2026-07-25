@@ -13,6 +13,7 @@ window.SheetTabSkills = (function () {
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
     const { rollBtn, rollAllBar } = window.SheetStatKit;
+    const { ALL_SKILLS } = window.SheetData;
 
     function parseSkillRanks(data) {
         let ranks = data.skill_ranks;
@@ -216,7 +217,7 @@ window.SheetTabSkills = (function () {
         };
 
         const craftLabel = data.craft_type ? `Craft (${data.craft_type})` : 'Craft';
-        for (const skill of window.SheetApp.ALL_SKILLS) {
+        for (const skill of ALL_SKILLS) {
             const displayName = skill.name === 'Craft' ? craftLabel
                 : skill.name === 'Profession' && nonEmpty(data.profession_ranks)
                     ? null // handled in profession block with detail

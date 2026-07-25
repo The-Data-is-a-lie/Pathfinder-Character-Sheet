@@ -114,8 +114,76 @@ window.SheetData = (function () {
         weaponProf: '—', armorProf: '—', alignment: 'Any', classSkills: [],
     };
 
+    // Mirrors Foundry module addingReceivedLocationToName / Feats_n_Traits prefixes.
+    // labelArray → "Label: Feat"; taxDict → "Name > Child > …" (applyFeatTax).
+    const FEAT_GROUPS = [
+        { title: 'Flavor', listKey: 'flavor_feats', prefix: 'Flavor', start: 1, step: 1,
+            taxKey: 'flavor_feat_tax_dict' },
+        { title: 'Flaw', listKey: 'flaw_feats', prefix: 'Flaw', start: 1, step: 1,
+            taxKey: 'flaw_feat_tax_dict' },
+        { title: 'Story Feat', listKey: 'story_feats', prefix: 'Story Feat',
+            customLevels: [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100],
+            taxKey: 'story_feat_tax_dict' },
+        { title: 'Feat', listKey: 'feats', prefix: 'Feat', start: 1, step: 2,
+            taxKey: 'feats_feat_tax_dict' },
+        { title: 'Class Bonus Feat', listKey: 'teamwork_feats', labelsKey: 'teamwork_feat_labels',
+            prefix: 'Class Bonus Feat', start: 3, step: 3 },
+        { title: 'Class Bonus Feat', listKey: 'class_feats', labelsKey: 'class_feat_labels',
+            prefix: 'Class Bonus Feat', start: 1, step: 2, taxKey: 'class_feat_tax_dict' },
+        { title: 'Bloodline Feat', listKey: 'bloodline_feats', labelsKey: 'bloodline_feat_labels',
+            prefix: 'Bloodline Feat', start: 1, step: 1 },
+        { title: 'Trainer', listKey: 'trainer_feats', labelsKey: 'trainer_feat_labels',
+            prefix: 'Trainer', start: 1, step: 1, taxKey: 'trainer_feat_tax_dict' },
+        { title: 'Profession', listKey: 'profession_feats', prefix: 'Profession', start: 1, step: 1 },
+        { title: 'Sphere Feat', listKey: 'sphere_feats', prefix: 'Sphere Feat', start: 1, step: 1 },
+        // No `mt_feats` group: the backend distributes every Martial Training feat into the normal
+        // feats / class_feats / trainer_feats buckets (mentor-funded ones land under a Trainer slot),
+        // so a dedicated group here would render each one twice and double-count it in the Bonus/Total
+        // tallies. This mirrors the Foundry module, which renders MT feats only through those buckets
+        // and uses the mt_feats array solely to detect martial characters.
+    ];
+
+    // Full PF1 skill list (display name, ability, optional pf1 id for ledger targets).
+    const ALL_SKILLS = [
+        { name: 'Acrobatics', ab: 'dex', id: 'acr', acp: true },
+        { name: 'Appraise', ab: 'int', id: 'apr' },
+        { name: 'Bluff', ab: 'cha', id: 'blf' },
+        { name: 'Climb', ab: 'str', id: 'clm', acp: true },
+        { name: 'Craft', ab: 'int', id: 'crf' },
+        { name: 'Diplomacy', ab: 'cha', id: 'dip' },
+        { name: 'Disable Device', ab: 'dex', id: 'dev', acp: true },
+        { name: 'Disguise', ab: 'cha', id: 'dis' },
+        { name: 'Escape Artist', ab: 'dex', id: 'esc', acp: true },
+        { name: 'Fly', ab: 'dex', id: 'fly', acp: true },
+        { name: 'Handle Animal', ab: 'cha', id: 'han' },
+        { name: 'Heal', ab: 'wis', id: 'hea' },
+        { name: 'Intimidate', ab: 'cha', id: 'int' },
+        { name: 'Knowledge (Arcana)', ab: 'int', id: 'kar' },
+        { name: 'Knowledge (Dungeoneering)', ab: 'int', id: 'kdu' },
+        { name: 'Knowledge (Engineering)', ab: 'int', id: 'ken' },
+        { name: 'Knowledge (Geography)', ab: 'int', id: 'kge' },
+        { name: 'Knowledge (History)', ab: 'int', id: 'khi' },
+        { name: 'Knowledge (Local)', ab: 'int', id: 'klo' },
+        { name: 'Knowledge (Nature)', ab: 'int', id: 'kna' },
+        { name: 'Knowledge (Nobility)', ab: 'int', id: 'kno' },
+        { name: 'Knowledge (Planes)', ab: 'int', id: 'kpl' },
+        { name: 'Knowledge (Religion)', ab: 'int', id: 'kre' },
+        { name: 'Linguistics', ab: 'int', id: 'lin' },
+        { name: 'Perception', ab: 'wis', id: 'per' },
+        { name: 'Perform', ab: 'cha', id: 'prf' },
+        { name: 'Profession', ab: 'wis', id: 'pro' },
+        { name: 'Ride', ab: 'dex', id: 'rid', acp: true },
+        { name: 'Sense Motive', ab: 'wis', id: 'sen' },
+        { name: 'Sleight of Hand', ab: 'dex', id: 'slt', acp: true },
+        { name: 'Spellcraft', ab: 'int', id: 'spl' },
+        { name: 'Stealth', ab: 'dex', id: 'ste', acp: true },
+        { name: 'Survival', ab: 'wis', id: 'sur' },
+        { name: 'Swim', ab: 'str', id: 'swm', acp: true },
+        { name: 'Use Magic Device', ab: 'cha', id: 'umd' },
+    ];
+
     return {
         REGIONS, RACES, CLASSES, CORE_RACES, CORE_CLASSES, DEITIES,
-        PF1_CONDITIONS, CLASS_STATS, DEFAULT_CLASS_INFO,
+        PF1_CONDITIONS, CLASS_STATS, DEFAULT_CLASS_INFO, ALL_SKILLS, FEAT_GROUPS,
     };
 })();

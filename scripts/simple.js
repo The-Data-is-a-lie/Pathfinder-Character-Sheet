@@ -15,6 +15,7 @@ window.SheetSimple = (function () {
         sheetState, ensureInventoryObjects, ensureSkillRanksObject, ensureCastingAbility,
     } = window.SheetState;
     const { ensureProse, renderBioFacts, bindProseTextarea } = window.SheetTabNotes;
+    const { ALL_SKILLS, FEAT_GROUPS } = window.SheetData;
     const {
         ranksForSkill, skillMiscBonus, skillUserBonus, skillRankKey, getSkillAbility,
         skillAbilityKey, ranksEditor,

@@ -13,6 +13,7 @@ window.SheetTabFeatures = (function () {
     const { quietSave, isBuffSourceActive, ensureClassList } = window.SheetState;
     const { sectionCatalogToolbar, formatChangeLine, openFeatureBuffMenu } = window.SheetModals;
     const { archetypeDescHtml } = window.SheetTabSummary;
+    const { FEAT_GROUPS } = window.SheetData;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
     const renderUsesControls = (...a) => window.SheetApp.renderUsesControls(...a);
@@ -21,34 +22,6 @@ window.SheetTabFeatures = (function () {
     // refreshFeatureLedger / featureBuffGroup.
     let featureLedgerCache = null;
 
-    // Mirrors Foundry module addingReceivedLocationToName / Feats_n_Traits prefixes.
-    // labelArray → "Label: Feat"; taxDict → "Name > Child > …" (applyFeatTax).
-    const FEAT_GROUPS = [
-        { title: 'Flavor', listKey: 'flavor_feats', prefix: 'Flavor', start: 1, step: 1,
-            taxKey: 'flavor_feat_tax_dict' },
-        { title: 'Flaw', listKey: 'flaw_feats', prefix: 'Flaw', start: 1, step: 1,
-            taxKey: 'flaw_feat_tax_dict' },
-        { title: 'Story Feat', listKey: 'story_feats', prefix: 'Story Feat',
-            customLevels: [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100],
-            taxKey: 'story_feat_tax_dict' },
-        { title: 'Feat', listKey: 'feats', prefix: 'Feat', start: 1, step: 2,
-            taxKey: 'feats_feat_tax_dict' },
-        { title: 'Class Bonus Feat', listKey: 'teamwork_feats', labelsKey: 'teamwork_feat_labels',
-            prefix: 'Class Bonus Feat', start: 3, step: 3 },
-        { title: 'Class Bonus Feat', listKey: 'class_feats', labelsKey: 'class_feat_labels',
-            prefix: 'Class Bonus Feat', start: 1, step: 2, taxKey: 'class_feat_tax_dict' },
-        { title: 'Bloodline Feat', listKey: 'bloodline_feats', labelsKey: 'bloodline_feat_labels',
-            prefix: 'Bloodline Feat', start: 1, step: 1 },
-        { title: 'Trainer', listKey: 'trainer_feats', labelsKey: 'trainer_feat_labels',
-            prefix: 'Trainer', start: 1, step: 1, taxKey: 'trainer_feat_tax_dict' },
-        { title: 'Profession', listKey: 'profession_feats', prefix: 'Profession', start: 1, step: 1 },
-        { title: 'Sphere Feat', listKey: 'sphere_feats', prefix: 'Sphere Feat', start: 1, step: 1 },
-        // No `mt_feats` group: the backend distributes every Martial Training feat into the normal
-        // feats / class_feats / trainer_feats buckets (mentor-funded ones land under a Trainer slot),
-        // so a dedicated group here would render each one twice and double-count it in the Bonus/Total
-        // tallies. This mirrors the Foundry module, which renders MT feats only through those buckets
-        // and uses the mt_feats array solely to detect martial characters.
-    ];
     // Tags that read like Foundry "type" chips (skip edition/race noise).
     const FEAT_TAG_SHOW = new Set([
         'Combat', 'Teamwork', 'Metamagic', 'Story', 'Style', 'Critical', 'General',

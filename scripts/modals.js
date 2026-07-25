@@ -16,6 +16,7 @@ window.SheetModals = (function () {
         BUFF_SUBTYPES, BUFF_DURATION_UNITS,
     } = window.SheetState;
     const { effectiveLedger } = window.SheetDerive;
+    const { ALL_SKILLS } = window.SheetData;
     // Shell/tab helpers, late-bound via SheetApp (read at call time).
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
@@ -1371,7 +1372,7 @@ window.SheetModals = (function () {
         bodyEl.appendChild(h('p', 'dim class-skill-hint',
             'Checked = class skill — syncs the Skills tab CS toggle (+3 with at least 1 rank).'));
         const skGrid = h('div', 'class-skill-grid');
-        for (const skill of window.SheetApp.ALL_SKILLS) {
+        for (const skill of ALL_SKILLS) {
             const lab = h('label', 'class-skill-check');
             const cb = document.createElement('input');
             cb.type = 'checkbox';
