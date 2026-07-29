@@ -48,9 +48,10 @@ window.SheetGenerate = (function () {
             sel.appendChild(more);
         }
     }
-    // /update_character_data unpacks the payload POSITIONALLY (spheres_of_power is popped by
-    // name), so this key order must stay exactly in sync with the Foundry module's button.js,
-    // with use_backstory_api + backstory_focus appended as the optional 20th/21st inputs.
+    // /update_character_data unpacks the payload POSITIONALLY (spheres_of_power, professions
+    // and trainers are popped by name), so this key order must stay exactly in sync with the
+    // Foundry module's button.js, with use_backstory_api + backstory_focus appended as the
+    // optional 20th/21st inputs.
     function buildPayload(form) {
         const f = (name) => form.elements[name].value;
         return {
@@ -76,6 +77,12 @@ window.SheetGenerate = (function () {
             goldAmount: f('goldAmount'),
             use_backstory_api: f('use_backstory_api'),
             backstory_focus: f('backstory_focus'),
+            // Popped by name server-side like spheres_of_power, so position is free — but
+            // appended LAST anyway: a backend that predates them reads inputs[:19] plus [19]
+            // and [20] positionally, so trailing keys are simply never seen. Slot them any
+            // earlier and an un-deployed backend would shift its unpack and generate garbage.
+            professions: f('professions'),
+            trainers: f('trainers'),
         };
     }
     // ------------------------------------------------------------ quick generate form
