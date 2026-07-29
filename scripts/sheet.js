@@ -86,7 +86,7 @@
     // Generation form, lifted into scripts/generate.js (window.SheetGenerate). backendUrl /
     // togglePanel / FORM_KEY stay shell-owned and are reached via SheetApp.
     const {
-        fillSelect, fillGroupedSelect, buildPayload, quickLevelSelect, fillQuickLevel,
+        fillSelect, fillGroupedSelect, buildPayload, quickLevelField, fillQuickLevel,
         applyQuickLevel, syncQuickLevel, applyGenPreset, surpriseMe, generate, loadJsonText,
     } = window.SheetGenerate;
 
@@ -719,7 +719,7 @@
         }
 
         syncQuickLevel(form);
-        quickLevelSelect(form)?.addEventListener('change', () => applyQuickLevel(form));
+        quickLevelField(form)?.addEventListener('change', () => applyQuickLevel(form));
         for (const name of ['highestLevel', 'lowestLevel']) {
             form.elements[name].addEventListener('change', () => syncQuickLevel(form));
         }
