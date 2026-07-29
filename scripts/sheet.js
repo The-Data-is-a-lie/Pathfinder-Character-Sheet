@@ -730,7 +730,8 @@
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();
-            applyQuickLevel(form);
+            // Deliberately NOT applyQuickLevel(form): the select mirrors on its own change event,
+            // so copying again here would only ever flatten a Lowest/Highest range into one level.
             generate(form);
         });
         document.getElementById('render-paste').addEventListener('click', () =>

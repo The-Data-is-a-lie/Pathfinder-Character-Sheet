@@ -88,8 +88,16 @@ window.SheetGenerate = (function () {
     // ------------------------------------------------------------ quick generate form
     // The quick block drives the same named controls the advanced grid always used. Level is
     // the one exception: the generator takes a RANGE (highestLevel/lowestLevel), so the single
-    // kid-facing select mirrors into both. Set them to different values in More options and
-    // the quick select shows the range instead of pretending it's one number.
+    // kid-facing select mirrors into both.
+    //
+    // The list is ONLY levels — there is deliberately no "a range" sentinel entry. It used to
+    // exist purely so the copy-on-submit had a value meaning "don't copy me", which put a
+    // greyed, unexplained row at the bottom of the list during normal use. Instead, mirroring
+    // now happens ONLY from the select's own change event: nothing writes the level fields
+    // unless you actually pick a level, so a Lowest != Highest range set in More options can no
+    // longer be flattened by rolling. The box then shows the low end and says the rest in its
+    // tooltip. Keep it that way — reinstating a copy on submit brings the sentinel back with it.
+    const QUICK_LEVEL_MIN = 1;
     // 40 = the ceiling highestLevel/lowestLevel accept, so every level the generator can roll is
     // reachable from the quick row without opening More options.
     const QUICK_LEVEL_MAX = 40;
@@ -99,24 +107,20 @@ window.SheetGenerate = (function () {
     function fillQuickLevel(form) {
         const sel = quickLevelSelect(form);
         if (!sel || sel.options.length) return;
-        for (let i = 1; i <= QUICK_LEVEL_MAX; i++) {
+        for (let i = QUICK_LEVEL_MIN; i <= QUICK_LEVEL_MAX; i++) {
             const opt = document.createElement('option');
             opt.value = String(i);
             opt.textContent = 'Level ' + i;
             sel.appendChild(opt);
         }
-        const range = document.createElement('option');
-        range.value = 'range';
-        range.textContent = 'a range (see More options)';
-        range.disabled = true;
-        sel.appendChild(range);
     }
-    /** Quick select → the two real level inputs. */
+    /** Quick select → the two real level inputs. Only ever called from the select's change event. */
     function applyQuickLevel(form) {
         const sel = quickLevelSelect(form);
-        if (!sel || sel.value === 'range') return;
+        if (!sel) return;
         form.elements.highestLevel.value = sel.value;
         form.elements.lowestLevel.value = sel.value;
+        sel.title = '';   // picking a level ends whatever range the tooltip was describing
     }
     /** The two real level inputs → quick select (after a form restore or an advanced edit). */
     function syncQuickLevel(form) {
@@ -124,15 +128,15 @@ window.SheetGenerate = (function () {
         if (!sel) return;
         const hi = parseIntLoose(form.elements.highestLevel.value, 5);
         const lo = parseIntLoose(form.elements.lowestLevel.value, hi);
-        if (hi === lo && hi >= 1 && hi <= QUICK_LEVEL_MAX) {
-            sel.value = String(hi);
-            sel.querySelector('option[value="range"]').textContent = 'a range (see More options)';
-        } else {
-            const opt = sel.querySelector('option[value="range"]');
-            opt.textContent = `levels ${lo}–${hi} (More options)`;
-            opt.disabled = false;
-            sel.value = 'range';
-        }
+        const low = Math.min(lo, hi);
+        const high = Math.max(lo, hi);
+        // Assigning .value never fires `change`, so this cannot loop back through
+        // applyQuickLevel and flatten the very range it is describing.
+        const shown = Math.min(QUICK_LEVEL_MAX, Math.max(QUICK_LEVEL_MIN, low));
+        sel.value = String(shown);
+        if (low === high && shown === high) sel.title = '';
+        else if (low === high) sel.title = `Rolling level ${high}, set in More options`;
+        else sel.title = `Rolling levels ${low}–${high}, set in More options`;
     }
     // One-click starting points for the 20 advanced generator fields. Each preset sets ONLY
     // its listed fields (never race/class/level) and does not submit, so a power user can
@@ -182,7 +186,8 @@ window.SheetGenerate = (function () {
         };
         pick(form.elements.race);
         pick(form.elements.class);
-        applyQuickLevel(form);
+        // No applyQuickLevel here: the select's change event already mirrored whatever level is
+        // showing, and calling it now would overwrite a range set in More options.
         generate(form);
     }
     async function generate(form) {
