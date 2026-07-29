@@ -88,48 +88,55 @@ window.SheetGenerate = (function () {
     // ------------------------------------------------------------ quick generate form
     // The quick block drives the same named controls the advanced grid always used. Level is
     // the one exception: the generator takes a RANGE (highestLevel/lowestLevel), so the single
-    // kid-facing select mirrors into both. Set them to different values in More options and
-    // the quick select shows the range instead of pretending it's one number.
-    const QUICK_LEVEL_MAX = 20;
-    function quickLevelSelect(form) {
+    // kid-facing box mirrors into both. Set them to different values in More options and the
+    // quick box empties out rather than pretending the range is one number.
+    const QUICK_LEVEL_MIN = 1;
+    const QUICK_LEVEL_MAX = 40;
+    function quickLevelField(form) {
         return form?.elements?.quickLevel || null;
     }
+    function clampQuickLevel(n) {
+        return Math.min(QUICK_LEVEL_MAX, Math.max(QUICK_LEVEL_MIN, n));
+    }
+    /** Stamp the bounds from here so the markup and the clamp below can never drift apart. */
     function fillQuickLevel(form) {
-        const sel = quickLevelSelect(form);
-        if (!sel || sel.options.length) return;
-        for (let i = 1; i <= QUICK_LEVEL_MAX; i++) {
-            const opt = document.createElement('option');
-            opt.value = String(i);
-            opt.textContent = 'Level ' + i;
-            sel.appendChild(opt);
-        }
-        const range = document.createElement('option');
-        range.value = 'range';
-        range.textContent = 'a range (see More options)';
-        range.disabled = true;
-        sel.appendChild(range);
+        const el = quickLevelField(form);
+        if (!el) return;
+        el.min = String(QUICK_LEVEL_MIN);
+        el.max = String(QUICK_LEVEL_MAX);
     }
-    /** Quick select → the two real level inputs. */
+    /** Quick box → the two real level inputs. */
     function applyQuickLevel(form) {
-        const sel = quickLevelSelect(form);
-        if (!sel || sel.value === 'range') return;
-        form.elements.highestLevel.value = sel.value;
-        form.elements.lowestLevel.value = sel.value;
+        const el = quickLevelField(form);
+        if (!el) return;
+        // Empty means "More options owns the level": syncQuickLevel blanks the box when Highest
+        // and Lowest differ, and mirroring a blank would silently collapse that range to one
+        // level. A number input also reads back '' for garbage like "12e", so this covers both.
+        if (!el.value.trim()) return;
+        const n = clampQuickLevel(parseIntLoose(el.value, 5));
+        el.value = String(n);
+        // Typing a level ends any range that was showing, so the "3–9" hints must go with it —
+        // a stale placeholder under a filled box reads as if the range were still in force.
+        el.placeholder = '';
+        el.title = '';
+        form.elements.highestLevel.value = String(n);
+        form.elements.lowestLevel.value = String(n);
     }
-    /** The two real level inputs → quick select (after a form restore or an advanced edit). */
+    /** The two real level inputs → quick box (after a form restore or an advanced edit). */
     function syncQuickLevel(form) {
-        const sel = quickLevelSelect(form);
-        if (!sel) return;
+        const el = quickLevelField(form);
+        if (!el) return;
         const hi = parseIntLoose(form.elements.highestLevel.value, 5);
         const lo = parseIntLoose(form.elements.lowestLevel.value, hi);
-        if (hi === lo && hi >= 1 && hi <= QUICK_LEVEL_MAX) {
-            sel.value = String(hi);
-            sel.querySelector('option[value="range"]').textContent = 'a range (see More options)';
+        if (hi === lo) {
+            el.value = String(clampQuickLevel(hi));
+            el.placeholder = '';
+            el.title = '';
         } else {
-            const opt = sel.querySelector('option[value="range"]');
-            opt.textContent = `levels ${lo}–${hi} (More options)`;
-            opt.disabled = false;
-            sel.value = 'range';
+            // A number box cannot render "3–9", so it goes empty and says where the range lives.
+            el.value = '';
+            el.placeholder = `${lo}–${hi}`;
+            el.title = `Rolling levels ${lo}–${hi}, set in More options. Type a number here to use a single level instead`;
         }
     }
     // One-click starting points for the 20 advanced generator fields. Each preset sets ONLY
@@ -220,7 +227,7 @@ window.SheetGenerate = (function () {
     }
 
     return {
-        fillSelect, fillGroupedSelect, buildPayload, quickLevelSelect, fillQuickLevel,
+        fillSelect, fillGroupedSelect, buildPayload, quickLevelField, fillQuickLevel,
         applyQuickLevel, syncQuickLevel, applyGenPreset, surpriseMe, generate, loadJsonText,
     };
 })();

@@ -204,8 +204,13 @@
                     <select name="class"></select>
                     <span>class</span>
                 </label>
+                <!-- A typed box, not a select: the generator goes to 40 and a 40-item dropdown is
+                     worse to use than typing two digits. min/max are restamped by fillQuickLevel
+                     so the bounds live in one place. Empty = the advanced grid owns the level
+                     (see syncQuickLevel), which is how a Lowest..Highest range shows up here. -->
                 <label class="gen-quick-field gen-quick-level">
-                    <select name="quickLevel"></select>
+                    <input type="number" name="quickLevel" min="1" max="40" step="1"
+                           inputmode="numeric" value="5">
                     <span>level</span>
                 </label>
             </div>
