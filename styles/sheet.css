@@ -1049,6 +1049,15 @@ body.explain .term-hint-block { margin-top: 0.15rem; }
 .gen-advanced[open] > summary { margin-bottom: 0.7rem; }
 .gen-advanced[open] > summary::after { transform: rotate(180deg); }
 .gen-advanced-gear { color: var(--on-accent); }
+/* Announces the title= tooltips on every label in the grid below. Quiet on purpose — it is a
+   one-time instruction, not a control, so it must not compete with the presets row under it. */
+.gen-hover-hint {
+    margin: 0.6rem 0 0.5rem;
+    font-size: 0.85rem;
+    color: var(--dim);
+    font-style: italic;
+}
+.gen-hover-star { color: var(--accent); font-weight: bold; font-style: normal; }
 /* The expanded controls go back to normal left-aligned form flow. */
 .gen-advanced > .form-grid { text-align: left; }
 /* Preset chips: one-click baselines for the advanced fields. */
