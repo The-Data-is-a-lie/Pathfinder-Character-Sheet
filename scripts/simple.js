@@ -9,12 +9,13 @@ window.SheetSimple = (function () {
         editableField, dblclickEditable, spCell, spHeading, spBoxBig, spTable,
     } = window.SheetUI;
     const {
-        computeDerived, abModOf, srTotal, loadCategory, castingAbilityMod, concentrationBonus,
+        computeDerived, abilityInfo, abModOf, srTotal, loadCategory, castingAbilityMod,
+        concentrationBonus,
     } = window.SheetDerive;
     const {
         sheetState, ensureInventoryObjects, ensureSkillRanksObject, ensureCastingAbility,
     } = window.SheetState;
-    const { ensureProse, renderBioFacts, bindProseTextarea } = window.SheetTabNotes;
+    const { ensureProse, attachPrintMirror, bindProseTextarea } = window.SheetTabNotes;
     const { ALL_SKILLS, FEAT_GROUPS } = window.SheetData;
     const {
         ranksForSkill, skillMiscBonus, skillUserBonus, skillRankKey, getSkillAbility,
@@ -135,13 +136,32 @@ window.SheetSimple = (function () {
         cols.append(left, right);
         p1.appendChild(cols);
 
-        // Abilities
+        // Abilities. Score is the *effective* total (base + racial/enhancement/inherent/misc +
+        // buff ledger − drain), so it always agrees with the Mod beside it — the Attributes tab's
+        // Total column, not the raw base. Editing it still edits the base: the typed delta is
+        // applied to data[ab], so "make me a 20" works whatever the bonuses are.
+        const abilityScore = (ab) => {
+            const info = abilityInfo(data, ab);
+            const bag = { total: info.total };
+            const node = dblclickEditable(bag, 'total', {
+                type: 'number',
+                format: () => String(info.total),
+                parse: (s) => parseIntLoose(s, info.total),
+                onChange: () => {
+                    const delta = (Number(bag.total) || 0) - info.total;
+                    if (delta) data[ab] = (Number(data[ab]) || 0) + delta;
+                    rerender();
+                },
+            });
+            if (info.formula) node.title = info.formula;
+            return node;
+        };
         left.appendChild(spHeading('Ability Scores'));
         left.appendChild(spTable(
             ['Ability', { text: 'Score', cls: 'num' }, { text: 'Mod', cls: 'num' }],
             ['str', 'dex', 'con', 'int', 'wis', 'cha'].map((ab) => [
                 ab.toUpperCase(),
-                { node: editNum(data, ab, { min: 1, max: 99, rerender: true }), cls: 'num' },
+                { node: abilityScore(ab), cls: 'num' },
                 { text: data[ab] != null ? fmt(abModOf(data, ab)) : '', cls: 'num strong' },
             ])));
 
@@ -358,7 +378,7 @@ window.SheetSimple = (function () {
         left.appendChild(spTable(
             ['Item', { text: 'Qty', cls: 'num' }, { text: 'Wt.', cls: 'num' }],
             gearRows));
-        const load = loadCategory(totalWt, data.str);
+        const load = loadCategory(totalWt, abilityInfo(data, 'str').total ?? data.str);
         left.appendChild(h('p', 'simple-formula',
             `Total ${fmtWeight(totalWt)} — ${load.label} load`
             + ` (light ${load.lim.light} / medium ${load.lim.medium} / heavy ${load.lim.heavy} lbs)`));
@@ -533,11 +553,10 @@ window.SheetSimple = (function () {
         cols2.append(l2, r2);
         p2.appendChild(cols2);
 
-        if (data.platinum == null && data.platnium != null) data.platinum = data.platnium;
+        window.SheetInventoryModel.normalizeCurrency(data);
         l2.appendChild(spHeading('Money'));
         const moneyGrid = h('div', 'simple-stat-grid simple-money');
         for (const [label, key] of [['PP', 'platinum'], ['GP', 'gold'], ['SP', 'silver'], ['CP', 'copper']]) {
-            if (data[key] == null || data[key] === '') data[key] = 0;
             moneyGrid.appendChild(spBoxBig(label, editNum(data, key, {
                 min: 0,
                 format: (raw) => (raw == null || raw === '' ? '0' : String(raw)),
@@ -611,15 +630,13 @@ window.SheetSimple = (function () {
             spellRows));
         p2.appendChild(sp);
 
-        // Biography & Notes — a full-width band at the very bottom (below spells) so the structured
-        // background (from the generator's formatted_bio) lays out horizontally and flows across
-        // the two printed pages instead of claiming a page of its own. The notes-prose-notes id
-        // lets renderSheet's flush keep un-debounced edits.
+        // Biography & Notes — a full-width band at the very bottom (below spells). The structured
+        // background is no longer a separate card grid here: it is seeded into the notes text
+        // itself (see notes.js bioFactsText), so rendering it again would print every fact twice.
+        // The notes-prose-notes id lets renderSheet's flush keep un-debounced edits.
         const bioProse = ensureProse(data);
         const bioBand = h('div', 'simple-bio-band');
         bioBand.appendChild(spHeading('Biography & Notes'));
-        const facts = renderBioFacts(data, { compact: true });
-        if (facts) bioBand.appendChild(facts);
 
         const notesBlock = h('div', 'simple-bio-block simple-bio-notes');
         notesBlock.appendChild(h('div', 'simple-bio-label', 'Notes & background'));
@@ -630,6 +647,8 @@ window.SheetSimple = (function () {
         notesTa.rows = 4;
         bindProseTextarea(notesTa, data, 'notes');
         notesBlock.appendChild(notesTa);
+        // rows=4 crops on paper, and the background now lives in this text — print the twin.
+        notesBlock.appendChild(attachPrintMirror(notesTa));
         bioBand.appendChild(notesBlock);
         p2.appendChild(bioBand);
 
