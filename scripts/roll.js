@@ -514,8 +514,18 @@ window.SheetRoll = (function () {
 
     /**
      * Evaluate checked conditionals for attack or damage.
+     *
+     * pf1 splits an ATTACK modifier by its `critical` field: `normal` parts belong to the initial
+     * attack roll only, `crit` parts to the critical-confirmation roll only. That is why the
+     * curated data gives a standing to-hit bonus a `crit` TWIN rather than one entry covering both
+     * rolls — so evaluating every modifier on the initial d20 both double-counts the twins and
+     * fires confirm-only feats (Object Of Legend, Desperate Swing, …) on the wrong roll.
+     *
      * @param {'attack'|'damage'} kind
-     * @param {{ isCrit?: boolean }} opts
+     * @param {{ isCrit?: boolean, phase?: 'normal'|'crit' }} opts
+     *   `isCrit` filters damage (existing behaviour); `phase` picks which attack d20 is being
+     *   rolled. A missing/unknown `critical` counts as `normal`, as the damage branch already
+     *   assumes; `nonCrit` is a damage concept and falls in the initial bucket on attacks.
      */
     function evaluateConditionals(kind, opts = {}) {
         const data = currentData;
@@ -537,6 +547,11 @@ window.SheetRoll = (function () {
                 if (kind === 'damage') {
                     if (crit === 'crit' && !opts.isCrit) continue;
                     if (crit === 'nonCrit' && opts.isCrit) continue;
+                } else if (kind === 'attack') {
+                    // Confirmation roll takes the crit-flagged parts and nothing else; the
+                    // initial roll takes everything else.
+                    if (opts.phase === 'crit') { if (crit !== 'crit') continue; }
+                    else if (crit === 'crit') continue;
                 }
 
                 let formula = cleanFormula(m.formula, data);
@@ -828,10 +843,21 @@ window.SheetRoll = (function () {
                 cls: 'roll-card-section-label',
             });
             if (atk.confirm) {
+                // The confirm carries its OWN bonus (crit-flagged conditionals only), so show
+                // that rather than the initial one -- otherwise the arithmetic on this line
+                // wouldn't add up whenever a crit modifier applied.
+                const cb = atk.confirm.bonus ?? atk.bonus;
                 detailLines.push({
                     label: 'Confirm d20',
-                    value: `${atk.confirm.natural} ${fmt(atk.bonus)} = ${atk.confirm.total}`,
+                    value: `${atk.confirm.natural} ${fmt(cb)} = ${atk.confirm.total}`,
                 });
+                for (const c of atk.confirm.conditionals || []) {
+                    detailLines.push({
+                        label: c.source + ' (crit)',
+                        value: typeof c.value === 'number' ? fmt(c.value) : String(c.value),
+                        cls: 'roll-card-cond',
+                    });
+                }
             }
         }
         if (atk.natural === 20) detailLines.push({ text: 'Natural 20', cls: 'roll-card-flag' });
@@ -1005,9 +1031,17 @@ window.SheetRoll = (function () {
         const threatened = natural >= critRange;
         let confirmNatural = null;
         let confirmTotal = null;
+        let confirmBonus = null;
+        let confirmCond = null;
         if (threatened && opts.confirm) {
+            // getConfirmBonus is a CALLBACK, not a value, so the crit-phase conditionals -- which
+            // roll dice -- are only evaluated on an actual threat instead of on every swing.
+            // Absent, the confirm reuses the initial bonus, which is the old behaviour.
+            const cb = opts.getConfirmBonus ? opts.getConfirmBonus() : null;
+            confirmBonus = cb ? cb.bonus : bonus;
+            confirmCond = cb ? cb.cond : null;
             confirmNatural = randomInt(1, 20);
-            confirmTotal = confirmNatural + bonus;
+            confirmTotal = confirmNatural + confirmBonus;
         }
         return {
             label: label || 'Attack',
@@ -1017,15 +1051,21 @@ window.SheetRoll = (function () {
             critRange,
             threatened,
             confirm: confirmNatural != null
-                ? { natural: confirmNatural, total: confirmTotal }
+                ? {
+                    natural: confirmNatural,
+                    total: confirmTotal,
+                    bonus: confirmBonus,
+                    conditionals: confirmCond ? attackConditionalsList(confirmCond) : [],
+                }
                 : null,
             bonusLines: opts.bonusLines || [],
             conditionals: opts.conditionals || [],
         };
     }
 
-    function conditionalAtkBonus() {
-        const ev = evaluateConditionals('attack');
+    /** @param {'normal'|'crit'} phase which attack d20 this is for (see evaluateConditionals). */
+    function conditionalAtkBonus(phase = 'normal') {
+        const ev = evaluateConditionals('attack', { phase });
         let diceTotal = 0;
         const diceDetails = [];
         if (ev.diceParts.length) {
@@ -1168,6 +1208,10 @@ window.SheetRoll = (function () {
             const atk = rollD20Attack(bonus, iterLabel, {
                 critRange,
                 confirm: true,
+                getConfirmBonus: () => {
+                    const cc = conditionalAtkBonus('crit');
+                    return { bonus: ctx.weaponBonus + cc.total - pen, cond: cc };
+                },
                 bonusLines: attackBonusLines(ctx, condThis, pen),
                 conditionals: attackConditionalsList(condThis),
             });
@@ -1318,6 +1362,10 @@ window.SheetRoll = (function () {
                 const bonus = ctx.meleeBonus + ca.total;
                 const atk = rollD20Attack(bonus, 'Melee attack', {
                     confirm: true,
+                    getConfirmBonus: () => {
+                        const cc = conditionalAtkBonus('crit');
+                        return { bonus: ctx.meleeBonus + cc.total, cond: cc };
+                    },
                     bonusLines: [
                         { label: 'BAB', value: ctx.bab },
                         { label: 'STR', value: ctx.strM },
@@ -1340,6 +1388,10 @@ window.SheetRoll = (function () {
                 const bonus = ctx.rangedBonus + ca.total;
                 const atk = rollD20Attack(bonus, 'Ranged attack', {
                     confirm: true,
+                    getConfirmBonus: () => {
+                        const cc = conditionalAtkBonus('crit');
+                        return { bonus: ctx.rangedBonus + cc.total, cond: cc };
+                    },
                     bonusLines: [
                         { label: 'BAB', value: ctx.bab },
                         { label: 'DEX', value: ctx.dexM },
