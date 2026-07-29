@@ -216,11 +216,6 @@ window.SheetTabAttributes = (function () {
             abT.appendChild(tr);
         }
         body.appendChild(abT);
-        body.appendChild(h('p', 'dim attr-cols-note',
-            'Racial, Inherent and Level-up columns are pre-filled from the generator (editable). '
-            + (st.racialSeeded || !data?.racial_stats
-                ? 'Older characters without generator racial data keep the Racial column blank.'
-                : 'Racial modifiers are already included in the base score.')));
 
         return sec;
     }
