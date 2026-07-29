@@ -350,7 +350,13 @@ window.SheetRoll = (function () {
         return best;
     }
 
-    function sumNumericChanges(targets) {
+    /**
+     * @param {string[]} targets
+     * @param {'initial'|'confirm'|null} phase which attack d20 to sum for. A change's `appliesOn`
+     *   is 'both' unless the user narrowed it, so standing bonuses keep reaching both rolls;
+     *   pass null (non-attack sums like AC) to ignore phase entirely.
+     */
+    function sumNumericChanges(targets, phase = null) {
         // window.sheetChanges is already filtered by per-buff toggles (effectiveLedger)
         const ledger = window.sheetChanges;
         if (!ledger?.changes?.length) return { total: 0, bits: [] };
@@ -359,6 +365,10 @@ window.SheetRoll = (function () {
         const bits = [];
         for (const c of ledger.changes) {
             if (!want.has(c.target)) continue;
+            if (phase) {
+                const on = c.appliesOn || 'both';
+                if (on !== 'both' && on !== phase) continue;
+            }
             const f = String(c.formula).trim();
             if (!/^[+-]?\d+$/.test(f)) continue;
             const n = Number(f);
@@ -476,11 +486,17 @@ window.SheetRoll = (function () {
         const dmgAbMod = abilityMod(data, dmgAbKey);
         const atkTargets = ranged ? ['attack', 'rattack'] : ['attack', 'mattack'];
         const dmgTargets = ranged ? ['damage', 'rdamage', 'wdamage'] : ['damage', 'mdamage', 'wdamage'];
-        const atkChanges = sumNumericChanges(atkTargets);
+        const atkChanges = sumNumericChanges(atkTargets, 'initial');
+        // The confirm-phase deltas: what a 'confirm'-only change adds on top of, and what an
+        // 'initial'-only change withholds from, the confirmation roll.
+        const atkChangesConfirm = sumNumericChanges(atkTargets, 'confirm');
         const dmgChanges = sumNumericChanges(dmgTargets);
-        const meleeBonus = bab + strM + sumNumericChanges(['attack', 'mattack']).total;
-        const rangedBonus = bab + dexM + sumNumericChanges(['attack', 'rattack']).total;
+        const meleeBonus = bab + strM + sumNumericChanges(['attack', 'mattack'], 'initial').total;
+        const rangedBonus = bab + dexM + sumNumericChanges(['attack', 'rattack'], 'initial').total;
+        const meleeBonusConfirm = bab + strM + sumNumericChanges(['attack', 'mattack'], 'confirm').total;
+        const rangedBonusConfirm = bab + dexM + sumNumericChanges(['attack', 'rattack'], 'confirm').total;
         const weaponBonus = bab + abMod + enh + atkChanges.total;
+        const weaponBonusConfirm = bab + abMod + enh + atkChangesConfirm.total;
         const damageFlat = dmgAbMod + enh + dmgChanges.total;
         const damageDice = wStats?.dice || '';
         const damageFormula = formatDamageFormula(damageDice, damageFlat);
@@ -488,7 +504,8 @@ window.SheetRoll = (function () {
         return {
             bab, strM, dexM, enh, wName, wStats, ranged, abKey, abMod,
             dmgAbKey, dmgAbMod, damageFlat, damageDice, damageFormula,
-            atkChanges, dmgChanges,
+            atkChanges, dmgChanges, atkChangesConfirm,
+            weaponBonusConfirm, meleeBonusConfirm, rangedBonusConfirm,
             meleeBonus, rangedBonus, weaponBonus,
             label: weaponLabel(data),
             iters: iterativeCount(bab),
@@ -1210,7 +1227,7 @@ window.SheetRoll = (function () {
                 confirm: true,
                 getConfirmBonus: () => {
                     const cc = conditionalAtkBonus('crit');
-                    return { bonus: ctx.weaponBonus + cc.total - pen, cond: cc };
+                    return { bonus: ctx.weaponBonusConfirm + cc.total - pen, cond: cc };
                 },
                 bonusLines: attackBonusLines(ctx, condThis, pen),
                 conditionals: attackConditionalsList(condThis),
@@ -1364,7 +1381,7 @@ window.SheetRoll = (function () {
                     confirm: true,
                     getConfirmBonus: () => {
                         const cc = conditionalAtkBonus('crit');
-                        return { bonus: ctx.meleeBonus + cc.total, cond: cc };
+                        return { bonus: ctx.meleeBonusConfirm + cc.total, cond: cc };
                     },
                     bonusLines: [
                         { label: 'BAB', value: ctx.bab },
@@ -1390,7 +1407,7 @@ window.SheetRoll = (function () {
                     confirm: true,
                     getConfirmBonus: () => {
                         const cc = conditionalAtkBonus('crit');
-                        return { bonus: ctx.rangedBonus + cc.total, cond: cc };
+                        return { bonus: ctx.rangedBonusConfirm + cc.total, cond: cc };
                     },
                     bonusLines: [
                         { label: 'BAB', value: ctx.bab },
