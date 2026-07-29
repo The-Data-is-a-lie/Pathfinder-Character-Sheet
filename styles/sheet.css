@@ -1004,13 +1004,12 @@ body.explain .term-hint-block { margin-top: 0.15rem; }
     gap: 0.75rem;
     margin-bottom: 0.85rem;
 }
-.gen-quick-field { display: flex; flex-direction: column; gap: 0.2rem; min-width: 9rem; }
-.gen-quick-field select,
-.gen-quick-field input { font-size: 1.05rem; padding: 0.45rem 0.5rem; }
-/* The level box holds two digits, so it does not need a select's width — and it keeps its own
-   min-width off the shared 9rem so it sits as a compact box beside race and class. */
-.gen-quick-level { min-width: 0; }
-.gen-quick-level input { width: 5.5rem; text-align: center; }
+/* One basis for all three so race / class / level are the SAME width. Left to size themselves
+   they differ by whatever their longest option happens to be ("a range (see More options)" made
+   level the widest), which reads as three slightly mismatched boxes. 15rem clears that longest
+   label; shrink is allowed so narrow screens compact them evenly before wrapping. */
+.gen-quick-field { display: flex; flex-direction: column; gap: 0.2rem; flex: 0 1 15rem; min-width: 9rem; }
+.gen-quick-field select { font-size: 1.05rem; padding: 0.45rem 0.5rem; }
 .gen-quick-field > span { font-size: 0.8rem; color: var(--dim); text-align: center; }
 .gen-quick-actions { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
 .gen-roll {
