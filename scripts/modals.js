@@ -129,25 +129,51 @@ window.SheetModals = (function () {
             opt.textContent = t === 'untyped' ? 'untyped' : (SD?.typeLabel?.(t) || t);
             typeSel.appendChild(opt);
         }
+        // Which attack d20 the change rides. Only meaningful for attack targets, so it disables
+        // itself for anything else rather than offering a choice that does nothing.
+        const whenSel = h('select', 'edit-field');
+        for (const [val, label] of [['both', 'Both rolls'], ['initial', 'Initial roll only'],
+            ['confirm', 'Crit confirm only']]) {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = label;
+            whenSel.appendChild(opt);
+        }
+        const syncWhen = () => {
+            const atk = isAttackishTarget(targetSel.value);
+            whenSel.disabled = !atk;
+            whenSel.title = atk
+                ? 'Which attack roll this bonus applies to'
+                : 'Only attack targets distinguish the initial roll from the crit confirmation';
+            if (!atk) whenSel.value = 'both';
+        };
+        targetSel.addEventListener('change', syncWhen);
+        syncWhen();
+
         const addBtn = h('button', 'inv-btn', 'Add change');
         addBtn.type = 'button';
         addBtn.addEventListener('click', () => {
             let formula = String(formulaIn.value || '').trim();
             if (!formula) { formulaIn.focus(); return; }
             if (/^\+\d+$/.test(formula)) formula = formula.slice(1);
-            (buff.changes ??= []).push({
+            const change = {
                 formula,
                 target: targetSel.value,
                 type: typeSel.value || 'untyped',
                 operator: 'add',
                 priority: 0,
-            });
+            };
+            // Omit the default so existing buffs and newly-added ordinary ones stay byte-identical.
+            if (isAttackishTarget(targetSel.value) && whenSel.value !== 'both') {
+                change.appliesOn = whenSel.value;
+            }
+            (buff.changes ??= []).push(change);
             formulaIn.value = '';
             quietSave();
             redrawList();
             refreshDerived();
         });
-        form.append(formulaIn, targetSel, typeSel, addBtn);
+        form.append(formulaIn, targetSel, typeSel, whenSel, addBtn);
         panel.appendChild(form);
 
         const actions = h('div', 'inv-buffs-actions');
@@ -342,13 +368,22 @@ window.SheetModals = (function () {
         quietSave();
         return item;
     }
+    /** Attack targets are the only ones where the initial roll and the crit confirm differ. */
+    function isAttackishTarget(t) {
+        const s = String(t || '').toLowerCase();
+        return s === 'attack' || s === 'mattack' || s === 'rattack' || s === 'allattack'
+            || s.endsWith('attack');
+    }
     function formatChangeLine(c, SD) {
         const t = SD?.typeLabel?.(c.type) || (c.type && c.type !== 'untyped' ? c.type : '');
         const num = /^-?\d+$/.test(String(c.formula || '').trim())
             ? fmt(Number(c.formula))
             : String(c.formula || '?');
         const tgt = SD?.targetLabel?.(c.target) || c.target || '?';
-        return `${num}${t ? ' ' + t : ''} → ${tgt}`;
+        const on = c.appliesOn && c.appliesOn !== 'both'
+            ? (c.appliesOn === 'confirm' ? ' (crit confirm only)' : ' (initial roll only)')
+            : '';
+        return `${num}${t ? ' ' + t : ''} → ${tgt}${on}`;
     }
     /**
      * Foundry-style catalog browser: search slim data/*.json, pick a result, or add custom.

@@ -534,13 +534,21 @@ window.SheetUI = (function () {
     // Shallow-normalize a pf1 `changes` array into fresh plain objects (used by buffs, inventory
     // items, and item sheets — anywhere a change list is copied rather than referenced).
     function cloneChanges(list) {
-        return (list || []).map((c) => ({
-            formula: c.formula,
-            target: c.target,
-            type: c.type || 'untyped',
-            operator: c.operator || 'add',
-            priority: c.priority || 0,
-        }));
+        return (list || []).map((c) => {
+            const out = {
+                formula: c.formula,
+                target: c.target,
+                type: c.type || 'untyped',
+                operator: c.operator || 'add',
+                priority: c.priority || 0,
+            };
+            // Which attack d20 the change rides (see details.js pushEntry). This whitelist is
+            // what every change list is rebuilt through, so a field missing here is silently
+            // dropped on load no matter where it was authored. Only carried when narrowed, so
+            // ordinary changes stay byte-identical.
+            if (c.appliesOn && c.appliesOn !== 'both') out.appliesOn = c.appliesOn;
+            return out;
+        });
     }
 
     return {

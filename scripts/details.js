@@ -386,7 +386,12 @@ window.SheetDetails = (function () {
         for (const ch of entry?.changes || []) {
             ledger.changes.push({ source, sourceKind, formula: ch.formula, target: ch.target,
                 type: ch.type || 'untyped', operator: ch.operator || 'add',
-                priority: ch.priority || 0, custom: !!ch.custom });
+                priority: ch.priority || 0, custom: !!ch.custom,
+                // Which attack d20 an always-on change rides. Deliberately NOT the `critical`
+                // field the per-roll conditionals use: there `normal` means "initial roll only",
+                // whereas a standing bonus applies to BOTH rolls by default. Same word, opposite
+                // default -- so it gets its own name. 'both' (or absent) | 'initial' | 'confirm'.
+                appliesOn: ch.appliesOn || 'both' });
         }
         for (const note of entry?.contextNotes || []) {
             const text = typeof note === 'string' ? note : note.text;
