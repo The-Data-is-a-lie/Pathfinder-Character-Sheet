@@ -787,8 +787,10 @@ h1, h2, h3 { font-family: Georgia, serif; margin: 0; }
 }
 
 /* ------------------------------------------------ action rail (right edge)
-   Reserves its own width on body so it never covers the sheet — unlike the ☰ tools handle,
-   which is a deliberate overlay. Under 900px it becomes a bottom bar instead. */
+   Floats over the sheet like the ☰ tools drawer — no reserved gutter, so opening or dragging
+   the rail never reflows the page. Under 900px it becomes a bottom bar, and there it DOES
+   reserve space: a fixed bottom bar would otherwise bury the last rows of the page with no
+   way to scroll past them. */
 /* --rail-scale is the one knob: everything in the rail is sized off it, so bumping this
    number resizes the whole thing coherently (1 = the original compact rail). */
 :root {
@@ -907,10 +909,6 @@ body.rail-resizing { user-select: none; cursor: ew-resize; }
 .action-rail .view-seg-dot { font-size: calc(0.6rem * var(--rail-scale)); width: auto; }
 .action-rail .view-seg + .view-seg { border-left: none; border-top: 1px solid var(--accent-dark); }
 
-/* Reserved gutter only while the rail is actually showing — collapsed, the sheet reclaims it. */
-@media (min-width: 900px) {
-    body.rail-open { padding-right: var(--rail-w); }
-}
 @media (max-width: 899px) {
     /* A bottom bar spends VERTICAL space, which phones have least of — so the big-rail
        scale is dialled back here rather than inherited, and pinned: horizontal drag-resize
@@ -958,6 +956,8 @@ body.rail-resizing { user-select: none; cursor: ew-resize; }
     .action-rail .view-segmented { flex-direction: row; flex: 1; max-width: 13rem; }
     .action-rail .view-segmented-cap { display: none; }
     .action-rail .view-seg + .view-seg { border-top: none; border-left: 1px solid var(--accent-dark); }
+    /* The one place the rail still reserves space: a full-width bar pinned to the bottom would
+       otherwise cover the last rows of the page, and there is no scroll room to reveal them. */
     body.rail-open { padding-bottom: calc(var(--rail-h) * 1.35); }
 }
 
