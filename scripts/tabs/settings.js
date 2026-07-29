@@ -83,7 +83,9 @@ window.SheetTabSettings = (function () {
         viewSel.value = viewMode();
         viewSel.addEventListener('change', () => {
             setViewMode(viewSel.value);
-            renderSheet(currentData);
+            // Same Part B miss as notes.js had: `currentData` is the shell IIFE's own binding and
+            // is not in scope here, so switching view from Settings threw instead of re-rendering.
+            renderSheet(window.SheetApp.current);
         });
         viewRow.appendChild(viewSel);
         body.appendChild(viewRow);
