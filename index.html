@@ -218,6 +218,9 @@
 
         <details class="gen-advanced">
             <summary><span class="gen-advanced-gear">⚙</span> More options</summary>
+        <!-- Announces the tooltips. Every label below carries a title=, so the promise is
+             uniform: hover anything and you get told what it actually changes. -->
+        <p class="gen-hover-hint"><span class="gen-hover-star">*</span> Hover over any option below to see exactly what it changes.</p>
         <!-- One-click starting points for the advanced fields. They only set the toggles
              below (never race/class/level), so you can still tweak before rolling. -->
         <div class="gen-presets" role="group" aria-label="Generation presets">
@@ -228,10 +231,10 @@
             <button type="button" class="gen-preset" data-preset="spheres">Spheres</button>
         </div>
         <div class="form-grid">
-            <label>Region
+            <label title="Which naming culture the character's name is drawn from">Region
                 <select name="region"></select>
             </label>
-            <label>BAB
+            <label title="Only used when Class is Random: limits the roll to classes with that base attack progression">BAB
                 <select name="bab">
                     <option value="random">Random</option>
                     <option value="h">High</option>
@@ -239,7 +242,7 @@
                     <option value="l">Low</option>
                 </select>
             </label>
-            <label>Caster Level
+            <label title="Only used when Class is Random: limits the roll to classes with that spellcasting progression. None rolls a non-caster">Caster Level
                 <select name="caster_level">
                     <option value="random">Random</option>
                     <option value="high">High</option>
@@ -248,13 +251,13 @@
                     <option value="none">None</option>
                 </select>
             </label>
-            <label>Multiclass
-                <select name="multiclass" title="Yes rolls 2-4 classes (50%/35%/15%, capped by level) and splits the levels randomly">
+            <label title="Yes rolls 2-4 classes (50%/35%/15%, capped by level) and splits the levels randomly">Multiclass
+                <select name="multiclass">
                     <option value="n">No</option>
                     <option value="y">Yes</option>
                 </select>
             </label>
-            <label>Alignment
+            <label title="Random picks one of the nine at even odds">Alignment
                 <select name="alignment">
                     <option value="random">Random</option>
                     <option value="cg">Chaotic Good</option>
@@ -268,48 +271,46 @@
                     <option value="le">Lawful Evil</option>
                 </select>
             </label>
-            <label>Deity
+            <label title="The god the character worships. Feeds the backstory, and domains for divine casters">Deity
                 <select name="deity"></select>
             </label>
-            <label>Gender
+            <label title="Used when rolling the character's name">Gender
                 <select name="gender">
                     <option value="random">Random</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
                 </select>
             </label>
-            <label>Truly Random Feats
+            <label title="Yes rolls feats freely from whatever suits the build (metamagic for casters, combat otherwise). No uses the curated per-class list, which builds a more coherent character">Truly Random Feats
                 <select name="randomFeats">
                     <option value="y">Yes</option>
                     <option value="n">No</option>
                 </select>
             </label>
-            <label>Inherent Stats
+            <label title="Rolls inherent ability bonuses on top of the rolled scores (the kind a Tome or Manual grants), capped at +10 in any one stat. No leaves every inherent at 0">Inherent Stats
                 <select name="inherents">
                     <option value="y">Yes</option>
                     <option value="n">No</option>
                 </select>
             </label>
-            <label>Modded Char Sheet
+            <label title="Flags the export for the modded FoundryVTT sheet. Changes nothing about the character itself">Modded Char Sheet
                 <select name="modded_char_sheet">
                     <option value="n">No</option>
                     <option value="y">Yes</option>
                 </select>
             </label>
-            <label>Homebrew Feat Amount
+            <label title="Yes adds the homebrew feat budget on top of the usual one per odd level: a story feat per 5 levels, one flavour feat, and 1-3 flaw feats. No gives plain PF1 numbers">Homebrew Feat Amount
                 <select name="homebrew_feat_amount">
                     <option value="y">Yes</option>
                     <option value="n">No</option>
                 </select>
             </label>
-            <label>Spheres of Power/Might
+            <label title="Yes lets the character draw on the Spheres of Power / Spheres of Might talent systems alongside normal PF1 casting, and may attach a Spheres mentor">Spheres of Power/Might
                 <select name="spheres_of_power">
                     <option value="n">No</option>
                     <option value="y">Yes</option>
                 </select>
             </label>
-            <!-- Both are homebrew, so the tooltip has to say what they even are. On the label, not
-                 the select, so hovering the word works as well as hovering the dropdown. -->
             <label title="Homebrew: a trade the character practises, granting special abilities roughly equal in power to feats. On top of the normal feat budget">Professions
                 <select name="professions">
                     <option value="y">Yes</option>
@@ -322,28 +323,28 @@
                     <option value="n">No</option>
                 </select>
             </label>
-            <label>Backstory API
+            <label title="Yes writes the backstory with a language model. No uses the built-in templates, which is faster and always available">Backstory API
                 <select name="use_backstory_api">
                     <option value="Y">Yes</option>
                     <option value="N">No</option>
                 </select>
             </label>
-            <label>Backstory Focus
+            <label title="Aspects for the backstory to dwell on, comma separated. Only used when Backstory API is Yes">Backstory Focus
                 <input type="text" name="backstory_focus" placeholder="e.g. combat, faith (optional)">
             </label>
-            <label>Number of Dice for Stat Rolls
+            <label title="How many dice to roll per ability score. 4 dice of 6 sides is the PF1 standard">Number of Dice for Stat Rolls
                 <input type="number" name="diceRolls" min="1" value="4">
             </label>
-            <label>Dice Size for Stat Rolls (d6)
+            <label title="How many sides each ability-score die has. 4 dice of 6 sides is the PF1 standard">Dice Size for Stat Rolls (d6)
                 <input type="number" name="diceSides" min="1" value="6">
             </label>
-            <label>Highest Level
+            <label title="The level is rolled between Lowest and Highest. Set both the same for an exact level">Highest Level
                 <input type="number" name="highestLevel" min="1" max="40" value="7">
             </label>
-            <label>Lowest Level
+            <label title="The level is rolled between Lowest and Highest. Set both the same for an exact level">Lowest Level
                 <input type="number" name="lowestLevel" min="1" max="40" value="7">
             </label>
-            <label>Gold (blank = Paizo default)
+            <label title="Starting gold in gp, spent on the character's gear. Leave blank to use the Paizo wealth-by-level table">Gold (blank = Paizo default)
                 <input type="number" name="goldAmount" min="0" placeholder="Optional">
             </label>
         </div>
