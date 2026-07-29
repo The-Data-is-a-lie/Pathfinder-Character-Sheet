@@ -3770,6 +3770,15 @@ button:disabled { opacity: 0.55; cursor: wait; }
     margin-bottom: 0.75rem;
 }
 .notes-text-main { min-height: 14rem; }
+/* Print twin of a notes textarea (see notes.js attachPrintMirror). A textarea prints at its box
+   height and silently drops the overflow, which since the background moved into the notes text
+   would be most of it — so print swaps the box for this, which flows and paginates. */
+.notes-print {
+    white-space: pre-wrap;
+    font: 0.95rem/1.5 Georgia, serif;
+    color: var(--ink);
+    margin-bottom: 0.75rem;
+}
 .notes-prose-title {
     margin: 0.6rem 0 0.25rem;
     font-size: 0.95rem;
@@ -4782,6 +4791,11 @@ html[data-theme="high-contrast"] .roll-card-result.is-nat20 {
     .tab-pane[data-tab="notes"] .notes-text:placeholder-shown,
     .tab-pane[data-tab="notes"] .notes-text-main:placeholder-shown,
     .tab-pane[data-tab="settings"] { display: none !important; }
+    /* Swap every notes box for its flowing twin, and drop a twin whose box was empty (the
+       :placeholder-shown rules above already hide those boxes). */
+    .notes-text { display: none !important; }
+    .notes-print { display: block; }
+    .notes-text:placeholder-shown + .notes-print { display: none; }
     .print-only.tab-print-title {
         display: block;
         font-size: 1rem;
@@ -4881,35 +4895,8 @@ html[data-theme="high-contrast"] .roll-card-result.is-nat20 {
     resize: vertical;
 }
 
-/* Structured background: labelled fact cards that flow horizontally across the page. */
-.simple-bg {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
-    gap: 0.25rem 1.2rem;
-    align-items: start;
-    margin: 0.2rem 0 0.4rem;
-}
-.simple-bg-card { break-inside: avoid; }
-.simple-bg-head {
-    font-size: 0.6rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-weight: 700;
-    color: var(--dim);
-    border-bottom: 1px solid var(--row-border);
-    margin-bottom: 0.1rem;
-}
-.simple-bg-list { list-style: none; margin: 0; padding: 0; }
-.simple-bg-list li { font: 0.78rem/1.35 Georgia, serif; padding: 0.02rem 0; }
-.simple-bg-k { font-weight: 700; }
-
-/* Vertical variant (full-sheet Notes tab): stack the fact cards in a single column. */
-.simple-bg-vertical {
-    grid-template-columns: 1fr;
-    gap: 0.35rem 0;
-    margin: 0.15rem 0 0.5rem;
-    max-width: 34rem;
-}
+/* The structured background used to render here as a read-only .simple-bg card grid. It is now
+   seeded into the editable notes text instead (notes.js bioFactsText), so those rules are gone. */
 
 .simple-table {
     width: 100%;
@@ -5101,17 +5088,11 @@ html[data-theme="high-contrast"] .roll-card-result.is-nat20 {
     }
     .simple-cols { gap: 0 16px; }
 
-    /* Compact background grid: pack the fact cards across the full page width. */
     .simple-bio-band { margin-top: 5px; }
-    .simple-bg {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 1px 14px;
-        margin: 2px 0 3px;
-    }
-    .simple-bg-head { font-size: 6.5px; }
-    .simple-bg-list li { font-size: 8px; line-height: 1.28; }
     .simple-bio-notes { margin-top: 3px; }
     .simple-bio-text { font-size: 8.5px; line-height: 1.3; }
+    /* The band's whole content is now the notes text, so it prints from the mirror. */
+    .simple-bio-notes .notes-print { font-size: 8.5px; line-height: 1.3; }
 
     .simple-table { font-size: 8.5px; }
     .simple-table th { font-size: 6px; padding: 1px 3px; }

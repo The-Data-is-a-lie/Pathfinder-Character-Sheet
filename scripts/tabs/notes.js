@@ -1,6 +1,6 @@
 // scripts/tabs/notes.js -- the Notes tab + the shared prose helpers (window.SheetTabNotes).
 // Extracted from sheet.js (Part B split); bodies moved verbatim. This is the home for the prose
-// cluster (ensureProse / renderBioFacts / bindProseTextarea / joinProseField / seedNotesText),
+// cluster (ensureProse / bioFactsText / bindProseTextarea / joinProseField / seedNotesText),
 // which the Biography tab and other tabs consume -- so it loads first among the tab modules.
 // SheetApp.ensureProse (used by roster.js) is re-pointed here in the shell.
 window.SheetTabNotes = (function () {
@@ -28,9 +28,8 @@ window.SheetTabNotes = (function () {
         }
         return paragraphs.join('\n\n').trim();
     }
-    /** The freeform backstory prose only. The generator's structured fact block (formatted_bio)
-     * is rendered on its own by renderBioFacts, so it's no longer dumped into the editable notes
-     * (that dump was what pushed the simple printed sheet onto a third page). */
+    /** The freeform backstory prose only — the generator's structured fact block (formatted_bio)
+     * is added separately by bioFactsText, so this stays a single-purpose helper. */
     function seedNotesText(data) {
         return cleanBackstory(data);
     }
@@ -62,16 +61,19 @@ window.SheetTabNotes = (function () {
     // rendered background so nothing is shown twice.
     const BIO_HEADER_DUP = new Set(['alignment', 'deity', 'race', 'class', 'homeland']);
     /**
-     * Compact, read-only structured background from data.formatted_bio: a grid of labelled fact
-     * cards (Build / Vocation / Family / Personality / Appearance) that lays out horizontally
-     * instead of stacking a wall of text vertically. Returns null when there's nothing to show.
+     * The structured background from data.formatted_bio as PLAIN TEXT, for seeding straight into
+     * the editable notes. This used to render read-only fact cards above the textarea, which meant
+     * the one part of the notes a user most wants to rewrite was the one part they couldn't touch.
+     * Now there is a single editable box and this only prepares its text.
+     *
+     * Emits the same shape it parsed (header line, then "- Label: value" bullets, blank line
+     * between sections) so the text reads naturally in a textarea and survives a round-trip
+     * through parseFormattedBio. Returns '' when there's nothing to show.
      */
-    function renderBioFacts(data, { compact = false, vertical = false } = {}) {
+    function bioFactsText(data) {
         const sections = parseFormattedBio(data.formatted_bio);
-        if (!sections.length) return null;
-        const grid = h('div', 'simple-bg'
-            + (compact ? ' simple-bg-compact' : '')
-            + (vertical ? ' simple-bg-vertical' : ''));
+        if (!sections.length) return '';
+        const out = [];
         sections.forEach((sec, i) => {
             let { header, bullets } = sec;
             if (i === 0) {
@@ -81,19 +83,27 @@ window.SheetTabNotes = (function () {
                 bullets = bullets.filter((b) => !BIO_HEADER_DUP.has(b.label.toLowerCase()));
             }
             if (!bullets.length) return;
-            const card = h('div', 'simple-bg-card');
-            card.appendChild(h('div', 'simple-bg-head', header));
-            const ul = h('ul', 'simple-bg-list');
-            for (const b of bullets) {
-                const li = h('li');
-                if (b.label) li.appendChild(h('span', 'simple-bg-k', b.label + ': '));
-                li.appendChild(document.createTextNode(b.value));
-                ul.appendChild(li);
-            }
-            card.appendChild(ul);
-            grid.appendChild(card);
+            const lines = [header];
+            for (const b of bullets) lines.push('- ' + (b.label ? b.label + ': ' : '') + b.value);
+            out.push(lines.join('\n'));
         });
-        return grid.children.length ? grid : null;
+        return out.join('\n\n');
+    }
+    /**
+     * One-time fold of the structured background into the editable notes, for characters saved
+     * before it lived there. Their prose is already _seeded, so the seed branch below never runs
+     * again and the background would simply be missing once the read-only cards were removed.
+     * Same idiom as _sheet.coreGearMigrated / currencyNormalized / classSkillsSeeded.
+     */
+    function foldBioIntoNotes(data, p) {
+        if (p._bioFolded) return;
+        p._bioFolded = true;
+        const facts = bioFactsText(data);
+        // Flag AND content check: a JSON exported before the flag existed, then re-imported, can
+        // arrive already folded — appending again would double the whole block.
+        if (!facts) return;
+        if (String(p.notes || '').includes(facts.split('\n')[0])) return;
+        p.notes = [facts, p.notes].filter(Boolean).join('\n\n');
     }
     function ensureProse(data) {
         const st = sheetState(data);
@@ -101,6 +111,8 @@ window.SheetTabNotes = (function () {
         const p = st.prose;
         if (p._seeded) {
             if (!p.notes && st.notes) p.notes = String(st.notes);
+            foldBioIntoNotes(data, p);
+            st.notes = p.notes;
             return p;
         }
         const hasAny = !!(p.description || p.personality || p.notes);
@@ -125,9 +137,11 @@ window.SheetTabNotes = (function () {
             p.personality = personBits.join('\n');
 
             const noteBits = [];
-            // Only the backstory prose is seeded into the editable notes now; the structured
-            // fact block (formatted_bio) renders separately via renderBioFacts. The family lines
-            // below are still assembled for older payloads that predate formatted_bio.
+            // Facts first, then the backstory prose — the same reading order the read-only cards
+            // gave when they sat above this textarea. The family lines below are still assembled
+            // for older payloads that predate formatted_bio (where bioFactsText returns '').
+            const facts = bioFactsText(data);
+            if (facts) noteBits.push(facts);
             const seeded = seedNotesText(data);
             if (seeded) noteBits.push(seeded);
             if (st.notes) noteBits.push(String(st.notes).trim());
@@ -154,19 +168,40 @@ window.SheetTabNotes = (function () {
         p.personality = p.personality || '';
         p.notes = p.notes || '';
         p._seeded = true;
+        // Freshly seeded notes already contain the facts, so mark the migration done rather than
+        // letting the next load re-scan and risk a second copy.
+        p._bioFolded = true;
         // Keep legacy notes field in sync for older readers
         st.notes = p.notes;
         return p;
     }
+    /**
+     * A textarea crops on paper — nothing expands one for print, so whatever doesn't fit its box
+     * is silently missing from the printout. That was harmless while the background rendered as
+     * separate cards; now that it lives IN the notes, the overflow would be most of the content.
+     * So each textarea gets a print-only twin holding the same text, swapped in by the print CSS.
+     */
+    function attachPrintMirror(ta) {
+        const mirror = h('div', 'notes-print print-only');
+        mirror.textContent = ta.value;
+        ta._printMirror = mirror;
+        return mirror;
+    }
     function bindProseTextarea(ta, data, key) {
         let timer = null;
         ta.addEventListener('input', () => {
+            // Un-debounced: a print fired mid-edit must show what's on screen, not what was
+            // saved 800ms ago.
+            if (ta._printMirror) ta._printMirror.textContent = ta.value;
             clearTimeout(timer);
             timer = setTimeout(() => {
                 const p = ensureProse(data);
                 p[key] = ta.value;
                 if (key === 'notes') (data._sheet ??= {}).notes = ta.value;
-                if (data === currentData) quietSave();
+                // Via SheetApp.current, not a bare `currentData`: that identifier lives in the
+                // shell's IIFE and is not in scope here, so this line threw on every keystroke —
+                // before quietSave() could run. Prose edits updated memory and were never saved.
+                if (data === window.SheetApp.current) quietSave();
             }, 800);
         });
     }
@@ -176,11 +211,8 @@ window.SheetTabNotes = (function () {
         body.appendChild(h('p', 'dbl-edit-hint no-print',
             'Freeform identity & session text (biography/notes). Auto-saves with the character.'));
 
-        const mkBlock = (title, key, placeholder, extraClass, prefixNode) => {
+        const mkBlock = (title, key, placeholder, extraClass) => {
             body.appendChild(h('h3', 'notes-prose-title', title));
-            // Optional read-only content (e.g. the structured background) sits under the heading,
-            // above the editable textarea, so it reads as part of this section.
-            if (prefixNode) body.appendChild(prefixNode);
             const ta = h('textarea', 'notes-text' + (extraClass ? ' ' + extraClass : ''));
             ta.id = 'notes-prose-' + key;
             ta.placeholder = placeholder;
@@ -188,16 +220,17 @@ window.SheetTabNotes = (function () {
             ta.rows = key === 'notes' ? 12 : 6;
             bindProseTextarea(ta, data, key);
             body.appendChild(ta);
+            body.appendChild(attachPrintMirror(ta));
         };
         mkBlock('Description', 'description',
             'Appearance, hair, eyes, build, clothing, distinguishing marks…');
         mkBlock('Personality', 'personality',
             'Traits, mannerisms, voice, ideals, flaws, how they act at the table…');
-        // The structured background (from the generator's formatted_bio) lives inside the
-        // Notes & background section, stacked vertically above the editable notes textarea.
+        // The structured background (from the generator's formatted_bio) is seeded INTO this
+        // textarea by ensureProse — it is no longer a separate read-only block above it.
         mkBlock('Notes & background', 'notes',
             'Backstory, family, relationships, session plans, secrets…',
-            'notes-text-main', renderBioFacts(data, { vertical: true }));
+            'notes-text-main');
         // Legacy id for re-render flush of the main notes field
         const main = body.querySelector('#notes-prose-notes');
         if (main) main.dataset.legacyNotes = '1';
@@ -205,7 +238,7 @@ window.SheetTabNotes = (function () {
     }
 
     return {
-        tabNotes, ensureProse, renderBioFacts, bindProseTextarea, joinProseField,
+        tabNotes, ensureProse, bioFactsText, attachPrintMirror, bindProseTextarea, joinProseField,
         seedNotesText, parseFormattedBio, cleanBackstory,
     };
 })();

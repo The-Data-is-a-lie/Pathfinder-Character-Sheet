@@ -104,10 +104,10 @@
     // here so the TABS array entries stay unchanged.
     const { renderSpheres } = window.SheetTabSpheres;
     const { renderPathOfWar } = window.SheetTabPathOfWar;
-    // notes.js is the prose home; ensureProse/renderBioFacts/bindProseTextarea are shared with
-    // the Biography tab and others (SheetApp.ensureProse below re-points here for roster.js).
+    // notes.js is the prose home; ensureProse/bindProseTextarea are shared with the Biography
+    // tab and others (SheetApp.ensureProse below re-points here for roster.js).
     const {
-        tabNotes, ensureProse, renderBioFacts, bindProseTextarea,
+        tabNotes, ensureProse, bindProseTextarea,
     } = window.SheetTabNotes;
     const { renderBiographyVitals } = window.SheetTabBiography;
     const { tabSettings } = window.SheetTabSettings;
