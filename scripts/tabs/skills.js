@@ -73,6 +73,82 @@ window.SheetTabSkills = (function () {
             return td;
         };
 
+        // Multi-instance skills (Foundry subskills): user-added Craft/Perform/Profession
+        // variants, stored as labels in _sheet.subSkills[skillId]. Each instance keeps its
+        // own ranks (skill_ranks under "craft (weapons)") and bonus row ("crf:weapons").
+        const SUBSKILL_PARENTS = { crf: 'Craft', prf: 'Perform', pro: 'Profession' };
+        const subSkillsOf = (id) => {
+            const st = (data._sheet ??= {});
+            st.subSkills ??= {};
+            if (!Array.isArray(st.subSkills[id])) st.subSkills[id] = [];
+            return st.subSkills[id];
+        };
+        const subSkillRow = (skill, label) => {
+            const display = `${skill.name} (${label})`;
+            const rKey = skillRankKey(display);
+            const bonusKey = `${skill.id}:${String(label).toLowerCase()}`;
+            const ranks = ranksForSkill(rankMap, display);
+            const abMod = abModOf(data, skill.ab);
+            const misc = skillMiscBonus(data, skill);
+            const entry = skillBonusEntry(data, bonusKey);
+            const user = skillUserBonus(data, bonusKey, ranks);
+            const total = ranks + abMod + misc.total + user.total;
+            const tr = h('tr', 'skill-subskill-row');
+            const rollTd = h('td', 'skill-roll-cell no-print');
+            rollTd.appendChild(rollBtn(display + ' check', total, `1d20${fmt(total)}`));
+            tr.appendChild(rollTd);
+            const nameTd = h('td', 'skill-subskill-name', '↳ ' + display);
+            const rm = h('button', 'inv-btn inv-btn-danger no-print skill-subskill-del', '×');
+            rm.type = 'button';
+            rm.title = 'Remove this ' + skill.name.toLowerCase() + ' entry';
+            rm.addEventListener('click', () => {
+                if (!confirm(`Remove “${display}”?`)) return;
+                const arr = subSkillsOf(skill.id);
+                const i = arr.indexOf(label);
+                if (i >= 0) arr.splice(i, 1);
+                quietSave();
+                renderSheet(data);
+                setActiveTab('skills');
+            });
+            nameTd.appendChild(rm);
+            tr.appendChild(nameTd);
+            tr.appendChild(h('td', 'num', String(skill.ab).toUpperCase()));
+            const rankTd = h('td', 'num skill-ranks-cell');
+            rankTd.appendChild(ranksEditor(data, rKey, ranks));
+            tr.appendChild(rankTd);
+            tr.appendChild(h('td', 'num', fmt(abMod)));
+            tr.appendChild(bonusCell(bonusKey, 'racial', entry));
+            tr.appendChild(bonusCell(bonusKey, 'feat', entry));
+            tr.appendChild(bonusCell(bonusKey, 'trait', entry));
+            tr.appendChild(bonusCell(bonusKey, 'misc', entry));
+            tr.appendChild(h('td', 'num', misc.total ? fmt(misc.total) : '—'));
+            tr.appendChild(csCell(bonusKey, entry, ranks));
+            tr.appendChild(h('td', 'num skill-total', fmt(total)));
+            return tr;
+        };
+        const subSkillAddRow = (skill) => {
+            const tr = h('tr', 'skill-subskill-add no-print');
+            const td = h('td');
+            td.setAttribute('colspan', '12');
+            const btn = h('button', 'inv-btn', `+ ${skill.name} type…`);
+            btn.type = 'button';
+            btn.addEventListener('click', () => {
+                const label = prompt(`${skill.name} type (e.g. ${skill.id === 'prf'
+                    ? 'Oratory' : skill.id === 'pro' ? 'Sailor' : 'Weapons'}):`, '');
+                if (!label || !String(label).trim()) return;
+                const arr = subSkillsOf(skill.id);
+                if (!arr.some((l) => l.toLowerCase() === String(label).trim().toLowerCase())) {
+                    arr.push(String(label).trim());
+                }
+                quietSave();
+                renderSheet(data);
+                setActiveTab('skills');
+            });
+            td.appendChild(btn);
+            tr.appendChild(td);
+            return tr;
+        };
+
         const craftLabel = data.craft_type ? `Craft (${data.craft_type})` : 'Craft';
         for (const skill of ALL_SKILLS) {
             const displayName = skill.name === 'Craft' ? craftLabel
@@ -151,6 +227,12 @@ window.SheetTabSkills = (function () {
                 + (user.csBonus ? ' + class skill +3' : '');
             tr.appendChild(totalTd);
             table.appendChild(tr);
+            if (SUBSKILL_PARENTS[skill.id]) {
+                for (const label of subSkillsOf(skill.id)) {
+                    table.appendChild(subSkillRow(skill, label));
+                }
+                table.appendChild(subSkillAddRow(skill));
+            }
         }
         body.appendChild(table);
 
