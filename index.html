@@ -63,6 +63,9 @@
     <script src="scripts/overlay.js" defer></script>
     <script src="scripts/edgepanel.js" defer></script>
     <script src="scripts/guide.js" defer></script>
+    <!-- formula.js is roll.js's expression evaluator, so it must load first. It reaches
+         SheetDerive / SheetClassInfo only at call time, so their later positions are fine. -->
+    <script src="scripts/domain/formula.js" defer></script>
     <script src="scripts/roll.js" defer></script>
     <script src="scripts/shortcuts.js" defer></script>
     <script src="scripts/derive.js" defer></script>
