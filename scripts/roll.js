@@ -572,6 +572,20 @@ window.SheetRoll = (function () {
         return String(name || '').replace(/\s*\[[^\]]+\]\s*$/, '').trim();
     }
 
+    /**
+     * How the weapon is held, for Power Attack's damage multiplier: 'two' | 'one' | 'light'.
+     * The item sheet's per-item override (`item.weapon.grip`) wins; otherwise the curated
+     * two-handed list decides by base name; anything unlisted counts as one-handed.
+     * 'offhand' is never returned here — off-hand is a property of the attack (a TWF routine
+     * line), not the weapon, and the routine roller passes it explicitly.
+     */
+    function weaponGrip(ctx) {
+        const ov = ctx?.item?.weapon?.grip;
+        if (ov === 'two' || ov === 'one' || ov === 'light') return ov;
+        const base = stripEnhSuffix(ctx?.wName).toLowerCase();
+        return window.SheetData?.TWO_HANDED_WEAPONS?.has(base) ? 'two' : 'one';
+    }
+
     /** Merged roll stats for an inventory weapon: compendium base (by name minus the
      *  enhancement suffix) under the item sheet's per-item overrides (item.weapon) —
      *  the same merge the item sheet's Details tab edits against (modals.js). */
@@ -718,6 +732,11 @@ window.SheetRoll = (function () {
      *   `isCrit` filters damage (existing behaviour); `phase` picks which attack d20 is being
      *   rolled. A missing/unknown `critical` counts as `normal`, as the damage branch already
      *   assumes; `nonCrit` is a damage concept and falls in the initial bucket on attacks.
+     *   `ranged` (boolean) scopes melee-only (mattack/mdamage) and ranged-only
+     *   (rattack/rdamage) modifiers to the roll actually being made — omitted = no filter,
+     *   preserving old behaviour for callers without a weapon context. `grip`
+     *   ('two'|'one'|'light'|'offhand') drives the `gripScale` damage adjustment
+     *   (Power Attack: ×1.5 two-handed, ×0.5 off-hand, PF1 round-down).
      */
     function evaluateConditionals(kind, opts = {}) {
         const data = currentData;
@@ -725,6 +744,12 @@ window.SheetRoll = (function () {
         const bits = [];
         const diceParts = []; // { formula, source, rolled? }
         const riders = [];
+        const gripScaled = (m, n) => {
+            if (!m.gripScale || kind !== 'damage') return { value: n, note: '' };
+            if (opts.grip === 'two') return { value: Math.floor(n * 1.5), note: ' (two-handed ×1.5)' };
+            if (opts.grip === 'offhand') return { value: Math.floor(n * 0.5), note: ' (off-hand ×0.5)' };
+            return { value: n, note: '' };
+        };
 
         for (const cond of scopedList(opts.itemKey)) {
             if (cond.rider) riders.push({ source: cond.source, text: cond.rider });
@@ -734,6 +759,11 @@ window.SheetRoll = (function () {
                 const isDmg = isDamageTarget(tgt) || (m.target === 'damage');
                 if (kind === 'attack' && !isAtk) continue;
                 if (kind === 'damage' && !isDmg) continue;
+                if (typeof opts.ranged === 'boolean') {
+                    const t = String(tgt).toLowerCase();
+                    if (opts.ranged && (t === 'mattack' || t === 'mdamage')) continue;
+                    if (!opts.ranged && (t === 'rattack' || t === 'rdamage')) continue;
+                }
 
                 const crit = String(m.critical || 'normal');
                 if (kind === 'damage') {
@@ -762,9 +792,9 @@ window.SheetRoll = (function () {
                 }
                 // Integer only?
                 if (/^[+-]?\d+$/.test(formula)) {
-                    const n = Number(formula);
-                    flat += n;
-                    bits.push({ source: cond.source, value: n, formula });
+                    const g = gripScaled(m, Number(formula));
+                    flat += g.value;
+                    bits.push({ source: cond.source + g.note, value: g.value, formula });
                     continue;
                 }
                 // Dice or compound — parse if possible
@@ -773,8 +803,9 @@ window.SheetRoll = (function () {
                     const hasDice = parsed.terms.some((t) => t.type === 'dice');
                     if (!hasDice) {
                         const r = rollTerms(parsed.terms);
-                        flat += r.total;
-                        bits.push({ source: cond.source, value: r.total, formula: parsed.formula });
+                        const g = gripScaled(m, r.total);
+                        flat += g.value;
+                        bits.push({ source: cond.source + g.note, value: g.value, formula: parsed.formula });
                     } else {
                         diceParts.push({ formula: parsed.formula, terms: parsed.terms, source: cond.source });
                     }
@@ -876,6 +907,21 @@ window.SheetRoll = (function () {
             el.checked = !!on;
         });
         refreshCondGroupCounts();
+        // Combat options with a standing side (acChanges dual-written into the ledger by
+        // collectChanges) move AC/saves/CMD the moment they flip — recompute derived totals.
+        // renderSheet restores the active tab itself, so this is safe from any panel.
+        if (currentData && combatToggleHasAcChanges(id)) {
+            window.SheetApp?.renderSheet?.(currentData);
+        }
+    }
+
+    let combatAcToggleIds = null;
+    function combatToggleHasAcChanges(id) {
+        if (!combatAcToggleIds) {
+            combatAcToggleIds = new Set((window.SheetData?.COMBAT_TOGGLES || [])
+                .filter((t) => t.acChanges?.length).map((t) => t.id));
+        }
+        return combatAcToggleIds.has(id);
     }
 
     /**
@@ -913,6 +959,7 @@ window.SheetRoll = (function () {
     // Panel grouping. Order is roughly "most likely to be toggled this round" first; anything with an
     // unlisted sourceKind falls into Other rather than disappearing.
     const COND_GROUPS = [
+        ['combat', 'Combat options'],
         ['enhancement', 'Weapon qualities'],
         ['classFeature', 'Class features'],
         ['feat', 'Feats'],
@@ -930,7 +977,8 @@ window.SheetRoll = (function () {
         const stored = currentData?._sheet?.conditionalGroupsOpen?.[key];
         // Default open only where something is already switched on -- a group whose entries default
         // to active (stances, flaming) is one the user needs to SEE to know it is applying.
-        return stored === undefined ? hasActive : !!stored;
+        // Combat options is the exception: universal, most-toggled-per-round, open by default.
+        return stored === undefined ? (key === 'combat' || hasActive) : !!stored;
     }
 
     function setCondGroupOpen(key, open) {
@@ -1401,9 +1449,11 @@ window.SheetRoll = (function () {
      * @param {'normal'|'crit'} phase which attack d20 this is for (see evaluateConditionals).
      * @param {string|null} [itemKey] which weapon's enhancement conditionals count
      *   (see evaluateConditionals; `'none'` = natural attack, undefined = active weapon).
+     * @param {{ ranged?: boolean }} [extra] melee/ranged scope for mattack/rattack-targeted
+     *   modifiers.
      */
-    function conditionalAtkBonus(phase = 'normal', itemKey = undefined) {
-        const ev = evaluateConditionals('attack', { phase, itemKey });
+    function conditionalAtkBonus(phase = 'normal', itemKey = undefined, extra = {}) {
+        const ev = evaluateConditionals('attack', { phase, itemKey, ...extra });
         let diceTotal = 0;
         const diceDetails = [];
         if (ev.diceParts.length) {
@@ -1459,10 +1509,11 @@ window.SheetRoll = (function () {
         return out;
     }
 
-    function rollDamage(ctx, { critMult = 1, isCrit = false, oneOff = null, label = '' } = {}) {
+    function rollDamage(ctx, { critMult = 1, isCrit = false, oneOff = null, label = '', grip = undefined } = {}) {
         const w = ctx.wStats;
         const cond = evaluateConditionals('damage',
-            { isCrit: isCrit || critMult > 1, itemKey: ctx.itemKey });
+            { isCrit: isCrit || critMult > 1, itemKey: ctx.itemKey,
+                ranged: ctx.ranged, grip: grip || weaponGrip(ctx) });
         const condDice = rollConditionalDice(cond.diceParts);
 
         if (!w?.dice && !w?.parts?.length) {
@@ -1593,7 +1644,7 @@ window.SheetRoll = (function () {
 
         for (let i = 0; i < count; i++) {
             const pen = i * 5;
-            const condThis = conditionalAtkBonus('normal', ctx.itemKey);
+            const condThis = conditionalAtkBonus('normal', ctx.itemKey, { ranged: ctx.ranged });
             riderLists.push(condThis.riders);
             const ooAtk = rollOneOffAtk(oo);
             const bonus = ctx.weaponBonus + condThis.total + (ooAtk?.value || 0) - pen;
@@ -1606,7 +1657,7 @@ window.SheetRoll = (function () {
                 critRange,
                 confirm: true,
                 getConfirmBonus: () => {
-                    const cc = conditionalAtkBonus('crit', ctx.itemKey);
+                    const cc = conditionalAtkBonus('crit', ctx.itemKey, { ranged: ctx.ranged });
                     return {
                         bonus: ctx.weaponBonusConfirm + cc.total + (ooAtk?.value || 0) - pen,
                         cond: cc,
@@ -1779,7 +1830,10 @@ window.SheetRoll = (function () {
     /** Natural-attack damage from a raw formula string ("1d6+4"). Crit doubles dice only,
      *  matching the weapon path's existing convention. */
     function rollNaturalDamage(line, { critMult = 1, oneOff = null } = {}) {
-        const cond = evaluateConditionals('damage', { isCrit: critMult > 1, itemKey: 'none' });
+        // Natural attacks are melee: melee-scoped conditionals (Power Attack) apply at the
+        // base rate — primary/secondary ×1.5/×0.5 nuances stay the editable line's business.
+        const cond = evaluateConditionals('damage',
+            { isCrit: critMult > 1, itemKey: 'none', ranged: false });
         const condDice = rollConditionalDice(cond.diceParts);
         const parsed = line.dmg ? parseFormula(line.dmg) : { ok: false };
         let diceTotal = 0;
@@ -1848,7 +1902,7 @@ window.SheetRoll = (function () {
         for (const line of routine.lines) {
             const adjust = Number(line.adjust) || 0;
             if (line.type === 'natural') {
-                const cond = conditionalAtkBonus('normal', 'none');
+                const cond = conditionalAtkBonus('normal', 'none', { ranged: false });
                 riderLists.push(cond.riders);
                 const ooAtk = rollOneOffAtk(oo);
                 const atkMod = Number(line.atkMod) || 0;
@@ -1861,7 +1915,7 @@ window.SheetRoll = (function () {
                     critRange: 20,
                     confirm: true,
                     getConfirmBonus: () => {
-                        const cc = conditionalAtkBonus('crit', 'none');
+                        const cc = conditionalAtkBonus('crit', 'none', { ranged: false });
                         return { bonus: atkMod + adjust + cc.total + (ooAtk?.value || 0), cond: cc };
                     },
                     bonusLines,
@@ -1902,7 +1956,10 @@ window.SheetRoll = (function () {
                 }
             }
 
-            const condThis = conditionalAtkBonus('normal', ctx.itemKey);
+            // A TWF off-hand line halves grip-scaled damage bonuses (Power Attack) — off-hand
+            // is a property of the attack line, not the weapon, so it's detected here.
+            const offHand = /\boff-?hand\b/i.test(String(line.label || ''));
+            const condThis = conditionalAtkBonus('normal', ctx.itemKey, { ranged: ctx.ranged });
             riderLists.push(condThis.riders);
             const ooAtk = rollOneOffAtk(oo);
             const bonus = ctx.weaponBonus + condThis.total + (ooAtk?.value || 0) + adjust;
@@ -1913,7 +1970,7 @@ window.SheetRoll = (function () {
                 critRange: ctx.wStats?.critRange ?? 20,
                 confirm: true,
                 getConfirmBonus: () => {
-                    const cc = conditionalAtkBonus('crit', ctx.itemKey);
+                    const cc = conditionalAtkBonus('crit', ctx.itemKey, { ranged: ctx.ranged });
                     return {
                         bonus: ctx.weaponBonusConfirm + cc.total + (ooAtk?.value || 0) + adjust,
                         cond: cc,
@@ -1927,6 +1984,7 @@ window.SheetRoll = (function () {
             const mult = (atk.threatened && atk.confirm?.natural !== 1) ? critMult : 1;
             const dmg = rollDamage(ctx, {
                 critMult: mult, isCrit: mult > 1, oneOff: oneOffDmgOpt(oo), label,
+                grip: offHand ? 'offhand' : undefined,
             });
             if (dmg) {
                 damages.push(dmg);
@@ -2207,7 +2265,8 @@ window.SheetRoll = (function () {
 
     function makeAttackButtons(ctx) {
         const row = h('div', 'tools-btn-row combat-atk-btns no-print');
-        const atkBonus = ctx.weaponBonus + (conditionalAtkBonus().flat || 0);
+        const atkBonus = ctx.weaponBonus
+            + (conditionalAtkBonus('normal', undefined, { ranged: ctx.ranged }).flat || 0);
         const dmgF = ctx.damageFormula || '';
         // Same label style: kind + value (Attack +12 · Damage 1d8+5)
         const atkBtn = h('button', null, 'Attack ' + fmt(atkBonus));
@@ -2310,13 +2369,13 @@ window.SheetRoll = (function () {
             const mBtn = h('button', null, `Melee ${fmt(ctx.meleeBonus)}`);
             mBtn.type = 'button';
             mBtn.addEventListener('click', () => {
-                const ca = conditionalAtkBonus();
+                const ca = conditionalAtkBonus('normal', undefined, { ranged: false });
                 const ooAtk = rollOneOffAtk(takeOneOff());
                 const bonus = ctx.meleeBonus + ca.total + (ooAtk?.value || 0);
                 const atk = rollD20Attack(bonus, 'Melee attack', {
                     confirm: true,
                     getConfirmBonus: () => {
-                        const cc = conditionalAtkBonus('crit');
+                        const cc = conditionalAtkBonus('crit', undefined, { ranged: false });
                         return {
                             bonus: ctx.meleeBonusConfirm + cc.total + (ooAtk?.value || 0),
                             cond: cc,
@@ -2341,13 +2400,13 @@ window.SheetRoll = (function () {
             const rBtn = h('button', null, `Ranged ${fmt(ctx.rangedBonus)}`);
             rBtn.type = 'button';
             rBtn.addEventListener('click', () => {
-                const ca = conditionalAtkBonus();
+                const ca = conditionalAtkBonus('normal', undefined, { ranged: true });
                 const ooAtk = rollOneOffAtk(takeOneOff());
                 const bonus = ctx.rangedBonus + ca.total + (ooAtk?.value || 0);
                 const atk = rollD20Attack(bonus, 'Ranged attack', {
                     confirm: true,
                     getConfirmBonus: () => {
-                        const cc = conditionalAtkBonus('crit');
+                        const cc = conditionalAtkBonus('crit', undefined, { ranged: true });
                         return {
                             bonus: ctx.rangedBonusConfirm + cc.total + (ooAtk?.value || 0),
                             cond: cc,
