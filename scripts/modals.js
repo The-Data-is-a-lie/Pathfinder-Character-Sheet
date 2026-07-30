@@ -71,11 +71,29 @@ window.SheetModals = (function () {
             lab.appendChild(el);
             meta.appendChild(lab);
         };
+        // Size-setting buffs (Enlarge Person, Animal Growth): while active, the character's
+        // effective size becomes this — attack/AC size mods and weapon dice step follow.
+        const sizeSel = h('select', 'edit-field');
+        sizeSel.title = 'While this buff is active, the character counts as this size';
+        {
+            const none = document.createElement('option');
+            none.value = '';
+            none.textContent = '— unchanged —';
+            sizeSel.appendChild(none);
+            for (const s of window.SheetData?.SIZES || []) {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = s.label;
+                if (s.id === (buff.setSize || '')) opt.selected = true;
+                sizeSel.appendChild(opt);
+            }
+        }
         addField('Name', nameIn);
         addField('Category', subSel);
         addField('Level', levelIn);
         addField('Duration', durVal);
         addField('Units', durUnit);
+        addField('Sets size', sizeSel);
         panel.appendChild(meta);
 
         const notesIn = h('textarea', 'edit-field buff-editor-notes');
@@ -187,6 +205,7 @@ window.SheetModals = (function () {
                 value: String(durVal.value || '').trim(),
                 units: durUnit.value || '',
             };
+            buff.setSize = sizeSel.value || '';
             buff.notes = notesIn.value || '';
             quietSave();
             renderSheet(data);
@@ -203,6 +222,7 @@ window.SheetModals = (function () {
                 value: String(durVal.value || '').trim(),
                 units: durUnit.value || '',
             };
+            buff.setSize = sizeSel.value || '';
             buff.notes = notesIn.value || '';
             quietSave();
             renderSheet(data);
@@ -246,6 +266,30 @@ window.SheetModals = (function () {
         reader.readAsDataURL(file);
     }
     /** Full-screen lightbox showing the portrait at its stored resolution. */
+    /**
+     * Modal chrome for the five hand-rolled overlays (portrait lightbox, catalog picker,
+     * item/class/archetype sheets): body scroll-lock while open and focus restore on close.
+     * Watches for the overlay leaving the DOM so every existing close path (×, Escape,
+     * backdrop click, replace-on-reopen) is covered without touching it. The full
+     * SheetOverlay migration remains a follow-up; this closes the user-visible gap.
+     */
+    function attachModalChrome(overlay) {
+        const prevFocus = document.activeElement;
+        document.body.classList.add('modal-open');
+        const obs = new MutationObserver(() => {
+            if (document.body.contains(overlay)) return;
+            obs.disconnect();
+            if (!document.querySelector('.catalog-picker, .portrait-lightbox')) {
+                document.body.classList.remove('modal-open');
+            }
+            if (prevFocus && typeof prevFocus.focus === 'function'
+                && document.body.contains(prevFocus)) {
+                prevFocus.focus();
+            }
+        });
+        obs.observe(document.body, { childList: true, subtree: true });
+    }
+
     function openPortraitLightbox(url) {
         if (!url) return;
         document.getElementById('portrait-lightbox')?.remove();
@@ -263,6 +307,7 @@ window.SheetModals = (function () {
         document.addEventListener('keydown', onKey);
         overlay.addEventListener('click', close); // click anywhere (image or backdrop) closes
         document.body.appendChild(overlay);
+        attachModalChrome(overlay);
     }
     // ---------------------------------------------------------------- inventory (equipment_list)
     const INV_TARGET_OPTIONS = [
@@ -536,6 +581,7 @@ window.SheetModals = (function () {
 
         overlay.appendChild(card);
         document.body.appendChild(overlay);
+        attachModalChrome(overlay);
         runSearch();
         setTimeout(() => input.focus(), 30);
     }
@@ -805,7 +851,7 @@ window.SheetModals = (function () {
         };
         side.appendChild(numRow('Quantity',
             () => item.quantity ?? 1,
-            (v) => { item.quantity = Math.max(1, Math.round(v ?? 1)); }, { min: 1, step: '1' }));
+            (v) => { item.quantity = Math.max(0, Math.round(v ?? 1)); }, { min: 0, step: '1' }));
         side.appendChild(numRow('Weight', () => item.weight, (v) => { item.weight = v; }, { min: 0 }));
         side.appendChild(numRow('Price', () => item.price, (v) => { item.price = v; }, { min: 0 }));
         side.appendChild(numRow('Unid. Price', () => item.unidPrice, (v) => { item.unidPrice = v; }, { min: 0 }));
@@ -834,6 +880,68 @@ window.SheetModals = (function () {
         side.appendChild(numRow('Hardness',
             () => item.hardness ?? 10,
             (v) => { item.hardness = v == null ? null : Math.max(0, Math.round(v)); }, { min: 0, step: '1' }));
+
+        // Charged items (wands, staves): charges value/max + a Use button that spends one
+        // and, when the name resolves to a spell ("Wand of Magic Missile"), posts its card
+        // at wand-minimum CL. Charges row appears once either box is set (or for wands).
+        {
+            const chRow = h('div', 'item-sheet-stat');
+            chRow.appendChild(h('span', 'item-sheet-stat-label', 'Charges'));
+            const chPair = h('span', 'item-sheet-hp');
+            item.charges = item.charges && typeof item.charges === 'object' ? item.charges : {};
+            const chIn = h('input', 'item-sheet-num');
+            chIn.type = 'number';
+            chIn.min = '0';
+            chIn.value = item.charges.value != null ? String(item.charges.value) : '';
+            chIn.placeholder = '—';
+            chIn.addEventListener('change', () => {
+                item.charges.value = chIn.value === '' ? null : Math.max(0, parseIntLoose(chIn.value, 0));
+                quietSave();
+            });
+            const chMaxIn = h('input', 'item-sheet-num');
+            chMaxIn.type = 'number';
+            chMaxIn.min = '0';
+            chMaxIn.value = item.charges.max != null ? String(item.charges.max) : '';
+            chMaxIn.placeholder = 'max';
+            chMaxIn.addEventListener('change', () => {
+                item.charges.max = chMaxIn.value === '' ? null : Math.max(0, parseIntLoose(chMaxIn.value, 0));
+                quietSave();
+            });
+            const useBtn = h('button', 'inv-btn item-use-btn no-print', 'Use');
+            useBtn.type = 'button';
+            useBtn.title = 'Spend one charge; casts the linked spell when the name matches one';
+            useBtn.addEventListener('click', () => {
+                const left = Number(item.charges.value);
+                if (!Number.isFinite(left) || left <= 0) {
+                    alert('No charges left — set Charges first.');
+                    return;
+                }
+                item.charges.value = left - 1;
+                chIn.value = String(item.charges.value);
+                quietSave();
+                const guess = String(item.name || '')
+                    .replace(/\s*\[[^\]]+\]\s*$/, '')
+                    .replace(/^(wand|staff|scroll|potion|rod)\s+of\s+/i, '').trim();
+                const sd = window.SheetDetails?.lookup?.('spells', guess);
+                window.SheetRoll?.setOpen?.(true);
+                if (sd && window.SheetRoll?.rollSpellCast) {
+                    window.SheetRoll.rollSpellCast({
+                        name: `${item.name} (${item.charges.value} charges left)`,
+                        level: 1, data, spellData: sd,
+                        castingAbility: 'int', castingMod: 0,
+                        casterLevel: 1, saveDC: 11, concentration: 1,
+                        bab: Number(data.bab_total) || 0,
+                    });
+                } else {
+                    window.SheetRoll?.rollAndLog?.('d1',
+                        `${item.name}: charge spent (${item.charges.value} left)`);
+                }
+                window.SheetOverlay?.toast?.(`${item.name}: ${item.charges.value} charges left`);
+            });
+            chPair.append(chIn, h('span', 'item-sheet-hp-sep', '/'), chMaxIn, useBtn);
+            chRow.appendChild(chPair);
+            side.appendChild(chRow);
+        }
 
         const checks = h('div', 'item-sheet-checks');
         const checkRow = (label, get, set, title) => {
@@ -1015,6 +1123,7 @@ window.SheetModals = (function () {
         card.appendChild(grid);
         overlay.appendChild(card);
         document.body.appendChild(overlay);
+        attachModalChrome(overlay);
     }
     /**
      * Anchored popover to manage a feature's buffs: toggle built-in modifiers on/off and
@@ -1414,6 +1523,7 @@ window.SheetModals = (function () {
         card.appendChild(bodyEl);
         overlay.appendChild(card);
         document.body.appendChild(overlay);
+        attachModalChrome(overlay);
     }
     /** Archetype popup — scraped description (if any) for the named archetype, base level 0. */
     function openArchetypeSheet(data, name) {
@@ -1453,6 +1563,7 @@ window.SheetModals = (function () {
         card.appendChild(bodyEl);
         overlay.appendChild(card);
         document.body.appendChild(overlay);
+        attachModalChrome(overlay);
     }
 
     return {
