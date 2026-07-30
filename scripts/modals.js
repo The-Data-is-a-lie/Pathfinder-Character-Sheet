@@ -279,12 +279,9 @@ window.SheetModals = (function () {
         'insight', 'luck', 'sacred', 'profane', 'alchemical', 'circumstance',
         'inherent', 'racial', 'size', 'trait', 'penalty',
     ];
-    /** "Longsword [+1, flaming]" → ['+1', 'flaming']; plain names → []. */
-    function parseEnhancements(name) {
-        const m = String(name || '').match(/\[([^\]]+)\]\s*$/);
-        if (!m) return [];
-        return m[1].split(',').map((s) => s.trim()).filter(Boolean);
-    }
+    // Moved to SheetDetails, which needs it to build the enhancement conditionals and loads long
+    // before this file. Re-exported here so the item sheet's existing callers are unchanged.
+    const parseEnhancements = (name) => window.SheetDetails.parseEnhancements(name);
     /**
      * What an enhancement does. Priority: backend `enhancement_desc_dict`
      * ({ "<name lowercase>": "<html|text>" } — new payload field, shared with the

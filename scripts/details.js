@@ -156,6 +156,135 @@ window.SheetDetails = (function () {
         return maneuverConditionals[powNorm(name)] || null;
     }
 
+    // --- Weapon / armor enhancements ("flaming", "keen", "+1") ---------------------------
+    // The backend curates every quality's mechanics in quality_effects.json and ships the ones
+    // this character actually owns as `enhancement_effects_dict`:
+    //   { weapon: { "<Quality>": { conditionals[], description } },
+    //     armor:  { "<Quality>": { changes[], contextNotes[], description } } }
+    // The two sections are shaped differently on purpose, and that split drives how they are
+    // consumed here: weapon qualities are per-ROLL (flaming's 1d6 fire fires when you swing), armor
+    // qualities are standing bonuses that belong in the sheet-math ledger. The shield list is
+    // matched against the armor section, exactly as the backend builds it.
+
+    /** "Longsword [+1, flaming]" → ['+1', 'flaming']; plain names → []. */
+    function parseEnhancements(name) {
+        const m = String(name || '').match(/\[([^\]]+)\]\s*$/);
+        if (!m) return [];
+        return m[1].split(',').map((s) => s.trim()).filter(Boolean);
+    }
+
+    function enhancementSection(data, kind) {
+        const eff = data?.enhancement_effects_dict || {};
+        return kind === 'armor' ? { ...(eff.armor || {}) } : { ...(eff.weapon || {}) };
+    }
+
+    /** Case-insensitive quality lookup, matching how the item sheet already reads the dict. */
+    function lookupEnhancement(data, name, kind) {
+        const section = enhancementSection(data, kind);
+        const key = String(name || '').toLowerCase().trim();
+        if (!key) return null;
+        const hit = Object.entries(section)
+            .find(([k]) => String(k).toLowerCase().trim() === key);
+        return hit ? { name: hit[0], ...(hit[1] || {}) } : null;
+    }
+
+    /**
+     * Every enhancement on this character, resolved and tagged with the item that carries it.
+     * Returns [{ itemKey, itemName, quality, kind, entry }].
+     *
+     * Two sources, because a character can be in either state: the migrated inventory items carry
+     * their qualities in the name suffix (`Longsword [+1, flaming]`), while a payload that predates
+     * `_sheet.coreGearMigrated` still only has weapon_name + weapon_enhancement_chosen_list. The
+     * legacy lists are read for the core gear either way so the main weapon is never missed.
+     */
+    function collectEnhancements(data) {
+        if (!data) return [];
+        const out = [];
+        const seen = new Set();
+        const add = (itemKey, itemName, quality, kind) => {
+            const entry = lookupEnhancement(data, quality, kind);
+            if (!entry) return;
+            const id = itemKey + '|' + String(quality).toLowerCase();
+            if (seen.has(id)) return;
+            seen.add(id);
+            out.push({ itemKey, itemName, quality: entry.name || quality, kind, entry });
+        };
+
+        const catOf = (inv) => window.SheetInventoryModel?.inventoryCategory?.(inv) || '';
+        for (const raw of data.equipment_list || []) {
+            const inv = normalizeInventoryEntry(raw, data);
+            if (!inv || !inv.equipped) continue;
+            const cat = catOf(inv);
+            // Only weapons and armor/shields can carry qualities; a `[stuff]` suffix on a potion is
+            // not an enhancement.
+            const kind = cat === 'weapons' ? 'weapon' : (cat === 'armor' ? 'armor' : null);
+            if (!kind) continue;
+            for (const q of parseEnhancements(inv.name)) add(inv.id, inv.name, q, kind);
+        }
+
+        // Core generated gear, by name, for both the migrated and unmigrated cases.
+        for (const [nameField, listField, kind] of [
+            ['weapon_name', 'weapon_enhancement_chosen_list', 'weapon'],
+            ['armor_name', 'armor_enhancement_chosen_list', 'armor'],
+            ['shield_name', 'shield_enhancement_chosen_list', 'armor'],
+        ]) {
+            const nm = String(data[nameField] || '').trim();
+            if (!nm || !Array.isArray(data[listField])) continue;
+            const itemKey = coreGearItemKey(data, nm);
+            for (const q of data[listField]) add(itemKey, nm, q, kind);
+        }
+        return out;
+    }
+
+    /**
+     * The inventory id of a core gear item, so a quality read from the legacy
+     * weapon_enhancement_chosen_list lands on the SAME itemKey as one parsed from the migrated
+     * item's name suffix — otherwise the character shows each quality twice, once per source.
+     * migrateCoreGear renames the item to "<name> [suffix]", so match on the prefix.
+     */
+    function coreGearItemKey(data, gearName) {
+        const lc = String(gearName).toLowerCase().trim();
+        for (const raw of data.equipment_list || []) {
+            const inv = normalizeInventoryEntry(raw, data);
+            if (!inv) continue;
+            const n = inv.name.toLowerCase();
+            if (n === lc || n.startsWith(lc + ' [')) return inv.id;
+        }
+        return 'eq:' + lc.replace(/\s+/g, '-');
+    }
+
+    // --- Class-feature powers (rage powers, hexes, ki powers, talents, arcana, ...) -------
+    // The backend curates these in class_feature_effects.json and ships this character's matches as
+    // `class_feature_conditionals_dict` and `class_feature_changes_dict`. Note the conditionals dict
+    // maps a name to a LIST of conditionals — unlike feat_conditionals_dict, whose value is a single
+    // object — because one power can grant several independent toggles.
+    /**
+     * Rider text for a curated conditional.
+     *
+     * Some qualities and powers are PROSE-ONLY: `modifiers: []` with the whole rule written into
+     * `name` (Fury-Born's escalating enhancement bonus, Spellstealing's crit-forgo option — effects
+     * no sheet can automate). Those would be dropped by collectRollConditionals' "has no mechanical
+     * effect" guard, so the description becomes the rider instead. The toggle then does what it
+     * honestly can: print the rule, with its [[inline rolls]] rolled, into the roll log.
+     */
+    function condRider(cond) {
+        if (cond?.rider) return cond.rider;
+        return cond?.modifiers?.length ? '' : (cond?.name || '');
+    }
+
+    function classFeaturePowerConditionals(data) {
+        const dict = data?.class_feature_conditionals_dict || {};
+        const out = [];
+        for (const [name, conds] of Object.entries(dict)) {
+            const list = Array.isArray(conds) ? conds : [conds];
+            list.forEach((cond, idx) => {
+                if (!cond) return;
+                out.push({ name, index: idx, cond });
+            });
+        }
+        return out;
+    }
+
     // --- Per-character overrides for Path of War maneuver/stance modifiers -------------
     // Stored on data._sheet.powOverrides[powNorm(name)] in the same conditional-modifier
     // shape as maneuver_changes.json ({ modifiers, rider }). One resolver feeds every
@@ -341,6 +470,41 @@ window.SheetDetails = (function () {
             });
         }
 
+        // Weapon qualities. `itemKey` scopes each one to the weapon that carries it: flaming on the
+        // longsword must not add 1d6 fire when the greataxe swings, and without the tag every
+        // quality on every equipped weapon would apply to every attack.
+        for (const enh of collectEnhancements(data)) {
+            if (enh.kind !== 'weapon') continue;
+            for (const [idx, cond] of (enh.entry.conditionals || []).entries()) {
+                if (!cond) continue;
+                push({
+                    id: `enh:${enh.itemKey}:${String(enh.quality).toLowerCase()}:${idx}`,
+                    label: cond.name || `${enh.quality} (${enh.itemName})`,
+                    source: enh.quality,
+                    sourceKind: 'enhancement',
+                    itemKey: enh.itemKey,
+                    itemName: enh.itemName,
+                    defaultOn: !!cond.default,
+                    modifiers: cond.modifiers || [],
+                    rider: condRider(cond),
+                });
+            }
+        }
+
+        // Class-feature powers. The curated `name` is the display label and already carries its
+        // [[inline rolls]], which the panel renders as chips with no extra work.
+        for (const { name, index, cond } of classFeaturePowerConditionals(data)) {
+            push({
+                id: `classFeature:${sphereNorm(name)}:${index}`,
+                label: cond.name || name,
+                source: name,
+                sourceKind: 'classFeature',
+                defaultOn: !!cond.default,
+                modifiers: cond.modifiers || [],
+                rider: condRider(cond),
+            });
+        }
+
         for (const [spellName, entry] of Object.entries(data.spell_changes_dict || {})) {
             if (!entry) continue;
             let mods = null;
@@ -447,6 +611,41 @@ window.SheetDetails = (function () {
             seenClassFeats.add(name);
             const entry = lookupClassFeature(name, classes);
             if (entry) pushEntry(ledger, entry.name || name, 'classFeat', entry);
+        }
+
+        // Curated class-feature POWER effects (rage powers, hexes, ki powers, arcana, talents...),
+        // which the compendium extract above does not cover. Auto-drafted entries the backend has not
+        // vetted ship contextNotes only, so nothing unreviewed can reach the numeric totals.
+        for (const [name, entry] of Object.entries(data.class_feature_changes_dict || {})) {
+            if (!entry) continue;
+            pushEntry(ledger, name, 'classFeat', entry);
+            // `tagBuff` is deliberately NOT applied. It is a Multi-Buff-Distributor payload for
+            // powers that buff OTHER creatures, with its @classes/@abilities refs already baked to
+            // this character's numbers — applying it here would hand an ally's bonus to the owner.
+            // Surfaced as a note so the effect is still visible on the sheet.
+            const tag = entry.tagBuff;
+            if (tag && (tag.changes?.length || tag.contextNotes?.length)) {
+                const bits = [
+                    ...(tag.changes || []).map((c) => `${c.formula} ${c.type || ''} ${c.target}`.trim()),
+                    ...(tag.contextNotes || []).map((n) => n?.text).filter(Boolean),
+                ];
+                ledger.notes.push({ source: name, sourceKind: 'classFeat',
+                    text: 'Grants to allies' + (tag.auraRange ? ` within ${tag.auraRange} ft` : '')
+                        + (bits.length ? ': ' + bits.join('; ') : ''),
+                    target: '' });
+            }
+        }
+
+        // Armor / shield enhancements are standing bonuses, not per-roll toggles, so they belong in
+        // the ledger — which puts them in the Defenses AC grid, the save buckets and the Buffs tab's
+        // Permanent section with no per-tab work.
+        for (const enh of collectEnhancements(data)) {
+            if (enh.kind !== 'armor') continue;
+            const entry = { changes: enh.entry.changes || [],
+                contextNotes: enh.entry.contextNotes || [] };
+            if (entry.changes.length || entry.contextNotes.length) {
+                pushEntry(ledger, `${enh.quality} (${enh.itemName})`, 'enhancement', entry);
+            }
         }
 
         // User-authored buffs attached to a feature (feat/trait/class feature) on the
@@ -860,6 +1059,7 @@ window.SheetDetails = (function () {
         stanceChangesFromModifiers, lookupStanceBenefit, resolveStanceEntry,
         setStanceOverride, clearStanceOverride, conditionalForTalent, collectChanges,
         collectRollConditionals, normalizeInventoryEntry, powNorm,
+        parseEnhancements, lookupEnhancement, collectEnhancements, coreGearItemKey,
         targetLabel, typeLabel, evalSimpleFormula, changesForTargets,
         searchCatalog, catalogKinds,
     };
