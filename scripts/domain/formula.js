@@ -63,10 +63,33 @@ window.SheetFormula = (function () {
         [/@class\.level\b/gi, (_m, data) => characterLevel(data)],
         [/@attributes\.hd\.total\b/gi, (_m, data) => characterLevel(data)],
         [/@attributes\.bab\.total\b/gi, (_m, data) => Number(data?.bab_total) || 0],
+        // Spheres of Power caster level — the payload's sphere_cl (falls back to character
+        // level, the common default for talents on a full-progression tradition).
+        [/@spheres\.cl\.total\b/gi, (_m, data) =>
+            Number(data?.sphere_cl) || characterLevel(data) || null],
+        // Full skill modifier (ranks + ability + ledger/ACP + user bonuses), by pf1 skill id.
+        [/@skills\.([a-z]+)\.mod\b/gi, (m, data) => skillModOf(data, m[1])],
+        // CMB total, through the same derive block the Combat tab shows.
+        [/@attributes\.cmb\.total\b/gi, (_m, data) =>
+            Number(window.SheetDerive?.computeDerived?.(data)?.blocks?.cmb?.total) ?? null],
         [/@cl\b/gi, (_m, data, ctx) => ctx.cl ?? null],
         [/@sl\b/gi, (_m, data, ctx) => ctx.sl ?? null],
         [/@ablMod\b/gi, (_m, data, ctx) => ctx.ablMod ?? null],
     ];
+
+    /** Skill total for @skills.<id>.mod — composed from the same pieces the Skills tab sums. */
+    function skillModOf(data, id) {
+        const SM = window.SheetSkillMath;
+        const skill = (window.SheetData?.ALL_SKILLS || [])
+            .find((s) => s.id === String(id).toLowerCase());
+        if (!SM || !skill || !data) return null;
+        const ab = SM.getSkillAbility(data, skill);
+        const ranks = SM.ranksForSkill(SM.parseSkillRanks(data), skill.name);
+        const abMod = Number(window.SheetDerive?.abModOf?.(data, ab)) || 0;
+        const misc = SM.skillMiscBonus(data, { ...skill, ab }).total;
+        const user = SM.skillUserBonus(data, SM.skillAbilityKey(skill), ranks).total;
+        return ranks + abMod + misc + user;
+    }
 
     /** Register another `@token` resolver at runtime. Pattern must be a global RegExp. */
     function registerVar(pattern, fn) {

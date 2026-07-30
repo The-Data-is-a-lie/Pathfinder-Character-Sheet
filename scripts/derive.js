@@ -149,6 +149,77 @@ window.SheetDerive = (function () {
         return [...map.values()].sort((a, b) =>
             String(a.source).localeCompare(String(b.source)));
     }
+    // ---------------------------------------------------------------- size / conditions / load
+    /**
+     * Effective size category. Explicit `_sheet.size` wins; unset defaults from the race
+     * (Small races → small, else medium). Any ACTIVE buff with `setSize` (Enlarge Person)
+     * overrides — last active buff in list order wins. `special` is the CMB/CMD modifier.
+     */
+    function sizeInfo(data) {
+        const SDta = window.SheetData;
+        const sizes = SDta?.SIZES || [];
+        let id = String(data?._sheet?.size || '').toLowerCase();
+        if (!sizes.some((s) => s.id === id)) {
+            const race = String(data?.race || data?.c_race || '').toLowerCase();
+            id = SDta?.SMALL_RACES?.has(race) ? 'small' : 'medium';
+        }
+        for (const b of (data?._sheet?.buffs || [])) {
+            if (b && b.active !== false && b.setSize
+                && sizes.some((s) => s.id === b.setSize)) id = b.setSize;
+        }
+        const s = sizes.find((x) => x.id === id)
+            || { id: 'medium', label: 'Medium', mod: 0, steps: 0 };
+        return { ...s, special: -s.mod };
+    }
+    /** Dex-denial / dodge-loss flags from active conditions (CONDITION_CHANGES). */
+    function conditionFlags(data) {
+        const table = window.SheetData?.CONDITION_CHANGES || {};
+        const out = { loseDex: false, noDodge: false, sources: [] };
+        for (const id of data?._sheet?.conditions || []) {
+            const e = table[id];
+            if (!e) continue;
+            if (e.loseDex) { out.loseDex = true; out.sources.push(id); }
+            if (e.noDodge) out.noDodge = true;
+        }
+        return out;
+    }
+    /** Total carried weight in lbs (same rule as the Inventory footer: carried × quantity). */
+    function carriedWeightLbs(data) {
+        let total = 0;
+        for (const it of data?.equipment_list || []) {
+            if (!it || typeof it !== 'object' || it.carried === false) continue;
+            const w = Number(it.weight);
+            if (Number.isFinite(w)) total += w * (Number(it.quantity) || 1);
+        }
+        return total;
+    }
+    /**
+     * Encumbrance consequences. Medium load: max Dex +3, check penalty −3; Heavy (and over
+     * capacity): +1 / −6; both reduce speed (see loadReducedSpeed). Light load returns
+     * null caps so callers can tell "no consequence" from "cap of 0".
+     */
+    function encumbrance(data) {
+        const effStr = abilityInfo(data, 'str').total ?? Number(data?.str);
+        const weight = carriedWeightLbs(data);
+        const load = loadCategory(weight, effStr);
+        const caps = {
+            Medium: { maxDex: 3, acp: 3 },
+            Heavy: { maxDex: 1, acp: 6 },
+            'Over capacity': { maxDex: 1, acp: 6 },
+        }[load.label] || null;
+        return {
+            weight, label: load.label, cls: load.cls, lim: load.lim,
+            maxDex: caps ? caps.maxDex : null,
+            acp: caps ? caps.acp : 0,
+            reducesSpeed: !!caps,
+        };
+    }
+    /** Speed under Medium/Heavy load: ×2/3 rounded up to 5 ft (30→20, 20→15, 50→35). */
+    function loadReducedSpeed(ft) {
+        const n = Number(ft) || 0;
+        return n > 0 ? Math.ceil((n * 2) / 3 / 5) * 5 : n;
+    }
+
     // ---------------------------------------------------------------- derived stats + sources
     function part(label, value, opts = {}) {
         return {
@@ -235,9 +306,26 @@ window.SheetDerive = (function () {
         const wisM = abModOf(data, 'wis'), intM = abModOf(data, 'int'), chaM = abModOf(data, 'cha');
         const armorAc = toInt(data.armor_ac) ?? 0;
         const shieldAc = toInt(data.shield_ac) ?? 0;
-        const maxDex = toInt(data.armor_max_dex_bonus);
-        const dexCapped = maxDex !== null && dexM > maxDex;
-        const effDex = dexCapped ? maxDex : dexM;
+        const size = sizeInfo(data);
+        const condFlags = conditionFlags(data);
+        const enc = encumbrance(data);
+        // Max Dex to AC: the tighter of the armor's cap and the load's cap.
+        const armorMaxDex = toInt(data.armor_max_dex_bonus);
+        const maxDex = [armorMaxDex, enc.maxDex].filter((v) => v != null)
+            .reduce((a, b) => Math.min(a, b), Infinity);
+        const hasDexCap = Number.isFinite(maxDex);
+        const dexCapSource = hasDexCap
+            ? (enc.maxDex != null && (armorMaxDex == null || enc.maxDex < armorMaxDex)
+                ? `${enc.label.toLowerCase()} load` : 'armor')
+            : '';
+        const dexCapped = hasDexCap && dexM > maxDex;
+        let effDex = dexCapped ? maxDex : dexM;
+        // Dex-denying conditions: a POSITIVE Dex bonus stops counting (penalties still apply).
+        const dexDenied = condFlags.loseDex && effDex > 0;
+        if (dexDenied) effDex = 0;
+        const dexAcLabel = dexDenied
+            ? `Dex (denied — ${condFlags.sources.join(', ')})`
+            : (dexCapped ? `Dex (capped by ${dexCapSource} max ${maxDex})` : 'Dex');
         const armorName = (data.armor_name || '').trim() || 'Armor';
         const shieldName = (data.shield_name || '').trim() || 'Shield';
         const className = String(data.c_class || '').toLowerCase();
@@ -254,6 +342,7 @@ window.SheetDerive = (function () {
         };
 
         // ---- AC ----
+        const sizePart = () => part(`Size (${size.label})`, size.mod, { kind: 'base' });
         const acParts = [part('Base', 10)];
         if (armorAc || data.armor_name) {
             acParts.push(part(`Armor (${armorName})`, armorAc, { kind: 'gear' }));
@@ -261,17 +350,19 @@ window.SheetDerive = (function () {
         if (shieldAc || data.shield_name) {
             acParts.push(part(`Shield (${shieldName})`, shieldAc, { kind: 'gear' }));
         }
-        acParts.push(part(
-            dexCapped ? `Dex (capped by armor max ${maxDex})` : 'Dex',
-            effDex, { kind: 'ability' }));
-        appendLedgerParts(acParts, data, ledger, ['ac', 'aac', 'sac', 'nac']);
+        acParts.push(part(dexAcLabel, effDex, { kind: 'ability' }));
+        if (size.mod) acParts.push(sizePart());
+        appendLedgerParts(acParts, data, ledger, ['ac', 'aac', 'sac', 'nac'], {
+            skipDodge: condFlags.noDodge,
+        });
         manualPart(acParts, 'ac');
 
         const touchParts = [part('Base', 10)];
-        touchParts.push(part(
-            dexCapped ? `Dex (capped by armor max ${maxDex})` : 'Dex',
-            effDex, { kind: 'ability' }));
-        appendLedgerParts(touchParts, data, ledger, ['ac', 'tac', 'nac'], { touchOnly: true });
+        touchParts.push(part(dexAcLabel, effDex, { kind: 'ability' }));
+        if (size.mod) touchParts.push(sizePart());
+        appendLedgerParts(touchParts, data, ledger, ['ac', 'tac', 'nac'], {
+            touchOnly: true, skipDodge: condFlags.noDodge,
+        });
         manualPart(touchParts, 'touch');
 
         const flatParts = [part('Base', 10)];
@@ -281,6 +372,7 @@ window.SheetDerive = (function () {
         if (shieldAc || data.shield_name) {
             flatParts.push(part(`Shield (${shieldName})`, shieldAc, { kind: 'gear' }));
         }
+        if (size.mod) flatParts.push(sizePart());
         appendLedgerParts(flatParts, data, ledger, ['ac', 'ffac', 'aac', 'sac', 'nac'], {
             skipDodge: true,
         });
@@ -324,6 +416,7 @@ window.SheetDerive = (function () {
             part('BAB', bab, { kind: 'base' }),
             part('Strength', strM, { kind: 'ability' }),
         ];
+        if (size.mod) meleeParts.push(sizePart());
         appendLedgerParts(meleeParts, data, ledger, ['attack', 'mattack']);
         manualPart(meleeParts, 'melee');
         negPart(meleeParts);
@@ -332,6 +425,7 @@ window.SheetDerive = (function () {
             part('BAB', bab, { kind: 'base' }),
             part('Dexterity', dexM, { kind: 'ability' }),
         ];
+        if (size.mod) rangedParts.push(sizePart());
         appendLedgerParts(rangedParts, data, ledger, ['attack', 'rattack']);
         manualPart(rangedParts, 'ranged');
         negPart(rangedParts);
@@ -370,7 +464,10 @@ window.SheetDerive = (function () {
             : ['damage', 'mdamage', 'wdamage'];
         appendLedgerParts(damageParts, data, ledger, dmgTargets);
         const damageFlat = sumParts(damageParts);
-        const damageDice = wStats?.dice || '';
+        // Weapon dice step with the character's effective size (compendium dice are Medium).
+        const damageDice = wStats?.dice
+            ? (window.SheetData?.stepDice?.(wStats.dice, size.steps) ?? wStats.dice)
+            : '';
         let damageTotal;
         if (damageDice && damageFlat) {
             damageTotal = damageDice + (damageFlat >= 0 ? '+' : '') + damageFlat;
@@ -385,26 +482,31 @@ window.SheetDerive = (function () {
             ? { total: damageTotal, parts: damageParts }
             : null;
 
+        const specialSizePart = () => part(`Size, special (${size.label})`, size.special, { kind: 'base' });
         const cmbParts = [
             part('BAB', bab, { kind: 'base' }),
             part('Strength', strM, { kind: 'ability' }),
         ];
+        if (size.special) cmbParts.push(specialSizePart());
         appendLedgerParts(cmbParts, data, ledger, ['cmb']);
         manualPart(cmbParts, 'cmb');
         negPart(cmbParts);
 
+        // CMD Dex follows the same denial rule as AC (flat-footed CMD is the separate stat).
         const cmdParts = [
             part('Base', 10),
             part('BAB', bab, { kind: 'base' }),
             part('Strength', strM, { kind: 'ability' }),
-            part('Dexterity', dexM, { kind: 'ability' }),
+            part(dexDenied ? `Dexterity (denied — ${condFlags.sources.join(', ')})` : 'Dexterity',
+                dexDenied ? Math.min(dexM, 0) : dexM, { kind: 'ability' }),
         ];
+        if (size.special) cmdParts.push(specialSizePart());
         appendLedgerParts(cmdParts, data, ledger, ['cmd']);
         manualPart(cmdParts, 'cmd');
 
         // Flat-footed CMD (PF1): CMD without Dexterity and dodge bonuses
         const cmdFFParts = cmdParts.filter((p) =>
-            !(p.kind === 'ability' && p.label === 'Dexterity') && p.type !== 'dodge');
+            !(p.kind === 'ability' && p.label.startsWith('Dexterity')) && p.type !== 'dodge');
 
         // ---- HP: rolled dice + CON×level, then mhp feats (Toughness, …) on top ----
         // Mirrors Foundry: total_rolled_hp → hp.base; Con is ability contribution; Toughness → mhp.
@@ -477,7 +579,8 @@ window.SheetDerive = (function () {
         // Legacy-compatible flat fields for older call sites
         return {
             level, bab, strM, dexM, conM, wisM, intM, chaM,
-            armorAc, shieldAc, maxDex, effDex,
+            armorAc, shieldAc, maxDex: hasDexCap ? maxDex : null, effDex,
+            size, conditionFlags: condFlags, encumbrance: enc,
             ac: ac.total, touch: touch.total, flat: flat.total,
             cmb: cmb.total, cmd: cmd.total,
             blocks: { ac, touch, flat, fort, ref, will, init, melee, ranged, damage, cmb, cmd, cmdFF, hp },
@@ -628,5 +731,6 @@ window.SheetDerive = (function () {
         groupChangesBySource, computeDerived, combatStats, carryLimits, loadCategory,
         castingAbilityMod, totalLevel, casterLevelValue, spellSaveDC, concentrationBonus,
         acTypeTotals, saveBuckets, srTotal, babIterativesStr, GOOD_SAVES,
+        sizeInfo, conditionFlags, encumbrance, carriedWeightLbs, loadReducedSpeed,
     };
 })();

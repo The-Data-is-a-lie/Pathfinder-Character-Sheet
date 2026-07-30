@@ -10,7 +10,10 @@ window.SheetTabInventory = (function () {
         h, section, dblclickEditable, parseIntLoose, fmtWeight, fmtPrice, cloneChanges,
         dndHandle, bindDragReorder, reorderArray, nonEmpty, fmt,
     } = window.SheetUI;
-    const { loadCategory, carryLimits } = window.SheetDerive;
+    const { loadCategory, carryLimits, abilityInfo } = window.SheetDerive;
+    // Carrying capacity keys off the *effective* Strength (belt of giant strength included),
+    // not the raw base score.
+    const effStr = (data) => abilityInfo(data, 'str').total ?? data.str;
     const { quietSave, ensureInventoryObjects } = window.SheetState;
     const {
         openItemSheet, addBlankInventoryItem, formatChangeLine, sectionCatalogToolbar,
@@ -18,7 +21,7 @@ window.SheetTabInventory = (function () {
     } = window.SheetModals;
     const {
         inventoryCategory, invSlotLabel, addInventoryItem, migrateCoreGear, gearLine,
-        INV_CATEGORY_ORDER, INV_CAT_ITEMTYPE,
+        normalizeCurrency, INV_CATEGORY_ORDER, INV_CAT_ITEMTYPE,
     } = window.SheetInventoryModel;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
 
@@ -55,7 +58,8 @@ window.SheetTabInventory = (function () {
         const qtyCell = h('span', 'inv-qty');
         if (item.quantity == null) item.quantity = 1;
         const stepQty = (d) => {
-            item.quantity = Math.max(1, (Number(item.quantity) || 1) + d);
+            // Floor 0, not 1: quantity 0 is real for ammo (quiver shot dry).
+            item.quantity = Math.max(0, (Number(item.quantity) || 0) + d);
             quietSave();
             invRerender(data);
         };
@@ -69,9 +73,9 @@ window.SheetTabInventory = (function () {
         plusBtn.addEventListener('click', () => stepQty(1));
         qtyCell.appendChild(minusBtn);
         qtyCell.appendChild(dblclickEditable(item, 'quantity', {
-            type: 'number', min: 1, max: 999,
+            type: 'number', min: 0, max: 999,
             format: (v) => String(v == null || v === '' ? 1 : v),
-            parse: (s) => Math.max(1, parseIntLoose(s, 1)),
+            parse: (s) => Math.max(0, parseIntLoose(s, 1)),
             onChange: () => quietSave(),
         }));
         qtyCell.appendChild(plusBtn);
@@ -159,7 +163,7 @@ window.SheetTabInventory = (function () {
     }
     /** Currency bar pinned at the top of the Inventory tab: PP · GP · SP · CP inputs. */
     function invCurrencyBar(data) {
-        if (data.platinum == null && data.platnium != null) data.platinum = data.platnium;
+        normalizeCurrency(data);
         const bar = h('div', 'inv-currency-bar');
         bar.appendChild(h('span', 'inv-currency-title', 'Currency'));
         for (const [label, key] of [
@@ -342,7 +346,7 @@ window.SheetTabInventory = (function () {
             body.appendChild(secWrap);
         }
 
-        const load = loadCategory(totalWeight, data.str);
+        const load = loadCategory(totalWeight, effStr(data));
         const eqCount = list.filter((it) => it.equipped).length;
         const carried = list.filter((it) => it.carried !== false).length;
         const valueSum = list.reduce((sum, it) => {
@@ -359,6 +363,15 @@ window.SheetTabInventory = (function () {
             `${eqCount} equipped · ${carried} carried · ${list.length} total`
             + (valueSum ? ` · Total item value: ${fmtPrice(valueSum)}` : '')));
         foot.appendChild(statLine);
+
+        // Encumbrance consequences are applied automatically (derive.js encumbrance) —
+        // say so here where the load bar lives, so the numbers don't feel haunted.
+        const encNow = window.SheetDerive.encumbrance(data);
+        if (encNow.maxDex != null) {
+            foot.appendChild(h('p', 'dim inv-load-consequences',
+                `${encNow.label} load: max Dex +${encNow.maxDex} to AC, −${encNow.acp} check `
+                + 'penalty, reduced speed — applied to the sheet automatically.'));
+        }
 
         // Load bar: Light / Medium / Heavy segments; the current band is highlighted.
         const bar = h('div', 'inv-load-bar');

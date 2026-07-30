@@ -302,6 +302,7 @@ window.SheetRoll = (function () {
             });
         }
 
+        const mm = opts.metamagic || null;
         const dmgPartsRaw = act.damage?.parts || [];
         if (dmgPartsRaw.length) {
             let dmgTotal = 0;
@@ -320,13 +321,29 @@ window.SheetRoll = (function () {
                     continue;
                 }
                 const r = rollTerms(parsed.terms);
-                dmgTotal += r.total;
+                // Metamagic damage math (pf1 RAW): Maximize = every die at max; Empower =
+                // ×1.5 the rolled result; both = maximized + half the ROLLED total.
+                let value = r.total;
+                let mmTag = '';
+                if (mm?.maximize) {
+                    const maxed = r.parts.reduce((sum, x) => {
+                        if (x.kind !== 'dice') return sum + (Number(x.value) || 0);
+                        const sides = Number((x.label.match(/d(\d+)/) || [])[1]) || 0;
+                        return sum + (x.label.startsWith('-') ? -1 : 1) * x.rolls.length * sides;
+                    }, 0);
+                    value = maxed + (mm.empower ? Math.floor(r.total / 2) : 0);
+                    mmTag = mm.empower ? ' (max+emp)' : ' (maximized)';
+                } else if (mm?.empower) {
+                    value = Math.floor(r.total * 1.5);
+                    mmTag = ' (empowered)';
+                }
+                dmgTotal += value;
                 const rolls = r.parts.filter((x) => x.kind === 'dice').flatMap((x) => x.rolls);
                 const shown = rolls.length ? '[' + rolls.join(', ') + ']' : String(r.total);
                 parts.push({
-                    label: (parsed.formula || expanded) + (types ? ' ' + types : ''),
-                    detail: shown + ' → ' + r.total,
-                    value: r.total,
+                    label: (parsed.formula || expanded) + (types ? ' ' + types : '') + mmTag,
+                    detail: shown + ' → ' + value,
+                    value,
                 });
                 if (!diceFlavor) diceFlavor = parsed.formula + shown;
             }
@@ -365,6 +382,14 @@ window.SheetRoll = (function () {
             source: 'Spell',
             text: metaBits.join(' · '),
         });
+        if (mm?.names?.length) {
+            riders.push({
+                source: 'Metamagic',
+                text: mm.names.join(', ')
+                    + (mm.slotLevel != null && mm.slotLevel !== level
+                        ? ` — cast from a level ${mm.slotLevel} slot` : ''),
+            });
+        }
 
         // If nothing mechanical rolled, still log a "cast" card with riders
         pushRollCard({
@@ -372,6 +397,7 @@ window.SheetRoll = (function () {
             subtitle: [
                 'Spell L' + level,
                 school,
+                mm?.names?.length ? 'Metamagic' : null,
                 actionType || null,
             ].filter(Boolean).join(' · '),
             attacks,
@@ -522,19 +548,71 @@ window.SheetRoll = (function () {
         return d + (n >= 0 ? '+' : '') + n;
     }
 
-    function attackContext(data) {
+    /** Inventory item by id. equipment_list is object-normalized by ensureInventoryObjects
+     *  on every render, so a plain id scan is enough here. */
+    function findInventoryItem(data, itemKey) {
+        if (!data || !itemKey) return null;
+        for (const it of data.equipment_list || []) {
+            if (it && typeof it === 'object' && it.id === itemKey) return it;
+        }
+        return null;
+    }
+
+    /** Equipped inventory weapons, in list order. */
+    function equippedWeapons(data) {
+        if (!data) return [];
+        const list = window.SheetState?.ensureInventoryObjects?.(data) || data.equipment_list || [];
+        const cat = window.SheetInventoryModel?.inventoryCategory;
+        return list.filter((it) => it && typeof it === 'object' && it.equipped !== false
+            && (!cat || cat(it) === 'weapons'));
+    }
+
+    /** "Longsword [+1, flaming]" → "Longsword" (compendium lookups want the base name). */
+    function stripEnhSuffix(name) {
+        return String(name || '').replace(/\s*\[[^\]]+\]\s*$/, '').trim();
+    }
+
+    /** Merged roll stats for an inventory weapon: compendium base (by name minus the
+     *  enhancement suffix) under the item sheet's per-item overrides (item.weapon) —
+     *  the same merge the item sheet's Details tab edits against (modals.js). */
+    function itemWeaponStats(item) {
+        const wBase = window.SheetDetails?.lookupWeapon?.(stripEnhSuffix(item?.name));
+        if (!wBase && !item?.weapon) return null;
+        return { ...(wBase || {}), ...(item.weapon || {}) };
+    }
+
+    /**
+     * Attack math for one weapon. `itemKey` picks an inventory weapon (per-row rolls and
+     * routine lines pass it); omitted, the active weapon — the picker selection when set,
+     * else the generated weapon_name — is used, which is the old single-weapon behaviour.
+     */
+    function attackContext(data, itemKey) {
         if (!data || data.error) return null;
         const bab = Number(data.bab_total) || 0;
         const strM = abilityMod(data, 'str');
         const dexM = abilityMod(data, 'dex');
-        const enh = parseEnhancementBonus(data.weapon_enhancement_chosen_list);
-        const wName = (data.weapon_name || '').trim();
-        const wStats = wName ? (window.SheetDetails?.lookupWeapon(wName) || null) : null;
+        const key = itemKey !== undefined ? itemKey : activeWeaponItemKey(data);
+        const item = key ? findInventoryItem(data, key) : null;
+        let enh, wName, wStats, label;
+        if (item) {
+            wName = stripEnhSuffix(item.name);
+            wStats = itemWeaponStats(item);
+            enh = parseEnhancementBonus(window.SheetDetails?.parseEnhancements?.(item.name) || []);
+            label = item.name;
+        } else {
+            // Legacy path: unmigrated core gear only exists as weapon_name + enhancement list.
+            enh = parseEnhancementBonus(data.weapon_enhancement_chosen_list);
+            wName = (data.weapon_name || '').trim();
+            wStats = wName ? (window.SheetDetails?.lookupWeapon(wName) || null) : null;
+            label = weaponLabel(data);
+        }
         const ranged = wStats ? isRangedAction(wStats.actionType) : false;
         const abKey = ranged ? 'dex' : 'str';
         const abMod = ranged ? dexM : strM;
         const dmgAbKey = (wStats?.damageAbility || 'str').toLowerCase();
         const dmgAbMod = abilityMod(data, dmgAbKey);
+        // Size: attack modifier + damage-dice step (compendium dice are Medium).
+        const size = window.SheetDerive?.sizeInfo?.(data) || { mod: 0, steps: 0, label: 'Medium' };
         const atkTargets = ranged ? ['attack', 'rattack'] : ['attack', 'mattack'];
         const dmgTargets = ranged ? ['damage', 'rdamage', 'wdamage'] : ['damage', 'mdamage', 'wdamage'];
         const atkChanges = sumNumericChanges(atkTargets, 'initial');
@@ -542,14 +620,21 @@ window.SheetRoll = (function () {
         // 'initial'-only change withholds from, the confirmation roll.
         const atkChangesConfirm = sumNumericChanges(atkTargets, 'confirm');
         const dmgChanges = sumNumericChanges(dmgTargets);
-        const meleeBonus = bab + strM + sumNumericChanges(['attack', 'mattack'], 'initial').total;
-        const rangedBonus = bab + dexM + sumNumericChanges(['attack', 'rattack'], 'initial').total;
-        const meleeBonusConfirm = bab + strM + sumNumericChanges(['attack', 'mattack'], 'confirm').total;
-        const rangedBonusConfirm = bab + dexM + sumNumericChanges(['attack', 'rattack'], 'confirm').total;
-        const weaponBonus = bab + abMod + enh + atkChanges.total;
-        const weaponBonusConfirm = bab + abMod + enh + atkChangesConfirm.total;
+        const meleeBonus = bab + strM + size.mod + sumNumericChanges(['attack', 'mattack'], 'initial').total;
+        const rangedBonus = bab + dexM + size.mod + sumNumericChanges(['attack', 'rattack'], 'initial').total;
+        const meleeBonusConfirm = bab + strM + size.mod + sumNumericChanges(['attack', 'mattack'], 'confirm').total;
+        const rangedBonusConfirm = bab + dexM + size.mod + sumNumericChanges(['attack', 'rattack'], 'confirm').total;
+        const weaponBonus = bab + abMod + enh + size.mod + atkChanges.total;
+        const weaponBonusConfirm = bab + abMod + enh + size.mod + atkChangesConfirm.total;
         const damageFlat = dmgAbMod + enh + dmgChanges.total;
-        const damageDice = wStats?.dice || '';
+        const stepDice = (d) => (d && size.steps
+            ? (window.SheetData?.stepDice?.(d, size.steps) ?? d) : d);
+        const damageDice = stepDice(wStats?.dice || '');
+        // Multi-part damage (holy longsword: slashing + good dice) — step each part too.
+        if (wStats?.parts?.length && size.steps) {
+            wStats = { ...wStats, parts: wStats.parts.map((p) => ({ ...p, dice: stepDice(p.dice) })) };
+        }
+        if (wStats && size.steps && wStats.dice) wStats = { ...wStats, dice: damageDice };
         const damageFormula = formatDamageFormula(damageDice, damageFlat);
 
         return {
@@ -558,7 +643,10 @@ window.SheetRoll = (function () {
             atkChanges, dmgChanges, atkChangesConfirm,
             weaponBonusConfirm, meleeBonusConfirm, rangedBonusConfirm,
             meleeBonus, rangedBonus, weaponBonus,
-            label: weaponLabel(data),
+            size,
+            itemKey: key || null,
+            item,
+            label,
             iters: iterativeCount(bab),
         };
     }
@@ -577,18 +665,25 @@ window.SheetRoll = (function () {
     }
 
     /**
-     * Inventory id of the weapon the roller is currently using. Enhancement conditionals are tagged
+     * Inventory id of the weapon the roller is currently on. Enhancement conditionals are tagged
      * with the item that carries them, and this is what they get matched against.
      *
-     * The roller is still single-weapon (everything reads data.weapon_name), so this is derived
-     * rather than passed in; when per-row weapon rolling lands, callers can override it through
-     * `opts.itemKey` and nothing else here has to change.
+     * Priority: the weapon picker's selection (`_sheet.activeWeaponKey`, ignored once the item is
+     * gone or unequipped) → the generated weapon_name → the first equipped inventory weapon.
+     * Per-row rolls and routine lines bypass this entirely via an explicit `itemKey`.
      */
     function activeWeaponItemKey(data) {
         const d = data || currentData;
+        if (!d) return null;
+        const sel = d._sheet?.activeWeaponKey;
+        if (sel) {
+            const it = findInventoryItem(d, sel);
+            if (it && it.equipped !== false) return sel;
+        }
         const nm = String(d?.weapon_name || '').trim();
-        if (!nm) return null;
-        return window.SheetDetails?.coreGearItemKey?.(d, nm) || null;
+        if (nm) return window.SheetDetails?.coreGearItemKey?.(d, nm) || null;
+        const ws = equippedWeapons(d);
+        return ws.length ? ws[0].id : null;
     }
 
     function activeList() {
@@ -598,10 +693,12 @@ window.SheetRoll = (function () {
     /**
      * Conditionals that apply to the weapon being rolled. An entry with no `itemKey` (feats,
      * stances, spells, class features) is weapon-independent and always applies; the filter is
-     * opt-in, so only the enhancement entries are ever narrowed.
+     * opt-in, so only the enhancement entries are ever narrowed. The sentinel `'none'` means
+     * "no weapon at all" (natural-attack lines): every item-tagged entry is excluded.
      */
     function scopedList(itemKey) {
         const key = itemKey === undefined ? activeWeaponItemKey() : itemKey;
+        if (key === 'none') return activeList().filter((c) => !c.itemKey);
         return activeList().filter((c) => !c.itemKey || !key || c.itemKey === key);
     }
 
@@ -1058,11 +1155,41 @@ window.SheetRoll = (function () {
         return block;
     }
 
+    /** Apply rolled damage to the loaded character's HP. Temp HP absorbs first (lethal);
+     *  nonlethal accumulates in its own pool. hpCurrent seeds from max on first touch. */
+    function applyDamageToHp(amount, { nonlethal = false } = {}) {
+        const n = Math.max(0, Math.floor(Number(amount) || 0));
+        if (!currentData || !n) return;
+        const st = (currentData._sheet ??= {});
+        const max = Number(currentData.Total_HP) || 0;
+        if (nonlethal) {
+            st.hpNonlethal = (Number(st.hpNonlethal) || 0) + n;
+            window.SheetOverlay?.toast?.(`${n} nonlethal damage (total ${st.hpNonlethal})`);
+        } else {
+            let rest = n;
+            const temp = Number(st.hpTemp) || 0;
+            if (temp > 0) {
+                const used = Math.min(temp, rest);
+                st.hpTemp = temp - used;
+                rest -= used;
+            }
+            const cur = st.hpCurrent == null || st.hpCurrent === ''
+                ? max : Number(st.hpCurrent) || 0;
+            st.hpCurrent = cur - rest;
+            window.SheetOverlay?.toast?.(
+                `${n} damage — HP ${st.hpCurrent}/${max}`
+                + (st.hpCurrent < 0 ? ' · below 0!' : ''));
+        }
+        window.SheetApp?.quietSave?.();
+        window.SheetApp?.renderSheet?.(currentData);
+    }
+
     function renderDamageBlock(dmg) {
         const block = h('div', 'roll-card-block roll-card-damage');
         const summary = h('div', 'roll-card-summary');
         summary.appendChild(h('span', 'roll-card-kind',
-            dmg.critMult > 1 ? `Damage (×${dmg.critMult})` : 'Damage'));
+            (dmg.critMult > 1 ? `Damage (×${dmg.critMult})` : 'Damage')
+            + (dmg.label ? ` · ${dmg.label}` : '')));
         summary.appendChild(h('span', 'roll-card-result damage', String(dmg.total)));
         if (dmg.diceFlavor) {
             summary.appendChild(h('span', 'roll-card-flavor', dmg.diceFlavor));
@@ -1089,6 +1216,25 @@ window.SheetRoll = (function () {
         const detail = h('div', 'roll-card-detail');
         detail.appendChild(renderDetailLines(detailLines));
         block.appendChild(detail);
+        // Apply-to-HP row (Foundry's chat-card apply buttons): full, half, nonlethal.
+        const applyRow = h('div', 'roll-card-apply no-print');
+        const mkApply = (label, title, fn) => {
+            const b = h('button', 'roll-card-apply-btn', label);
+            b.type = 'button';
+            b.title = title;
+            b.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                fn();
+            });
+            applyRow.appendChild(b);
+        };
+        mkApply('Apply ' + dmg.total, 'Subtract from HP (temp HP absorbs first)',
+            () => applyDamageToHp(dmg.total));
+        mkApply('½', 'Apply half (save made / resistance)',
+            () => applyDamageToHp(Math.floor(dmg.total / 2)));
+        mkApply('NL', 'Apply as nonlethal damage',
+            () => applyDamageToHp(dmg.total, { nonlethal: true }));
+        block.appendChild(applyRow);
         bindExpandable(block);
         return block;
     }
@@ -1251,9 +1397,13 @@ window.SheetRoll = (function () {
         };
     }
 
-    /** @param {'normal'|'crit'} phase which attack d20 this is for (see evaluateConditionals). */
-    function conditionalAtkBonus(phase = 'normal') {
-        const ev = evaluateConditionals('attack', { phase });
+    /**
+     * @param {'normal'|'crit'} phase which attack d20 this is for (see evaluateConditionals).
+     * @param {string|null} [itemKey] which weapon's enhancement conditionals count
+     *   (see evaluateConditionals; `'none'` = natural attack, undefined = active weapon).
+     */
+    function conditionalAtkBonus(phase = 'normal', itemKey = undefined) {
+        const ev = evaluateConditionals('attack', { phase, itemKey });
         let diceTotal = 0;
         const diceDetails = [];
         if (ev.diceParts.length) {
@@ -1277,6 +1427,7 @@ window.SheetRoll = (function () {
             { label: ctx.abKey.toUpperCase(), value: ctx.abMod },
         ];
         if (ctx.enh) lines.push({ label: 'Enhancement', value: ctx.enh });
+        if (ctx.size?.mod) lines.push({ label: `Size (${ctx.size.label})`, value: ctx.size.mod });
         for (const b of ctx.atkChanges.bits) lines.push({ label: b.source, value: b.value });
         for (const b of condAtk.bits) lines.push({ label: b.source + ' (cond)', value: b.value });
         for (const d of condAtk.diceDetails) lines.push({ label: 'Cond dice', value: d });
@@ -1308,9 +1459,10 @@ window.SheetRoll = (function () {
         return out;
     }
 
-    function rollDamage(ctx, { critMult = 1, isCrit = false } = {}) {
+    function rollDamage(ctx, { critMult = 1, isCrit = false, oneOff = null, label = '' } = {}) {
         const w = ctx.wStats;
-        const cond = evaluateConditionals('damage', { isCrit: isCrit || critMult > 1 });
+        const cond = evaluateConditionals('damage',
+            { isCrit: isCrit || critMult > 1, itemKey: ctx.itemKey });
         const condDice = rollConditionalDice(cond.diceParts);
 
         if (!w?.dice && !w?.parts?.length) {
@@ -1343,7 +1495,10 @@ window.SheetRoll = (function () {
             }
         }
         const abMod = w ? abilityMod(currentData, w.damageAbility || 'str') : 0;
-        const flat = abMod + ctx.enh + ctx.dmgChanges.total + cond.flat + condDice.total;
+        // One-off situational damage (rolled fresh per attack so dice one-offs behave).
+        let ooVal = 0;
+        if (oneOff?.spec) ooVal = rollTerms(oneOff.spec.terms).total;
+        const flat = abMod + ctx.enh + ctx.dmgChanges.total + cond.flat + condDice.total + ooVal;
         const total = diceTotal + flat;
 
         if (abMod) parts.push({ label: (w.damageAbility || 'str').toUpperCase(), value: abMod });
@@ -1351,6 +1506,9 @@ window.SheetRoll = (function () {
         for (const b of ctx.dmgChanges.bits) parts.push({ label: b.source, value: b.value });
         for (const b of cond.bits) parts.push({ label: b.source + ' (cond)', value: b.value });
         for (const d of condDice.details) parts.push({ label: 'Cond dice', detail: d });
+        if (oneOff?.spec) {
+            parts.push({ label: (oneOff.label || 'Situational') + ' (one-off)', value: ooVal });
+        }
 
         return {
             total,
@@ -1358,6 +1516,7 @@ window.SheetRoll = (function () {
             flat,
             critMult,
             diceFlavor,
+            label,
             parts,
             conditionals: [
                 ...(cond.bits || []).map((b) => ({ source: b.source, value: b.value })),
@@ -1367,8 +1526,54 @@ window.SheetRoll = (function () {
         };
     }
 
-    function doWeaponAttack({ full = false, withDamage = true } = {}) {
-        const ctx = attackContext(currentData);
+    // ---------------------------------------------------------------- one-off modifiers
+    // "Flanking +2, just this attack" — typed into the attack panel, consumed by the next
+    // attack action (every line of it), then cleared. Raw strings so dice work ("1d6").
+    const oneOffInput = { attack: '', damage: '', label: '' };
+
+    function setOneOff(kind, value) {
+        oneOffInput[kind] = String(value ?? '');
+        // Mirror into every mounted panel (Tools drawer AND Combat card), same trick as
+        // the conditional checkboxes.
+        document.querySelectorAll(`.oneoff-input[data-oneoff="${kind}"]`).forEach((el) => {
+            if (el.value !== oneOffInput[kind]) el.value = oneOffInput[kind];
+        });
+    }
+
+    function clearOneOff() {
+        for (const kind of ['attack', 'damage', 'label']) setOneOff(kind, '');
+    }
+
+    /** Parse-and-consume the one-off inputs. Null when both boxes are empty. */
+    function takeOneOff() {
+        const out = { attack: null, damage: null, label: String(oneOffInput.label || '').trim() };
+        for (const kind of ['attack', 'damage']) {
+            const raw = String(oneOffInput[kind] || '').trim();
+            if (!raw) continue;
+            const parsed = parseFormula(raw);
+            if (parsed.ok) out[kind] = { terms: parsed.terms, formula: parsed.formula };
+        }
+        if (!out.attack && !out.damage) return null;
+        clearOneOff();
+        return out;
+    }
+
+    /** Attack-side one-off, rolled fresh for one attack line. */
+    function rollOneOffAtk(oo) {
+        if (!oo?.attack) return null;
+        const r = rollTerms(oo.attack.terms);
+        return {
+            value: r.total,
+            line: { label: (oo.label || 'Situational') + ' (one-off)', value: r.total },
+        };
+    }
+
+    function oneOffDmgOpt(oo) {
+        return oo?.damage ? { spec: oo.damage, label: oo.label } : null;
+    }
+
+    function doWeaponAttack({ full = false, withDamage = true, itemKey = undefined } = {}) {
+        const ctx = attackContext(currentData, itemKey);
         if (!ctx) {
             pushLog('Attack', 'Load a character first.', null, { sound: false });
             return;
@@ -1381,32 +1586,41 @@ window.SheetRoll = (function () {
         const critMult = ctx.wStats?.critMult ?? 2;
         const count = full ? ctx.iters : 1;
         const labelBase = ctx.label || ctx.wName;
+        const oo = takeOneOff();
         const attacks = [];
         const damages = [];
         const riderLists = [];
 
         for (let i = 0; i < count; i++) {
             const pen = i * 5;
-            const condThis = conditionalAtkBonus();
+            const condThis = conditionalAtkBonus('normal', ctx.itemKey);
             riderLists.push(condThis.riders);
-            const bonus = ctx.weaponBonus + condThis.total - pen;
+            const ooAtk = rollOneOffAtk(oo);
+            const bonus = ctx.weaponBonus + condThis.total + (ooAtk?.value || 0) - pen;
             const iterLabel = full
                 ? (count > 1 ? `Attack #${i + 1}` : 'Attack')
                 : 'Attack';
+            const bonusLines = attackBonusLines(ctx, condThis, pen);
+            if (ooAtk) bonusLines.push(ooAtk.line);
             const atk = rollD20Attack(bonus, iterLabel, {
                 critRange,
                 confirm: true,
                 getConfirmBonus: () => {
-                    const cc = conditionalAtkBonus('crit');
-                    return { bonus: ctx.weaponBonusConfirm + cc.total - pen, cond: cc };
+                    const cc = conditionalAtkBonus('crit', ctx.itemKey);
+                    return {
+                        bonus: ctx.weaponBonusConfirm + cc.total + (ooAtk?.value || 0) - pen,
+                        cond: cc,
+                    };
                 },
-                bonusLines: attackBonusLines(ctx, condThis, pen),
+                bonusLines,
                 conditionals: attackConditionalsList(condThis),
             });
             attacks.push(atk);
             if (withDamage) {
                 const mult = (atk.threatened && atk.confirm?.natural !== 1) ? critMult : 1;
-                const dmg = rollDamage(ctx, { critMult: mult, isCrit: mult > 1 });
+                const dmg = rollDamage(ctx, {
+                    critMult: mult, isCrit: mult > 1, oneOff: oneOffDmgOpt(oo),
+                });
                 if (dmg) {
                     damages.push(dmg);
                     riderLists.push(dmg.riders);
@@ -1425,8 +1639,8 @@ window.SheetRoll = (function () {
         });
     }
 
-    function doDamageOnly() {
-        const ctx = attackContext(currentData);
+    function doDamageOnly({ itemKey = undefined } = {}) {
+        const ctx = attackContext(currentData, itemKey);
         if (!ctx) {
             pushLog('Damage', 'Load a character first.', null, { sound: false });
             return;
@@ -1435,7 +1649,8 @@ window.SheetRoll = (function () {
             pushLog('Damage', 'No weapon on this character.', null, { sound: false });
             return;
         }
-        const dmg = rollDamage(ctx, { critMult: 1, isCrit: false });
+        const oo = takeOneOff();
+        const dmg = rollDamage(ctx, { critMult: 1, isCrit: false, oneOff: oneOffDmgOpt(oo) });
         if (!dmg) {
             pushLog('Damage', 'No weapon damage stats for “' + (ctx.wName || '?') + '”.', null, { sound: false });
             return;
@@ -1449,7 +1664,547 @@ window.SheetRoll = (function () {
         });
     }
 
+    // ---------------------------------------------------------------- attack routines
+    // A routine is a persisted, named full-attack sequence: one line = one d20. Lines are
+    // seeded from BAB iteratives + detected feats but stay fully editable — weird builds
+    // fix the numbers by hand instead of fighting a rules engine.
+    //   { id, name, lines: [
+    //       { type:'weapon', itemKey, label, adjust, ammoKey } |
+    //       { type:'natural', name, atkMod, dmg, adjust } ] }
+
+    /** Does the character know a feat, by base name (parenthetical picks ignored)? Scans
+     *  every FEAT_GROUPS list plus the feat-tax chains riding on them. */
+    function hasFeat(data, name) {
+        if (!data) return false;
+        const want = String(name).toLowerCase();
+        const matches = (f) => String(f).toLowerCase().split(' (')[0].trim() === want;
+        for (const g of window.SheetData?.FEAT_GROUPS || []) {
+            const list = data[g.listKey];
+            if (Array.isArray(list) && list.some(matches)) return true;
+            const tax = g.taxKey && data[g.taxKey];
+            if (tax && typeof tax === 'object'
+                && Object.values(tax).some((kids) => Array.isArray(kids) && kids.some(matches))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function routineList(data) {
+        const st = ((data || currentData) || {})._sheet;
+        return Array.isArray(st?.attackRoutines) ? st.attackRoutines : [];
+    }
+
+    function saveRoutines(routines) {
+        if (!currentData) return;
+        (currentData._sheet ??= {}).attackRoutines = routines;
+        window.SheetApp?.quietSave?.();
+    }
+
+    /**
+     * Default full-attack lines for this character: main-weapon iteratives, an extra
+     * Rapid Shot attack (ranged), and off-hand attacks for the TWF chain. Penalties are
+     * baked into each line's `adjust` (TWF assumes a light off-hand: −2/−2) so the seed
+     * is honest, visible, and editable.
+     */
+    function seedRoutineLines(data) {
+        const mainKey = activeWeaponItemKey(data);
+        const ctx = attackContext(data, mainKey);
+        if (!ctx?.wName) return [];
+        const name = ctx.label || ctx.wName;
+        const lines = [];
+        const rapid = ctx.ranged && hasFeat(data, 'Rapid Shot');
+        const offhand = !ctx.ranged
+            && hasFeat(data, 'Two-Weapon Fighting')
+            && equippedWeapons(data).find((it) => {
+                if (it.id === ctx.itemKey) return false;
+                const w = itemWeaponStats(it);
+                return w && !isRangedAction(w.actionType);
+            });
+        const globalAdj = (rapid ? -2 : 0) + (offhand ? -2 : 0);
+        for (let i = 0; i < ctx.iters; i++) {
+            lines.push({
+                type: 'weapon', itemKey: ctx.itemKey, ammoKey: null,
+                label: ctx.iters > 1 ? `${name} #${i + 1}` : name,
+                adjust: -5 * i + globalAdj,
+            });
+        }
+        if (rapid) {
+            lines.splice(1, 0, {
+                type: 'weapon', itemKey: ctx.itemKey, ammoKey: null,
+                label: `${name} (Rapid Shot)`, adjust: globalAdj,
+            });
+        }
+        if (offhand) {
+            const offAtks = 1 + (hasFeat(data, 'Improved Two-Weapon Fighting') ? 1 : 0)
+                + (hasFeat(data, 'Greater Two-Weapon Fighting') ? 1 : 0);
+            for (let j = 0; j < offAtks; j++) {
+                lines.push({
+                    type: 'weapon', itemKey: offhand.id, ammoKey: null,
+                    label: `Off-hand: ${offhand.name}` + (offAtks > 1 ? ` #${j + 1}` : ''),
+                    adjust: -2 - 5 * j,
+                });
+            }
+        }
+        return lines;
+    }
+
+    let routineSeq = 1;
+    function newRoutine(data, nameHint) {
+        const lines = seedRoutineLines(data);
+        return {
+            id: 'rt-' + Date.now() + '-' + routineSeq++,
+            name: nameHint || 'Full attack',
+            lines,
+        };
+    }
+
+    /** Routines, seeding a default on first touch (only when a weapon exists to seed from). */
+    function ensureRoutines(data) {
+        const existing = routineList(data);
+        if (existing.length) return existing;
+        const seeded = newRoutine(data);
+        if (!seeded.lines.length) return [];
+        (data._sheet ??= {}).attackRoutines = [seeded];
+        window.SheetApp?.quietSave?.();
+        return data._sheet.attackRoutines;
+    }
+
+    function selectedRoutine(data) {
+        const routines = routineList(data);
+        const sel = data?._sheet?.attackRoutineSel;
+        return routines.find((r) => r.id === sel) || routines[0] || null;
+    }
+
+    /** Natural-attack damage from a raw formula string ("1d6+4"). Crit doubles dice only,
+     *  matching the weapon path's existing convention. */
+    function rollNaturalDamage(line, { critMult = 1, oneOff = null } = {}) {
+        const cond = evaluateConditionals('damage', { isCrit: critMult > 1, itemKey: 'none' });
+        const condDice = rollConditionalDice(cond.diceParts);
+        const parsed = line.dmg ? parseFormula(line.dmg) : { ok: false };
+        let diceTotal = 0;
+        let flat = cond.flat + condDice.total;
+        let diceFlavor = '';
+        const parts = [];
+        if (parsed.ok) {
+            const r = rollTerms(parsed.terms);
+            const dice = r.parts.filter((x) => x.kind === 'dice');
+            const diceSum = dice.reduce((n, x) => n + x.rolls.reduce((a, b) => a + b, 0), 0);
+            const staticPart = r.total - diceSum;
+            diceTotal = diceSum * critMult;
+            flat += staticPart;
+            const rolls = dice.flatMap((x) => x.rolls);
+            const mult = critMult > 1 ? `×${critMult}` : '';
+            diceFlavor = parsed.formula + mult + (rolls.length ? '[' + rolls.join(', ') + ']' : '');
+            if (diceSum || rolls.length) {
+                parts.push({
+                    label: parsed.formula + mult,
+                    detail: (rolls.length ? '[' + rolls.join(', ') + ']' : '') + ' → ' + diceTotal,
+                });
+            }
+            if (staticPart) parts.push({ label: 'Static', value: staticPart });
+        } else if (!cond.flat && !condDice.total) {
+            return null;
+        }
+        let ooVal = 0;
+        if (oneOff?.spec) ooVal = rollTerms(oneOff.spec.terms).total;
+        flat += ooVal;
+        for (const b of cond.bits) parts.push({ label: b.source + ' (cond)', value: b.value });
+        for (const d of condDice.details) parts.push({ label: 'Cond dice', detail: d });
+        if (oneOff?.spec) {
+            parts.push({ label: (oneOff.label || 'Situational') + ' (one-off)', value: ooVal });
+        }
+        return {
+            total: diceTotal + flat,
+            diceTotal,
+            flat,
+            critMult,
+            diceFlavor,
+            label: line.name || 'Natural attack',
+            parts,
+            conditionals: [
+                ...(cond.bits || []).map((b) => ({ source: b.source, value: b.value })),
+                ...(condDice.details || []).map((d) => ({ source: 'dice', value: d })),
+            ],
+            riders: cond.riders || [],
+        };
+    }
+
+    /** Roll every line of a routine into one card. Ranged lines linked to an ammo item
+     *  spend one each; an empty quiver still rolls but flags the line loudly. */
+    function doRoutineAttack(routine) {
+        if (!currentData || !routine?.lines?.length) {
+            pushLog('Full attack', 'No routine to roll — add attacks in the editor.', null, { sound: false });
+            return;
+        }
+        const oo = takeOneOff();
+        const attacks = [];
+        const damages = [];
+        const riderLists = [];
+        const notes = [];
+        const ctxCache = new Map();
+        let ammoSpent = false;
+
+        for (const line of routine.lines) {
+            const adjust = Number(line.adjust) || 0;
+            if (line.type === 'natural') {
+                const cond = conditionalAtkBonus('normal', 'none');
+                riderLists.push(cond.riders);
+                const ooAtk = rollOneOffAtk(oo);
+                const atkMod = Number(line.atkMod) || 0;
+                const bonus = atkMod + adjust + cond.total + (ooAtk?.value || 0);
+                const bonusLines = [{ label: 'Attack mod', value: atkMod }];
+                if (adjust) bonusLines.push({ label: 'Adjust', value: adjust });
+                for (const b of cond.bits) bonusLines.push({ label: b.source, value: b.value });
+                if (ooAtk) bonusLines.push(ooAtk.line);
+                const atk = rollD20Attack(bonus, line.name || 'Natural attack', {
+                    critRange: 20,
+                    confirm: true,
+                    getConfirmBonus: () => {
+                        const cc = conditionalAtkBonus('crit', 'none');
+                        return { bonus: atkMod + adjust + cc.total + (ooAtk?.value || 0), cond: cc };
+                    },
+                    bonusLines,
+                    conditionals: attackConditionalsList(cond),
+                });
+                attacks.push(atk);
+                const mult = (atk.threatened && atk.confirm?.natural !== 1) ? 2 : 1;
+                const dmg = rollNaturalDamage(line, { critMult: mult, oneOff: oneOffDmgOpt(oo) });
+                if (dmg) {
+                    damages.push(dmg);
+                    riderLists.push(dmg.riders);
+                }
+                continue;
+            }
+
+            let ctx = ctxCache.get(line.itemKey);
+            if (ctx === undefined) {
+                ctx = attackContext(currentData, line.itemKey);
+                ctxCache.set(line.itemKey, ctx);
+            }
+            if (!ctx?.wName) {
+                notes.push({ source: line.label || 'Attack', text: 'Weapon not found — edit the routine.' });
+                continue;
+            }
+            const label = line.label || ctx.label || ctx.wName;
+
+            // Ammo: spend one per attack line; keep rolling at zero but say so.
+            if (line.ammoKey) {
+                const ammo = findInventoryItem(currentData, line.ammoKey);
+                if (!ammo) {
+                    notes.push({ source: label, text: 'Linked ammo is gone from the inventory.' });
+                } else if ((Number(ammo.quantity) || 0) <= 0) {
+                    notes.push({ source: label, text: `Out of ${ammo.name}!` });
+                } else {
+                    ammo.quantity = (Number(ammo.quantity) || 0) - 1;
+                    ammoSpent = true;
+                    if (ammo.quantity === 0) notes.push({ source: label, text: `${ammo.name}: last one spent.` });
+                }
+            }
+
+            const condThis = conditionalAtkBonus('normal', ctx.itemKey);
+            riderLists.push(condThis.riders);
+            const ooAtk = rollOneOffAtk(oo);
+            const bonus = ctx.weaponBonus + condThis.total + (ooAtk?.value || 0) + adjust;
+            const bonusLines = attackBonusLines(ctx, condThis, 0);
+            if (adjust) bonusLines.push({ label: 'Adjust', value: adjust });
+            if (ooAtk) bonusLines.push(ooAtk.line);
+            const atk = rollD20Attack(bonus, label, {
+                critRange: ctx.wStats?.critRange ?? 20,
+                confirm: true,
+                getConfirmBonus: () => {
+                    const cc = conditionalAtkBonus('crit', ctx.itemKey);
+                    return {
+                        bonus: ctx.weaponBonusConfirm + cc.total + (ooAtk?.value || 0) + adjust,
+                        cond: cc,
+                    };
+                },
+                bonusLines,
+                conditionals: attackConditionalsList(condThis),
+            });
+            attacks.push(atk);
+            const critMult = ctx.wStats?.critMult ?? 2;
+            const mult = (atk.threatened && atk.confirm?.natural !== 1) ? critMult : 1;
+            const dmg = rollDamage(ctx, {
+                critMult: mult, isCrit: mult > 1, oneOff: oneOffDmgOpt(oo), label,
+            });
+            if (dmg) {
+                damages.push(dmg);
+                riderLists.push(dmg.riders);
+            }
+        }
+
+        pushRollCard({
+            title: routine.name || 'Full attack',
+            subtitle: `Full attack (${attacks.length} attack${attacks.length === 1 ? '' : 's'})`,
+            attacks,
+            damages,
+            riders: [...notes, ...collectRiders(...riderLists)],
+        });
+        if (ammoSpent) {
+            window.SheetApp?.quietSave?.();
+            // Repaint so Inventory quantity and the routine editor's ammo counts agree.
+            window.SheetApp?.renderSheet?.(currentData);
+        }
+    }
+
     // ---------------------------------------------------------------- attack UI (tools + combat)
+    /** Weapon picker — which equipped weapon the single-weapon buttons + panel are on. */
+    function weaponPickerRow() {
+        const ws = equippedWeapons(currentData);
+        if (ws.length < 2) return null;
+        const row = h('div', 'atk-weapon-pick no-print');
+        const id = 'atk-weapon-pick-' + Math.random().toString(36).slice(2, 8);
+        const lab = h('label', null, 'Weapon');
+        lab.htmlFor = id;
+        const sel = document.createElement('select');
+        sel.id = id;
+        const cur = activeWeaponItemKey(currentData);
+        for (const it of ws) {
+            const opt = document.createElement('option');
+            opt.value = it.id;
+            opt.textContent = it.name;
+            if (it.id === cur) opt.selected = true;
+            sel.appendChild(opt);
+        }
+        sel.addEventListener('change', () => {
+            (currentData._sheet ??= {}).activeWeaponKey = sel.value;
+            window.SheetApp?.quietSave?.();
+            renderAttacks();
+        });
+        row.append(lab, sel);
+        return row;
+    }
+
+    /** "Next roll only" inputs: label + attack + damage. State is module-level so the
+     *  Tools drawer and the Combat card stay in sync (see setOneOff). */
+    function oneOffBox() {
+        const box = h('div', 'atk-oneoff no-print');
+        box.title = 'One-off modifier for the next attack action only (flanking, cover, '
+            + 'higher ground…). Dice formulas work. Cleared after the roll.';
+        box.appendChild(h('span', 'atk-oneoff-label', 'Next roll:'));
+        const mk = (kind, ph, cls) => {
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.className = 'oneoff-input' + (cls ? ' ' + cls : '');
+            inp.dataset.oneoff = kind;
+            inp.placeholder = ph;
+            inp.setAttribute('aria-label', 'One-off ' + (kind === 'label' ? 'reason' : kind + ' modifier'));
+            inp.value = oneOffInput[kind];
+            inp.addEventListener('input', () => setOneOff(kind, inp.value));
+            return inp;
+        };
+        box.appendChild(mk('label', 'why (flanking…)', 'oneoff-why'));
+        box.appendChild(mk('attack', '+atk', 'oneoff-num'));
+        box.appendChild(mk('damage', '+dmg', 'oneoff-num'));
+        return box;
+    }
+
+    /** Items an attack line can spend as ammo (anything that isn't a weapon or armor). */
+    function ammoOptions(data) {
+        const list = window.SheetState?.ensureInventoryObjects?.(data) || [];
+        const cat = window.SheetInventoryModel?.inventoryCategory;
+        return list.filter((it) => it && typeof it === 'object'
+            && (!cat || cat(it) === 'consumables' || cat(it) === 'equipment'));
+    }
+
+    let routineEditorOpen = false;
+
+    function routineEditor(data, routine) {
+        const wrap = h('div', 'atk-routine-editor no-print');
+        const weapons = equippedWeapons(data);
+        const ammo = ammoOptions(data);
+
+        const nameRow = h('div', 'atk-routine-line atk-routine-name-row');
+        const nameInp = document.createElement('input');
+        nameInp.type = 'text';
+        nameInp.className = 'atk-routine-name';
+        nameInp.value = routine.name || '';
+        nameInp.placeholder = 'Routine name';
+        nameInp.setAttribute('aria-label', 'Routine name');
+        nameInp.addEventListener('change', () => {
+            routine.name = nameInp.value.trim() || 'Full attack';
+            window.SheetApp?.quietSave?.();
+            renderAttacks();
+        });
+        nameRow.appendChild(nameInp);
+        wrap.appendChild(nameRow);
+
+        const mkSelect = (options, value, onChange, aria) => {
+            const sel = document.createElement('select');
+            sel.setAttribute('aria-label', aria);
+            for (const [val, text] of options) {
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = text;
+                if (val === value) opt.selected = true;
+                sel.appendChild(opt);
+            }
+            sel.addEventListener('change', () => onChange(sel.value));
+            return sel;
+        };
+        const mkInput = (type, value, ph, onChange, cls, aria) => {
+            const inp = document.createElement('input');
+            inp.type = type;
+            if (cls) inp.className = cls;
+            inp.value = value ?? '';
+            inp.placeholder = ph;
+            inp.setAttribute('aria-label', aria || ph);
+            inp.addEventListener('change', () => onChange(inp.value));
+            return inp;
+        };
+
+        routine.lines.forEach((line, idx) => {
+            const row = h('div', 'atk-routine-line');
+            if (line.type === 'natural') {
+                row.appendChild(mkInput('text', line.name, 'Bite, claw…', (v) => {
+                    line.name = v;
+                    window.SheetApp?.quietSave?.();
+                }, 'atk-line-name', 'Natural attack name'));
+                row.appendChild(mkInput('number', line.atkMod, '+atk', (v) => {
+                    line.atkMod = Number(v) || 0;
+                    window.SheetApp?.quietSave?.();
+                }, 'atk-line-num', 'Attack modifier'));
+                row.appendChild(mkInput('text', line.dmg, '1d6+4', (v) => {
+                    line.dmg = v.trim();
+                    window.SheetApp?.quietSave?.();
+                }, 'atk-line-dmg', 'Damage formula'));
+            } else {
+                const wOpts = weapons.map((it) => [it.id, it.name]);
+                if (line.itemKey && !weapons.some((it) => it.id === line.itemKey)) {
+                    wOpts.push([line.itemKey, '(missing weapon)']);
+                }
+                row.appendChild(mkSelect(wOpts, line.itemKey, (v) => {
+                    line.itemKey = v;
+                    window.SheetApp?.quietSave?.();
+                }, 'Weapon for this attack'));
+                row.appendChild(mkInput('text', line.label, 'label', (v) => {
+                    line.label = v.trim();
+                    window.SheetApp?.quietSave?.();
+                }, 'atk-line-name', 'Attack label'));
+                row.appendChild(mkSelect(
+                    [['', 'no ammo'], ...ammo.map((it) => [it.id,
+                        `${it.name} (${Number(it.quantity) || 0})`])],
+                    line.ammoKey || '',
+                    (v) => {
+                        line.ammoKey = v || null;
+                        window.SheetApp?.quietSave?.();
+                    }, 'Ammo item spent per attack'));
+            }
+            row.appendChild(mkInput('number', line.adjust ?? 0, '±0', (v) => {
+                line.adjust = Number(v) || 0;
+                window.SheetApp?.quietSave?.();
+            }, 'atk-line-num', 'Flat adjustment (iterative/TWF penalties live here)'));
+            const del = h('button', 'atk-line-del', '×');
+            del.type = 'button';
+            del.title = 'Remove this attack';
+            del.addEventListener('click', () => {
+                routine.lines.splice(idx, 1);
+                window.SheetApp?.quietSave?.();
+                renderAttacks();
+            });
+            row.appendChild(del);
+            wrap.appendChild(row);
+        });
+
+        const addRow = h('div', 'atk-routine-line atk-routine-add-row');
+        const addWeapon = h('button', null, '+ Weapon attack');
+        addWeapon.type = 'button';
+        addWeapon.addEventListener('click', () => {
+            routine.lines.push({
+                type: 'weapon', itemKey: activeWeaponItemKey(data), ammoKey: null,
+                label: '', adjust: 0,
+            });
+            window.SheetApp?.quietSave?.();
+            renderAttacks();
+        });
+        const addNatural = h('button', null, '+ Natural attack');
+        addNatural.type = 'button';
+        addNatural.addEventListener('click', () => {
+            routine.lines.push({ type: 'natural', name: '', atkMod: 0, dmg: '', adjust: 0 });
+            window.SheetApp?.quietSave?.();
+            renderAttacks();
+        });
+        const reseed = h('button', null, 'Re-seed');
+        reseed.type = 'button';
+        reseed.title = 'Rebuild the lines from BAB iteratives + feats (TWF, Rapid Shot). '
+            + 'Replaces the current lines.';
+        reseed.addEventListener('click', () => {
+            routine.lines = seedRoutineLines(data);
+            window.SheetApp?.quietSave?.();
+            renderAttacks();
+        });
+        addRow.append(addWeapon, addNatural, reseed);
+        wrap.appendChild(addRow);
+        return wrap;
+    }
+
+    function renderRoutinePanel() {
+        const data = currentData;
+        if (!data) return null;
+        const routines = ensureRoutines(data);
+        const panel = h('div', 'atk-routines');
+        panel.appendChild(h('div', 'cond-panel-title', 'Full-attack routines'));
+        const current = selectedRoutine(data);
+
+        const row = h('div', 'atk-routine-row no-print');
+        if (routines.length) {
+            const sel = document.createElement('select');
+            sel.setAttribute('aria-label', 'Attack routine');
+            for (const r of routines) {
+                const opt = document.createElement('option');
+                opt.value = r.id;
+                opt.textContent = `${r.name} (${r.lines.length})`;
+                if (current && r.id === current.id) opt.selected = true;
+                sel.appendChild(opt);
+            }
+            sel.addEventListener('change', () => {
+                (data._sheet ??= {}).attackRoutineSel = sel.value;
+                window.SheetApp?.quietSave?.();
+                renderAttacks();
+            });
+            row.appendChild(sel);
+            const rollIt = h('button', 'atk-routine-roll', 'Roll full attack');
+            rollIt.type = 'button';
+            rollIt.title = 'Roll every attack line of this routine, each with damage';
+            rollIt.addEventListener('click', () => doRoutineAttack(selectedRoutine(data)));
+            row.appendChild(rollIt);
+            const edit = h('button', null, routineEditorOpen ? 'Done' : 'Edit');
+            edit.type = 'button';
+            edit.title = 'Edit the attack lines of this routine';
+            edit.addEventListener('click', () => {
+                routineEditorOpen = !routineEditorOpen;
+                renderAttacks();
+            });
+            row.appendChild(edit);
+        }
+        const add = h('button', null, '+ New');
+        add.type = 'button';
+        add.title = 'New routine, seeded from BAB + feats';
+        add.addEventListener('click', () => {
+            const next = [...routineList(data), newRoutine(data, 'Routine ' + (routines.length + 1))];
+            saveRoutines(next);
+            (data._sheet ??= {}).attackRoutineSel = next[next.length - 1].id;
+            routineEditorOpen = true;
+            renderAttacks();
+        });
+        row.appendChild(add);
+        if (routines.length) {
+            const del = h('button', null, '× Delete');
+            del.type = 'button';
+            del.title = 'Delete this routine';
+            del.addEventListener('click', () => {
+                const cur = selectedRoutine(data);
+                saveRoutines(routineList(data).filter((r) => r !== cur));
+                renderAttacks();
+            });
+            row.appendChild(del);
+        }
+        panel.appendChild(row);
+        if (routineEditorOpen && current) panel.appendChild(routineEditor(data, current));
+        return panel;
+    }
+
     function makeAttackButtons(ctx) {
         const row = h('div', 'tools-btn-row combat-atk-btns no-print');
         const atkBonus = ctx.weaponBonus + (conditionalAtkBonus().flat || 0);
@@ -1484,6 +2239,8 @@ window.SheetRoll = (function () {
 
         if (ctx.wName) {
             const block = h('div', 'tools-atk-block combat-atk-card');
+            const pick = weaponPickerRow();
+            if (pick) block.appendChild(pick);
             block.appendChild(h('div', 'tools-atk-name', ctx.label || ctx.wName));
 
             // Two rows, identical structure: Kind · Value · flavor
@@ -1524,6 +2281,9 @@ window.SheetRoll = (function () {
             block.appendChild(stats);
 
             block.appendChild(makeAttackButtons(ctx));
+            block.appendChild(oneOffBox());
+            const routines = renderRoutinePanel();
+            if (routines) block.appendChild(routines);
             if (showConditionals) {
                 const condHost = h('div', 'cond-panel-host');
                 block.appendChild(condHost);
@@ -1532,6 +2292,10 @@ window.SheetRoll = (function () {
             host.appendChild(block);
         } else {
             host.appendChild(h('p', 'tools-empty', 'No equipped weapon on this character.'));
+            host.appendChild(oneOffBox());
+            // Natural-attack-only characters still get routines (all-natural lines).
+            const routines = renderRoutinePanel();
+            if (routines) host.appendChild(routines);
             if (showConditionals) {
                 const condHost = h('div', 'cond-panel-host');
                 host.appendChild(condHost);
@@ -1547,17 +2311,22 @@ window.SheetRoll = (function () {
             mBtn.type = 'button';
             mBtn.addEventListener('click', () => {
                 const ca = conditionalAtkBonus();
-                const bonus = ctx.meleeBonus + ca.total;
+                const ooAtk = rollOneOffAtk(takeOneOff());
+                const bonus = ctx.meleeBonus + ca.total + (ooAtk?.value || 0);
                 const atk = rollD20Attack(bonus, 'Melee attack', {
                     confirm: true,
                     getConfirmBonus: () => {
                         const cc = conditionalAtkBonus('crit');
-                        return { bonus: ctx.meleeBonusConfirm + cc.total, cond: cc };
+                        return {
+                            bonus: ctx.meleeBonusConfirm + cc.total + (ooAtk?.value || 0),
+                            cond: cc,
+                        };
                     },
                     bonusLines: [
                         { label: 'BAB', value: ctx.bab },
                         { label: 'STR', value: ctx.strM },
                         ...ca.bits.map((b) => ({ label: b.source, value: b.value })),
+                        ...(ooAtk ? [ooAtk.line] : []),
                     ],
                     conditionals: attackConditionalsList(ca),
                 });
@@ -1573,17 +2342,22 @@ window.SheetRoll = (function () {
             rBtn.type = 'button';
             rBtn.addEventListener('click', () => {
                 const ca = conditionalAtkBonus();
-                const bonus = ctx.rangedBonus + ca.total;
+                const ooAtk = rollOneOffAtk(takeOneOff());
+                const bonus = ctx.rangedBonus + ca.total + (ooAtk?.value || 0);
                 const atk = rollD20Attack(bonus, 'Ranged attack', {
                     confirm: true,
                     getConfirmBonus: () => {
                         const cc = conditionalAtkBonus('crit');
-                        return { bonus: ctx.rangedBonusConfirm + cc.total, cond: cc };
+                        return {
+                            bonus: ctx.rangedBonusConfirm + cc.total + (ooAtk?.value || 0),
+                            cond: cc,
+                        };
                     },
                     bonusLines: [
                         { label: 'BAB', value: ctx.bab },
                         { label: 'DEX', value: ctx.dexM },
                         ...ca.bits.map((b) => ({ label: b.source, value: b.value })),
+                        ...(ooAtk ? [ooAtk.line] : []),
                     ],
                     conditionals: attackConditionalsList(ca),
                 });
@@ -1745,7 +2519,10 @@ window.SheetRoll = (function () {
         highlightInlineRolls,
         rollWeaponAttack: doWeaponAttack,
         rollDamage: doDamageOnly,
+        rollWeaponAttackFor: (itemKey, opts = {}) => doWeaponAttack({ ...opts, itemKey }),
+        rollDamageFor: (itemKey) => doDamageOnly({ itemKey }),
         rollSpellCast,
-        attackContext: () => attackContext(currentData),
+        hasFeat: (data, name) => hasFeat(data || currentData, name),
+        attackContext: (itemKey) => attackContext(currentData, itemKey),
     };
 })();

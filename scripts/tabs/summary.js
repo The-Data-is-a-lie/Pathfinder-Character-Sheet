@@ -32,6 +32,10 @@ window.SheetTabSummary = (function () {
         if (Array.isArray(data.day_list)) {
             st.spellCastsRemaining = data.day_list.map((n) => Number(n) || 0);
         }
+        // Extra spellbooks (multiclass casters) refill from their own slot tables.
+        for (const b of st.extraSpellbooks || []) {
+            if (b && Array.isArray(b.dayList)) b.casts = b.dayList.map((n) => Number(n) || 0);
+        }
         if (st.featureUses && typeof st.featureUses === 'object') {
             for (const u of Object.values(st.featureUses)) {
                 if (u && u.max != null) u.value = Number(u.max) || 0;
@@ -77,6 +81,8 @@ window.SheetTabSummary = (function () {
             if (!confirm('Rest and restore daily resources (spell casts, feature uses, sphere SP)?')) return;
             doRest(data);
         }, 'Restore daily casts / uses / spell points');
+        mk('Level up', () => window.SheetLevelUp?.open?.(data),
+            'Advance a level in place: class, HP, BAB/saves, feat, ability bump');
         mk('Tools', () => window.SheetRoll?.setOpen?.(true));
         body.appendChild(bar);
     }
@@ -137,9 +143,20 @@ window.SheetTabSummary = (function () {
         // --- HP / Speed line
         const hpLine = line('Hit Points / Speed');
         const hpVal = h('span', 'summary-hp-pair');
-        hpVal.appendChild(editNumNode(st, 'hpCurrent'));
+        hpVal.appendChild(editNumNode(st, 'hpCurrent', { min: -999 }));
         hpVal.appendChild(document.createTextNode(' / ' + d.blocks.hp.total));
         const cur = Number(st.hpCurrent) || 0;
+        // PF1 negative-HP states: disabled at 0, dying below, dead at −Con score.
+        // Nonlethal ≥ current HP = staggered; above it = unconscious.
+        const conScore = window.SheetDerive.abilityInfo(data, 'con').total ?? 10;
+        const nl = Number(st.hpNonlethal) || 0;
+        let hpState = null;
+        if (cur <= -conScore) hpState = ['Dead (−Con)', 'hp-state-dead'];
+        else if (cur < 0) hpState = [`Dying (dead at ${-conScore})`, 'hp-state-dying'];
+        else if (cur === 0) hpState = ['Disabled (staggered)', 'hp-state-dying'];
+        else if (nl > cur) hpState = ['Unconscious (nonlethal)', 'hp-state-dying'];
+        else if (nl === cur && nl > 0) hpState = ['Staggered (nonlethal)', 'hp-state-stagger'];
+        if (hpState) hpVal.appendChild(h('span', 'hp-state ' + hpState[1], hpState[0]));
         box(hpLine, 'HP', hpVal, {
             title: partsTitle(d.blocks.hp),
             cls: d.blocks.hp.total > 0 && cur <= d.blocks.hp.total / 2 ? 'is-bloodied' : undefined,
@@ -152,6 +169,18 @@ window.SheetTabSummary = (function () {
             if (st.speeds[key] == null || st.speeds[key] === '') st.speeds[key] = key === 'land' ? (Number(data.land_speed) || 30) : 0;
             const node = h('span');
             node.appendChild(editNumNode(st.speeds, key));
+            // Medium/Heavy load slows movement (worse of armor/load; armor is usually
+            // already baked into the generated speed, so only the load cap is shown).
+            const enc = d.encumbrance;
+            if (key === 'land' && enc?.reducesSpeed && Number(st.speeds.land) > 0) {
+                const reduced = window.SheetDerive.loadReducedSpeed(st.speeds.land);
+                if (reduced < Number(st.speeds.land)) {
+                    const mark = h('span', 'speed-load-note', ` → ${reduced}`);
+                    mark.title = `${enc.label} load (${Math.round(enc.weight)} lbs carried): `
+                        + `speed reduced to ${reduced} ft`;
+                    node.appendChild(mark);
+                }
+            }
             if (key === 'fly') {
                 const sel = h('select', 'edit-field fly-maneuver-select');
                 for (const m of ['—', 'clumsy', 'poor', 'average', 'good', 'perfect']) {
