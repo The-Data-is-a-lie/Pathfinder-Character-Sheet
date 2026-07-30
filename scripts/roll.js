@@ -138,8 +138,36 @@ window.SheetRoll = (function () {
         return { ok: true, formula: parsed.formula, total, parts, detail };
     }
 
-    // Strip Foundry source labels like "1d6[Power Attack]" and @INITMOD.
+    /**
+     * Resolve a Foundry formula down to the `±NdS±N` shape parseFormula understands, reporting
+     * anything it could not follow.
+     *
+     * Prefer this over cleanFormula(): it delegates to SheetFormula, so `@classes.x.level`,
+     * `floor()/min()/ifelse()` and computed dice counts (`(floor(@classes.magus.level / 3))d6`) all
+     * resolve, and an unknown `@token` comes back in `unresolved` instead of silently becoming 0.
+     */
+    function cleanFormulaSafe(formula, data) {
+        const F = window.SheetFormula;
+        const ctx = { INITMOD: initiationMod(data) };
+        if (!F) return { formula: cleanFormula(formula, data), unresolved: [] };
+        const r = F.evaluateToRollable(formula, data, ctx);
+        if (r.ok) return { formula: r.formula, unresolved: r.unresolved };
+        return { formula: '', unresolved: r.unresolved, error: r.error };
+    }
+
+    /**
+     * Legacy formula cleaner: same bare-string signature it always had, so existing callers are
+     * unaffected. It now resolves through SheetFormula first and only falls back to the old
+     * zero-every-unknown-@token behaviour when that fails — the fallback is what keeps a formula the
+     * evaluator can't express (e.g. `1d4 * @abilities.cha.mod`, which Foundry rolls then multiplies)
+     * degrading exactly as it did before rather than becoming an empty string.
+     */
     function cleanFormula(formula, data) {
+        const F = window.SheetFormula;
+        if (F) {
+            const r = F.evaluateToRollable(formula, data, { INITMOD: initiationMod(data) });
+            if (r.ok && !r.unresolved.length) return r.formula;
+        }
         let s = String(formula || '').trim();
         // Remove [label] flavor tags
         s = s.replace(/\[[^\]]*\]/g, '');
@@ -160,10 +188,33 @@ window.SheetRoll = (function () {
     }
 
     /**
-     * Expand Foundry spell formulas for rolling: @cl, @sl, @ablMod, ability mods,
-     * then simple min()/max() and (N)dX so parseFormula can handle the result.
+     * Expand Foundry spell formulas for rolling: @cl, @sl, @ablMod, ability mods, then the
+     * arithmetic around them, so parseFormula can handle the result.
+     *
+     * Delegates to SheetFormula, which handles nested functions and non-literal arguments the old
+     * regex pass could not (`min(10, floor((@cl + 1) / 2))`). Falls back to the original expander
+     * when the evaluator can't resolve the whole formula, so a spell that rolled before still rolls
+     * — spell casting stays deliberately lenient about unknown `@tokens` where the per-roll
+     * conditionals are strict, because a half-resolved damage formula still beats no damage roll.
      */
     function expandSpellFormula(formula, ctx) {
+        const F = window.SheetFormula;
+        if (F) {
+            const r = F.evaluateToRollable(formula, ctx?.data, {
+                cl: Number(ctx?.cl) || 0,
+                sl: Number(ctx?.sl) || 0,
+                ablMod: Number(ctx?.ablMod) || 0,
+                INITMOD: initiationMod(ctx?.data),
+            });
+            if (r.ok && !r.unresolved.length) return r.formula;
+            if (r.unresolved.length) {
+                console.warn('expandSpellFormula: unresolved', r.unresolved, 'in', formula);
+            }
+        }
+        return expandSpellFormulaLegacy(formula, ctx);
+    }
+
+    function expandSpellFormulaLegacy(formula, ctx) {
         let s = String(formula || '').trim();
         if (!s) return '';
         s = s.replace(/\[[^\]]*\]/g, '');
@@ -525,8 +576,33 @@ window.SheetRoll = (function () {
             || s === 'alldamage' || s.endsWith('damage');
     }
 
+    /**
+     * Inventory id of the weapon the roller is currently using. Enhancement conditionals are tagged
+     * with the item that carries them, and this is what they get matched against.
+     *
+     * The roller is still single-weapon (everything reads data.weapon_name), so this is derived
+     * rather than passed in; when per-row weapon rolling lands, callers can override it through
+     * `opts.itemKey` and nothing else here has to change.
+     */
+    function activeWeaponItemKey(data) {
+        const d = data || currentData;
+        const nm = String(d?.weapon_name || '').trim();
+        if (!nm) return null;
+        return window.SheetDetails?.coreGearItemKey?.(d, nm) || null;
+    }
+
     function activeList() {
         return availableConditionals.filter((c) => activeConditionals.get(c.id));
+    }
+
+    /**
+     * Conditionals that apply to the weapon being rolled. An entry with no `itemKey` (feats,
+     * stances, spells, class features) is weapon-independent and always applies; the filter is
+     * opt-in, so only the enhancement entries are ever narrowed.
+     */
+    function scopedList(itemKey) {
+        const key = itemKey === undefined ? activeWeaponItemKey() : itemKey;
+        return activeList().filter((c) => !c.itemKey || !key || c.itemKey === key);
     }
 
     /**
@@ -539,7 +615,9 @@ window.SheetRoll = (function () {
      * fires confirm-only feats (Object Of Legend, Desperate Swing, …) on the wrong roll.
      *
      * @param {'attack'|'damage'} kind
-     * @param {{ isCrit?: boolean, phase?: 'normal'|'crit' }} opts
+     * @param {{ isCrit?: boolean, phase?: 'normal'|'crit', itemKey?: string|null }} opts
+     *   `itemKey` overrides which weapon's enhancement conditionals count; omit it to use the
+     *   weapon the roller is on. Pass `null` to include every weapon's qualities.
      *   `isCrit` filters damage (existing behaviour); `phase` picks which attack d20 is being
      *   rolled. A missing/unknown `critical` counts as `normal`, as the damage branch already
      *   assumes; `nonCrit` is a damage concept and falls in the initial bucket on attacks.
@@ -551,7 +629,7 @@ window.SheetRoll = (function () {
         const diceParts = []; // { formula, source, rolled? }
         const riders = [];
 
-        for (const cond of activeList()) {
+        for (const cond of scopedList(opts.itemKey)) {
             if (cond.rider) riders.push({ source: cond.source, text: cond.rider });
             for (const m of cond.modifiers || []) {
                 const tgt = m.subTarget || m.target || '';
@@ -571,8 +649,20 @@ window.SheetRoll = (function () {
                     else if (crit === 'crit') continue;
                 }
 
-                let formula = cleanFormula(m.formula, data);
-                if (!formula) continue;
+                const resolved = cleanFormulaSafe(m.formula, data);
+                const formula = resolved.formula;
+                if (!formula) {
+                    // Show the reference we couldn't follow rather than dropping the modifier: a
+                    // conditional that quietly contributes nothing is indistinguishable from one
+                    // that works, and the whole point of checking the box is to see its effect.
+                    if (resolved.unresolved?.length || resolved.error) {
+                        bits.push({ source: cond.source, value: 0,
+                            formula: String(m.formula) + (resolved.unresolved?.length
+                                ? ' (unresolved ' + resolved.unresolved.join(', ') + ')'
+                                : ' (unparsed)') });
+                    }
+                    continue;
+                }
                 // Integer only?
                 if (/^[+-]?\d+$/.test(formula)) {
                     const n = Number(formula);
@@ -618,8 +708,11 @@ window.SheetRoll = (function () {
         // log still chips the result (and hover shows the original formula).
         return String(text || '').replace(/\[\[([^\]]+)\]\]/g, (_, inner) => {
             const raw = String(inner || '').trim();
-            let f = cleanFormula(inner, data);
-            const parsed = parseFormula(f);
+            // Some curated riders put PROSE in the roll brackets ("[[ DC 15 ]]", "[[ 15 +
+            // enhancement bonus ]]"). Those legitimately fail to parse and must survive as their
+            // original text, which is why this returns the raw marker rather than zeroing anything.
+            const { formula: f } = cleanFormulaSafe(inner, data);
+            const parsed = f ? parseFormula(f) : { ok: false };
             if (!parsed.ok) return '[[' + raw + ']]';
             const r = rollTerms(parsed.terms);
             // [[result¦formula]] — highlightInlineRolls splits on the separator
@@ -685,6 +778,22 @@ window.SheetRoll = (function () {
         document.querySelectorAll(`.cond-check[data-cond-id="${esc}"]`).forEach((el) => {
             el.checked = !!on;
         });
+        refreshCondGroupCounts();
+    }
+
+    /**
+     * Repaint the "N on" badges from the checkboxes themselves. Reads the DOM rather than the
+     * conditional state so it stays correct in every mounted panel (Tools drawer AND Combat card)
+     * without a re-render, exactly like the checkbox sync above.
+     */
+    function refreshCondGroupCounts() {
+        document.querySelectorAll('.cond-group').forEach((box) => {
+            const badge = box.querySelector('.cond-group-count');
+            if (!badge) return;
+            const boxes = [...box.querySelectorAll('.cond-check')];
+            const on = boxes.filter((el) => el.checked).length;
+            badge.textContent = on ? `${on} on` : `${boxes.length}`;
+        });
     }
 
     function seedConditionals(data) {
@@ -704,6 +813,56 @@ window.SheetRoll = (function () {
         }
     }
 
+    // Panel grouping. Order is roughly "most likely to be toggled this round" first; anything with an
+    // unlisted sourceKind falls into Other rather than disappearing.
+    const COND_GROUPS = [
+        ['enhancement', 'Weapon qualities'],
+        ['classFeature', 'Class features'],
+        ['feat', 'Feats'],
+        ['maneuver', 'Maneuvers'],
+        ['stance', 'Stances'],
+        ['talent', 'Talents'],
+        ['spell', 'Spells'],
+        ['other', 'Other'],
+    ];
+    const COND_GROUP_KEYS = new Set(COND_GROUPS.map(([k]) => k));
+    const condGroupKey = (c) =>
+        (COND_GROUP_KEYS.has(c.sourceKind) ? c.sourceKind : 'other');
+
+    function condGroupOpen(key, hasActive) {
+        const stored = currentData?._sheet?.conditionalGroupsOpen?.[key];
+        // Default open only where something is already switched on -- a group whose entries default
+        // to active (stances, flaming) is one the user needs to SEE to know it is applying.
+        return stored === undefined ? hasActive : !!stored;
+    }
+
+    function setCondGroupOpen(key, open) {
+        if (!currentData) return;
+        const st = (currentData._sheet ??= {});
+        (st.conditionalGroupsOpen ??= {})[key] = !!open;
+        window.SheetApp?.quietSave?.();
+    }
+
+    function condRow(c) {
+        const row = h('label', 'cond-row');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'cond-check';
+        cb.dataset.condId = c.id;
+        cb.checked = !!activeConditionals.get(c.id);
+        cb.addEventListener('change', () => {
+            setConditional(c.id, cb.checked);
+            // Persist quietly if sheet exposes saver
+            window.SheetApp?.quietSave?.();
+        });
+        const text = h('span', 'cond-label');
+        setTextWithInlineRolls(text, c.label);
+        // Truncate very long riders in the label display via CSS; full title on hover
+        row.title = c.label;
+        row.append(cb, text);
+        return row;
+    }
+
     function renderConditionalPanel(host) {
         if (!host) return;
         host.innerHTML = '';
@@ -712,32 +871,44 @@ window.SheetRoll = (function () {
             host.appendChild(h('p', 'tools-empty', 'Load a character for conditionals.'));
             return;
         }
-        if (!availableConditionals.length) {
+        // Only the rolled weapon's qualities belong here — a character with four magic weapons would
+        // otherwise be asked about all four sets on every swing. Same rule as scopedList(), applied
+        // to what is AVAILABLE rather than what is checked.
+        const weaponKey = activeWeaponItemKey();
+        const shown = availableConditionals
+            .filter((c) => !c.itemKey || !weaponKey || c.itemKey === weaponKey);
+        if (!shown.length) {
             host.appendChild(h('p', 'tools-empty', 'No per-roll conditionals for this character.'));
             return;
         }
         host.appendChild(h('div', 'cond-panel-title', 'Conditionals (apply to next roll)'));
-        const list = h('div', 'cond-list');
-        for (const c of availableConditionals) {
-            const row = h('label', 'cond-row');
-            const cb = document.createElement('input');
-            cb.type = 'checkbox';
-            cb.className = 'cond-check';
-            cb.dataset.condId = c.id;
-            cb.checked = !!activeConditionals.get(c.id);
-            cb.addEventListener('change', () => {
-                setConditional(c.id, cb.checked);
-                // Persist quietly if sheet exposes saver
-                window.SheetApp?.quietSave?.();
-            });
-            const text = h('span', 'cond-label');
-            setTextWithInlineRolls(text, c.label);
-            // Truncate very long riders in the label display via CSS; full title on hover
-            row.title = c.label;
-            row.append(cb, text);
-            list.appendChild(row);
+
+        const byGroup = new Map();
+        for (const c of shown) {
+            const key = condGroupKey(c);
+            if (!byGroup.has(key)) byGroup.set(key, []);
+            byGroup.get(key).push(c);
         }
-        host.appendChild(list);
+
+        for (const [key, title] of COND_GROUPS) {
+            const items = byGroup.get(key);
+            if (!items?.length) continue;
+            const activeCount = items.filter((c) => activeConditionals.get(c.id)).length;
+            const box = document.createElement('details');
+            box.className = 'cond-group';
+            box.open = condGroupOpen(key, activeCount > 0);
+            box.addEventListener('toggle', () => setCondGroupOpen(key, box.open));
+            const sum = document.createElement('summary');
+            sum.className = 'cond-group-summary';
+            sum.append(h('span', 'cond-group-title', title));
+            sum.append(h('span', 'cond-group-count',
+                activeCount ? `${activeCount} on` : `${items.length}`));
+            box.appendChild(sum);
+            const list = h('div', 'cond-list');
+            for (const c of items) list.appendChild(condRow(c));
+            box.appendChild(list);
+            host.appendChild(box);
+        }
     }
 
     // ---------------------------------------------------------------- log (Foundry-style cards + simple dice)

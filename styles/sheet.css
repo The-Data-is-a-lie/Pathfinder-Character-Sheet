@@ -2819,6 +2819,43 @@ button:disabled { opacity: 0.55; cursor: wait; }
     max-height: 16rem;
     overflow-y: auto;
 }
+/* Grouped conditionals: enhancements + class-feature powers push a mid-level character to 15-30
+   toggles, so each source kind is its own collapsible section with an active count. The cap moves
+   to the group's own list so one long group can't push the others off screen. */
+.cond-group { margin-bottom: 0.25rem; }
+.cond-group > .cond-list { max-height: 11rem; margin-top: 0.2rem; }
+.cond-group-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+    cursor: pointer;
+    font-size: 0.78rem;
+    padding: 0.2rem 0.3rem;
+    border-radius: 3px;
+    list-style: none;
+}
+.cond-group-summary::-webkit-details-marker { display: none; }
+.cond-group-summary:hover { background: var(--row-hover); }
+.cond-group-title { font-variant: small-caps; letter-spacing: 0.02em; }
+/* A disclosure arrow the theme can't lose: rotated text glyph, no icon font, no color reliance. */
+.cond-group-title::before {
+    content: '\25B8';
+    display: inline-block;
+    width: 0.9em;
+    color: var(--accent-dark);
+    transition: transform 0.12s ease;
+}
+.cond-group[open] > .cond-group-summary .cond-group-title::before { transform: rotate(90deg); }
+.cond-group-count {
+    flex: 0 0 auto;
+    font-size: 0.7rem;
+    padding: 0.05rem 0.32rem;
+    border-radius: 999px;
+    background: var(--input-bg-solid);
+    border: 1px solid var(--row-border);
+    color: var(--dim);
+}
 .cond-row {
     display: flex;
     align-items: flex-start;
