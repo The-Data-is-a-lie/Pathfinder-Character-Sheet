@@ -54,10 +54,39 @@ window.SheetTabBuffs = (function () {
         wrap.append(label, dec, maxEdit);
         return wrap;
     }
+    /** Round tracker: advances round-denominated buff/condition durations, expiring at 0. */
+    function renderRoundCounter(body, data) {
+        const st = sheetState(data);
+        const row = h('div', 'round-counter no-print');
+        row.appendChild(h('span', 'round-counter-label', `Round ${Number(st.roundCounter) || 0}`));
+        const next = h('button', 'inv-btn inv-btn-primary', 'Next round');
+        next.type = 'button';
+        next.title = 'Advance one round: buffs/conditions with a duration in rounds tick down and expire at 0';
+        next.addEventListener('click', () => {
+            const res = window.SheetState.advanceRound(data);
+            window.SheetOverlay?.toast?.(res.expired.length
+                ? `Round ${res.round} — expired: ${res.expired.join(', ')}`
+                : `Round ${res.round}`);
+            renderSheet(data);
+            setActiveTab('buffs');
+        });
+        const reset = h('button', 'inv-btn', 'Reset');
+        reset.type = 'button';
+        reset.title = 'Reset the round counter to 0 (durations are not restored)';
+        reset.addEventListener('click', () => {
+            window.SheetState.resetRoundCounter(data);
+            renderSheet(data);
+            setActiveTab('buffs');
+        });
+        row.append(next, reset);
+        body.appendChild(row);
+    }
     function renderConditionsTray(body, data) {
         body.appendChild(h('h3', null, 'Conditions'));
         body.appendChild(h('p', 'dbl-edit-hint no-print',
-            'Click to toggle. Double-click an active chip to set a duration note.'));
+            'Click to toggle — penalties apply to the sheet automatically. Double-click an active chip '
+            + 'for a duration ("5 rounds" ticks down with Next round; free text stays put).'));
+        renderRoundCounter(body, data);
         const grid = h('div', 'conditions-grid no-print');
         const active = activeConditions(data);
         const st = sheetState(data);
@@ -329,7 +358,9 @@ window.SheetTabBuffs = (function () {
             ledger = SD.collectChanges(data);
             window.sheetChangesFull = ledger;
             window.sheetChanges = effectiveLedger(data);
-            const passiveChanges = (ledger.changes || []).filter((c) => c.sourceKind !== 'buff');
+            // Conditions have their own tray above — a second toggle row here would fight it.
+            const passiveChanges = (ledger.changes || [])
+                .filter((c) => c.sourceKind !== 'buff' && c.sourceKind !== 'condition');
             const allGroups = groupChangesBySource(passiveChanges);
             passive = {
                 groups: allGroups.filter((g) => !isBuffSourceRemoved(data, g.source, g.sourceKind)),

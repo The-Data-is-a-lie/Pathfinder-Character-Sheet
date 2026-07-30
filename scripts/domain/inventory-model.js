@@ -42,6 +42,29 @@ window.SheetInventoryModel = (function () {
         return item;
     }
     /**
+     * The coin purse, normalized once per character. The backend reports the *same* money
+     * twice — `gold` as the gp total and the legacy-misspelled `platnium` as gold / 10 — so
+     * rendering both boxes doubled the purse. Gold is the single source of truth: when the
+     * two agree to within a coin, the derived platinum is dropped. Guarded by a _sheet flag
+     * so a PP amount the user enters later is never clobbered.
+     */
+    function normalizeCurrency(data) {
+        if (data.platinum == null && data.platnium != null) data.platinum = data.platnium;
+        const st = (data._sheet ??= {});
+        if (!st.currencyNormalized) {
+            st.currencyNormalized = true;
+            const gp = Number(data.gold) || 0;
+            const pp = Number(data.platinum) || 0;
+            if (gp > 0 && pp > 0 && Math.abs(pp * 10 - gp) <= 0.5) {
+                data.platinum = 0;
+                data.platnium = 0;
+            }
+        }
+        for (const key of ['platinum', 'gold', 'silver', 'copper']) {
+            if (data[key] == null || data[key] === '') data[key] = 0;
+        }
+    }
+    /**
      * One-time migration: the generated weapon / armor / shield (weapon_name & co.)
      * become regular equipment_list items with full item sheets. Combat math keeps
      * reading data.weapon_name — only the inventory display moves into the list.
@@ -114,6 +137,7 @@ window.SheetInventoryModel = (function () {
 
     return {
         inventoryCategory, invSlotLabel, addInventoryItem, migrateCoreGear, gearLine,
+        normalizeCurrency,
         INV_CATEGORY_ORDER, INV_CAT_ITEMTYPE,
     };
 })();

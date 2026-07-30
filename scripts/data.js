@@ -64,6 +64,93 @@ window.SheetData = (function () {
         { id: 'staggered', label: 'Staggered', note: 'Single move or standard' },
         { id: 'stunned', label: 'Stunned', note: '−2 AC; drop items; no actions' },
     ];
+    // Mechanical effects per condition, consumed by the changes ledger (collectChanges) and
+    // derive.js. `changes` use the normal ledger target vocabulary; the parts a ledger can't
+    // express are flags: `loseDex` (Dex bonus to AC/CMD denied — negative Dex still applies)
+    // and `noDodge` (dodge bonuses drop too). Non-numeric rules (can't act, speed halved,
+    // prone's split ranged/melee AC) stay in the chip's `note` — honesty over fake numbers.
+    const ccPen = (formula, target, type = 'penalty') => ({ formula, target, type });
+    const CONDITION_CHANGES = {
+        blinded: { loseDex: true, changes: [ccPen('-2', 'ac')] },
+        cowering: { loseDex: true, changes: [ccPen('-2', 'ac')] },
+        dazzled: { changes: [ccPen('-1', 'attack'), ccPen('-1', 'skill.per')] },
+        deafened: { changes: [ccPen('-4', 'init')] },
+        entangled: { changes: [ccPen('-2', 'attack'), ccPen('-4', 'dex')] },
+        exhausted: { changes: [ccPen('-6', 'str'), ccPen('-6', 'dex')] },
+        fascinated: { changes: [ccPen('-4', 'skill.per')] },
+        fatigued: { changes: [ccPen('-2', 'str'), ccPen('-2', 'dex')] },
+        'flat-footed': { loseDex: true, noDodge: true },
+        frightened: { changes: [ccPen('-2', 'attack'), ccPen('-2', 'cmb'),
+            ccPen('-2', 'allSavingThrows'), ccPen('-2', 'skills')] },
+        grappled: { changes: [ccPen('-4', 'dex'), ccPen('-2', 'attack'), ccPen('-2', 'cmb')] },
+        helpless: { loseDex: true },
+        invisible: { changes: [{ formula: '+2', target: 'attack', type: 'circumstance' }] },
+        panicked: { changes: [ccPen('-2', 'allSavingThrows'), ccPen('-2', 'skills')] },
+        paralyzed: { loseDex: true },
+        pinned: { loseDex: true, changes: [ccPen('-4', 'ac')] },
+        prone: { changes: [ccPen('-4', 'mattack')] },
+        shaken: { changes: [ccPen('-2', 'attack'), ccPen('-2', 'cmb'),
+            ccPen('-2', 'allSavingThrows'), ccPen('-2', 'skills')] },
+        sickened: { changes: [ccPen('-2', 'attack'), ccPen('-2', 'cmb'), ccPen('-2', 'damage'),
+            ccPen('-2', 'allSavingThrows'), ccPen('-2', 'skills')] },
+        stunned: { loseDex: true, changes: [ccPen('-2', 'ac')] },
+    };
+
+    // ------------------------------------------------------------ size categories
+    // `mod` is the size modifier to attack & AC; the special size modifier (CMB/CMD) is its
+    // negation. `steps` is the damage-dice progression distance from Medium.
+    const SIZES = [
+        { id: 'fine', label: 'Fine', mod: 8, steps: -4 },
+        { id: 'diminutive', label: 'Diminutive', mod: 4, steps: -3 },
+        { id: 'tiny', label: 'Tiny', mod: 2, steps: -2 },
+        { id: 'small', label: 'Small', mod: 1, steps: -1 },
+        { id: 'medium', label: 'Medium', mod: 0, steps: 0 },
+        { id: 'large', label: 'Large', mod: -1, steps: 1 },
+        { id: 'huge', label: 'Huge', mod: -2, steps: 2 },
+        { id: 'gargantuan', label: 'Gargantuan', mod: -4, steps: 3 },
+        { id: 'colossal', label: 'Colossal', mod: -8, steps: 4 },
+    ];
+    const SMALL_RACES = new Set(['halfling', 'gnome', 'goblin', 'kobold', 'ratfolk', 'wayang',
+        'svirfneblin', 'grippli', 'monkey goblin', 'vine leshy']);
+
+    // pf1's damage-dice progression ladder plus the official off-ladder pairs. A die the
+    // table doesn't know (or a non-NdM formula) is returned unchanged — the item sheet's
+    // per-item dice override is the escape hatch.
+    const DICE_LADDER = ['1d1', '1d2', '1d3', '1d4', '1d6', '1d8', '1d10', '2d6', '2d8',
+        '3d6', '3d8', '4d6', '4d8', '6d6', '6d8', '8d6', '8d8', '12d6', '12d8', '16d6'];
+    const DICE_STEP_SPECIAL = {
+        '1d12': { up: '3d6', down: '1d10' },
+        '2d4': { up: '2d6', down: '1d4' },
+        '2d10': { up: '4d8', down: '2d8' },
+        '2d12': { up: '6d6', down: '3d6' },
+        '4d10': { up: '8d8', down: '4d8' },
+    };
+    // Paizo FAQ progression: one size up moves +1 ladder step at 1d6 or less, +2 steps at
+    // 1d8 or more (longsword 1d8 → 2d6); one size down moves −1 step at 1d8 or less, −2
+    // steps above (2d6 → 1d8, but 1d8 → 1d6).
+    const D8_IDX = DICE_LADDER.indexOf('1d8');
+    function stepDice(dice, steps) {
+        let cur = String(dice || '').trim().toLowerCase().replace(/\s+/g, '');
+        let n = Number(steps) || 0;
+        if (!n || !/^\d+d\d+$/.test(cur)) return dice;
+        while (n !== 0) {
+            const dir = n > 0 ? 'up' : 'down';
+            const sp = DICE_STEP_SPECIAL[cur];
+            if (sp?.[dir]) {
+                cur = sp[dir];
+            } else {
+                const i = DICE_LADDER.indexOf(cur);
+                if (i < 0) return dice;
+                const delta = n > 0 ? (i >= D8_IDX ? 2 : 1) : -(i > D8_IDX ? 2 : 1);
+                const j = Math.min(DICE_LADDER.length - 1, Math.max(0, i + delta));
+                if (j === i) break; // floor/cap of the chart
+                cur = DICE_LADDER[j];
+            }
+            n += n > 0 ? -1 : 1;
+        }
+        return cur;
+    }
+
     // ------------------------------------------------------------ class & archetype info
     // Built-in PF1 class chassis (best effort — every field is editable per character
     // via _sheet.classInfo overrides in the class popup). classSkills use ALL_SKILLS ids.
@@ -184,6 +271,7 @@ window.SheetData = (function () {
 
     return {
         REGIONS, RACES, CLASSES, CORE_RACES, CORE_CLASSES, DEITIES,
-        PF1_CONDITIONS, CLASS_STATS, DEFAULT_CLASS_INFO, ALL_SKILLS, FEAT_GROUPS,
+        PF1_CONDITIONS, CONDITION_CHANGES, SIZES, SMALL_RACES, stepDice,
+        CLASS_STATS, DEFAULT_CLASS_INFO, ALL_SKILLS, FEAT_GROUPS,
     };
 })();

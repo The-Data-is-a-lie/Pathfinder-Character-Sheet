@@ -313,8 +313,62 @@ window.SheetState = (function () {
             },
             changes: Array.isArray(b.changes) ? cloneChanges(b.changes) : [],
             notes: b.notes != null ? String(b.notes) : '',
+            // Size-setting buffs (Enlarge Person → 'large'); '' = no size effect.
+            setSize: typeof b.setSize === 'string' ? b.setSize : '',
         };
     }
+    /**
+     * Advance combat by one round: bump the round counter and tick every round-denominated
+     * duration down by one. Conditions store durations as free text ("5 rounds") — parse
+     * the leading number when the unit is rounds (or absent), rewrite what's left, and
+     * clear the condition at zero. Buffs use their structured {value, units}. Minute/hour
+     * buffs are untouched (a round is 6 seconds; ticking them here would be noise).
+     * @returns {{ round: number, expired: string[] }}
+     */
+    function advanceRound(data) {
+        const st = sheetState(data);
+        st.roundCounter = (Number(st.roundCounter) || 0) + 1;
+        const expired = [];
+
+        st.conditionDurations ??= {};
+        const condLabel = (id) => (window.SheetData?.PF1_CONDITIONS || [])
+            .find((c) => c.id === id)?.label || id;
+        for (const id of [...activeConditions(data)]) {
+            const raw = String(st.conditionDurations[id] || '').trim();
+            const m = raw.match(/^(\d+)(\s*(?:round|rnd|rd|r)s?\.?)?$/i);
+            if (!m) continue; // free-text ("until save") — never auto-expire
+            const left = Number(m[1]) - 1;
+            if (left <= 0) {
+                delete st.conditionDurations[id];
+                setConditionActive(data, id, false);
+                expired.push(condLabel(id));
+            } else {
+                st.conditionDurations[id] = left + (m[2] ? ' ' + (left === 1 ? 'round' : 'rounds') : '');
+            }
+        }
+
+        for (const b of ensureBuffs(data)) {
+            if (!b || b.active === false) continue;
+            const u = String(b.duration?.units || '');
+            if (u !== 'round' && u !== 'turn') continue;
+            const v = Number(b.duration.value);
+            if (!Number.isFinite(v) || v <= 0) continue;
+            const left = v - 1;
+            b.duration.value = String(left);
+            if (left <= 0) {
+                b.active = false;
+                expired.push(b.name);
+            }
+        }
+
+        quietSave();
+        return { round: st.roundCounter, expired };
+    }
+    function resetRoundCounter(data) {
+        sheetState(data).roundCounter = 0;
+        quietSave();
+    }
+
     function formatBuffDuration(buff) {
         const v = String(buff?.duration?.value || '').trim();
         const u = String(buff?.duration?.units || '').trim();
@@ -385,7 +439,7 @@ window.SheetState = (function () {
                 equipped: norm.equipped !== false,
                 carried: norm.carried !== false,
                 identified: norm.identified !== false,
-                quantity: Math.max(1, Number(norm.quantity) || 1),
+                quantity: norm.quantity == null ? 1 : Math.max(0, Number(norm.quantity) || 0),
                 weight: norm.weight,
                 price: norm.price,
                 description: norm.description || '',
@@ -473,7 +527,8 @@ window.SheetState = (function () {
         setBuffSourceActive, removeBuffSource, restoreRemovedBuffSources, activeStanceSet,
         setStanceActive, activeConditions, setConditionActive, notesForTargets, attachNotesHover,
         featureCustomList, featureCustomEntry, pruneFeatureCustom, ensureBuffs, normalizeBuffEntry,
-        formatBuffDuration, createBuff, addBuffFromCatalog, ensureSpellCasts, spendSpellSlot,
+        formatBuffDuration, advanceRound, resetRoundCounter,
+        createBuff, addBuffFromCatalog, ensureSpellCasts, spendSpellSlot,
         ensureCastingAbility, ensureInitiationStat, ensureInventoryObjects, ensureDefenses,
         ensureClassList, syncLegacyClasses, ensureArchetypeList, ensureSkillRanksObject,
         BUFF_SUBTYPES, BUFF_DURATION_UNITS,

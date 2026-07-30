@@ -702,6 +702,19 @@ window.SheetDetails = (function () {
             }
         }
 
+        // Active conditions (Buffs tab tray) — curated numeric penalties from
+        // SheetData.CONDITION_CHANGES. loseDex/noDodge are flags derive.js reads directly
+        // (a ledger change can't express "your Dex bonus stops counting").
+        const condTable = window.SheetData?.CONDITION_CHANGES || {};
+        const condLabels = new Map((window.SheetData?.PF1_CONDITIONS || [])
+            .map((c) => [c.id, c.label]));
+        for (const id of data._sheet?.conditions || []) {
+            const entry = condTable[id];
+            if (entry?.changes?.length) {
+                pushEntry(ledger, condLabels.get(id) || id, 'condition', entry);
+            }
+        }
+
         return ledger;
     }
 
@@ -790,7 +803,11 @@ window.SheetDetails = (function () {
         const equipped = isObj && raw.equipped === false ? false : true;
         const identified = isObj && raw.identified === false ? false : true;
         const carried = isObj && raw.carried === false ? false : true;
-        const quantity = Math.max(1, Number(isObj ? raw.quantity : 1) || 1);
+        // Quantity 0 is meaningful (ammo shot dry), so only a MISSING value defaults to 1.
+        const rawQty = isObj ? raw.quantity : 1;
+        const quantity = rawQty == null || rawQty === ''
+            ? 1
+            : Math.max(0, Number(rawQty) || 0);
         let price = null;
         if (isObj && raw.price != null && raw.price !== '') price = Number(raw.price);
         else if (isObj && raw.value != null && raw.value !== '') price = Number(raw.value);

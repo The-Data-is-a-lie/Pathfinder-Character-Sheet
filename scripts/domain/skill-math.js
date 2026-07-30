@@ -116,11 +116,18 @@ window.SheetSkillMath = (function () {
             }
         }
         if (acpApplies) {
-            const acp = toInt(data.armor_armor_check_penalty);
-            if (acp != null && acp !== 0) {
-                const pen = acp > 0 ? -acp : acp;
-                total += pen;
-                bits.push({ source: 'Armor check', value: pen });
+            // Armor check penalty and the encumbrance check penalty do not stack — the
+            // worse of the two applies (PF1 carrying-capacity rules).
+            const armorAcp = Math.abs(toInt(data.armor_armor_check_penalty) ?? 0);
+            const enc = window.SheetDerive?.encumbrance?.(data);
+            const loadAcp = Math.abs(enc?.acp || 0);
+            const acp = Math.max(armorAcp, loadAcp);
+            if (acp) {
+                total -= acp;
+                bits.push({
+                    source: loadAcp > armorAcp ? `${enc.label} load check` : 'Armor check',
+                    value: -acp,
+                });
             }
         }
         // PF1 negative levels: −1 per level on all skill checks

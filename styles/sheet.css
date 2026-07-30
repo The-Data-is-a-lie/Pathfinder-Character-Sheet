@@ -4536,6 +4536,235 @@ body.tools-resizing .tools-drawer { transition: none; }
     gap: 0.3rem;
 }
 
+/* Weapon picker — which equipped weapon the single-weapon panel is on */
+.atk-weapon-pick {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 0.35rem;
+    font-size: 0.78rem;
+}
+.atk-weapon-pick label {
+    color: var(--dim);
+    font-weight: 600;
+}
+.atk-weapon-pick select {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.8rem;
+}
+
+/* One-off "next roll only" modifier boxes */
+.atk-oneoff {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin: 0.35rem 0 0;
+    font-size: 0.78rem;
+}
+.atk-oneoff-label {
+    color: var(--dim);
+    font-weight: 600;
+    white-space: nowrap;
+}
+.oneoff-input {
+    font-size: 0.78rem;
+    padding: 0.12rem 0.25rem;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--paper);
+    color: var(--ink);
+}
+.oneoff-why { flex: 1 1 5rem; min-width: 3.5rem; }
+.oneoff-num { flex: 0 0 3.4rem; width: 3.4rem; text-align: center; }
+
+/* Full-attack routines */
+.atk-routines {
+    margin-top: 0.5rem;
+    border-top: 1px dashed var(--rule);
+    padding-top: 0.35rem;
+}
+.atk-routine-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+}
+.atk-routine-row select {
+    flex: 1 1 7rem;
+    min-width: 0;
+    font-size: 0.8rem;
+}
+.atk-routine-roll {
+    font-weight: 600;
+}
+.atk-routine-editor {
+    margin-top: 0.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.atk-routine-line {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+.atk-routine-line select {
+    flex: 1 1 6rem;
+    min-width: 0;
+    font-size: 0.78rem;
+}
+.atk-routine-line input {
+    font-size: 0.78rem;
+    padding: 0.12rem 0.25rem;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--paper);
+    color: var(--ink);
+}
+.atk-routine-name { flex: 1 1 auto; font-weight: 600; }
+.atk-line-name { flex: 1 1 4.5rem; min-width: 3rem; }
+.atk-line-num { flex: 0 0 3.2rem; width: 3.2rem; text-align: center; }
+.atk-line-dmg { flex: 1 1 4rem; min-width: 3rem; }
+.atk-line-del {
+    flex: 0 0 auto;
+    line-height: 1;
+    padding: 0.1rem 0.35rem;
+}
+.atk-routine-add-row {
+    flex-wrap: wrap;
+    margin-top: 0.15rem;
+}
+
+/* Hand-rolled modals lock page scroll while open (attachModalChrome) */
+body.modal-open { overflow: hidden; }
+
+/* Apply-damage buttons on roll-log damage blocks */
+.roll-card-apply {
+    display: flex;
+    gap: 0.25rem;
+    margin-top: 0.2rem;
+}
+.roll-card-apply-btn {
+    font-size: 0.72rem;
+    padding: 0.05rem 0.4rem;
+}
+/* HP state chip (dying / disabled / dead / staggered) */
+.hp-state {
+    display: inline-block;
+    margin-left: 0.35rem;
+    padding: 0 0.35rem;
+    border-radius: 3px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+.hp-state-dying { background: #b3261e; color: #fff; }
+.hp-state-dead { background: #1a1a1a; color: #fff; }
+.hp-state-stagger { background: #8a6d00; color: #fff; }
+/* Subskill rows (Craft / Perform / Profession instances) */
+.skill-subskill-name { padding-left: 0.9rem; }
+.skill-subskill-del { margin-left: 0.35rem; }
+.skill-subskill-add td { padding: 0.1rem 0.3rem 0.35rem; }
+.item-use-btn { margin-left: 0.3rem; }
+
+/* Level-up wizard */
+.levelup-body { display: flex; flex-direction: column; gap: 0.45rem; min-width: 19rem; }
+.levelup-row { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+.levelup-label { font-weight: 600; min-width: 5.5rem; }
+.levelup-hp-val { font-weight: 600; }
+.levelup-summary { margin: 0.2rem 0 0 1.1rem; font-size: 0.85rem; }
+.levelup-summary li { margin: 0.1rem 0; }
+
+/* Spellbooks (multi-book) + metamagic picker */
+.spellbook-block {
+    margin: 0 0 1rem;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+}
+.spellbook-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.3rem;
+}
+.spellbook-title { margin: 0; }
+.spellbook-name {
+    font-weight: bold;
+    font-size: 0.95rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.spellbook-add { margin-top: 0.2rem; }
+.mm-picker { display: flex; flex-direction: column; gap: 0.3rem; min-width: 16rem; }
+.mm-row {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.85rem;
+}
+.mm-name { flex: 1 1 auto; }
+.mm-heighten input { width: 3.5rem; }
+.mm-summary { font-weight: 600; margin: 0.3rem 0 0; }
+.mm-summary.mm-overflow { color: #b3261e; }
+
+/* Round counter (Buffs tab conditions tray) */
+.round-counter {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.2rem 0 0.5rem;
+}
+.round-counter-label {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    min-width: 5rem;
+}
+
+/* Size row on the Combat tab */
+.combat-size-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.35rem 0 0.5rem;
+    font-size: 0.85rem;
+}
+.combat-size-row label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+}
+.combat-size-note { font-size: 0.78rem; }
+
+/* Speed shown reduced under Medium/Heavy load */
+.speed-load-note {
+    color: var(--accent-dark);
+    font-weight: 600;
+    cursor: help;
+}
+.inv-load-consequences { margin: 0.25rem 0 0; }
+
+/* Per-weapon roll strip under Combat-tab inventory rows */
+.inv-atk-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    padding: 0.15rem 0.4rem 0.3rem 2rem;
+    font-size: 0.78rem;
+}
+.inv-atk-btn {
+    font-size: 0.76rem;
+    padding: 0.1rem 0.45rem;
+}
+.inv-atk-nostats {
+    color: var(--dim);
+    font-style: italic;
+}
+
 .tools-log {
     display: flex;
     flex-direction: column;
