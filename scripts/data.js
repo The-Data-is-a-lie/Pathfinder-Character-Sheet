@@ -414,6 +414,8 @@ window.SheetData = (function () {
     const ALL_SKILLS = [
         { name: 'Acrobatics', ab: 'dex', id: 'acr', acp: true },
         { name: 'Appraise', ab: 'int', id: 'apr' },
+        // Unchained background-skills variant only (#21) — rows render when the toggle is on.
+        { name: 'Artistry', ab: 'int', id: 'art', variant: 'backgroundSkills' },
         { name: 'Bluff', ab: 'cha', id: 'blf' },
         { name: 'Climb', ab: 'str', id: 'clm', acp: true },
         { name: 'Craft', ab: 'int', id: 'crf' },
@@ -436,6 +438,7 @@ window.SheetData = (function () {
         { name: 'Knowledge (Planes)', ab: 'int', id: 'kpl' },
         { name: 'Knowledge (Religion)', ab: 'int', id: 'kre' },
         { name: 'Linguistics', ab: 'int', id: 'lin' },
+        { name: 'Lore', ab: 'int', id: 'lor', variant: 'backgroundSkills' },
         { name: 'Perception', ab: 'wis', id: 'per' },
         { name: 'Perform', ab: 'cha', id: 'prf' },
         { name: 'Profession', ab: 'wis', id: 'pro' },
@@ -449,10 +452,16 @@ window.SheetData = (function () {
         { name: 'Use Magic Device', ab: 'cha', id: 'umd' },
     ];
 
+    // Unchained background-skills variant (#21): the skills the 2 ranks/level background
+    // budget may buy (subskill instances of these — "Craft (Weapons)" — count too).
+    const BACKGROUND_SKILL_IDS = [
+        'apr', 'art', 'crf', 'han', 'ken', 'kge', 'khi', 'kno', 'lin', 'lor', 'prf', 'pro', 'slt',
+    ];
+
     return {
         REGIONS, RACES, CLASSES, CORE_RACES, CORE_CLASSES, DEITIES,
         PF1_CONDITIONS, CONDITION_CHANGES, COMBAT_TOGGLES, TWO_HANDED_WEAPONS,
         MARQUEE_FEATURES, SIZES, SMALL_RACES, stepDice,
-        CLASS_STATS, DEFAULT_CLASS_INFO, ALL_SKILLS, FEAT_GROUPS,
+        CLASS_STATS, DEFAULT_CLASS_INFO, ALL_SKILLS, BACKGROUND_SKILL_IDS, FEAT_GROUPS,
     };
 })();
