@@ -446,6 +446,28 @@ window.SheetDetails = (function () {
             });
         }
 
+        // User-authored per-roll toggles (#16): buffs with activation 'perRoll'. The buff's
+        // Active checkbox gates availability; the panel checkbox is the per-roll switch.
+        // An itemKey scopes the toggle to one weapon, exactly like enhancement qualities.
+        for (const b of (data._sheet?.buffs || [])) {
+            if (!b || b.active === false || b.activation !== 'perRoll') continue;
+            if (!b.changes?.length && !b.notes) continue;
+            push({
+                id: 'custombuff:' + (b.id || b.name),
+                label: b.name || 'Custom toggle',
+                source: b.name || 'Custom toggle',
+                sourceKind: 'custom',
+                itemKey: b.itemKey || undefined,
+                defaultOn: false,
+                modifiers: (b.changes || []).map((c) => ({
+                    formula: String(c.formula ?? ''),
+                    target: c.target || 'attack',
+                    type: c.type || 'untyped',
+                })),
+                rider: b.notes || '',
+            });
+        }
+
         let known = (data.maneuvers_choose_from || []).flat().filter(Boolean);
         const descs = data.maneuvers_desc_dict || {};
         // Fallback: desc keys that aren't stances
@@ -742,6 +764,9 @@ window.SheetDetails = (function () {
             for (const b of buffs) {
                 if (!b || b.active === false) continue;
                 if (!b.changes?.length) continue;
+                // Per-roll buffs (#16) are conditional-panel toggles, not standing
+                // modifiers — collectRollConditionals owns them.
+                if (b.activation === 'perRoll') continue;
                 pushEntry(ledger, b.name || 'Buff', 'buff', { changes: b.changes });
             }
         }

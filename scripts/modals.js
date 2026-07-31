@@ -88,12 +88,48 @@ window.SheetModals = (function () {
                 sizeSel.appendChild(opt);
             }
         }
+        // #16: activation mode — always-on ledger changes vs a per-roll toggle in the
+        // conditional panel's Custom group, optionally scoped to one equipped weapon.
+        const activSel = h('select', 'edit-field');
+        activSel.title = 'Always on: applies to every total while Active. Per-roll: a '
+            + 'checkbox in the conditional panel (Custom group) you tick before a roll.';
+        for (const [val, label] of [['always', 'Always on'], ['perRoll', 'Per-roll toggle']]) {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = label;
+            if ((buff.activation || 'always') === val) opt.selected = true;
+            activSel.appendChild(opt);
+        }
+        const weaponSel = h('select', 'edit-field');
+        weaponSel.title = 'Per-roll only: apply just when this weapon is the one rolled';
+        {
+            const any = document.createElement('option');
+            any.value = '';
+            any.textContent = '— any roll —';
+            weaponSel.appendChild(any);
+            const list = window.SheetState?.ensureInventoryObjects?.(data) || [];
+            for (const it of list) {
+                if (!it || typeof it !== 'object' || it.equipped === false) continue;
+                if (inventoryCategory(it) !== 'weapons') continue;
+                const opt = document.createElement('option');
+                opt.value = it.id || '';
+                opt.textContent = it.name || 'weapon';
+                if ((buff.itemKey || '') === (it.id || '')) opt.selected = true;
+                weaponSel.appendChild(opt);
+            }
+        }
+        const syncWeaponSel = () => { weaponSel.disabled = activSel.value !== 'perRoll'; };
+        activSel.addEventListener('change', syncWeaponSel);
+        syncWeaponSel();
+
         addField('Name', nameIn);
         addField('Category', subSel);
         addField('Level', levelIn);
         addField('Duration', durVal);
         addField('Units', durUnit);
         addField('Sets size', sizeSel);
+        addField('Activation', activSel);
+        addField('Weapon scope', weaponSel);
         panel.appendChild(meta);
 
         const notesIn = h('textarea', 'edit-field buff-editor-notes');
@@ -195,39 +231,29 @@ window.SheetModals = (function () {
         panel.appendChild(form);
 
         const actions = h('div', 'inv-buffs-actions');
+        const commitMeta = () => {
+            buff.name = String(nameIn.value || '').trim() || buff.name;
+            buff.subType = subSel.value;
+            buff.level = parseIntLoose(levelIn.value, 0);
+            buff.duration = {
+                value: String(durVal.value || '').trim(),
+                units: durUnit.value || '',
+            };
+            buff.setSize = sizeSel.value || '';
+            buff.notes = notesIn.value || '';
+            buff.activation = activSel.value === 'perRoll' ? 'perRoll' : 'always';
+            buff.itemKey = buff.activation === 'perRoll' ? (weaponSel.value || '') : '';
+            quietSave();
+            renderSheet(data);
+            setActiveTab('buffs');
+        };
         const saveBtn = h('button', 'inv-btn inv-btn-primary', 'Save');
         saveBtn.type = 'button';
-        saveBtn.addEventListener('click', () => {
-            buff.name = String(nameIn.value || '').trim() || buff.name;
-            buff.subType = subSel.value;
-            buff.level = parseIntLoose(levelIn.value, 0);
-            buff.duration = {
-                value: String(durVal.value || '').trim(),
-                units: durUnit.value || '',
-            };
-            buff.setSize = sizeSel.value || '';
-            buff.notes = notesIn.value || '';
-            quietSave();
-            renderSheet(data);
-            setActiveTab('buffs');
-        });
+        saveBtn.addEventListener('click', commitMeta);
         const closeBtn = h('button', 'inv-btn', 'Close');
         closeBtn.type = 'button';
-        closeBtn.addEventListener('click', () => {
-            // Apply meta fields on close too
-            buff.name = String(nameIn.value || '').trim() || buff.name;
-            buff.subType = subSel.value;
-            buff.level = parseIntLoose(levelIn.value, 0);
-            buff.duration = {
-                value: String(durVal.value || '').trim(),
-                units: durUnit.value || '',
-            };
-            buff.setSize = sizeSel.value || '';
-            buff.notes = notesIn.value || '';
-            quietSave();
-            renderSheet(data);
-            setActiveTab('buffs');
-        });
+        // Apply meta fields on close too
+        closeBtn.addEventListener('click', commitMeta);
         actions.append(saveBtn, closeBtn);
         panel.appendChild(actions);
         host.appendChild(panel);
