@@ -989,6 +989,11 @@ window.SheetModals = (function () {
             checkRow('Masterwork', () => item.masterwork, (v) => { item.masterwork = v; }),
             checkRow('Identified', () => item.identified !== false, (v) => { item.identified = v; },
                 'Unidentified items show the unidentified name on the sheet'),
+            // #5: only flagged items refill on Rest — a wand must NOT (its charges are
+            // permanent), a staff or per-day wondrous should.
+            checkRow('Recharges on rest', () => item.rechargeOnRest,
+                (v) => { item.rechargeOnRest = v; },
+                'Rest refills Charges to max (per-day items, staves — not wands)'),
         );
         side.appendChild(checks);
 
