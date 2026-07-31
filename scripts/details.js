@@ -141,6 +141,35 @@ window.SheetDetails = (function () {
         return talentConditionals[sphereNorm(name)] || null;
     }
 
+    // #24: compendium class features owned by `className` whose DESCRIPTION marks them
+    // as gained at `level` ("At 5th level…", "Starting at 3rd level…"). The extract has
+    // no level field, but explicit markers cover exactly the core progression features
+    // (0–4 per class level); the unmarked mass is choice-pool members (rage powers,
+    // hexes…), which must not be auto-suggested anyway. Advisory for the level-up
+    // wizard — a wrong guess costs one untick, never a block.
+    const GAIN_LEVEL_RE =
+        /(?:^|[>.\s])(?:at|starting at|beginning at|upon reaching)\s+(\d+)(?:st|nd|rd|th)\s+level/i;
+    function classFeaturesAtLevel(className, level) {
+        const m = maps.classFeatures;
+        const want = Number(level) || 0;
+        if (!m || !className || want < 1) return [];
+        const cls = String(className).toLowerCase().trim();
+        const out = [];
+        const seen = new Set();
+        for (const arr of Object.values(m.byKey)) {
+            for (const e of (Array.isArray(arr) ? arr : [arr])) {
+                if (!(e.classes || []).some((c) => String(c).toLowerCase() === cls)) continue;
+                const mark = GAIN_LEVEL_RE.exec(String(e.description || ''));
+                if (!mark || parseInt(mark[1], 10) !== want) continue;
+                const key = String(e.name).toLowerCase();
+                if (seen.has(key)) continue;
+                seen.add(key);
+                out.push(e);
+            }
+        }
+        return out.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    }
+
     // Weapon roll stats (dice, crit, actionType) for the Tools attack menu.
     function lookupWeapon(name) {
         return lookup('weapons', name);
@@ -1187,6 +1216,6 @@ window.SheetDetails = (function () {
         collectRollConditionals, normalizeInventoryEntry, powNorm,
         parseEnhancements, lookupEnhancement, collectEnhancements, coreGearItemKey,
         targetLabel, typeLabel, evalSimpleFormula, changesForTargets,
-        searchCatalog, catalogKinds,
+        searchCatalog, catalogKinds, classFeaturesAtLevel,
     };
 })();
