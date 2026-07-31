@@ -4683,6 +4683,26 @@ body.modal-open { overflow: hidden; }
 .levelup-hp-val { font-weight: 600; }
 .levelup-summary { margin: 0.2rem 0 0 1.1rem; font-size: 0.85rem; }
 .levelup-summary li { margin: 0.1rem 0; }
+/* #13: in-wizard rank spending, spells-known picks, prereq badge */
+.levelup-ranks summary { cursor: pointer; font-weight: 600; }
+.levelup-ranks summary.is-over { color: #b3261e; }
+.levelup-ranks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: 0.15rem 0.8rem;
+    max-height: 14rem;
+    overflow-y: auto;
+    margin-top: 0.3rem;
+}
+.levelup-rank-row { display: flex; align-items: center; gap: 0.3rem; font-size: 0.85rem; }
+.levelup-rank-row.is-over .levelup-rank-name { color: #b3261e; }
+.levelup-rank-name { flex: 1; }
+.levelup-rank-count { min-width: 1.6rem; text-align: right; font-weight: 600; }
+.levelup-rank-row .inv-btn { padding: 0 0.45rem; }
+.levelup-prereq-badge { color: #b3261e; font-size: 0.8rem; }
+.levelup-spells-list { display: inline-flex; gap: 0.3rem; flex-wrap: wrap; }
+.levelup-spell-chip { display: inline-flex; align-items: center; gap: 0.25rem; }
+.levelup-spell-lv { padding: 0 0.1rem; }
 
 /* Spellbooks (multi-book) + metamagic picker */
 .spellbook-block {
