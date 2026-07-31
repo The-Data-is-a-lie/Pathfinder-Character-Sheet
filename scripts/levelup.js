@@ -27,6 +27,39 @@ window.SheetLevelUp = (function () {
     const saveFor = (good, lvl) => (lvl <= 0 ? 0
         : (good ? 2 + Math.floor(lvl / 2) : Math.floor(lvl / 3)));
 
+    /**
+     * Warn-only feat-prereq check (#13): parse the compendium description's
+     * "Prerequisites:" sentence and verify what the sheet can — ability minimums, BAB,
+     * character level, and prerequisite feats (only tokens that resolve to a real catalog
+     * feat; class features and prose stay unverified rather than false-warning).
+     * Returns display strings for the unmet ones.
+     */
+    function featPrereqIssues(data, featName, newLevel) {
+        const sd = window.SheetDetails?.lookup?.('feats', featName);
+        const text = String(sd?.description || '').replace(/<[^>]+>/g, ' ');
+        const m = text.match(/Prerequisites?\s*:?\s*(.*?)(?:\.\s|\.$|Benefits?\s*:)/is);
+        if (!m) return [];
+        const unmet = [];
+        for (const raw of m[1].split(/[,;]|\band\b/i)) {
+            const t = raw.trim();
+            if (!t) continue;
+            let mm;
+            if ((mm = t.match(/^(Str|Dex|Con|Int|Wis|Cha)\w*\s+(\d+)/i))) {
+                const ab = mm[1].toLowerCase().slice(0, 3);
+                const have = Number(window.SheetDerive?.abilityInfo?.(data, ab)?.total) || 0;
+                if (have < Number(mm[2])) unmet.push(`${mm[1]} ${mm[2]} (have ${have})`);
+            } else if ((mm = t.match(/base attack bonus \+?(\d+)/i))) {
+                const have = Number(data.bab_total) || 0;
+                if (have < Number(mm[1])) unmet.push(`BAB +${mm[1]} (have +${have})`);
+            } else if ((mm = t.match(/character level (\d+)/i))) {
+                if (newLevel < Number(mm[1])) unmet.push(t);
+            } else if (window.SheetDetails?.lookup?.('feats', t)) {
+                if (!window.SheetRoll?.hasFeat?.(data, t)) unmet.push(t);
+            }
+        }
+        return unmet;
+    }
+
     function classesArr(data) {
         if (!Array.isArray(data.classes) || !data.classes.length) {
             // Seed from legacy fields so single-class payloads level cleanly.
@@ -99,33 +132,37 @@ window.SheetLevelUp = (function () {
             updateSummary();
         });
 
-        // --- feat at odd character level
+        // --- feat at odd character level (with warn-only prereq badges, #13)
         let featName = null;
+        let featBadge = null;
         if (totalNext % 2 === 1) {
             const featRow = h('div', 'levelup-row');
             featRow.appendChild(h('span', 'levelup-label', 'Feat'));
             const featBtn = h('button', 'inv-btn', 'Pick feat…');
             featBtn.type = 'button';
             const featVal = h('span', 'levelup-feat-val dim', `level ${totalNext} grants a feat`);
+            featBadge = h('span', 'levelup-prereq-badge');
+            const setFeat = (name) => {
+                featName = name;
+                featVal.textContent = featName;
+                const unmet = featPrereqIssues(data, featName, totalNext);
+                featBadge.textContent = unmet.length
+                    ? '⚠ prereqs: ' + unmet.join(', ') : '';
+                featBadge.title = unmet.length
+                    ? 'Warn-only — the sheet never blocks a pick' : '';
+                updateSummary();
+            };
             featBtn.addEventListener('click', () => {
                 window.SheetModals.openCatalogPicker({
                     title: 'Pick the new feat',
                     kinds: ['feats'],
                     allowCustom: true,
                     customPlaceholder: 'Custom feat name',
-                    onPick: (hit) => {
-                        featName = hit.name;
-                        featVal.textContent = featName;
-                        updateSummary();
-                    },
-                    onCustom: (name) => {
-                        featName = String(name).trim();
-                        featVal.textContent = featName;
-                        updateSummary();
-                    },
+                    onPick: (hit) => setFeat(hit.name),
+                    onCustom: (name) => setFeat(String(name).trim()),
                 });
             });
-            featRow.append(featBtn, featVal);
+            featRow.append(featBtn, featVal, featBadge);
             body.appendChild(featRow);
         }
 
@@ -145,6 +182,136 @@ window.SheetLevelUp = (function () {
             abRow.appendChild(bumpSel);
             body.appendChild(abRow);
         }
+
+        // --- in-wizard skill-rank spending (#13, budget model from #12)
+        const pendingRanks = {}; // rank key -> ranks added this level
+        const intMod = window.SheetDerive.abModOf(data, 'int');
+        const isHuman = /human/.test(String(data.race || '').toLowerCase())
+            && !/half/.test(String(data.race || '').toLowerCase());
+        const ranksThisLevel = () => {
+            const info = classInfoFor(data, clsSel.value);
+            return Math.max(1, (Number(info.skills) || 2) + intMod) + (isHuman ? 1 : 0);
+        };
+        const ranksSpent = () => Object.values(pendingRanks).reduce((a, v) => a + v, 0);
+        const ranksBox = h('details', 'levelup-ranks');
+        const ranksSummary = h('summary', null, '');
+        ranksBox.appendChild(ranksSummary);
+        const ranksGrid = h('div', 'levelup-ranks-grid');
+        ranksBox.appendChild(ranksGrid);
+        const rankMap = window.SheetState.ensureSkillRanksObject(data);
+        const refreshRanksHeader = () => {
+            const left = ranksThisLevel() - ranksSpent();
+            ranksSummary.textContent = `Skill ranks — ${ranksThisLevel()} to spend`
+                + (ranksSpent() ? ` (${left < 0 ? left : left + ' left'}${left < 0 ? ' — over!' : ''})` : '');
+            ranksSummary.classList.toggle('is-over', left < 0);
+        };
+        {
+            const { skillRankKey } = window.SheetSkillMath;
+            for (const skill of window.SheetData.ALL_SKILLS) {
+                const key = skillRankKey(skill.name);
+                const row = h('div', 'levelup-rank-row');
+                const cur = Number(rankMap[key]) || 0;
+                const label = h('span', 'levelup-rank-name',
+                    `${skill.name}${cur ? ` (${cur})` : ''}`);
+                const count = h('span', 'levelup-rank-count', '');
+                const minus = h('button', 'inv-btn', '−');
+                minus.type = 'button';
+                const plus = h('button', 'inv-btn', '+');
+                plus.type = 'button';
+                const paint = () => {
+                    const n = pendingRanks[key] || 0;
+                    count.textContent = n ? `+${n}` : '';
+                    // Max ranks = new character level; warn, never clamp.
+                    row.classList.toggle('is-over', cur + n > totalNext);
+                    row.title = cur + n > totalNext
+                        ? `Over the max-ranks cap (${totalNext} = character level)` : '';
+                };
+                minus.addEventListener('click', () => {
+                    if (!pendingRanks[key]) return;
+                    pendingRanks[key] -= 1;
+                    if (!pendingRanks[key]) delete pendingRanks[key];
+                    paint();
+                    refreshRanksHeader();
+                    updateSummary();
+                });
+                plus.addEventListener('click', () => {
+                    pendingRanks[key] = (pendingRanks[key] || 0) + 1;
+                    paint();
+                    refreshRanksHeader();
+                    updateSummary();
+                });
+                paint();
+                row.append(label, count, minus, plus);
+                ranksGrid.appendChild(row);
+            }
+        }
+        refreshRanksHeader();
+        clsSel.addEventListener('change', refreshRanksHeader);
+        body.appendChild(ranksBox);
+
+        // --- spells known for spontaneous casters (#13). Picks land in the PRIMARY
+        // book's known list at the chosen level; extra books stay Spells-tab edits.
+        const spellPicks = []; // { name, level }
+        const spellsRow = h('div', 'levelup-row levelup-spells');
+        spellsRow.appendChild(h('span', 'levelup-label', 'Spells known'));
+        const spellsBtn = h('button', 'inv-btn', 'Pick spell…');
+        spellsBtn.type = 'button';
+        const spellsList = h('span', 'levelup-spells-list');
+        const paintSpells = () => {
+            spellsList.innerHTML = '';
+            spellPicks.forEach((p, idx) => {
+                const chip = h('span', 'feat-tag levelup-spell-chip');
+                chip.appendChild(document.createTextNode(p.name + ' '));
+                const lvSel = h('select', 'edit-field levelup-spell-lv');
+                for (let lv = 0; lv <= 9; lv++) {
+                    const opt = document.createElement('option');
+                    opt.value = String(lv);
+                    opt.textContent = 'L' + lv;
+                    if (lv === p.level) opt.selected = true;
+                    lvSel.appendChild(opt);
+                }
+                lvSel.addEventListener('change', () => {
+                    p.level = parseInt(lvSel.value, 10) || 0;
+                });
+                const rm = h('button', 'inv-btn inv-btn-danger', '×');
+                rm.type = 'button';
+                rm.addEventListener('click', () => {
+                    spellPicks.splice(idx, 1);
+                    paintSpells();
+                    updateSummary();
+                });
+                chip.append(lvSel, rm);
+                spellsList.appendChild(chip);
+            });
+        };
+        spellsBtn.addEventListener('click', () => {
+            window.SheetModals.openCatalogPicker({
+                title: 'New spell known',
+                kinds: ['spells'],
+                allowCustom: true,
+                customPlaceholder: 'Custom spell name',
+                onPick: (hit) => {
+                    const sd = window.SheetDetails?.lookup?.('spells', hit.name);
+                    spellPicks.push({ name: hit.name,
+                        level: Number.isFinite(Number(sd?.level)) ? Number(sd.level) : 1 });
+                    paintSpells();
+                    updateSummary();
+                },
+                onCustom: (name) => {
+                    spellPicks.push({ name: String(name).trim(), level: 1 });
+                    paintSpells();
+                    updateSummary();
+                },
+            });
+        });
+        spellsRow.append(spellsBtn, spellsList);
+        const syncSpellsRow = () => {
+            const casting = String(classInfoFor(data, clsSel.value).casting || '');
+            spellsRow.classList.toggle('hidden', !/spontaneous/i.test(casting));
+        };
+        syncSpellsRow();
+        clsSel.addEventListener('change', syncSpellsRow);
+        body.appendChild(spellsRow);
 
         // --- live diff summary
         const summary = h('ul', 'levelup-summary');
@@ -186,9 +353,15 @@ window.SheetLevelUp = (function () {
             li('HP: ' + (hpGain == null ? 'roll or take average above' : `+${hpGain} + Con`));
             if (totalNext % 2 === 1) li('Feat: ' + (featName || 'none picked yet'));
             if (bumpSel) li(`Ability: ${AB_NAMES[bumpSel.value]} +1 (Level-up column)`);
-            li(`Skill ranks to spend on the Skills tab: ${p.skillPts}/level`);
+            const spent = ranksSpent();
+            li(`Skill ranks: ${spent}/${ranksThisLevel()} spent in the wizard`
+                + (spent < ranksThisLevel() ? ' (the rest stays spendable on the Skills tab)'
+                    : spent > ranksThisLevel() ? ' — over budget (warn only)' : ''));
+            if (spellPicks.length) {
+                li('Spells known: + ' + spellPicks.map((s) => `${s.name} (L${s.level})`).join(', '));
+            }
             if (String(p.info.casting || '—') !== '—' && p.info.casting !== 'None') {
-                li('Caster: update slots/known on the Spells tab (per-day table is editable)');
+                li('Caster: update slots on the Spells tab (per-day table is editable)');
             }
         }
         updateSummary();
@@ -240,11 +413,31 @@ window.SheetLevelUp = (function () {
                 st.abilityAdjust[bumpSel.value].levelup =
                     (Number(st.abilityAdjust[bumpSel.value].levelup) || 0) + 1;
             }
+            // Skill ranks picked in the wizard (#13)
+            const spentNow = ranksSpent();
+            for (const [key, n] of Object.entries(pendingRanks)) {
+                if (n > 0) rankMap[key] = (Number(rankMap[key]) || 0) + n;
+            }
+            // Spells known (spontaneous casters): into the primary book's known list
+            for (const s of spellPicks) {
+                if (!Array.isArray(data.spell_list_choose_from)) data.spell_list_choose_from = [];
+                while (data.spell_list_choose_from.length <= s.level) {
+                    data.spell_list_choose_from.push([]);
+                }
+                const bucket = data.spell_list_choose_from[s.level];
+                if (!bucket.some((n) => String(n).toLowerCase() === s.name.toLowerCase())) {
+                    bucket.push(s.name);
+                }
+            }
             handle.close();
             window.SheetApp.quietSave?.();
             window.SheetApp.renderSheet(data);
+            const leftover = ranksThisLevel() - spentNow;
             window.SheetOverlay.toast?.(
-                `Level ${totalNext}: ${p.clsName} ${p.newLvl} — spend ${p.skillPts} skill ranks on the Skills tab.`);
+                `Level ${totalNext}: ${p.clsName} ${p.newLvl}`
+                + (spentNow ? ` — ${spentNow} ranks placed` : '')
+                + (leftover > 0 ? ` — ${leftover} skill ranks left for the Skills tab` : '')
+                + (spellPicks.length ? ` — ${spellPicks.length} spells learned` : '') + '.');
         });
     }
 
