@@ -381,6 +381,79 @@ window.SheetData = (function () {
         weaponProf: '—', armorProf: '—', alignment: 'Any', classSkills: [],
     };
 
+    // -------------------------------------------- standard spell-slot progressions (#23)
+    // The four canonical PF1 spells-per-day shapes (validated against d20pfsrd), indexed by
+    // class level 1–20; each row is per spell level 0–9, null = "—" (no slots at all — at-will
+    // cantrips for spontaneous casters, or a level the class never reaches). A 0 entry is a
+    // real row: it grants slots only via the casting-ability bonus, per PF1.
+    // Prestige progressions and oddballs (arcanist's prepared-spontaneous, medium…) are
+    // deliberately absent — no badge beats a wrong one.
+    const SPELL_SLOT_TABLES = {
+        // Wizard/cleric/druid/witch/shaman (domain & school extras are #11's restricted slots).
+        nine_prepared: [
+            [3, 1], [4, 2], [4, 2, 1], [4, 3, 2], [4, 3, 2, 1], [4, 3, 3, 2],
+            [4, 4, 3, 2, 1], [4, 4, 3, 3, 2], [4, 4, 4, 3, 2, 1], [4, 4, 4, 3, 3, 2],
+            [4, 4, 4, 4, 3, 2, 1], [4, 4, 4, 4, 3, 3, 2], [4, 4, 4, 4, 4, 3, 2, 1],
+            [4, 4, 4, 4, 4, 3, 3, 2], [4, 4, 4, 4, 4, 4, 3, 2, 1], [4, 4, 4, 4, 4, 4, 3, 3, 2],
+            [4, 4, 4, 4, 4, 4, 4, 3, 2, 1], [4, 4, 4, 4, 4, 4, 4, 3, 3, 2],
+            [4, 4, 4, 4, 4, 4, 4, 4, 3, 3], [4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+        ],
+        // Sorcerer/oracle/psychic — cantrips are at-will (null).
+        nine_spontaneous: [
+            [null, 3], [null, 4], [null, 5], [null, 6, 3], [null, 6, 4], [null, 6, 5, 3],
+            [null, 6, 6, 4], [null, 6, 6, 5, 3], [null, 6, 6, 6, 4], [null, 6, 6, 6, 5, 3],
+            [null, 6, 6, 6, 6, 4], [null, 6, 6, 6, 6, 5, 3], [null, 6, 6, 6, 6, 6, 4],
+            [null, 6, 6, 6, 6, 6, 5, 3], [null, 6, 6, 6, 6, 6, 6, 4],
+            [null, 6, 6, 6, 6, 6, 6, 5, 3], [null, 6, 6, 6, 6, 6, 6, 6, 4],
+            [null, 6, 6, 6, 6, 6, 6, 6, 5, 3], [null, 6, 6, 6, 6, 6, 6, 6, 6, 4],
+            [null, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+        ],
+        // Bard progression, shared by every 6-level caster (magus, alchemist, inquisitor…).
+        six: [
+            [null, 1], [null, 2], [null, 3], [null, 3, 1], [null, 4, 2], [null, 4, 3],
+            [null, 4, 3, 1], [null, 4, 4, 2], [null, 5, 4, 3], [null, 5, 4, 3, 1],
+            [null, 5, 4, 4, 2], [null, 5, 5, 4, 3], [null, 5, 5, 4, 3, 1],
+            [null, 5, 5, 4, 4, 2], [null, 5, 5, 5, 4, 3], [null, 5, 5, 5, 4, 3, 1],
+            [null, 5, 5, 5, 4, 4, 2], [null, 5, 5, 5, 5, 4, 3], [null, 5, 5, 5, 5, 5, 4],
+            [null, 5, 5, 5, 5, 5, 5],
+        ],
+        // Paladin/ranger/bloodrager — delayed entry at class level 4.
+        four_delayed: [
+            [], [], [], [null, 0], [null, 1], [null, 1], [null, 1, 0], [null, 1, 1],
+            [null, 2, 1], [null, 2, 1, 0], [null, 2, 1, 1], [null, 2, 2, 1],
+            [null, 3, 2, 1, 0], [null, 3, 2, 1, 1], [null, 3, 2, 2, 1], [null, 3, 3, 2, 1],
+            [null, 4, 3, 2, 1], [null, 4, 3, 2, 2], [null, 4, 4, 3, 2], [null, 4, 4, 3, 3],
+        ],
+    };
+    /** Map a CLASS_STATS `casting` string to a slot-table shape (null = no badge). */
+    function spellSlotShapeOf(castingStr) {
+        const s = String(castingStr || '').toLowerCase();
+        if (s.includes('prepared-spontaneous')) return null; // arcanist — its own table
+        if (s.includes('9th-level')) {
+            if (s.includes('prepared')) return 'nine_prepared';
+            if (s.includes('spontaneous')) return 'nine_spontaneous';
+            return null;
+        }
+        if (s.includes('6th-level')) return 'six';
+        if (s.includes('4th-level')) return 'four_delayed';
+        return null;
+    }
+    /** The standard per-day row for a shape at a class level: array per spell level 0–9
+     *  (null = no slots), or null when the shape/level is off-table. */
+    function standardSpellSlots(shape, classLevel) {
+        const table = SPELL_SLOT_TABLES[shape];
+        const lvl = Number(classLevel);
+        if (!table || !Number.isFinite(lvl) || lvl < 1) return null;
+        return table[Math.min(20, Math.floor(lvl)) - 1] || null;
+    }
+    /** PF1 bonus spells per day from the casting-ability modifier (spell levels 1–9). */
+    function abilityBonusSlots(abMod, spellLevel) {
+        const m = Number(abMod) || 0;
+        const s = Number(spellLevel) || 0;
+        if (s < 1 || s > 9 || m < s) return 0;
+        return Math.floor((m - s) / 4) + 1;
+    }
+
     // Mirrors Foundry module addingReceivedLocationToName / Feats_n_Traits prefixes.
     // labelArray → "Label: Feat"; taxDict → "Name > Child > …" (applyFeatTax).
     const FEAT_GROUPS = [
@@ -454,5 +527,6 @@ window.SheetData = (function () {
         PF1_CONDITIONS, CONDITION_CHANGES, COMBAT_TOGGLES, TWO_HANDED_WEAPONS,
         MARQUEE_FEATURES, SIZES, SMALL_RACES, stepDice,
         CLASS_STATS, DEFAULT_CLASS_INFO, ALL_SKILLS, FEAT_GROUPS,
+        SPELL_SLOT_TABLES, spellSlotShapeOf, standardSpellSlots, abilityBonusSlots,
     };
 })();

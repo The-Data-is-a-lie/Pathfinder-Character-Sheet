@@ -18,6 +18,7 @@ window.SheetTabSpells = (function () {
         quietSave, ensureCastingAbility, spendSpellSlot, ensureClassList, ensureSpellCasts,
     } = window.SheetState;
     const { sectionCatalogToolbar } = window.SheetModals;
+    const { spellSlotShapeOf, standardSpellSlots, abilityBonusSlots } = window.SheetData;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
 
@@ -400,6 +401,28 @@ window.SheetTabSpells = (function () {
         return details(name, metaHtml + desc, 'spell-details');
     }
 
+    // ------------------------------------------- standard-progression badges (#23, warn-only)
+    // The per-day table stays user-owned: hand-entered numbers are never clamped or
+    // overwritten. Cells that differ from the standard class progression get a badge;
+    // "Use table" fills the row only on demand.
+    /** { row, cls, lvl } for this book's class, or null (oddball/prestige/no class = no badge). */
+    function bookTableInfo(data, bk) {
+        const cls = bk.legacy ? String(data.c_class || '') : String(bk.name || '');
+        if (!cls.trim()) return null;
+        const info = window.SheetClassInfo?.classInfoFor?.(data, cls);
+        const shape = spellSlotShapeOf(info?.casting);
+        if (!shape) return null;
+        const lvl = Number(window.SheetClassInfo?.classLevelFor?.(data, cls)) || 0;
+        const row = standardSpellSlots(shape, lvl);
+        return row ? { row, cls, lvl } : null;
+    }
+    /** Standard slots at one spell level incl. the ability bonus, or null (no entry). */
+    function expectedSlotsAt(tableInfo, bk, level) {
+        const base = tableInfo.row[level];
+        if (base == null) return null;
+        return base + (level >= 1 ? abilityBonusSlots(bk.castMod, level) : 0);
+    }
+
     // ---------------------------------------------------------------- render (per book)
     /** Small 🎲 that posts a d20 check to the roll log (same style as saves/skills). */
     function d20Btn(label, bonus) {
@@ -640,10 +663,37 @@ window.SheetTabSpells = (function () {
         }));
 
         // Slots table. Per Day is dblclick-editable (extra books start all zeroes).
-        const levelCount = bk.legacy
+        let levelCount = bk.legacy
             ? bk.perDay.length
             : Math.max(bk.perDay.length, bk.lists.length);
-        if (levelCount > 0 && (nonEmpty(bk.perDay) || !bk.legacy)) {
+        // #23: extend to the standard table's reach so a leveled-up caster sees badge
+        // rows for slot levels the payload hasn't caught up to yet.
+        const tableInfo = bookTableInfo(data, bk);
+        if (tableInfo) levelCount = Math.max(levelCount, tableInfo.row.length);
+        if (levelCount > 0 && (nonEmpty(bk.perDay) || !bk.legacy || tableInfo)) {
+            if (tableInfo) {
+                const tools = h('div', 'spell-table-tools no-print');
+                const fill = h('button', 'inv-btn', 'Use table');
+                fill.type = 'button';
+                fill.title = `Fill Per Day from the standard ${titleCase(tableInfo.cls)} `
+                    + `${tableInfo.lvl} progression + ${bk.castAb.toUpperCase()} bonus slots. `
+                    + 'Your numbers change only when you click this.';
+                fill.addEventListener('click', () => {
+                    while (bk.perDay.length < tableInfo.row.length) bk.perDay.push(0);
+                    for (let i = 0; i < tableInfo.row.length; i++) {
+                        const exp = expectedSlotsAt(tableInfo, bk, i);
+                        if (exp != null) bk.perDay[i] = exp;
+                    }
+                    quietSave();
+                    renderSheet(data);
+                    setActiveTab('spells');
+                });
+                tools.appendChild(fill);
+                tools.appendChild(h('span', 'dim',
+                    ` Standard ${titleCase(tableInfo.cls)} ${tableInfo.lvl} progression`
+                    + ' — badged cells differ from the table (hover a badge for the formula).'));
+                wrap.appendChild(tools);
+            }
             const table = h('table', 'spell-table');
             const hd = h('tr');
             const cols = bk.preparedMode
@@ -661,6 +711,18 @@ window.SheetTabSpells = (function () {
                     parse: (s) => parseIntLoose(s, 0),
                     onChange: () => quietSave(),
                 }));
+                if (tableInfo) {
+                    const exp = expectedSlotsAt(tableInfo, bk, i);
+                    if (exp != null && (Number(bk.perDay[i]) || 0) !== exp) {
+                        const badge = h('span', 'slot-table-badge no-print', 'table: ' + exp);
+                        const base = tableInfo.row[i];
+                        const bonus = exp - base;
+                        badge.title = `${titleCase(tableInfo.cls)} ${tableInfo.lvl} standard: ${base}`
+                            + (bonus ? ` + ${bonus} bonus (${bk.castAb.toUpperCase()} ${fmt(bk.castMod)})` : '')
+                            + ' — the badge warns, it never overwrites your number.';
+                        pdTd.appendChild(badge);
+                    }
+                }
                 tr.appendChild(pdTd);
                 const leftTd = h('td', 'num');
                 const bag = { left: bk.casts[i] ?? 0 };
