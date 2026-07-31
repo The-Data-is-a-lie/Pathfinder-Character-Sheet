@@ -612,7 +612,7 @@ window.SheetRoll = (function () {
      */
     function attackContext(data, itemKey) {
         if (!data || data.error) return null;
-        const bab = Number(data.bab_total) || 0;
+        const bab = window.SheetDerive?.babTotal?.(data) ?? (Number(data.bab_total) || 0);
         const strM = abilityMod(data, 'str');
         const dexM = abilityMod(data, 'dex');
         const key = itemKey !== undefined ? itemKey : activeWeaponItemKey(data);

@@ -1008,7 +1008,8 @@ window.SheetDetails = (function () {
         s = s.replace(/@attributes\.hd\.total/gi, String(hd));
         s = s.replace(/@attributes\.hd\.max/gi, String(hd));
         // BAB (same source as SheetFormula's resolver) — the combat toggles scale with it
-        s = s.replace(/@attributes\.bab\.total/gi, String(Number(data?.bab_total) || 0));
+        s = s.replace(/@attributes\.bab\.total/gi,
+            String(window.SheetDerive?.babTotal?.(data) ?? (Number(data?.bab_total) || 0)));
         // Class levels, STRICTLY (mirrors SheetFormula.classLevel): a class the character
         // does not have resolves to 0, never the whole level — the marquee features scale
         // with these. Lenient classLevelFor only for legacy payloads with no classes[].

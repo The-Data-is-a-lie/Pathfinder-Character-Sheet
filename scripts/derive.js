@@ -308,7 +308,8 @@ window.SheetDerive = (function () {
         };
 
         const level = Number(data.level) || 0;
-        const bab = Number(data.bab_total) || 0;
+        const frac = fractionalBases(data);
+        const bab = frac ? frac.bab : (Number(data.bab_total) || 0);
         const strM = abModOf(data, 'str'), dexM = abModOf(data, 'dex'), conM = abModOf(data, 'con');
         const wisM = abModOf(data, 'wis'), intM = abModOf(data, 'int'), chaM = abModOf(data, 'cha');
         const armorAc = toInt(data.armor_ac) ?? 0;
@@ -343,6 +344,7 @@ window.SheetDerive = (function () {
             ? data.save_bases : null;
         const multiclassSaves = Boolean(data.c_class_2) && !saveBases;
         const classBase = (save) => {
+            if (frac) return frac.saves[save];
             if (saveBases && Number.isFinite(Number(saveBases[save]))) return Number(saveBases[save]);
             if (!goods || !level) return null;
             return goods.includes(save) ? 2 + Math.floor(level / 2) : Math.floor(level / 3);
@@ -674,6 +676,51 @@ window.SheetDerive = (function () {
     function concentrationBonus(data) {
         return casterLevelValue(data) + castingAbilityMod(data);
     }
+    /** #21 fractional base bonuses (Unchained): BAB and saves accumulate as exact
+     *  fractions across classes and floor once at the end; a good save's +2 kicker
+     *  counts once no matter how many classes share it. Returns null when the variant
+     *  is off, the class list is empty, or any chassis is unknown — the backend's
+     *  stacked integers stay authoritative in every fallback. */
+    function fractionalBases(data) {
+        const st = sheetState(data);
+        if (!st.variantRules?.fractionalBases) return null;
+        const CI = window.SheetClassInfo;
+        const SS = window.SheetState;
+        if (!CI || !SS) return null;
+        const list = SS.ensureClassList(data).filter(Boolean);
+        if (!list.length) return null;
+        let babQuarters = 0;
+        const sixths = { fort: 0, ref: 0, will: 0 };
+        const anyGood = { fort: false, ref: false, will: false };
+        for (let i = 0; i < list.length; i++) {
+            const info = CI.classInfoFor(data, list[i]);
+            const key = CI.classKeyOf(list[i]);
+            const hit = (Array.isArray(data.classes) ? data.classes : [])
+                .find((c) => CI.classKeyOf(c.name) === key || CI.classKeyOf(c.display) === key);
+            const lvl = Number(hit?.level) || (i === 0 ? Number(data.level) || 0 : 0);
+            if (!lvl) continue;
+            const prog = String(info.bab || '').toLowerCase();
+            const quarters = prog === 'full' ? 4 : (prog === '3/4' ? 3 : (prog === '1/2' ? 2 : null));
+            if (quarters == null) return null;
+            babQuarters += lvl * quarters;
+            for (const s of ['fort', 'ref', 'will']) {
+                const good = String(info[s] || '').toLowerCase() === 'good';
+                if (good) anyGood[s] = true;
+                sixths[s] += lvl * (good ? 3 : 2);
+            }
+        }
+        const saves = {};
+        for (const s of ['fort', 'ref', 'will']) {
+            saves[s] = Math.floor(sixths[s] / 6) + (anyGood[s] ? 2 : 0);
+        }
+        return { bab: Math.floor(babQuarters / 4), saves };
+    }
+    /** BAB for external read sites (touch attacks, @attributes.bab.total): fractional
+     *  when the variant is on, else the backend's bab_total. */
+    function babTotal(data) {
+        const frac = fractionalBases(data);
+        return frac ? frac.bab : (Number(data?.bab_total) || 0);
+    }
     /** Bucket AC parts into per-bonus-type totals for the Defenses grid. */
     function acTypeTotals(parts) {
         const order = ['Armor', 'Shield', 'Deflection', 'Dodge', 'Natural Armor',
@@ -738,6 +785,7 @@ window.SheetDerive = (function () {
         groupChangesBySource, computeDerived, combatStats, carryLimits, loadCategory,
         castingAbilityMod, totalLevel, casterLevelValue, spellSaveDC, concentrationBonus,
         acTypeTotals, saveBuckets, srTotal, babIterativesStr, GOOD_SAVES,
+        fractionalBases, babTotal,
         sizeInfo, conditionFlags, encumbrance, carriedWeightLbs, loadReducedSpeed,
     };
 })();
