@@ -203,6 +203,10 @@ window.SheetTabSummary = (function () {
 
         summaryQuickActions(body, data, d);
         renderXpRow(body, data);
+        // PROTOTYPE (#9 draft): candidate B — compact companion panel (renders only
+        // when the character has companions; reads the same _sheet.companions model
+        // as the Companions tab).
+        window.SheetTabCompanions?.renderSummaryPanel?.(body, data);
         seedClassSkills(data);
 
         const st = sheetState(data);

@@ -103,6 +103,7 @@
     // Per-tab renderers, lifted into scripts/tabs/*.js. Each exports its render fn, pulled back
     // here so the TABS array entries stay unchanged.
     const { renderSpheres } = window.SheetTabSpheres;
+    const { renderCompanions } = window.SheetTabCompanions; // PROTOTYPE (#9 draft)
     const { renderPathOfWar } = window.SheetTabPathOfWar;
     // notes.js is the prose home; ensureProse/bindProseTextarea are shared with the Biography
     // tab and others (SheetApp.ensureProse below re-points here for roster.js).
@@ -440,6 +441,8 @@
         { id: 'path-of-war', label: 'Path of War', render: (d) => renderPathOfWar(d) || emptyState('Not an initiator — no maneuvers or stances.') },
         { id: 'spells', label: 'Spells', render: (d) => renderSpells(d) },
         { id: 'buffs', label: 'Buffs', render: (d) => renderModifiers(d) },
+        // PROTOTYPE (#9 draft): candidate A — full companions tab
+        { id: 'companions', label: 'Companions', render: (d) => renderCompanions(d) },
         { id: 'biography', label: 'Biography', render: (d) => renderBiographyVitals(d) },
         { id: 'notes', label: 'Notes', render: tabNotes },
         { id: 'settings', label: 'Settings', render: tabSettings },

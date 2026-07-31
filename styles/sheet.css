@@ -4692,6 +4692,63 @@ body.tools-resizing .tools-drawer { transition: none; }
 .xp-next { font-size: 0.85rem; color: var(--dim); }
 .xp-next.xp-ready { color: var(--accent); font-weight: 700; }
 
+/* PROTOTYPE (#9 draft): companion sheets — candidate A (tab) + B (summary panel) */
+.companion-block {
+    border: 1px solid var(--menu-border);
+    border-radius: 8px;
+    padding: 0.5rem 0.7rem;
+    margin: 0.4rem 0;
+    background: var(--panel);
+}
+.companion-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+}
+.companion-head .companion-del { margin-left: auto; }
+.companion-type { font-weight: 400; }
+.companion-vitals,
+.companion-abilities {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.9rem;
+    margin: 0.35rem 0;
+    font-variant-numeric: tabular-nums;
+}
+.companion-vital,
+.companion-ab { display: inline-flex; align-items: center; gap: 0.25rem; }
+.companion-vital-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--dim);
+}
+.companion-attack-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.15rem 0;
+}
+.companion-roll { font-size: 0.78rem; padding: 0 0.4rem; }
+.companion-notes { width: 100%; margin-top: 0.3rem; }
+.companion-add-row { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.5rem; }
+.companion-summary {
+    border: 1px dashed var(--menu-border);
+    border-radius: 8px;
+    padding: 0.35rem 0.6rem;
+    margin: 0.3rem 0 0.5rem;
+}
+.companion-summary-title { margin: 0 0 0.2rem; font-size: 0.95rem; }
+.companion-summary-row {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+    padding: 0.1rem 0;
+}
+.companion-summary-name { font-weight: 700; }
+
 /* Level-up wizard */
 .levelup-body { display: flex; flex-direction: column; gap: 0.45rem; min-width: 19rem; }
 .levelup-row { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
