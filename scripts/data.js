@@ -422,7 +422,7 @@ window.SheetData = (function () {
             [], [], [], [null, 0], [null, 1], [null, 1], [null, 1, 0], [null, 1, 1],
             [null, 2, 1], [null, 2, 1, 0], [null, 2, 1, 1], [null, 2, 2, 1],
             [null, 3, 2, 1, 0], [null, 3, 2, 1, 1], [null, 3, 2, 2, 1], [null, 3, 3, 2, 1],
-            [null, 4, 3, 2, 1], [null, 4, 3, 2, 2], [null, 4, 4, 3, 2], [null, 4, 4, 3, 3],
+            [null, 4, 3, 2, 1], [null, 4, 3, 2, 2], [null, 4, 3, 3, 2], [null, 4, 4, 3, 3],
         ],
     };
     /** Map a CLASS_STATS `casting` string to a slot-table shape (null = no badge). */
