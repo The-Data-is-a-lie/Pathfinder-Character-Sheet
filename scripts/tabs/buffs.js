@@ -50,34 +50,11 @@ window.SheetTabBuffs = (function () {
         wrap.append(label, dec, maxEdit);
         return wrap;
     }
-    /** Round tracker: advances round-denominated buff/condition durations, expiring at 0. */
+    /** Round tracker: the shared round strip (Round N · Next round · Reset · swift/AoO
+     *  chips, SheetRoll.renderRoundStrip) — the Tools drawer mounts the same strip, and
+     *  both surfaces repaint from one state. */
     function renderRoundCounter(body, data) {
-        const st = sheetState(data);
-        const row = h('div', 'round-counter no-print');
-        row.appendChild(h('span', 'round-counter-label', `Round ${Number(st.roundCounter) || 0}`));
-        const next = h('button', 'inv-btn inv-btn-primary', 'Next round');
-        next.type = 'button';
-        next.title = 'Advance one round: buffs/conditions with a duration in rounds tick down and expire at 0';
-        next.addEventListener('click', () => {
-            const res = window.SheetState.advanceRound(data);
-            const bits = [];
-            if (res.expired.length) bits.push('expired: ' + res.expired.join(', '));
-            if (res.healed) bits.push(`healed ${res.healed} (fast healing/regen)`);
-            window.SheetOverlay?.toast?.(`Round ${res.round}`
-                + (bits.length ? ' — ' + bits.join(' · ') : ''));
-            renderSheet(data);
-            setActiveTab('buffs');
-        });
-        const reset = h('button', 'inv-btn', 'Reset');
-        reset.type = 'button';
-        reset.title = 'Reset the round counter to 0 (durations are not restored)';
-        reset.addEventListener('click', () => {
-            window.SheetState.resetRoundCounter(data);
-            renderSheet(data);
-            setActiveTab('buffs');
-        });
-        row.append(next, reset);
-        body.appendChild(row);
+        body.appendChild(window.SheetRoll.renderRoundStrip({ withReset: true }));
     }
     function renderConditionsTray(body, data) {
         body.appendChild(h('h3', null, 'Conditions'));

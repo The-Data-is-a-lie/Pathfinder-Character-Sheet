@@ -279,6 +279,12 @@ window.SheetRoll = (function () {
         const damages = [];
         const riders = [];
 
+        // A Quickened cast is a swift action — the roll proves it, so spend the slot (#19).
+        if (opts.metamagic?.names?.includes('Quicken Spell') && (data === currentData)) {
+            const spent = autoSpendSwift('Quickened cast');
+            if (spent) riders.push(spent);
+        }
+
         if (isSpellAttackType(actionType)) {
             const atkAbKey = String(act.ability?.attack || opts.castingAbility || 'int').toLowerCase();
             const atkAbMod = abilityMod(data, atkAbKey);
@@ -1079,6 +1085,170 @@ window.SheetRoll = (function () {
         window.SheetState.quietSave?.();
     }
 
+    // ------------------------------------------------- per-round action economy (#19)
+    // One shared swift/immediate slot + the AoO counter, stored in _sheet.actionEconomy.
+    // Rendered as chips on the round strip (Buffs tab AND the Tools drawer attack section);
+    // every mounted strip repaints from state via syncRoundStrips — the same one-state,
+    // many-surfaces trick the conditional checkboxes use.
+
+    /** AoO/round: user override wins; else 1, or 1 + Dex mod with Combat Reflexes. */
+    function aooMaxFor(data) {
+        const ae = window.SheetState.ensureActionEconomy(data);
+        const ov = Number(ae.aooMax);
+        if (ae.aooMax != null && ae.aooMax !== '' && Number.isFinite(ov)) return Math.max(0, ov);
+        let max = 1;
+        if (hasFeat(data, 'Combat Reflexes')) max += Math.max(0, abilityMod(data, 'dex'));
+        return max;
+    }
+
+    function syncRoundStrips() {
+        if (!currentData) return;
+        const st = currentData._sheet || {};
+        const ae = window.SheetState.ensureActionEconomy(currentData);
+        document.querySelectorAll('.round-strip-num').forEach((el) => {
+            el.textContent = `Round ${Number(st.roundCounter) || 0}`;
+        });
+        document.querySelectorAll('.ae-swift').forEach((el) => {
+            el.textContent = ae.swiftSpent ? 'Swift spent' : 'Swift ready';
+            el.classList.toggle('ae-spent', ae.swiftSpent);
+        });
+        document.querySelectorAll('.ae-aoo').forEach((el) => {
+            el.textContent = `AoO ${ae.aooUsed}/${aooMaxFor(currentData)}`;
+            el.classList.toggle('ae-spent', ae.aooUsed >= aooMaxFor(currentData));
+        });
+    }
+
+    /**
+     * Auto-spend the swift slot when a roll proves a swift action happened (Quickened
+     * cast, Boost maneuver). Warns when it was already spent — and rolls anyway, house
+     * style. Returns a rider line for the card.
+     */
+    function autoSpendSwift(reason) {
+        if (!currentData) return null;
+        const ae = window.SheetState.ensureActionEconomy(currentData);
+        let text;
+        if (ae.swiftSpent) {
+            text = `Swift already used this round (${reason}) — rolled anyway`;
+        } else {
+            ae.swiftSpent = true;
+            text = `Swift action spent (${reason})`;
+        }
+        window.SheetState.quietSave?.();
+        syncRoundStrips();
+        return { source: 'Action economy', text };
+    }
+
+    /** Rider line for any checked Boost maneuvers on this attack action, or null. */
+    function boostSwiftRider() {
+        const boosts = availableConditionals.filter((c) => c.sourceKind === 'maneuver'
+            && c.powType === 'boost' && activeConditionals.get(c.id));
+        if (!boosts.length) return null;
+        return autoSpendSwift('Boost: ' + boosts.map((b) => b.source).join(', '));
+    }
+
+    /** The round strip: Round N · Next round (· Reset) · Swift chip · AoO chip. */
+    function renderRoundStrip({ withReset = false } = {}) {
+        const data = currentData;
+        const strip = h('div', 'round-counter round-strip no-print');
+        if (!data) return strip;
+        const st = data._sheet || {};
+        const ae = window.SheetState.ensureActionEconomy(data);
+        strip.appendChild(h('span', 'round-counter-label round-strip-num',
+            `Round ${Number(st.roundCounter) || 0}`));
+
+        const next = h('button', 'inv-btn inv-btn-primary', 'Next round');
+        next.type = 'button';
+        next.title = 'Advance one round: durations tick, rage/performance rounds spend, '
+            + 'fast healing applies, swift & AoOs refresh';
+        next.addEventListener('click', () => {
+            const res = window.SheetState.advanceRound(data);
+            const bits = [];
+            if (res.expired.length) bits.push('expired: ' + res.expired.join(', '));
+            if (res.healed) bits.push(`healed ${res.healed} (fast healing/regen)`);
+            window.SheetOverlay?.toast?.(`Round ${res.round}`
+                + (bits.length ? ' — ' + bits.join(' · ') : ''));
+            window.SheetApp?.renderSheet?.(data);
+        });
+        strip.appendChild(next);
+
+        if (withReset) {
+            const reset = h('button', 'inv-btn', 'Reset');
+            reset.type = 'button';
+            reset.title = 'Reset the round counter to 0 and refresh swift/AoOs '
+                + '(durations are not restored)';
+            reset.addEventListener('click', () => {
+                window.SheetState.resetRoundCounter(data);
+                window.SheetApp?.renderSheet?.(data);
+            });
+            strip.appendChild(reset);
+        }
+
+        const swift = h('button', 'inv-btn ae-chip ae-swift',
+            ae.swiftSpent ? 'Swift spent' : 'Swift ready');
+        swift.type = 'button';
+        swift.title = 'Swift & immediate actions share one per-round slot — click to '
+            + 'spend or restore it. Quickened casts and Boost maneuvers spend it themselves.';
+        swift.classList.toggle('ae-spent', ae.swiftSpent);
+        swift.addEventListener('click', () => {
+            ae.swiftSpent = !ae.swiftSpent;
+            window.SheetState.quietSave?.();
+            syncRoundStrips();
+        });
+        strip.appendChild(swift);
+
+        const aoo = h('button', 'inv-btn ae-chip ae-aoo',
+            `AoO ${ae.aooUsed}/${aooMaxFor(data)}`);
+        aoo.type = 'button';
+        aoo.title = 'Attacks of opportunity this round — click to spend one, − to give it '
+            + 'back, double-click to edit the max (auto: 1, or 1 + Dex with Combat Reflexes)';
+        aoo.addEventListener('click', () => {
+            ae.aooUsed += 1;
+            if (ae.aooUsed > aooMaxFor(data)) {
+                window.SheetOverlay?.toast?.(
+                    `Out of AoOs (${ae.aooUsed}/${aooMaxFor(data)}) — your call`);
+            }
+            window.SheetState.quietSave?.();
+            syncRoundStrips();
+        });
+        // Double-click edits the max in place (override stored in ae.aooMax; blank = auto).
+        aoo.addEventListener('dblclick', (ev) => {
+            ev.preventDefault();
+            const input = h('input', 'edit-field ae-aoo-edit');
+            input.type = 'number';
+            input.min = '0';
+            input.value = String(aooMaxFor(data));
+            input.style.width = '3.2em';
+            aoo.replaceWith(input);
+            input.focus();
+            input.select();
+            const commit = () => {
+                const raw = input.value.trim();
+                ae.aooMax = raw === '' ? null : Math.max(0, Number(raw) || 0);
+                window.SheetState.quietSave?.();
+                input.replaceWith(aoo);
+                syncRoundStrips();
+            };
+            input.addEventListener('blur', commit);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') input.blur();
+                if (e.key === 'Escape') { input.value = String(aooMaxFor(data)); input.blur(); }
+            });
+        });
+        strip.appendChild(aoo);
+
+        const undo = h('button', 'inv-btn ae-chip ae-aoo-undo', '−');
+        undo.type = 'button';
+        undo.title = 'Give back one attack of opportunity';
+        undo.addEventListener('click', () => {
+            ae.aooUsed = Math.max(0, ae.aooUsed - 1);
+            window.SheetState.quietSave?.();
+            syncRoundStrips();
+        });
+        strip.appendChild(undo);
+
+        return strip;
+    }
+
     let combatAcToggleIds = null;
     function combatToggleHasAcChanges(id) {
         if (!combatAcToggleIds) {
@@ -1844,6 +2014,8 @@ window.SheetRoll = (function () {
         const attacks = [];
         const damages = [];
         const riderLists = [];
+        const boostRider = boostSwiftRider();
+        if (boostRider) riderLists.push([boostRider]);
 
         for (let i = 0; i < count; i++) {
             const pen = i * 5;
@@ -2111,6 +2283,8 @@ window.SheetRoll = (function () {
         const notes = [];
         const ctxCache = new Map();
         let ammoSpent = false;
+        const boostRider = boostSwiftRider();
+        if (boostRider) riderLists.push([boostRider]);
 
         for (const line of routine.lines) {
             const adjust = Number(line.adjust) || 0;
@@ -2500,7 +2674,8 @@ window.SheetRoll = (function () {
         return row;
     }
 
-    function renderAttackCard(host, { showConditionals = true, showGeneric = true } = {}) {
+    function renderAttackCard(host, { showConditionals = true, showGeneric = true,
+        roundStrip = false } = {}) {
         if (!host) return;
         host.innerHTML = '';
         const ctx = attackContext(currentData);
@@ -2508,6 +2683,9 @@ window.SheetRoll = (function () {
             host.appendChild(h('p', 'tools-empty', 'Load a character to roll attacks.'));
             return;
         }
+        // The Buffs-tab round strip mirrored mid-combat surface-side (#19): one state,
+        // two surfaces, no tab switch to advance the round or spend the swift.
+        if (roundStrip) host.appendChild(renderRoundStrip());
 
         if (ctx.wName) {
             const block = h('div', 'tools-atk-block combat-atk-card');
@@ -2651,6 +2829,7 @@ window.SheetRoll = (function () {
         renderAttackCard(document.getElementById('tools-attacks'), {
             showConditionals: true,
             showGeneric: true,
+            roundStrip: true,
         });
         // Combat tab host if present
         const combatHost = document.getElementById('combat-attack-panel');
@@ -2791,6 +2970,8 @@ window.SheetRoll = (function () {
         highlightInlineRolls,
         rollWeaponAttack: doWeaponAttack,
         rollDamage: doDamageOnly,
+        renderRoundStrip,
+        aooMaxFor,
         rollWeaponAttackFor: (itemKey, opts = {}) => doWeaponAttack({ ...opts, itemKey }),
         rollDamageFor: (itemKey) => doDamageOnly({ itemKey }),
         rollSpellCast,

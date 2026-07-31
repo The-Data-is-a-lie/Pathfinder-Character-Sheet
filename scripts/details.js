@@ -469,6 +469,9 @@ window.SheetDetails = (function () {
                 label,
                 source: name,
                 sourceKind: 'maneuver',
+                // Boosts are swift actions — the roller auto-spends the swift slot when an
+                // attack fires with one checked (#19).
+                powType: String(descs[name]?.type || 'strike').toLowerCase(),
                 defaultOn: false,
                 modifiers: cond.modifiers || [],
                 rider: cond.rider || '',

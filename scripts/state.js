@@ -318,6 +318,20 @@ window.SheetState = (function () {
         };
     }
     /**
+     * Per-round action-economy state (#19): one shared swift/immediate flag (they share a
+     * budget in PF1) plus the AoO counter. `aooMax` is a user override; null/absent means
+     * auto-derive (1, or 1 + Dex mod with Combat Reflexes — SheetRoll.aooMaxFor).
+     */
+    function ensureActionEconomy(data) {
+        const st = sheetState(data);
+        if (!st.actionEconomy || typeof st.actionEconomy !== 'object') st.actionEconomy = {};
+        const ae = st.actionEconomy;
+        ae.swiftSpent = ae.swiftSpent === true;
+        ae.aooUsed = Math.max(0, Number(ae.aooUsed) || 0);
+        return ae;
+    }
+
+    /**
      * The Features-tab uses tracker entry for a named feature ({ value, max }), created on
      * first touch. One owner for the shape — the Buffs-tab controls and the marquee
      * class-feature spend/tick paths all read this same object.
@@ -401,6 +415,11 @@ window.SheetState = (function () {
             }
         }
 
+        // New round: the swift/immediate slot and AoO pool refresh (#19).
+        const ae = ensureActionEconomy(data);
+        ae.swiftSpent = false;
+        ae.aooUsed = 0;
+
         // Fast healing + regeneration heal at the start of the creature's turn (#4).
         // Both heal lethal and nonlethal alike; regeneration's "can't die" side and its
         // bypass types stay the Defenses tab's prose (regenBypass) — warn, don't model.
@@ -427,6 +446,9 @@ window.SheetState = (function () {
     }
     function resetRoundCounter(data) {
         sheetState(data).roundCounter = 0;
+        const ae = ensureActionEconomy(data);
+        ae.swiftSpent = false;
+        ae.aooUsed = 0;
         quietSave();
     }
 
@@ -588,7 +610,7 @@ window.SheetState = (function () {
         setBuffSourceActive, removeBuffSource, restoreRemovedBuffSources, activeStanceSet,
         setStanceActive, activeConditions, setConditionActive, notesForTargets, attachNotesHover,
         featureCustomList, featureCustomEntry, pruneFeatureCustom, ensureBuffs, normalizeBuffEntry,
-        formatBuffDuration, advanceRound, resetRoundCounter, featureUses,
+        formatBuffDuration, advanceRound, resetRoundCounter, featureUses, ensureActionEconomy,
         createBuff, addBuffFromCatalog, ensureSpellCasts, spendSpellSlot,
         ensureCastingAbility, ensureInitiationStat, ensureInventoryObjects, ensureDefenses,
         ensureClassList, syncLegacyClasses, ensureArchetypeList, ensureSkillRanksObject,
