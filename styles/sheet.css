@@ -1720,6 +1720,12 @@ button:disabled { opacity: 0.55; cursor: wait; }
     gap: 0.28rem;
     margin: 0.35rem 0 0.6rem;
 }
+/* #10: contained items render indented under their container */
+.inv-contained-list {
+    margin-left: 1.4rem;
+    border-left: 2px solid var(--border, #ccc);
+    padding-left: 0.3rem;
+}
 .inv-item {
     padding: 0.25rem 0.4rem;
     background: var(--row-bg);

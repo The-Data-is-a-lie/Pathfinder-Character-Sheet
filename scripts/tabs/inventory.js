@@ -323,17 +323,51 @@ window.SheetTabInventory = (function () {
             secWrap.appendChild(head);
 
             const pack = h('div', 'inv-list dnd-list');
-            for (const { item, index } of entries) {
-                pack.appendChild(renderInventoryItemCard(data, item, index));
-                if (item.carried === false) continue;
+            const IM = window.SheetInventoryModel;
+            const addWeight = (item) => {
+                if (!IM.effectiveCarried(list, item)) return;
+                if (!IM.weightCounts(list, item)) return;
                 if (item.weight != null && Number.isFinite(Number(item.weight))) {
                     totalWeight += Number(item.weight) * (Number(item.quantity) || 1);
                 }
+            };
+            // #10: items inside a container render indented under it (whatever their own
+            // category), so top-level rows only here; drag-reorder stays top-level too.
+            const contents = (containerItem) => list
+                .map((it, i) => ({ item: it, index: i }))
+                .filter((e) => e.item && typeof e.item === 'object'
+                    && e.item.containerId === containerItem.id);
+            const renderContents = (containerItem, host, depth) => {
+                const inside = contents(containerItem);
+                if (!inside.length || depth > 4) return;
+                const sub = h('div', 'inv-contained-list');
+                for (const e of inside) {
+                    sub.appendChild(renderInventoryItemCard(data, e.item, e.index));
+                    addWeight(e.item);
+                    renderContents(e.item, sub, depth + 1);
+                }
+                host.appendChild(sub);
+            };
+            const topEntries = entries.filter((e) => !IM.containerOf(list, e.item));
+            for (const { item, index } of topEntries) {
+                const card = renderInventoryItemCard(data, item, index);
+                const inside = contents(item);
+                if (inside.length) {
+                    const w = inside.reduce((a, e) => a
+                        + (Number(e.item.weight) || 0) * (Number(e.item.quantity) || 1), 0);
+                    card.title = `Contains ${inside.length} item${inside.length === 1 ? '' : 's'}`
+                        + ` · ${w} lb inside`
+                        + (IM.containerWeightless(item) ? ' (contents don’t count)' : '');
+                }
+                pack.appendChild(card);
+                addWeight(item);
+                renderContents(item, pack, 0);
             }
-            // Reorder within category maps to equipment_list indices
-            bindDragReorder(pack, '.inv-item', (from, to) => {
-                const fromId = entries[from]?.item?.id;
-                const toId = entries[to]?.item?.id;
+            // Reorder within category maps to equipment_list indices (top-level rows only —
+            // contained rows live in nested .inv-contained-list wrappers this misses).
+            bindDragReorder(pack, ':scope > .inv-item', (from, to) => {
+                const fromId = topEntries[from]?.item?.id;
+                const toId = topEntries[to]?.item?.id;
                 const listNow = data.equipment_list || [];
                 const fromIdx = listNow.findIndex((it) => it.id === fromId);
                 const toIdx = listNow.findIndex((it) => it.id === toId);
@@ -345,6 +379,10 @@ window.SheetTabInventory = (function () {
             secWrap.appendChild(pack);
             body.appendChild(secWrap);
         }
+
+        // #10: coins weigh 50/lb (all denominations) unless the Settings toggle is off.
+        const coinLbs = Number(window.SheetInventoryModel.coinWeightLbs(data)) || 0;
+        totalWeight += coinLbs;
 
         const load = loadCategory(totalWeight, effStr(data));
         const eqCount = list.filter((it) => it.equipped).length;
@@ -361,6 +399,7 @@ window.SheetTabInventory = (function () {
         statLine.appendChild(h('span', load.cls, `Carrying ${fmtWeight(totalWeight)}`));
         statLine.appendChild(h('span', 'dim',
             `${eqCount} equipped · ${carried} carried · ${list.length} total`
+            + (coinLbs ? ` · Coins: ${fmtWeight(coinLbs)} (50/lb)` : '')
             + (valueSum ? ` · Total item value: ${fmtPrice(valueSum)}` : '')));
         foot.appendChild(statLine);
 

@@ -995,7 +995,54 @@ window.SheetModals = (function () {
                 (v) => { item.rechargeOnRest = v; },
                 'Rest refills Charges to max (per-day items, staves — not wands)'),
         );
+        // #10: containers can waive their contents' weight; known magical containers
+        // (bag of holding & co.) default to on — the explicit checkbox wins either way.
+        if (inventoryCategory(item) === 'containers') {
+            checks.appendChild(checkRow("Contents don't count",
+                () => window.SheetInventoryModel.containerWeightless(item),
+                (v) => { item.contentsWeightless = v; },
+                'Contents add no carried weight (bag of holding, handy haversack…)'));
+        }
         side.appendChild(checks);
+
+        // #10: container nesting — pick which container this item sits in. Contents
+        // inherit the container's carried state and render indented under it.
+        {
+            const list = window.SheetState?.ensureInventoryObjects?.(data) || [];
+            const wouldCycle = (candidate) => {
+                let cur = candidate;
+                for (let i = 0; cur && i < 8; i++) {
+                    if (cur.id === item.id) return true;
+                    cur = window.SheetInventoryModel.containerOf(list, cur);
+                }
+                return false;
+            };
+            const options = list.filter((it) => it !== item
+                && inventoryCategory(it) === 'containers' && !wouldCycle(it));
+            if (options.length || item.containerId) {
+                const row = h('div', 'item-sheet-stat');
+                row.appendChild(h('span', 'item-sheet-stat-label', 'Container'));
+                const sel = h('select', 'item-sheet-num item-sheet-container');
+                const none = document.createElement('option');
+                none.value = '';
+                none.textContent = '— none —';
+                sel.appendChild(none);
+                for (const it of options) {
+                    const opt = document.createElement('option');
+                    opt.value = it.id;
+                    opt.textContent = it.name || 'container';
+                    if (item.containerId === it.id) opt.selected = true;
+                    sel.appendChild(opt);
+                }
+                sel.addEventListener('change', () => {
+                    item.containerId = sel.value || null;
+                    quietSave();
+                    refreshDerived();
+                });
+                row.appendChild(sel);
+                side.appendChild(row);
+            }
+        }
 
         // Property chips — the data we actually have (armor numbers, weapon dice/crit)
         const chips = [];
