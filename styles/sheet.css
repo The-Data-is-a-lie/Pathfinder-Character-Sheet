@@ -1103,6 +1103,16 @@ select,
     cursor: pointer;
     appearance: auto;
 }
+
+/* #23 advisory spells-per-day hints */
+.spell-slot-hint {
+    font-size: 0.7rem;
+    color: var(--accent);
+    margin-left: 0.3rem;
+    white-space: nowrap;
+    cursor: help;
+}
+.spell-use-table { margin: 0.25rem 0 0.4rem; font-size: 0.8rem; }
 select option,
 select optgroup {
     background-color: var(--select-bg);

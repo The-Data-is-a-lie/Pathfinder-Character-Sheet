@@ -643,6 +643,12 @@ window.SheetTabSpells = (function () {
         const levelCount = bk.legacy
             ? bk.perDay.length
             : Math.max(bk.perDay.length, bk.lists.length);
+        // #23: advisory diff vs the standard class progression (incl. ability bonus
+        // slots). Hand-entered numbers always win — a differing cell only gets a
+        // "table: N" hint; "Use table values" below is the sole (user-pushed) writer.
+        const bookClassLevel = window.SheetClassInfo?.classLevelFor?.(data, bk.name) || 0;
+        const expectedPerDay = window.SheetSpellSlots?.expectedSlots?.(
+            bk.name, bookClassLevel, bk.castMod);
         if (levelCount > 0 && (nonEmpty(bk.perDay) || !bk.legacy)) {
             const table = h('table', 'spell-table');
             const hd = h('tr');
@@ -661,6 +667,15 @@ window.SheetTabSpells = (function () {
                     parse: (s) => parseIntLoose(s, 0),
                     onChange: () => quietSave(),
                 }));
+                const exp = expectedPerDay?.[i];
+                if (exp != null && (Number(bk.perDay[i]) || 0) !== exp) {
+                    const hint = h('span', 'spell-slot-hint no-print', `table: ${exp}`);
+                    hint.title = `${bk.name} ${bookClassLevel} standard progression`
+                        + (i >= 1 && bk.castMod > 0
+                            ? ` incl. ability bonus slots (mod ${fmt(bk.castMod)})` : '')
+                        + ' — your number wins; this is only a hint.';
+                    pdTd.appendChild(hint);
+                }
                 tr.appendChild(pdTd);
                 const leftTd = h('td', 'num');
                 const bag = { left: bk.casts[i] ?? 0 };
@@ -687,6 +702,25 @@ window.SheetTabSpells = (function () {
                 table.appendChild(tr);
             }
             wrap.appendChild(table);
+            if (expectedPerDay && expectedPerDay.some((v) => v != null)) {
+                const useBtn = h('button', 'inv-btn no-print spell-use-table',
+                    'Use table values');
+                useBtn.type = 'button';
+                useBtn.title = `Fill Per Day from the ${bk.name} ${bookClassLevel} `
+                    + 'standard progression (with ability bonus slots). One-time fill — '
+                    + 'you can still edit any cell afterwards.';
+                useBtn.addEventListener('click', () => {
+                    expectedPerDay.forEach((v, lvl) => {
+                        if (v == null) return;
+                        while (bk.perDay.length <= lvl) bk.perDay.push(0);
+                        bk.perDay[lvl] = v;
+                    });
+                    quietSave();
+                    renderSheet(data);
+                    setActiveTab('spells');
+                });
+                wrap.appendChild(useBtn);
+            }
         }
 
         // Level blocks with the spell lists
