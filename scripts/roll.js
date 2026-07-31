@@ -361,6 +361,9 @@ window.SheetRoll = (function () {
                 diceFlavor,
                 parts,
                 conditionals: [],
+                // Cure spells carry actionType 'heal' in spell_details.json — the block
+                // renders an Apply-healing button instead of the damage buttons (#20).
+                isHeal: actionType === 'heal',
             });
         }
 
@@ -1566,11 +1569,34 @@ window.SheetRoll = (function () {
         window.SheetApp?.renderSheet?.(currentData);
     }
 
+    /** Apply healing to HP: raises hpCurrent capped at max, reduces nonlethal alongside
+     *  (PF1: healing removes an equal amount of nonlethal). Returns what happened so the
+     *  card can note overheal wasted. */
+    function applyHealingToHp(amount) {
+        const n = Math.max(0, Math.floor(Number(amount) || 0));
+        if (!currentData || !n) return null;
+        const st = (currentData._sheet ??= {});
+        const max = Number(currentData.Total_HP) || 0;
+        const cur = st.hpCurrent == null || st.hpCurrent === ''
+            ? max : Number(st.hpCurrent) || 0;
+        const healed = Math.max(0, Math.min(n, max - cur));
+        st.hpCurrent = Math.min(max, cur + n);
+        const nl = Number(st.hpNonlethal) || 0;
+        const nlHealed = Math.min(nl, n);
+        if (nlHealed > 0) st.hpNonlethal = nl - nlHealed;
+        window.SheetOverlay?.toast?.(`Healed ${healed} — HP ${st.hpCurrent}/${max}`
+            + (nlHealed ? ` · ${nlHealed} nonlethal removed` : ''));
+        window.SheetApp?.quietSave?.();
+        window.SheetApp?.renderSheet?.(currentData);
+        return { healed, nlHealed, over: n - Math.max(healed, nlHealed) };
+    }
+
     function renderDamageBlock(dmg) {
         const block = h('div', 'roll-card-block roll-card-damage');
         const summary = h('div', 'roll-card-summary');
         summary.appendChild(h('span', 'roll-card-kind',
-            (dmg.critMult > 1 ? `Damage (×${dmg.critMult})` : 'Damage')
+            (dmg.isHeal ? 'Healing'
+                : (dmg.critMult > 1 ? `Damage (×${dmg.critMult})` : 'Damage'))
             + (dmg.label ? ` · ${dmg.label}` : '')));
         summary.appendChild(h('span', 'roll-card-result damage', String(dmg.total)));
         if (dmg.diceFlavor) {
@@ -1601,9 +1627,28 @@ window.SheetRoll = (function () {
         // Apply-to-HP row (Foundry's chat-card apply buttons): full, half, nonlethal.
         // Typed blocks (weapon / natural damage) route through the Defenses tab — DR,
         // energy resistance, immunities, vulnerabilities — and append the arithmetic to
-        // the card. Untyped blocks (spells, freeform) keep the raw path.
+        // the card. Untyped blocks (spells, freeform) keep the raw path. Heal blocks get
+        // a single Apply-healing button instead (#20).
         const applyRow = h('div', 'roll-card-apply no-print');
         const mitNote = h('div', 'roll-card-mitigation no-print');
+        if (dmg.isHeal) {
+            const b = h('button', 'roll-card-apply-btn', 'Heal ' + dmg.total);
+            b.type = 'button';
+            b.title = 'Raise HP (capped at max); nonlethal reduced alongside';
+            b.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                const res = applyHealingToHp(dmg.total);
+                if (!res) return;
+                mitNote.textContent = `Healed ${res.healed}`
+                    + (res.nlHealed ? ` · ${res.nlHealed} nonlethal removed` : '')
+                    + (res.over > 0 ? ` · ${res.over} wasted (already at full)` : '');
+                if (!mitNote.parentNode) block.appendChild(mitNote);
+            });
+            applyRow.appendChild(b);
+            block.appendChild(applyRow);
+            bindExpandable(block);
+            return block;
+        }
         const doApply = ({ half = false, nonlethal = false } = {}) => {
             if (!dmg.typed) {
                 applyDamageToHp(half ? Math.floor(dmg.total / 2) : dmg.total, { nonlethal });
@@ -2912,6 +2957,58 @@ window.SheetRoll = (function () {
         renderAttacks();
     }
 
+    // Save-vs-DC quick row (#20): Fort/Ref/Will segmented control + DC input + Roll.
+    // A filled DC stamps PASS/FAIL on the card; an empty DC just rolls. One surface only.
+    function initSaveRow() {
+        const host = document.getElementById('tools-save-row');
+        if (!host) return;
+        let save = 'fort';
+        const seg = h('div', 'tools-save-seg');
+        const segBtns = {};
+        for (const [id, label] of [['fort', 'Fort'], ['ref', 'Ref'], ['will', 'Will']]) {
+            const b = h('button', 'tools-quick tools-save-pick' + (id === save ? ' is-on' : ''), label);
+            b.type = 'button';
+            b.addEventListener('click', () => {
+                save = id;
+                for (const [k, el] of Object.entries(segBtns)) {
+                    el.classList.toggle('is-on', k === save);
+                }
+            });
+            segBtns[id] = b;
+            seg.appendChild(b);
+        }
+        const dcInput = h('input', 'edit-field tools-save-dc');
+        dcInput.type = 'number';
+        dcInput.placeholder = 'DC';
+        dcInput.min = '0';
+        const go = h('button', 'tools-quick tools-save-go', 'Save');
+        go.type = 'button';
+        go.title = 'Roll the selected save; with a DC filled in the card stamps PASS/FAIL';
+        const doSave = () => {
+            if (!currentData) {
+                pushLog('Save', 'Load a character first.', null, { sound: false });
+                return;
+            }
+            const labels = { fort: 'Fortitude', ref: 'Reflex', will: 'Will' };
+            const total = Number(window.SheetDerive?.computeDerived?.(currentData)
+                ?.blocks?.[save]?.total) || 0;
+            const r = roll('1d20' + (total ? (total > 0 ? '+' : '') + total : ''));
+            if (!r.ok) return;
+            const dc = dcInput.value.trim() === '' ? null : Number(dcInput.value);
+            const title = `${labels[save]} save` + (dc != null ? ` vs DC ${dc}` : '');
+            const stamp = dc != null ? ` · ${r.total >= dc ? 'PASS ✓' : 'FAIL ✗'}` : '';
+            pushLog(title, r.detail + stamp, r.total);
+        };
+        go.addEventListener('click', doSave);
+        dcInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                doSave();
+            }
+        });
+        host.append(seg, dcInput, go);
+    }
+
     function init() {
         const closeBtn = document.getElementById('tools-close');
         const rollBtn = document.getElementById('tools-dice-roll');
@@ -2946,6 +3043,7 @@ window.SheetRoll = (function () {
             if (e.key === 'Escape' && isOpen()) setOpen(false);
         });
 
+        initSaveRow();
         initSectionMinimize();
         initDrawer();   // attaches SheetEdgePanel, which restores the stored width + open state
         renderLog();
