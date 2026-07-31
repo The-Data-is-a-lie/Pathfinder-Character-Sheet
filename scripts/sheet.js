@@ -726,6 +726,10 @@
             form.elements[name].addEventListener('change', () => syncQuickLevel(form));
         }
         document.getElementById('gen-surprise')?.addEventListener('click', () => surpriseMe(form));
+        // #43 PROTOTYPE: combat HUD candidates (⚔ opens candidate A; the dock is candidate B).
+        document.getElementById('hud-btn')?.addEventListener('click',
+            () => window.SheetCombatHud?.openHud());
+        window.SheetCombatHud?.init();
         document.querySelectorAll('.gen-preset').forEach((btn) => {
             btn.addEventListener('click', () => applyGenPreset(form, btn.dataset.preset));
         });

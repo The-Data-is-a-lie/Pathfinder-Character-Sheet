@@ -3174,5 +3174,10 @@ window.SheetRoll = (function () {
         rollSpellCast,
         hasFeat: (data, name) => hasFeat(data || currentData, name),
         attackContext: (itemKey) => attackContext(currentData, itemKey),
+        // #43 (combat HUD prototype): the HUD reuses the existing damage/heal appliers
+        // and fires the selected attack routine without owning any roll math itself.
+        applyDamageToHp,
+        applyHealingToHp,
+        rollRoutine: () => doRoutineAttack(selectedRoutine(currentData)),
     };
 })();
