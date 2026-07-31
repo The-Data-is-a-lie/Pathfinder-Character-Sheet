@@ -144,6 +144,48 @@ window.SheetTabSpells = (function () {
         data.spells_prepared_names = buckets;
     }
 
+    // ------------------------------------------- advanced casting rules (#11, warn-only)
+    // Per-book config on _sheet.spellBookRules[bookId]: a restricted slot kind per level
+    // (domain / specialist school) annotated on the existing dayList counts, an
+    // opposition-school list ("costs 2 slots"), and a spontaneous-conversion target.
+    // Everything warns or automates — nothing ever blocks a cast.
+    function bookRules(data, bk) {
+        const st = (data._sheet ??= {});
+        st.spellBookRules ??= {};
+        st.spellBookRules[bk.id] ??= {};
+        const r = st.spellBookRules[bk.id];
+        r.restricted = ['domain', 'specialist'].includes(r.restricted) ? r.restricted : 'none';
+        r.label = typeof r.label === 'string' ? r.label : '';
+        r.opposition = typeof r.opposition === 'string' ? r.opposition : '';
+        r.conversion = ['cure', 'inflict', 'sna'].includes(r.conversion) ? r.conversion : 'none';
+        return r;
+    }
+    const CONVERT_SPELLS = {
+        cure: ['', 'Cure Light Wounds', 'Cure Moderate Wounds', 'Cure Serious Wounds',
+            'Cure Critical Wounds', 'Cure Light Wounds, Mass', 'Cure Moderate Wounds, Mass',
+            'Cure Serious Wounds, Mass', 'Cure Critical Wounds, Mass', 'Mass Heal'],
+        inflict: ['', 'Inflict Light Wounds', 'Inflict Moderate Wounds', 'Inflict Serious Wounds',
+            'Inflict Critical Wounds', 'Inflict Light Wounds, Mass', 'Inflict Moderate Wounds, Mass',
+            'Inflict Serious Wounds, Mass', 'Inflict Critical Wounds, Mass', 'Mass Harm'],
+        sna: ['', "Summon Nature's Ally I", "Summon Nature's Ally II", "Summon Nature's Ally III",
+            "Summon Nature's Ally IV", "Summon Nature's Ally V", "Summon Nature's Ally VI",
+            "Summon Nature's Ally VII", "Summon Nature's Ally VIII", "Summon Nature's Ally IX"],
+    };
+    const CONVERT_LABELS = { cure: 'cure', inflict: 'inflict', sna: "summon nature's ally" };
+    /** The spell's school (long name, lowercase) — for the opposition check. */
+    function spellSchoolOf(sd) {
+        if (!sd?.school) return '';
+        return String(SPELL_SCHOOLS[sd.school] || sd.school).toLowerCase();
+    }
+    function inOpposition(rules, sd) {
+        if (rules.restricted !== 'specialist' || !rules.opposition.trim()) return false;
+        const school = spellSchoolOf(sd);
+        if (!school) return false;
+        return rules.opposition.toLowerCase().split(/[,;]/)
+            .map((s) => s.trim()).filter(Boolean)
+            .some((s) => school.startsWith(s) || s.startsWith(school));
+    }
+
     // ---------------------------------------------------------------- casting + metamagic
     /** name → slot-level cost. Heighten is special: its cost is the chosen raise. */
     const METAMAGIC_FEATS = {
@@ -158,9 +200,11 @@ window.SheetTabSpells = (function () {
         return Object.keys(METAMAGIC_FEATS)
             .filter((n) => window.SheetRoll?.hasFeat?.(data, n));
     }
-    function castSpell(data, bk, level, name, mm = null) {
+    function castSpell(data, bk, level, name, mm = null, opts = {}) {
         const slotLevel = mm ? mm.slotLevel : level;
-        if (bk.preparedMode && level > 0 && !preparedSetAt(data, bk, level).has(name)) {
+        // skipPrepared: spontaneous conversion (#11) trades ANY slot, prepared or not.
+        if (!opts.skipPrepared && bk.preparedMode && level > 0
+            && !preparedSetAt(data, bk, level).has(name)) {
             alert('That spell is not prepared.');
             return;
         }
@@ -171,6 +215,21 @@ window.SheetTabSpells = (function () {
             }
         }
         const sd = foundry('spells', name);
+        // #11 warn-only rules: an opposition-school cast costs a second slot (spend it
+        // when one exists, warn either way); restricted-slot books get a reminder that
+        // one slot per level is domain/school-only.
+        const rules = bookRules(data, bk);
+        const warnBits = [];
+        if (slotLevel > 0 && inOpposition(rules, sd)) {
+            const second = spendBookSlot(data, bk, slotLevel);
+            warnBits.push(`${spellSchoolOf(sd)} is an opposition school — costs 2 slots`
+                + (second ? ' (second slot spent)' : ' (no second slot left to spend!)'));
+        }
+        if (slotLevel > 0 && rules.restricted !== 'none') {
+            warnBits.push(`reminder: 1 slot/level is ${rules.restricted === 'domain'
+                ? 'domain' : 'school'}-only${rules.label ? ` (${rules.label})` : ''}`);
+        }
+        if (warnBits.length) window.SheetOverlay?.toast?.(warnBits.join(' · '));
         const dcLevel = mm ? mm.dcLevel : level;
         window.SheetRoll?.setOpen?.(true);
         if (window.SheetRoll?.rollSpellCast) {
@@ -484,6 +543,63 @@ window.SheetTabSpells = (function () {
             styleRow.appendChild(styleV);
             wrap.appendChild(styleRow);
         }
+        // #11: advanced casting rules panel (domain/specialist slots, opposition,
+        // spontaneous conversion) — all warn-only.
+        {
+            const rules = bookRules(data, bk);
+            const rulesRow = h('div', 'kv kv-stat');
+            rulesRow.appendChild(h('span', 'k', 'Casting rules'));
+            const rulesV = h('span', 'v spellbook-rules');
+            const restrictSel = h('select', 'edit-field');
+            for (const [val, lab] of [['none', 'No restricted slot'],
+                ['domain', 'Domain slot (+1/level)'], ['specialist', 'Specialist slot (+1/level)']]) {
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = lab;
+                if (rules.restricted === val) opt.selected = true;
+                restrictSel.appendChild(opt);
+            }
+            const labelIn = h('input', 'edit-field spellbook-rules-label');
+            labelIn.placeholder = 'Domains / school';
+            labelIn.value = rules.label;
+            labelIn.title = 'Shown in the reminder — e.g. "Fire, War" or "Evocation"';
+            const oppIn = h('input', 'edit-field spellbook-rules-opp');
+            oppIn.placeholder = 'Opposition schools';
+            oppIn.value = rules.opposition;
+            oppIn.title = 'Comma-separated; casting one warns and spends a second slot '
+                + '(specialist wizards)';
+            const convSel = h('select', 'edit-field');
+            for (const [val, lab] of [['none', 'No conversion'],
+                ['cure', 'Convert → cure (cleric)'], ['inflict', 'Convert → inflict (cleric)'],
+                ['sna', "Convert → summon nature's ally (druid)"]]) {
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = lab;
+                if (rules.conversion === val) opt.selected = true;
+                convSel.appendChild(opt);
+            }
+            const commit = () => {
+                rules.restricted = restrictSel.value;
+                rules.label = labelIn.value.trim();
+                rules.opposition = oppIn.value.trim();
+                rules.conversion = convSel.value;
+                quietSave();
+                renderSheet(data);
+                setActiveTab('spells');
+            };
+            for (const el of [restrictSel, convSel]) el.addEventListener('change', commit);
+            for (const el of [labelIn, oppIn]) el.addEventListener('change', commit);
+            const syncVis = () => {
+                labelIn.classList.toggle('hidden', restrictSel.value === 'none');
+                oppIn.classList.toggle('hidden', restrictSel.value !== 'specialist');
+            };
+            restrictSel.addEventListener('change', syncVis);
+            syncVis();
+            rulesV.append(restrictSel, labelIn, oppIn, convSel);
+            rulesRow.appendChild(rulesV);
+            wrap.appendChild(rulesRow);
+        }
+
         const mmKnown = knownMetamagic(data);
         if (mmKnown.length) {
             kv(wrap, 'Metamagic', mmKnown.join(', ') + ' — picker opens on Cast');
@@ -614,7 +730,28 @@ window.SheetTabSpells = (function () {
                     metaBits.push(`${preparedSetAt(data, bk, level).size} prepared`);
                 }
                 metaBits.push(`${spells.length} in list`);
+                const rules = bookRules(data, bk);
+                if (level > 0 && rules.restricted !== 'none') {
+                    metaBits.push(`1 ${rules.restricted}-only`
+                        + (rules.label ? ` (${rules.label})` : ''));
+                }
                 headMain.appendChild(h('span', 'spell-level-meta dim', metaBits.join(' · ')));
+                // #11: spontaneous conversion — trade any slot at this level for the
+                // canonical cure/inflict/SNA spell, prepared or not.
+                if (level > 0 && rules.conversion !== 'none') {
+                    const convName = CONVERT_SPELLS[rules.conversion][level];
+                    if (convName) {
+                        const convBtn = h('button', 'inv-btn spell-convert-btn no-print',
+                            '⇄ ' + convName);
+                        convBtn.type = 'button';
+                        convBtn.title = `Spontaneous conversion: spend a level-${level} slot `
+                            + `to cast ${convName} (${CONVERT_LABELS[rules.conversion]})`;
+                        convBtn.addEventListener('click', () => {
+                            castSpell(data, bk, level, convName, null, { skipPrepared: true });
+                        });
+                        headMain.appendChild(convBtn);
+                    }
+                }
                 head.appendChild(headMain);
 
                 const minBtn = h('button', 'spell-level-min no-print', '−');
