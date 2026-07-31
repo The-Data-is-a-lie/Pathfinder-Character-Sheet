@@ -318,6 +318,18 @@ window.SheetState = (function () {
         };
     }
     /**
+     * The Features-tab uses tracker entry for a named feature ({ value, max }), created on
+     * first touch. One owner for the shape — the Buffs-tab controls and the marquee
+     * class-feature spend/tick paths all read this same object.
+     */
+    function featureUses(data, name) {
+        const st = sheetState(data);
+        st.featureUses ??= {};
+        if (!st.featureUses[name]) st.featureUses[name] = { value: 0, max: 0 };
+        return st.featureUses[name];
+    }
+
+    /**
      * Advance combat by one round: bump the round counter and tick every round-denominated
      * duration down by one. Conditions store durations as free text ("5 rounds") — parse
      * the leading number when the unit is rounds (or absent), rewrite what's left, and
@@ -368,6 +380,24 @@ window.SheetState = (function () {
             if (t.autoExpire === 'round' && prefs[t.id]) {
                 prefs[t.id] = false;
                 expired.push(t.name);
+            }
+        }
+
+        // Timed marquee features (Rage, Inspire Courage) burn one round from their
+        // Features-tab uses pool each round they stay on and auto-end at 0 — Rage's end
+        // applies fatigued (PF1: for 2× rounds raged; the duration stays a chip note).
+        for (const t of window.SheetData?.MARQUEE_FEATURES || []) {
+            if (!t.timed || !prefs[t.id]) continue;
+            const u = featureUses(data, t.uses?.name || t.name);
+            u.value = Math.max(0, (Number(u.value) || 0) - 1);
+            if (u.value <= 0) {
+                prefs[t.id] = false;
+                let label = t.name;
+                if (t.endCondition) {
+                    setConditionActive(data, t.endCondition, true);
+                    label += ` → ${t.endCondition}`;
+                }
+                expired.push(label);
             }
         }
 
@@ -537,7 +567,7 @@ window.SheetState = (function () {
         setBuffSourceActive, removeBuffSource, restoreRemovedBuffSources, activeStanceSet,
         setStanceActive, activeConditions, setConditionActive, notesForTargets, attachNotesHover,
         featureCustomList, featureCustomEntry, pruneFeatureCustom, ensureBuffs, normalizeBuffEntry,
-        formatBuffDuration, advanceRound, resetRoundCounter,
+        formatBuffDuration, advanceRound, resetRoundCounter, featureUses,
         createBuff, addBuffFromCatalog, ensureSpellCasts, spendSpellSlot,
         ensureCastingAbility, ensureInitiationStat, ensureInventoryObjects, ensureDefenses,
         ensureClassList, syncLegacyClasses, ensureArchetypeList, ensureSkillRanksObject,

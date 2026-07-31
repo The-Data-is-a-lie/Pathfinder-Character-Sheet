@@ -186,6 +186,96 @@ window.SheetData = (function () {
         'tri-point double-edged sword', 'two-bladed sword',
     ]);
 
+    // ------------------------------------------- marquee base class features (issue #8)
+    // The signature class features the backend deliberately does not curate (its
+    // class_feature_effects.json covers choice pools only). Curated client-side, keyed by
+    // class presence, so already-saved characters get them with no re-generate. Same shape
+    // as COMBAT_TOGGLES: `modifiers` = per-roll side, `acChanges` = standing ledger side
+    // (dual-written while the toggle is on, sourceKind 'marquee').
+    //   uses:  { name, max } links the toggle to the Features-tab uses tracker (max is an
+    //          evalSimpleFormula string, seeded on first activation). Non-timed features
+    //          spend 1 use when toggled on (warn at 0, never block).
+    //   timed: spends 1 use per advanceRound while on and auto-ends at 0.
+    //   endCondition: PF1 condition id applied when the feature ends (Rage → fatigued).
+    // Scaling avoids ifelse (evalSimpleFormula has floor/ceil/min/max only):
+    // floor(level/11) + floor(level/20) steps at 11 and 20 (greater/mighty rage).
+    const MARQUEE_FEATURES = [
+        {
+            id: 'marquee:rage', name: 'Rage', cls: 'barbarian',
+            label: 'Rage: +4 morale Str & Con (+6 @11, +8 @20), +2 Will, −2 AC — spends rage rounds',
+            timed: true, endCondition: 'fatigued',
+            uses: { name: 'Rage', max: '4 + @abilities.con.mod + 2 * (@classes.barbarian.level - 1)' },
+            acChanges: [
+                { formula: '4 + 2*floor(@classes.barbarian.level/11) + 2*floor(@classes.barbarian.level/20)', target: 'str', type: 'morale' },
+                { formula: '4 + 2*floor(@classes.barbarian.level/11) + 2*floor(@classes.barbarian.level/20)', target: 'con', type: 'morale' },
+                { formula: '2 + floor(@classes.barbarian.level/11) + floor(@classes.barbarian.level/20)', target: 'will', type: 'morale' },
+                { formula: '-2', target: 'ac', type: 'penalty' },
+            ],
+            rider: 'Rage: no Cha-, Dex- or Int-based skills (except Acrobatics, Fly, Intimidate, Ride) and no concentration. When it ends you are fatigued for 2× the rounds spent raging (auto-applied).',
+        },
+        {
+            id: 'marquee:smite-evil', name: 'Smite Evil', cls: 'paladin',
+            label: 'Smite Evil: +Cha attack, +level damage, +Cha deflection AC vs target (1 use)',
+            uses: { name: 'Smite Evil', max: 'ceil(@classes.paladin.level/3)' },
+            modifiers: [
+                { formula: '@abilities.cha.mod', target: 'attack', type: 'untyped' },
+                { formula: '@classes.paladin.level', target: 'damage', type: 'untyped' },
+            ],
+            acChanges: [{ formula: '@abilities.cha.mod', target: 'ac', type: 'deflection' }],
+            rider: 'Smite Evil: bonuses apply only against the chosen evil target (deflection AC only vs its attacks); damage ×2 on the first hit vs evil outsiders, evil dragons and undead; your attacks bypass its DR. Lasts until the target is dead or you rest.',
+        },
+        {
+            id: 'marquee:challenge', name: 'Challenge', cls: 'cavalier',
+            label: 'Challenge: +level melee damage vs target, −2 AC vs everyone else (1 use)',
+            uses: { name: 'Challenge', max: 'ceil(@classes.cavalier.level/3)' },
+            modifiers: [{ formula: '@classes.cavalier.level', target: 'mdamage', type: 'untyped' }],
+            acChanges: [{ formula: '-2', target: 'ac', type: 'penalty' }],
+            rider: 'Challenge: the damage bonus applies only against the challenged target; the −2 AC applies against everyone except that target. Lasts until the target is dead or unconscious.',
+        },
+        {
+            id: 'marquee:judgment', name: 'Judgment', cls: 'inquisitor',
+            label: 'Judgment (destruction): +sacred damage, scales with level (1 use)',
+            uses: { name: 'Judgment', max: 'ceil(@classes.inquisitor.level/3)' },
+            modifiers: [{ formula: '1 + floor(@classes.inquisitor.level/3)', target: 'damage', type: 'sacred' }],
+            rider: 'Judgment: destruction shown; other choices — justice +(1 + level/10) attack, protection +(1 + level/10) sacred AC, purity +(1 + level/10) saves, healing fast healing (1 + level/3), piercing +(1 + level/3) concentration & vs SR, resiliency DR (1 + level/5)/magic, resistance energy resist 2×(1 + level/5), smiting: weapons count as magic (adamantine @6, aligned @10) — swap the numbers by hand if you picked one of those. Lasts the whole combat; swift action to change.',
+        },
+        {
+            id: 'marquee:sneak-attack', name: 'Sneak Attack', cls: 'rogue',
+            label: 'Sneak Attack: +Nd6 precision damage (target denied Dex, or flanked)',
+            modifiers: [{ formula: '(ceil(@classes.rogue.level/2))d6', target: 'damage', type: 'untyped' }],
+            rider: 'Sneak attack: only when the target is denied its Dex bonus to AC or you are flanking; precision damage is never multiplied on a crit (the sheet already rolls it once); creatures immune to precision damage take none.',
+        },
+        {
+            id: 'marquee:favored-enemy', name: 'Favored Enemy', cls: 'ranger',
+            label: 'Favored Enemy: +2 attack & damage',
+            modifiers: [
+                { formula: '2', target: 'attack', type: 'untyped' },
+                { formula: '2', target: 'damage', type: 'untyped' },
+            ],
+            rider: 'Favored enemy: +2 also applies to Bluff, Knowledge, Perception, Sense Motive and Survival vs that creature type. If this enemy type has a higher bonus (+4/+6 from later picks), use the "Next roll" one-off boxes for the difference.',
+        },
+        {
+            id: 'marquee:studied-target', name: 'Studied Target', cls: 'slayer',
+            label: 'Studied Target: +N attack & damage, scales with level',
+            modifiers: [
+                { formula: '1 + floor(@classes.slayer.level/5)', target: 'attack', type: 'untyped' },
+                { formula: '1 + floor(@classes.slayer.level/5)', target: 'damage', type: 'untyped' },
+            ],
+            rider: 'Studied target: the same bonus applies to Bluff, Knowledge, Perception, Sense Motive and Survival checks against the target, and to slayer talent DCs.',
+        },
+        {
+            id: 'marquee:inspire-courage', name: 'Inspire Courage', cls: 'bard',
+            label: 'Inspire Courage: +N competence attack & damage — spends performance rounds',
+            timed: true,
+            uses: { name: 'Bardic Performance', max: '4 + @abilities.cha.mod + 2 * (@classes.bard.level - 1)' },
+            modifiers: [
+                { formula: '1 + floor((@classes.bard.level + 1)/6)', target: 'attack', type: 'competence' },
+                { formula: '1 + floor((@classes.bard.level + 1)/6)', target: 'damage', type: 'competence' },
+            ],
+            rider: 'Inspire courage: also +the same bonus (morale) on saves vs charm and fear; allies who can hear you gain the full effect too. Free action to maintain each round.',
+        },
+    ];
+
     // ------------------------------------------------------------ size categories
     // `mod` is the size modifier to attack & AC; the special size modifier (CMB/CMD) is its
     // negation. `steps` is the damage-dice progression distance from Medium.
@@ -362,7 +452,7 @@ window.SheetData = (function () {
     return {
         REGIONS, RACES, CLASSES, CORE_RACES, CORE_CLASSES, DEITIES,
         PF1_CONDITIONS, CONDITION_CHANGES, COMBAT_TOGGLES, TWO_HANDED_WEAPONS,
-        SIZES, SMALL_RACES, stepDice,
+        MARQUEE_FEATURES, SIZES, SMALL_RACES, stepDice,
         CLASS_STATS, DEFAULT_CLASS_INFO, ALL_SKILLS, FEAT_GROUPS,
     };
 })();

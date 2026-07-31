@@ -907,12 +907,52 @@ window.SheetRoll = (function () {
             el.checked = !!on;
         });
         refreshCondGroupCounts();
+        const marquee = (window.SheetData?.MARQUEE_FEATURES || []).find((t) => t.id === id);
+        if (currentData && marquee) handleMarqueeToggle(marquee, !!on);
         // Combat options with a standing side (acChanges dual-written into the ledger by
         // collectChanges) move AC/saves/CMD the moment they flip — recompute derived totals.
         // renderSheet restores the active tab itself, so this is safe from any panel.
-        if (currentData && combatToggleHasAcChanges(id)) {
+        if (currentData && (combatToggleHasAcChanges(id)
+            || marquee?.acChanges?.length || (marquee && !on && marquee.endCondition))) {
             window.SheetApp?.renderSheet?.(currentData);
         }
+    }
+
+    /**
+     * Uses/rounds side of a marquee class-feature toggle (never blocks — warns and keeps
+     * going, house style). ON: seed the Features-tab uses pool from its formula when still
+     * unset, then spend 1 use (non-timed) or announce the rounds pool (timed — advanceRound
+     * does the spending). OFF with an endCondition: Rage's end applies fatigued.
+     */
+    function handleMarqueeToggle(t, on) {
+        const data = currentData;
+        const toast = (m) => window.SheetOverlay?.toast?.(m);
+        if (!on) {
+            if (t.endCondition) {
+                window.SheetState.setConditionActive(data, t.endCondition, true);
+                toast(`${t.name} ends — ${t.endCondition} applied`);
+            }
+            return;
+        }
+        if (!t.uses) return;
+        const u = window.SheetState.featureUses(data, t.uses.name || t.name);
+        if (!u.max && t.uses.max) {
+            const ev = window.SheetDetails?.evalSimpleFormula?.(t.uses.max, data);
+            const n = Math.max(1, ev?.ok ? ev.value : 1);
+            u.max = n;
+            u.value = n;
+        }
+        if (t.timed) {
+            toast(u.value > 0
+                ? `${t.name}: ${u.value}/${u.max} rounds — spends on Next round`
+                : `${t.name}: out of ${t.uses.name || t.name} rounds! (running on empty)`);
+        } else if (u.value <= 0) {
+            toast(`${t.name}: out of uses! (0/${u.max} — spending anyway)`);
+        } else {
+            u.value -= 1;
+            toast(`${t.name}: ${u.value}/${u.max} uses left`);
+        }
+        window.SheetState.quietSave?.();
     }
 
     let combatAcToggleIds = null;
