@@ -4704,6 +4704,21 @@ body.modal-open { overflow: hidden; }
 .levelup-spell-chip { display: inline-flex; align-items: center; gap: 0.25rem; }
 .levelup-spell-lv { padding: 0 0.1rem; }
 
+/* #11: advanced casting rules row + conversion button */
+.spellbook-rules {
+    display: flex;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.spellbook-rules-label,
+.spellbook-rules-opp { width: 9.5em; }
+.spell-convert-btn {
+    font-size: 0.75rem;
+    padding: 0 0.4rem;
+    margin-left: 0.4rem;
+}
+
 /* Spellbooks (multi-book) + metamagic picker */
 .spellbook-block {
     margin: 0 0 1rem;
