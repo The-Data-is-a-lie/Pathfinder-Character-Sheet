@@ -4649,6 +4649,13 @@ body.modal-open { overflow: hidden; }
     font-size: 0.72rem;
     padding: 0.05rem 0.4rem;
 }
+/* Apply-through-defenses arithmetic appended under the buttons (#4) */
+.roll-card-mitigation {
+    margin-top: 0.15rem;
+    font-size: 0.7rem;
+    color: var(--dim);
+    font-style: italic;
+}
 /* HP state chip (dying / disabled / dead / staggered) */
 .hp-state {
     display: inline-block;

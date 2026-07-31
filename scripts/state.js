@@ -401,8 +401,29 @@ window.SheetState = (function () {
             }
         }
 
+        // Fast healing + regeneration heal at the start of the creature's turn (#4).
+        // Both heal lethal and nonlethal alike; regeneration's "can't die" side and its
+        // bypass types stay the Defenses tab's prose (regenBypass) — warn, don't model.
+        let healed = 0;
+        const defs = st.defenses || {};
+        const healRate = (Number(defs.fastHealing) || 0) + (Number(defs.regen) || 0);
+        if (healRate > 0) {
+            const max = Number(data.Total_HP) || 0;
+            const cur = st.hpCurrent == null || st.hpCurrent === ''
+                ? max : Number(st.hpCurrent) || 0;
+            if (cur < max) {
+                st.hpCurrent = Math.min(max, cur + healRate);
+                healed = st.hpCurrent - cur;
+            }
+            const nl = Number(st.hpNonlethal) || 0;
+            if (nl > 0) {
+                st.hpNonlethal = Math.max(0, nl - healRate);
+                healed = Math.max(healed, nl - st.hpNonlethal);
+            }
+        }
+
         quietSave();
-        return { round: st.roundCounter, expired };
+        return { round: st.roundCounter, expired, healed };
     }
     function resetRoundCounter(data) {
         sheetState(data).roundCounter = 0;
