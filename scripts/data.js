@@ -96,6 +96,96 @@ window.SheetData = (function () {
         stunned: { loseDex: true, changes: [ccPen('-2', 'ac')] },
     };
 
+    // ------------------------------------------------- situational combat toggles
+    // Curated per-roll toggles for the conditional panel's "Combat options" group. Universal
+    // PF1 rules live client-side in this table; per-character data stays in the backend.
+    // `modifiers` use the per-roll conditional shape (m*/r* targets scope to melee/ranged;
+    // `gripScale` marks Power Attack's damage bonus for the ×1.5 two-handed / ×0.5 off-hand
+    // adjustment). `acChanges` is the standing side: while the toggle is checked,
+    // collectChanges feeds these into the ledger (sourceKind 'combat') so AC / saves / CMD
+    // update live. `autoExpire: 'round'` clears the toggle on advanceRound.
+    const babScale = '(1 + floor(@attributes.bab.total / 4))';
+    const COMBAT_TOGGLES = [
+        {
+            id: 'combat:power-attack', name: 'Power Attack',
+            label: 'Power Attack: −1 attack / +2 damage per 4 BAB (melee; ×1.5 two-handed, ×0.5 off-hand)',
+            modifiers: [
+                { formula: '-' + babScale, target: 'mattack', type: 'penalty' },
+                { formula: '2 * ' + babScale, target: 'mdamage', type: 'untyped', gripScale: true },
+            ],
+        },
+        {
+            id: 'combat:deadly-aim', name: 'Deadly Aim',
+            label: 'Deadly Aim: −1 attack / +2 damage per 4 BAB (ranged)',
+            modifiers: [
+                { formula: '-' + babScale, target: 'rattack', type: 'penalty' },
+                { formula: '2 * ' + babScale, target: 'rdamage', type: 'untyped' },
+            ],
+        },
+        {
+            id: 'combat:combat-expertise', name: 'Combat Expertise',
+            label: 'Combat Expertise: −1 attack / +1 dodge AC per 4 BAB (melee)',
+            modifiers: [{ formula: '-' + babScale, target: 'mattack', type: 'penalty' }],
+            acChanges: [{ formula: babScale, target: 'ac', type: 'dodge' }],
+        },
+        {
+            id: 'combat:fighting-defensively', name: 'Fighting defensively',
+            label: 'Fighting defensively: −4 attack, +2 dodge AC',
+            modifiers: [{ formula: '-4', target: 'attack', type: 'penalty' }],
+            acChanges: [{ formula: '2', target: 'ac', type: 'dodge' }],
+        },
+        {
+            id: 'combat:total-defense', name: 'Total defense',
+            label: 'Total defense: +4 dodge AC, no attacks',
+            rider: 'Total defense: standard action, +4 dodge AC — you cannot attack or make attacks of opportunity this round.',
+            acChanges: [{ formula: '4', target: 'ac', type: 'dodge' }],
+        },
+        {
+            id: 'combat:flanking', name: 'Flanking',
+            label: 'Flanking: +2 melee attack',
+            modifiers: [{ formula: '2', target: 'mattack', type: 'untyped' }],
+        },
+        {
+            id: 'combat:charge', name: 'Charge',
+            label: 'Charge: +2 melee attack, −2 AC until your next turn',
+            autoExpire: 'round',
+            modifiers: [{ formula: '2', target: 'mattack', type: 'untyped' }],
+            acChanges: [{ formula: '-2', target: 'ac', type: 'penalty' }],
+        },
+        {
+            id: 'combat:haste', name: 'Haste',
+            label: 'Haste: +1 attack, +1 dodge AC & Reflex; extra attack on a full attack',
+            rider: 'Haste: one extra attack at your highest bonus when making a full attack.',
+            modifiers: [{ formula: '1', target: 'attack', type: 'untyped' }],
+            acChanges: [
+                { formula: '1', target: 'ac', type: 'dodge' },
+                { formula: '1', target: 'ref', type: 'dodge' },
+            ],
+        },
+        {
+            id: 'combat:higher-ground', name: 'Higher ground',
+            label: 'Higher ground: +1 melee attack',
+            modifiers: [{ formula: '1', target: 'mattack', type: 'untyped' }],
+        },
+    ];
+
+    // Two-handed melee weapons by base name (enhancement suffix stripped, lowercase), for
+    // Power Attack's grip auto-detection. The item sheet's Grip override wins over this list;
+    // anything unlisted counts as one-handed. Lance is listed as two-handed (its one-handed
+    // mounted grip is the override's job).
+    const TWO_HANDED_WEAPONS = new Set([
+        'bardiche', 'bec de corbin', 'bill', 'boar spear', 'dire flail', 'dwarven longaxe',
+        'dwarven longhammer', 'earth breaker', 'elven branched spear', 'elven curve blade',
+        'falchion', 'fauchard', 'glaive', 'glaive-guisarme', 'gnome ripsaw glaive',
+        'great terbutje', 'greataxe', 'greatclub', 'greatsword', 'guisarme', 'halberd',
+        'harpoon', 'heavy flail', 'hooked lance', 'horsechopper', 'kusarigama', 'lance',
+        'longspear', 'lucerne hammer', 'mancatcher', 'meteor hammer', "monk's spade",
+        'naginata', 'no-dachi', 'nodachi', 'ogre hook', 'orc double axe', 'orc skull ram',
+        'planson', 'quarterstaff', 'ranseur', 'rhomphaia', 'sansetsukon', 'scythe', 'spear',
+        'spiked chain', 'syringe spear', 'taiaha', 'tepoztopilli', 'tetsubo', 'tiger fork',
+        'tri-point double-edged sword', 'two-bladed sword',
+    ]);
+
     // ------------------------------------------------------------ size categories
     // `mod` is the size modifier to attack & AC; the special size modifier (CMB/CMD) is its
     // negation. `steps` is the damage-dice progression distance from Medium.
@@ -271,7 +361,8 @@ window.SheetData = (function () {
 
     return {
         REGIONS, RACES, CLASSES, CORE_RACES, CORE_CLASSES, DEITIES,
-        PF1_CONDITIONS, CONDITION_CHANGES, SIZES, SMALL_RACES, stepDice,
+        PF1_CONDITIONS, CONDITION_CHANGES, COMBAT_TOGGLES, TWO_HANDED_WEAPONS,
+        SIZES, SMALL_RACES, stepDice,
         CLASS_STATS, DEFAULT_CLASS_INFO, ALL_SKILLS, FEAT_GROUPS,
     };
 })();

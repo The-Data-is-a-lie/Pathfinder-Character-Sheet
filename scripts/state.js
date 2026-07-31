@@ -361,6 +361,16 @@ window.SheetState = (function () {
             }
         }
 
+        // Combat toggles marked autoExpire:'round' (charge: its −2 AC lasts until your next
+        // turn) clear here so the toast names them; the panel repaints on the re-render.
+        const prefs = st.conditionalPrefs || {};
+        for (const t of window.SheetData?.COMBAT_TOGGLES || []) {
+            if (t.autoExpire === 'round' && prefs[t.id]) {
+                prefs[t.id] = false;
+                expired.push(t.name);
+            }
+        }
+
         quietSave();
         return { round: st.roundCounter, expired };
     }

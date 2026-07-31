@@ -1087,6 +1087,16 @@ window.SheetModals = (function () {
             detPane.appendChild(numRow('Crit multiplier',
                 () => item.weapon?.critMult ?? weapon?.critMult ?? 2,
                 (v) => { wOv().critMult = v == null ? 2 : Math.round(v); }, { min: 2, step: '1' }));
+            // Grip drives Power Attack's damage multiplier (×1.5 two-handed). Auto = the
+            // curated two-handed list by base name; the override wins when set.
+            const gripBase = String(item.name || '').replace(/\s*\[[^\]]+\]\s*$/, '').trim().toLowerCase();
+            const gripAuto = window.SheetData?.TWO_HANDED_WEAPONS?.has(gripBase)
+                ? 'two-handed' : 'one-handed';
+            detPane.appendChild(selectRow('Grip', [
+                ['', `Auto (${gripAuto})`], ['light', 'Light'],
+                ['one', 'One-handed'], ['two', 'Two-handed'],
+            ], () => item.weapon?.grip || '',
+                (v) => { if (v) wOv().grip = v; else if (item.weapon) delete item.weapon.grip; }));
         }
 
         if (armor || inventoryCategory(item) === 'armor') {

@@ -360,7 +360,8 @@ window.SheetTabBuffs = (function () {
             window.sheetChanges = effectiveLedger(data);
             // Conditions have their own tray above — a second toggle row here would fight it.
             const passiveChanges = (ledger.changes || [])
-                .filter((c) => c.sourceKind !== 'buff' && c.sourceKind !== 'condition');
+                .filter((c) => c.sourceKind !== 'buff' && c.sourceKind !== 'condition'
+                    && c.sourceKind !== 'combat');
             const allGroups = groupChangesBySource(passiveChanges);
             passive = {
                 groups: allGroups.filter((g) => !isBuffSourceRemoved(data, g.source, g.sourceKind)),

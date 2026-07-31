@@ -396,6 +396,22 @@ window.SheetDetails = (function () {
             out.push(entry);
         };
 
+        // Situational combat toggles — universal PF1 options curated client-side in
+        // SheetData.COMBAT_TOGGLES. Always listed, never feat-gated: the sheet warns via the
+        // roll card, it doesn't gatekeep. The checked ones also dual-write their standing
+        // `acChanges` into collectChanges' ledger (sourceKind 'combat').
+        for (const t of window.SheetData?.COMBAT_TOGGLES || []) {
+            push({
+                id: t.id,
+                label: t.label || t.name,
+                source: t.name,
+                sourceKind: 'combat',
+                defaultOn: false,
+                modifiers: t.modifiers || [],
+                rider: t.rider || '',
+            });
+        }
+
         let known = (data.maneuvers_choose_from || []).flat().filter(Boolean);
         const descs = data.maneuvers_desc_dict || {};
         // Fallback: desc keys that aren't stances
@@ -715,6 +731,16 @@ window.SheetDetails = (function () {
             }
         }
 
+        // Checked combat toggles (conditional panel "Combat options" group) dual-write their
+        // standing side — AC, saves — so every derived total updates while they're on. The
+        // per-roll attack/damage side stays in collectRollConditionals; the panel owns the
+        // toggle, so 'combat' is excluded from the Buffs Permanent list like 'condition'.
+        const togglePrefs = data._sheet?.conditionalPrefs || {};
+        for (const t of window.SheetData?.COMBAT_TOGGLES || []) {
+            if (!togglePrefs[t.id] || !t.acChanges?.length) continue;
+            pushEntry(ledger, t.name, 'combat', { changes: t.acChanges });
+        }
+
         return ledger;
     }
 
@@ -911,6 +937,8 @@ window.SheetDetails = (function () {
         const hd = Number(data?.level) || Number(data?.attributes?.hd?.total) || 0;
         s = s.replace(/@attributes\.hd\.total/gi, String(hd));
         s = s.replace(/@attributes\.hd\.max/gi, String(hd));
+        // BAB (same source as SheetFormula's resolver) — the combat toggles scale with it
+        s = s.replace(/@attributes\.bab\.total/gi, String(Number(data?.bab_total) || 0));
         // Path of War: initiator level and initiation-stat modifier (stance/maneuver scaling)
         const initLevel = Number(data?.initiator_level) || 0;
         s = s.replace(/@pow\.initLevel/gi, String(initLevel));
