@@ -1,14 +1,9 @@
-// scripts/tabs/companions.js — PROTOTYPE (#9, draft): companion sheets UX, two candidates
-// over one nested-in-master model (_sheet.companions — travels in the one-JSON export
-// with zero extra plumbing; linked roster characters were ruled out by portability).
-//
-//   Candidate A — a full "Companions" TAB: one editable stat block per companion
-//                 (abilities, AC/saves, attack lines with roll buttons, HP, notes).
-//   Candidate B — a COMPACT Summary panel: one row per companion (name · HP · AC ·
-//                 first-attack roll), for at-the-table glances without a tab switch.
-//
-// Both render from the same model, so the morning pick deletes one render fn, not a
-// data shape. Companion rolls land in the SHARED roll log, prefixed with the name.
+// scripts/tabs/companions.js — the Companions tab: one editable stat block per companion
+// (abilities, AC/saves, attack lines with roll buttons, HP, notes) over a nested-in-master
+// model (_sheet.companions — travels in the one-JSON export with zero extra plumbing;
+// linked roster characters were ruled out by portability, and the compact Summary-panel
+// candidate by the #9 pick — at-the-table glances belong to the Combat HUD, #43).
+// Companion rolls land in the SHARED roll log, prefixed with the companion's name.
 window.SheetTabCompanions = (function () {
     'use strict';
     const { h, fmt, section, dblclickEditable, parseIntLoose } = window.SheetUI;
@@ -26,8 +21,7 @@ window.SheetTabCompanions = (function () {
         return st.companions;
     }
 
-    /** Seeded defaults; familiars auto-derive HP (half the master's) + master-linked
-     *  saves per PF1 — shown as the prototype's auto-derive example. */
+    /** Seeded defaults; familiars auto-derive HP (half the master's) per PF1. */
     function newCompanion(data, type) {
         const masterHp = Number(data.Total_HP) || 10;
         const familiar = type === 'familiar';
@@ -64,7 +58,6 @@ window.SheetTabCompanions = (function () {
         onChange: () => { quietSave(); if (onDone) onDone(); },
     });
 
-    // ---------------------------------------------------- Candidate A: full tab
     function renderCompanionBlock(data, comp, index) {
         const box = h('div', 'companion-block');
         const head = h('div', 'companion-head');
@@ -91,11 +84,11 @@ window.SheetTabCompanions = (function () {
         del.type = 'button';
         del.title = 'Remove this companion';
         del.addEventListener('click', () => {
-            if (!confirm(`Remove ${comp.name}?`)) return;
             companions(data).splice(index, 1);
             quietSave();
             renderSheet(data);
             setActiveTab('companions');
+            window.SheetOverlay?.toast?.(`${comp.name} removed`);
         });
         head.appendChild(del);
         box.appendChild(head);
@@ -199,8 +192,7 @@ window.SheetTabCompanions = (function () {
     function renderCompanions(data) {
         const { sec, body } = section('Companions');
         body.appendChild(h('p', 'dbl-edit-hint no-print',
-            'PROTOTYPE A (full tab). Double-click values to edit; 🎲 rolls into the shared '
-            + 'Tools log. The compact Summary panel (prototype B) reads the same data.'));
+            'Double-click values to edit; 🎲 and Attack/Damage roll into the shared Tools log.'));
         const list = companions(data);
         if (!list.length) {
             body.appendChild(h('p', 'tools-empty',
@@ -223,41 +215,5 @@ window.SheetTabCompanions = (function () {
         return sec;
     }
 
-    // ------------------------------------------- Candidate B: compact Summary panel
-    function renderSummaryPanel(body, data) {
-        const list = companions(data);
-        if (!list.length) return; // quiet when there are none — Summary stays lean
-        const wrap = h('div', 'companion-summary no-print');
-        wrap.appendChild(h('h3', 'companion-summary-title',
-            'Companions (prototype B — compact)'));
-        for (const comp of list) {
-            const row = h('div', 'companion-summary-row');
-            row.appendChild(h('span', 'companion-summary-name', comp.name));
-            row.appendChild(h('span', 'dim', comp.type));
-            const hpWrap = h('span', 'companion-vital');
-            hpWrap.appendChild(h('span', 'companion-vital-label', 'HP'));
-            hpWrap.append(editNum(comp.hp, 'current'), '/' + (comp.hp.max ?? 0));
-            row.appendChild(hpWrap);
-            row.appendChild(h('span', 'companion-vital',
-                `AC ${comp.ac} · F${fmt(comp.saves.fort)} R${fmt(comp.saves.ref)} W${fmt(comp.saves.will)}`));
-            const first = comp.attacks[0];
-            if (first) {
-                const b = h('button', 'inv-btn companion-roll',
-                    `${first.name} ${fmt(Number(first.atk) || 0)}`);
-                b.type = 'button';
-                b.title = 'Roll attack into the shared log';
-                b.addEventListener('click', () => logRoll(comp.name, first.name + ' attack', first.atk));
-                row.appendChild(b);
-            }
-            const goto = h('button', 'inv-btn companion-roll', '⤷ tab');
-            goto.type = 'button';
-            goto.title = 'Open the full Companions tab (prototype A)';
-            goto.addEventListener('click', () => setActiveTab('companions'));
-            row.appendChild(goto);
-            wrap.appendChild(row);
-        }
-        body.appendChild(wrap);
-    }
-
-    return { renderCompanions, renderSummaryPanel, companions, newCompanion };
+    return { renderCompanions, companions, newCompanion };
 })();
