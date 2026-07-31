@@ -1143,6 +1143,23 @@ select:focus-visible,
 }
 /* Stacked overlays (instructions opened from the theme picker) dim a little further. */
 .sheet-overlay ~ .sheet-overlay { background: rgba(0, 0, 0, 0.35); }
+/* #27: SheetOverlay-hosted modals that keep their OWN card chrome (catalog picker,
+   item/class/archetype sheets, portrait lightbox) — strip the outer card styling. */
+.sheet-overlay.overlay-frameless .overlay-card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    width: auto;
+    max-width: 100%;
+    max-height: 100%;
+}
+.sheet-overlay.overlay-frameless .overlay-body {
+    padding: 0;
+    display: flex;
+    overflow: visible;
+    min-height: 0;
+}
 .overlay-card {
     position: relative;
     z-index: 1;
@@ -1573,18 +1590,9 @@ button:disabled { opacity: 0.55; cursor: wait; }
 .portrait-btn { flex: 1 1 auto; font-size: 0.7rem; padding: 0.2rem 0.3rem; }
 
 /* Click-to-enlarge lightbox */
-.portrait-lightbox {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 3vmin;
-    background: rgba(0, 0, 0, 0.8);
-    cursor: zoom-out;
-}
+/* #27: hosted by SheetOverlay now (overlay-frameless) — only the image styles remain */
 .portrait-lightbox-img {
+    cursor: zoom-out;
     max-width: 90vw;
     max-height: 90vh;
     border-radius: 6px;
@@ -3443,17 +3451,7 @@ button:disabled { opacity: 0.55; cursor: wait; }
 }
 
 /* Catalog browser (Foundry-style compendium pick) */
-.catalog-picker {
-    position: fixed;
-    inset: 0;
-    z-index: 2000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    background: rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(2px);
-}
+/* #27: the fixed backdrop moved to SheetOverlay (overlay-frameless host) */
 .catalog-picker-card {
     width: min(32rem, 100%);
     max-height: min(36rem, 90vh);
@@ -3608,7 +3606,7 @@ button:disabled { opacity: 0.55; cursor: wait; }
 @media print {
     .quick-actions, .inv-toolbar, .uses-controls, .spell-cast-btn,
     .spell-filter-prep, .temp-buff-add, .condition-chip,
-    .catalog-picker, .section-catalog-bar, .feat-remove { display: none !important; }
+    .section-catalog-bar, .feat-remove { display: none !important; }
 }
 
 /* Calculated stat source breakdowns — elevated menu surface + ink (OKF tokens, not light-only hex) */
@@ -4642,8 +4640,7 @@ body.tools-resizing .tools-drawer { transition: none; }
     margin-top: 0.15rem;
 }
 
-/* Hand-rolled modals lock page scroll while open (attachModalChrome) */
-body.modal-open { overflow: hidden; }
+/* (scroll lock now lives on body.overlay-open via SheetOverlay — #27) */
 
 /* Apply-damage buttons on roll-log damage blocks */
 .roll-card-apply {

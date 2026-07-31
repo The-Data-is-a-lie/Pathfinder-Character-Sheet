@@ -292,48 +292,26 @@ window.SheetModals = (function () {
         reader.readAsDataURL(file);
     }
     /** Full-screen lightbox showing the portrait at its stored resolution. */
-    /**
-     * Modal chrome for the five hand-rolled overlays (portrait lightbox, catalog picker,
-     * item/class/archetype sheets): body scroll-lock while open and focus restore on close.
-     * Watches for the overlay leaving the DOM so every existing close path (×, Escape,
-     * backdrop click, replace-on-reopen) is covered without touching it. The full
-     * SheetOverlay migration remains a follow-up; this closes the user-visible gap.
-     */
-    function attachModalChrome(overlay) {
-        const prevFocus = document.activeElement;
-        document.body.classList.add('modal-open');
-        const obs = new MutationObserver(() => {
-            if (document.body.contains(overlay)) return;
-            obs.disconnect();
-            if (!document.querySelector('.catalog-picker, .portrait-lightbox')) {
-                document.body.classList.remove('modal-open');
-            }
-            if (prevFocus && typeof prevFocus.focus === 'function'
-                && document.body.contains(prevFocus)) {
-                prevFocus.focus();
-            }
+    // #27: the five formerly hand-rolled overlays (portrait lightbox, catalog picker,
+    // item/class/archetype sheets) now ride SheetOverlay.open — shared backdrop, Escape
+    // (topmost only), stacking, scroll lock and focus restore. Each keeps its OWN card
+    // chrome (head, ×, tabs), so it passes `title: null` and the `overlay-frameless`
+    // class strips SheetOverlay's card styling around it.
+    function openFrameless(body, { label, onClose } = {}) {
+        const handle = window.SheetOverlay.open({
+            title: null, body, onClose, cls: 'overlay-frameless',
         });
-        obs.observe(document.body, { childList: true, subtree: true });
+        if (label) handle.el.setAttribute('aria-label', label);
+        return handle;
     }
 
     function openPortraitLightbox(url) {
-        if (!url) return;
-        document.getElementById('portrait-lightbox')?.remove();
-        const overlay = h('div', 'portrait-lightbox no-print');
-        overlay.id = 'portrait-lightbox';
-        overlay.setAttribute('role', 'dialog');
-        overlay.setAttribute('aria-modal', 'true');
-        overlay.setAttribute('aria-label', 'Character portrait');
+        if (!url || !window.SheetOverlay?.open) return;
         const img = h('img', 'portrait-lightbox-img');
         img.src = url;
         img.alt = 'Character portrait';
-        overlay.appendChild(img);
-        const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); close(); } };
-        const close = () => { document.removeEventListener('keydown', onKey); overlay.remove(); };
-        document.addEventListener('keydown', onKey);
-        overlay.addEventListener('click', close); // click anywhere (image or backdrop) closes
-        document.body.appendChild(overlay);
-        attachModalChrome(overlay);
+        const handle = openFrameless(img, { label: 'Character portrait' });
+        img.addEventListener('click', () => handle.close()); // click anywhere closes
     }
     // ---------------------------------------------------------------- inventory (equipment_list)
     const INV_TARGET_OPTIONS = [
@@ -458,28 +436,26 @@ window.SheetModals = (function () {
      * @param {{ title: string, kinds: string[]|string, kindLabels?: object, allowCustom?: boolean,
      *   customPlaceholder?: string, onPick: (hit: object) => void, onCustom?: (name: string) => void }} opts
      */
+    let catalogPickerHandle = null;
     function openCatalogPicker(opts) {
         const kinds = Array.isArray(opts.kinds) ? opts.kinds : [opts.kinds || 'items'];
         const kindLabels = opts.kindLabels || {
             items: 'Items', weapons: 'Weapons', feats: 'Feats', traits: 'Traits',
             spells: 'Spells', classFeatures: 'Class features', talents: 'Talents',
         };
-        // Remove existing picker
-        document.getElementById('catalog-picker')?.remove();
-
-        const overlay = h('div', 'catalog-picker no-print');
-        overlay.id = 'catalog-picker';
-        overlay.setAttribute('role', 'dialog');
-        overlay.setAttribute('aria-modal', 'true');
-        overlay.setAttribute('aria-label', opts.title || 'Browse catalog');
+        // Replace an existing picker (re-browse from another section)
+        catalogPickerHandle?.close();
+        let handle = null;
+        const close = () => handle?.close();
 
         const card = h('div', 'catalog-picker-card');
+        card.id = 'catalog-picker';
         const head = h('div', 'catalog-picker-head');
         head.appendChild(h('h3', null, opts.title || 'Browse catalog'));
         const closeBtn = h('button', 'catalog-picker-close', '×');
         closeBtn.type = 'button';
         closeBtn.title = 'Close';
-        closeBtn.addEventListener('click', () => overlay.remove());
+        closeBtn.addEventListener('click', close);
         head.appendChild(closeBtn);
         card.appendChild(head);
 
@@ -526,7 +502,7 @@ window.SheetModals = (function () {
             const doCustom = () => {
                 const name = String(customIn.value || input.value || '').trim();
                 if (!name) { customIn.focus(); return; }
-                overlay.remove();
+                close();
                 if (opts.onCustom) opts.onCustom(name);
                 else opts.onPick?.({ name, kind: activeKind, custom: true, entry: null });
             };
@@ -540,7 +516,7 @@ window.SheetModals = (function () {
                 blankBtn.type = 'button';
                 blankBtn.title = 'Create an empty item and open its sheet';
                 blankBtn.addEventListener('click', () => {
-                    overlay.remove();
+                    close();
                     opts.onBlank();
                 });
                 customRow.appendChild(blankBtn);
@@ -586,7 +562,7 @@ window.SheetModals = (function () {
                     row.appendChild(h('span', 'catalog-result-sub', hit.subtitle));
                 }
                 row.addEventListener('click', () => {
-                    overlay.remove();
+                    close();
                     opts.onPick?.(hit);
                 });
                 results.appendChild(row);
@@ -598,16 +574,11 @@ window.SheetModals = (function () {
             clearTimeout(timer);
             timer = setTimeout(runSearch, 120);
         });
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') { e.preventDefault(); overlay.remove(); }
+        handle = openFrameless(card, {
+            label: opts.title || 'Browse catalog',
+            onClose: () => { if (catalogPickerHandle === handle) catalogPickerHandle = null; },
         });
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) overlay.remove();
-        });
-
-        overlay.appendChild(card);
-        document.body.appendChild(overlay);
-        attachModalChrome(overlay);
+        catalogPickerHandle = handle;
         runSearch();
         setTimeout(() => input.focus(), 30);
     }
@@ -746,8 +717,10 @@ window.SheetModals = (function () {
      * HP/hardness, state checkboxes, property chips) + Description / Details / Changes
      * tabs. Everything editable; the inventory re-renders on close.
      */
+    let itemSheetHandle = null;
+    let classSheetHandle = null;
     function openItemSheet(data, item) {
-        document.getElementById('item-sheet-modal')?.remove();
+        itemSheetHandle?.close(); // replace-on-reopen, as before
         const SD = window.SheetDetails;
         // Migrated core gear carries an "[enhancements]" suffix — look up by base name.
         const baseName = String(item.name || '').split(' [')[0].trim();
@@ -757,26 +730,11 @@ window.SheetModals = (function () {
         const compendium = SD?.lookupItem?.(baseName);
         const armor = item.armor || compendium?.armor || null;
 
-        const overlay = h('div', 'catalog-picker item-sheet-overlay no-print');
-        overlay.id = 'item-sheet-modal';
-        overlay.setAttribute('role', 'dialog');
-        overlay.setAttribute('aria-modal', 'true');
-        overlay.setAttribute('aria-label', 'Item sheet — ' + (item.name || 'item'));
-
-        const onKey = (e) => {
-            if (e.key === 'Escape') { e.preventDefault(); close(); }
-        };
-        const close = () => {
-            document.removeEventListener('keydown', onKey);
-            overlay.remove();
-            invRerender(data);
-        };
-        document.addEventListener('keydown', onKey);
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) close();
-        });
+        let handle = null;
+        const close = () => handle?.close();
 
         const card = h('div', 'item-sheet-card');
+        card.id = 'item-sheet-modal';
 
         // ---- header: name + unidentified name (both editable), type caption, close
         const head = h('div', 'item-sheet-head');
@@ -1209,9 +1167,14 @@ window.SheetModals = (function () {
         for (const pane of Object.values(panes)) content.appendChild(pane);
         grid.appendChild(content);
         card.appendChild(grid);
-        overlay.appendChild(card);
-        document.body.appendChild(overlay);
-        attachModalChrome(overlay);
+        handle = openFrameless(card, {
+            label: 'Item sheet — ' + (item.name || 'item'),
+            onClose: () => {
+                if (itemSheetHandle === handle) itemSheetHandle = null;
+                invRerender(data);
+            },
+        });
+        itemSheetHandle = handle;
     }
     /**
      * Anchored popover to manage a feature's buffs: toggle built-in modifiers on/off and
@@ -1497,25 +1460,12 @@ window.SheetModals = (function () {
     }
     /** Class detail popup — defaults line + editable chassis + class-skill checkboxes. */
     function openClassSheet(data, clsName) {
-        document.getElementById('class-sheet-modal')?.remove();
-        const overlay = h('div', 'catalog-picker item-sheet-overlay no-print');
-        overlay.id = 'class-sheet-modal';
-        overlay.setAttribute('role', 'dialog');
-        overlay.setAttribute('aria-modal', 'true');
-        const onKey = (e) => {
-            if (e.key === 'Escape') { e.preventDefault(); close(); }
-        };
-        const close = () => {
-            document.removeEventListener('keydown', onKey);
-            overlay.remove();
-            renderSheet(data);
-        };
-        document.addEventListener('keydown', onKey);
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) close();
-        });
+        classSheetHandle?.close(); // class + archetype sheets replace each other, as before
+        let handle = null;
+        const close = () => handle?.close();
 
         const card = h('div', 'item-sheet-card class-sheet-card');
+        card.id = 'class-sheet-modal';
         const head = h('div', 'item-sheet-head');
         head.appendChild(h('h3', 'class-sheet-title',
             titleCase(clsName) + ' — level ' + classLevelFor(data, clsName)));
@@ -1611,9 +1561,14 @@ window.SheetModals = (function () {
         bodyEl.appendChild(skGrid);
 
         card.appendChild(bodyEl);
-        overlay.appendChild(card);
-        document.body.appendChild(overlay);
-        attachModalChrome(overlay);
+        handle = openFrameless(card, {
+            label: titleCase(clsName) + ' — class details',
+            onClose: () => {
+                if (classSheetHandle === handle) classSheetHandle = null;
+                renderSheet(data);
+            },
+        });
+        classSheetHandle = handle;
     }
     /** Archetype popup — scraped description (if any) for the named archetype, base level 0. */
     function openArchetypeSheet(data, name) {
@@ -1623,23 +1578,11 @@ window.SheetModals = (function () {
             || (obj && typeof obj === 'object' ? Object.keys(obj)[0] : null);
         if (!archName) return;
         const info = { name: archName, raw: (obj && typeof obj === 'object') ? obj[archName] : null };
-        document.getElementById('class-sheet-modal')?.remove();
-        const overlay = h('div', 'catalog-picker item-sheet-overlay no-print');
-        overlay.id = 'class-sheet-modal';
-        overlay.setAttribute('role', 'dialog');
-        overlay.setAttribute('aria-modal', 'true');
-        const onKey = (e) => {
-            if (e.key === 'Escape') { e.preventDefault(); close(); }
-        };
-        const close = () => {
-            document.removeEventListener('keydown', onKey);
-            overlay.remove();
-        };
-        document.addEventListener('keydown', onKey);
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) close();
-        });
+        classSheetHandle?.close();
+        let handle = null;
+        const close = () => handle?.close();
         const card = h('div', 'item-sheet-card class-sheet-card');
+        card.id = 'class-sheet-modal';
         const head = h('div', 'item-sheet-head');
         head.appendChild(h('h3', 'class-sheet-title', info.name));
         const closeBtn = h('button', 'catalog-picker-close', '×');
@@ -1651,9 +1594,11 @@ window.SheetModals = (function () {
         bodyEl.appendChild(h('p', 'dim', 'Archetype — base level 0.'));
         bodyEl.appendChild(htmlBlock('desc', archetypeDescHtml(info.raw)));
         card.appendChild(bodyEl);
-        overlay.appendChild(card);
-        document.body.appendChild(overlay);
-        attachModalChrome(overlay);
+        handle = openFrameless(card, {
+            label: info.name + ' — archetype',
+            onClose: () => { if (classSheetHandle === handle) classSheetHandle = null; },
+        });
+        classSheetHandle = handle;
     }
 
     return {
