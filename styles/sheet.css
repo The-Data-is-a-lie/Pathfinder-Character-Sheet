@@ -4682,6 +4682,19 @@ body.modal-open { overflow: hidden; }
 .skill-subskill-add td { padding: 0.1rem 0.3rem 0.35rem; }
 .item-use-btn { margin-left: 0.3rem; }
 
+/* #14: XP tracking row on the Summary overview */
+.xp-row {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0.15rem 0 0.4rem;
+    flex-wrap: wrap;
+}
+.xp-label { font-weight: 600; }
+.xp-track { padding: 0 0.15rem; }
+.xp-next { font-size: 0.85rem; color: var(--dim); }
+.xp-next.xp-ready { color: var(--accent); font-weight: 700; }
+
 /* Level-up wizard */
 .levelup-body { display: flex; flex-direction: column; gap: 0.45rem; min-width: 19rem; }
 .levelup-row { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }

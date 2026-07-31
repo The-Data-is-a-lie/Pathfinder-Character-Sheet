@@ -99,6 +99,68 @@ window.SheetTabSummary = (function () {
         window.SheetOverlay?.toast?.('Rest — ' + done.join(' · '));
         renderSheet(data);
     }
+    // ------------------------------------------------------------- XP tracking (#14)
+    // PF1 Core progression tables: TOTAL XP needed to reach level index+2 (i.e. [0] is
+    // the cost of level 2). Minimal by decision: editable XP, track select, and a
+    // "next level at N" indicator pointing at the Level up quick action.
+    const XP_TABLES = {
+        slow: [3000, 7500, 14000, 23000, 35000, 53000, 77000, 115000, 160000, 235000,
+            330000, 475000, 665000, 955000, 1350000, 1900000, 2700000, 3850000, 5350000],
+        medium: [2000, 5000, 9000, 15000, 23000, 35000, 51000, 75000, 105000, 155000,
+            220000, 315000, 445000, 635000, 890000, 1300000, 1800000, 2550000, 3600000],
+        fast: [1300, 3300, 6000, 10000, 15000, 23000, 34000, 50000, 71000, 105000,
+            145000, 210000, 295000, 425000, 600000, 850000, 1200000, 1700000, 2400000],
+    };
+    function renderXpRow(body, data) {
+        const st = sheetState(data);
+        st.xp ??= {};
+        if (!Number.isFinite(Number(st.xp.value))) st.xp.value = 0;
+        if (!XP_TABLES[st.xp.track]) st.xp.track = 'medium';
+
+        const row = h('div', 'xp-row');
+        row.appendChild(h('span', 'xp-label', 'XP'));
+        row.appendChild(dblclickEditable(st.xp, 'value', {
+            type: 'number', min: 0,
+            format: (v) => (Number(v) || 0).toLocaleString(),
+            parse: (s) => parseIntLoose(String(s).replace(/[,\s]/g, ''), 0),
+            onChange: () => {
+                quietSave();
+                renderSheet(data);
+                setActiveTab('summary');
+            },
+        }));
+
+        const trackSel = h('select', 'edit-field xp-track');
+        for (const [val, lab] of [['slow', 'Slow'], ['medium', 'Medium'], ['fast', 'Fast']]) {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = lab;
+            if (st.xp.track === val) opt.selected = true;
+            trackSel.appendChild(opt);
+        }
+        trackSel.addEventListener('change', () => {
+            st.xp.track = trackSel.value;
+            quietSave();
+            renderSheet(data);
+            setActiveTab('summary');
+        });
+        row.appendChild(trackSel);
+
+        const level = window.SheetDerive.totalLevel(data) || Number(data.level) || 1;
+        const next = level >= 20 ? null : XP_TABLES[st.xp.track][level - 1];
+        const ready = next != null && Number(st.xp.value) >= next;
+        const ind = h('span', 'xp-next' + (ready ? ' xp-ready' : ''),
+            next == null ? 'Level 20 — the table ends here'
+                : ready ? `Level ${level + 1} reached — hit Level up!`
+                    : `next level at ${next.toLocaleString()}`);
+        if (next != null) {
+            ind.title = `Level ${level} → ${level + 1} at ${next.toLocaleString()} XP `
+                + `(${trackSel.value} track) — the Level up button applies it`;
+        }
+        row.appendChild(ind);
+        body.appendChild(row);
+    }
+
     function summaryQuickActions(body, data, d) {
         const bar = h('div', 'quick-actions no-print');
         const mk = (label, fn, title) => {
@@ -140,6 +202,7 @@ window.SheetTabSummary = (function () {
             'Play dashboard. Double-click values to edit; 🎲 rolls; click a class for details.'));
 
         summaryQuickActions(body, data, d);
+        renderXpRow(body, data);
         seedClassSkills(data);
 
         const st = sheetState(data);
