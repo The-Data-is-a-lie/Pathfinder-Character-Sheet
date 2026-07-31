@@ -26,9 +26,12 @@ window.SheetTabSummary = (function () {
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
     const { rollBtn, rollCheck } = window.SheetStatKit;
 
-    function doRest(data) {
+    /** Full rest (#5): no dialog — do it and itemize what happened in one toast.
+     *  longTermCare doubles the HP healed (Heal skill, DC 15, tended 8 hours). */
+    function doRest(data, { longTermCare = false } = {}) {
         if (!data) return;
         const st = sheetState(data);
+        const done = [];
         if (Array.isArray(data.day_list)) {
             st.spellCastsRemaining = data.day_list.map((n) => Number(n) || 0);
         }
@@ -48,9 +51,52 @@ window.SheetTabSummary = (function () {
             st.spellPointsMax = maxSp;
             st.spellPointsCurrent = maxSp;
         }
+        done.push('slots & uses restored');
+
+        // HP: 1×level per night, ×2 with long-term care. Nonlethal recovers at
+        // 1/hour/level — a full night clears 8×level, i.e. effectively all of it.
+        const level = Number(data.level) || window.SheetDerive?.totalLevel?.(data) || 1;
+        const max = Number(data.Total_HP) || 0;
+        const cur = st.hpCurrent == null || st.hpCurrent === '' ? max : Number(st.hpCurrent) || 0;
+        const rate = level * (longTermCare ? 2 : 1);
+        if (cur < max && rate > 0) {
+            st.hpCurrent = Math.min(max, cur + rate);
+            done.push(`+${st.hpCurrent - cur} HP (${st.hpCurrent}/${max})`
+                + (longTermCare ? ' — long-term care' : ''));
+        }
+        const nl = Number(st.hpNonlethal) || 0;
+        if (nl > 0) {
+            st.hpNonlethal = Math.max(0, nl - 8 * level);
+            done.push(st.hpNonlethal === 0 ? 'nonlethal cleared'
+                : `nonlethal −${nl - st.hpNonlethal}`);
+        }
+
+        // Ability damage heals 1 point per ability per night (drain never self-heals).
+        for (const ab of ['str', 'dex', 'con', 'int', 'wis', 'cha']) {
+            const adj = st.abilityAdjust?.[ab];
+            const dmg = Number(adj?.damage) || 0;
+            if (dmg > 0) {
+                adj.damage = dmg - 1;
+                done.push(`${ab.toUpperCase()} damage −1 (${adj.damage} left)`);
+            }
+        }
+
+        // Item charges: only items flagged "Recharges on rest" (item sheet checkbox) —
+        // wands stay spent, staves and per-day items come back.
+        for (const it of window.SheetState.ensureInventoryObjects?.(data) || []) {
+            if (!it || typeof it !== 'object' || !it.rechargeOnRest) continue;
+            const chMax = Number(it.charges?.max);
+            if (!Number.isFinite(chMax) || chMax <= 0) continue;
+            if ((Number(it.charges.value) || 0) < chMax) {
+                it.charges.value = chMax;
+                done.push(`${it.name} recharged`);
+            }
+        }
+
         quietSave();
         window.SheetRoll?.setOpen?.(true);
-        window.SheetRoll?.rollAndLog?.('d1', 'Rest — daily resources restored');
+        window.SheetRoll?.rollAndLog?.('d1', 'Rest — ' + done.join(' · '));
+        window.SheetOverlay?.toast?.('Rest — ' + done.join(' · '));
         renderSheet(data);
     }
     function summaryQuickActions(body, data, d) {
@@ -77,10 +123,11 @@ window.SheetTabSummary = (function () {
             const user = skillUserBonus(data, skillAbilityKey(skill), ranks);
             rollCheck('Perception check', ranks + abMod + misc.total + user.total);
         });
-        mk('Rest', () => {
-            if (!confirm('Rest and restore daily resources (spell casts, feature uses, sphere SP)?')) return;
-            doRest(data);
-        }, 'Restore daily casts / uses / spell points');
+        mk('Rest', () => doRest(data),
+            'Full rest: +1×level HP, ability damage −1 each, daily casts / uses / spell '
+            + 'points, flagged item charges — no questions asked, toast itemizes it');
+        mk('Rest +care', () => doRest(data, { longTermCare: true }),
+            'Rest with long-term care (Heal DC 15, tended): HP heals at 2×level');
         mk('Level up', () => window.SheetLevelUp?.open?.(data),
             'Advance a level in place: class, HP, BAB/saves, feat, ability bump');
         mk('Tools', () => window.SheetRoll?.setOpen?.(true));
