@@ -60,9 +60,11 @@ window.SheetTabBuffs = (function () {
         next.title = 'Advance one round: buffs/conditions with a duration in rounds tick down and expire at 0';
         next.addEventListener('click', () => {
             const res = window.SheetState.advanceRound(data);
-            window.SheetOverlay?.toast?.(res.expired.length
-                ? `Round ${res.round} — expired: ${res.expired.join(', ')}`
-                : `Round ${res.round}`);
+            const bits = [];
+            if (res.expired.length) bits.push('expired: ' + res.expired.join(', '));
+            if (res.healed) bits.push(`healed ${res.healed} (fast healing/regen)`);
+            window.SheetOverlay?.toast?.(`Round ${res.round}`
+                + (bits.length ? ' — ' + bits.join(' · ') : ''));
             renderSheet(data);
             setActiveTab('buffs');
         });

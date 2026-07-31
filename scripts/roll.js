@@ -820,15 +820,139 @@ window.SheetRoll = (function () {
     function rollConditionalDice(diceParts) {
         let total = 0;
         const details = [];
+        const parts = []; // { source, total } — per-part, so damage typing can bucket them
         for (const p of diceParts) {
             const r = rollTerms(p.terms);
             total += r.total;
+            parts.push({ source: p.source, total: r.total });
             const shown = r.parts.filter((x) => x.kind === 'dice')
                 .map((x) => x.label + ':' + (x.rolls.length === 1 ? x.rolls[0] : '[' + x.rolls.join(', ') + ']'))
                 .join(' ');
             details.push(`${p.formula} (${p.source}) ${shown || r.total}`);
         }
-        return { total, details };
+        return { total, details, parts };
+    }
+
+    // ------------------------------------------------- damage typing & mitigation (#4)
+    // Damage blocks are TYPED at roll time: the weapon's physical bucket vs energy riders
+    // (flaming → fire), plus the DR-bypass context inferred from the rolled weapon. Apply
+    // then routes through the Defenses tab automatically, appending the arithmetic to the
+    // card. Spell/freeform blocks carry no `typed` and keep the raw Apply path.
+    const ENERGY_TYPE_SET = new Set(['acid', 'cold', 'electricity', 'fire', 'sonic',
+        'force', 'negative energy', 'positive energy']);
+    // Enhancement-quality / rider-source names → the energy type their dice deal.
+    const ENERGY_SOURCE_HINTS = [
+        [/thunder|sonic/i, 'sonic'],
+        [/flam|fire|burn|scorch|blaz/i, 'fire'],
+        [/frost|icy|ice\b|cold|freez/i, 'cold'],
+        [/shock|lightning|electric/i, 'electricity'],
+        [/corros|acid/i, 'acid'],
+        [/\bforce\b/i, 'force'],
+    ];
+    function inferEnergyType(source) {
+        const s = String(source || '');
+        for (const [re, type] of ENERGY_SOURCE_HINTS) {
+            if (re.test(s)) return type;
+        }
+        return null;
+    }
+
+    /**
+     * What this weapon's damage overcomes, for DR matching: 'magic' from any enhancement
+     * bonus (PF1: +1 or better beats DR/magic), materials from the base name, alignments
+     * from the aligned qualities. A missing/unknown weapon returns [] — DR applies in full
+     * when the context is absent (the #4 decision).
+     */
+    function damageBypassFor(ctx) {
+        const out = new Set();
+        if ((Number(ctx?.enh) || 0) >= 1) out.add('magic');
+        const name = String(ctx?.wName || ctx?.item?.name || '').toLowerCase();
+        if (/cold iron/.test(name)) out.add('cold iron');
+        if (/\bsilver|mithral/.test(name)) out.add('silver');
+        if (/adamantine/.test(name)) out.add('adamantine');
+        const quals = (name.match(/\[([^\]]+)\]\s*$/)?.[1] || '').split(',');
+        for (const q of quals) {
+            const t = q.trim().toLowerCase();
+            if (t === 'holy') out.add('good');
+            if (t === 'unholy') out.add('evil');
+            if (t === 'axiomatic') out.add('lawful');
+            if (t === 'anarchic') out.add('chaotic');
+        }
+        return [...out];
+    }
+
+    /** One DR entry vs this damage's context. 'or' lists need any part, 'and' lists every
+     *  part; DR/— (or blank) is never bypassed. Physical-type DR (DR 5/bludgeoning) is
+     *  beaten by the weapon's own damage types. */
+    function drBypassed(bypass, typed) {
+        const b = String(bypass || '').trim().toLowerCase();
+        if (!b || b === '—' || b === '-') return false;
+        const anyMode = / or /.test(b);
+        const partsList = b.split(/ or | and /).map((s) => s.trim()).filter(Boolean);
+        const hit = (p) => (typed.bypass || []).includes(p)
+            || (typed.physTypes || []).map((t) => String(t).toLowerCase()).includes(p);
+        return anyMode ? partsList.some(hit) : partsList.every(hit);
+    }
+
+    /**
+     * Route a typed damage block through the Defenses tab: immunity → 0, vulnerability
+     * ×1.5, energy resistance per type, the single largest applicable DR against the
+     * physical bucket. `half` halves each bucket first (save made). Returns the mitigated
+     * total plus human-readable arithmetic for the card.
+     */
+    function mitigateDamage(dmg, { half = false } = {}) {
+        const defs = currentData?._sheet?.defenses || {};
+        const t = dmg.typed;
+        const steps = [];
+        const lower = (list) => (list || []).map((e) => String(e.type || '').toLowerCase());
+        const immune = lower(defs.dmgImmune);
+        const vuln = lower(defs.dmgVuln);
+        let out = 0;
+
+        const bucket = (label, raw, types, isPhys) => {
+            let n = half ? Math.floor(raw / 2) : raw;
+            if (half && raw) steps.push(`${label} ${raw} → ${n} (half)`);
+            if (n <= 0) return;
+            const tl = types.map((x) => String(x).toLowerCase());
+            if (tl.length && tl.every((x) => immune.includes(x))) {
+                steps.push(`immune to ${types.join('/')}: ${n} → 0`);
+                return;
+            }
+            if (tl.some((x) => vuln.includes(x))) {
+                const v = Math.floor(n * 1.5);
+                steps.push(`vulnerable (${types.join('/')}): ${n} → ${v}`);
+                n = v;
+            }
+            if (isPhys) {
+                const applicable = (defs.dr || [])
+                    .filter((e) => (Number(e.amount) || 0) > 0 && !drBypassed(e.bypass, t));
+                if (applicable.length) {
+                    const best = applicable.reduce((a, b) =>
+                        ((Number(b.amount) || 0) > (Number(a.amount) || 0) ? b : a));
+                    const after = Math.max(0, n - Number(best.amount));
+                    steps.push(`DR ${best.amount}/${best.bypass || '—'}: ${n} → ${after}`);
+                    n = after;
+                } else if ((defs.dr || []).some((e) => (Number(e.amount) || 0) > 0)) {
+                    steps.push(`DR bypassed (${(t.bypass || []).join(', ') || 'damage type'})`);
+                }
+            } else {
+                const resist = (defs.resist || [])
+                    .filter((e) => tl.includes(String(e.type || '').toLowerCase()))
+                    .reduce((a, e) => Math.max(a, Number(e.amount) || 0), 0);
+                if (resist > 0) {
+                    const after = Math.max(0, n - resist);
+                    steps.push(`${types.join('/')} resist ${resist}: ${n} → ${after}`);
+                    n = after;
+                }
+            }
+            out += n;
+        };
+
+        bucket('physical', t.phys || 0, t.physTypes?.length ? t.physTypes : [], true);
+        for (const [etype, amount] of Object.entries(t.energy || {})) {
+            bucket(etype, amount, [etype], false);
+        }
+        return { total: out, steps };
     }
 
     function expandRiderInlineRolls(text, data) {
@@ -1305,7 +1429,23 @@ window.SheetRoll = (function () {
         detail.appendChild(renderDetailLines(detailLines));
         block.appendChild(detail);
         // Apply-to-HP row (Foundry's chat-card apply buttons): full, half, nonlethal.
+        // Typed blocks (weapon / natural damage) route through the Defenses tab — DR,
+        // energy resistance, immunities, vulnerabilities — and append the arithmetic to
+        // the card. Untyped blocks (spells, freeform) keep the raw path.
         const applyRow = h('div', 'roll-card-apply no-print');
+        const mitNote = h('div', 'roll-card-mitigation no-print');
+        const doApply = ({ half = false, nonlethal = false } = {}) => {
+            if (!dmg.typed) {
+                applyDamageToHp(half ? Math.floor(dmg.total / 2) : dmg.total, { nonlethal });
+                return;
+            }
+            const m = mitigateDamage(dmg, { half });
+            applyDamageToHp(m.total, { nonlethal });
+            mitNote.textContent = `Applied ${m.total}${nonlethal ? ' nonlethal' : ''}`
+                + (m.steps.length ? ' — ' + m.steps.join(' · ')
+                    : (m.total === dmg.total ? ' (no defenses matched)' : ''));
+            if (!mitNote.parentNode) block.appendChild(mitNote);
+        };
         const mkApply = (label, title, fn) => {
             const b = h('button', 'roll-card-apply-btn', label);
             b.type = 'button';
@@ -1316,12 +1456,13 @@ window.SheetRoll = (function () {
             });
             applyRow.appendChild(b);
         };
-        mkApply('Apply ' + dmg.total, 'Subtract from HP (temp HP absorbs first)',
-            () => applyDamageToHp(dmg.total));
-        mkApply('½', 'Apply half (save made / resistance)',
-            () => applyDamageToHp(Math.floor(dmg.total / 2)));
-        mkApply('NL', 'Apply as nonlethal damage',
-            () => applyDamageToHp(dmg.total, { nonlethal: true }));
+        const via = dmg.typed ? ' through DR / resistances (Defenses tab)' : '';
+        mkApply('Apply ' + dmg.total, 'Subtract from HP' + via + ' — temp HP absorbs first',
+            () => doApply());
+        mkApply('½', 'Apply half (save made)' + via,
+            () => doApply({ half: true }));
+        mkApply('NL', 'Apply as nonlethal damage' + via,
+            () => doApply({ nonlethal: true }));
         block.appendChild(applyRow);
         bindExpandable(block);
         return block;
@@ -1565,6 +1706,9 @@ window.SheetRoll = (function () {
         let diceTotal = 0;
         const parts = [];
         let diceFlavor = '';
+        // Typed buckets for defense routing: physical vs energy, plus DR-bypass context.
+        const typed = { phys: 0, physTypes: [], energy: {}, bypass: damageBypassFor(ctx) };
+        const addEnergy = (type, n) => { typed.energy[type] = (typed.energy[type] || 0) + n; };
         if (w?.parts?.length || w?.dice) {
             const wparts = w.parts?.length ? w.parts : [{ dice: w.dice, types: [] }];
             for (const p of wparts) {
@@ -1573,6 +1717,15 @@ window.SheetRoll = (function () {
                 const r = rollTerms(parsed.terms);
                 const sub = r.total * critMult;
                 diceTotal += sub;
+                const energyType = (p.types || []).map((x) => String(x).toLowerCase())
+                    .find((x) => ENERGY_TYPE_SET.has(x));
+                if (energyType) addEnergy(energyType, sub);
+                else {
+                    typed.phys += sub;
+                    for (const ty of p.types || []) {
+                        if (!typed.physTypes.includes(ty)) typed.physTypes.push(ty);
+                    }
+                }
                 const rolls = r.parts.filter((x) => x.kind === 'dice').flatMap((x) => x.rolls);
                 const shown = rolls.length ? '[' + rolls.join(', ') + ']' : p.dice;
                 const mult = critMult > 1 ? `×${critMult}` : '';
@@ -1591,6 +1744,15 @@ window.SheetRoll = (function () {
         if (oneOff?.spec) ooVal = rollTerms(oneOff.spec.terms).total;
         const flat = abMod + ctx.enh + ctx.dmgChanges.total + cond.flat + condDice.total + ooVal;
         const total = diceTotal + flat;
+        // Flat modifiers ride the physical bucket (PF1: DR reduces the attack's whole
+        // non-energy total); conditional dice split by their source's inferred energy type
+        // (Flaming → fire) so resistances catch exactly the rider they resist.
+        typed.phys += abMod + ctx.enh + ctx.dmgChanges.total + cond.flat + ooVal;
+        for (const p of condDice.parts || []) {
+            const etype = inferEnergyType(p.source);
+            if (etype) addEnergy(etype, p.total);
+            else typed.phys += p.total;
+        }
 
         if (abMod) parts.push({ label: (w.damageAbility || 'str').toUpperCase(), value: abMod });
         if (ctx.enh) parts.push({ label: 'Enhancement', value: ctx.enh });
@@ -1609,6 +1771,7 @@ window.SheetRoll = (function () {
             diceFlavor,
             label,
             parts,
+            typed,
             conditionals: [
                 ...(cond.bits || []).map((b) => ({ source: b.source, value: b.value })),
                 ...(condDice.details || []).map((d) => ({ source: 'dice', value: d })),
@@ -1908,6 +2071,15 @@ window.SheetRoll = (function () {
         if (oneOff?.spec) {
             parts.push({ label: (oneOff.label || 'Situational') + ' (one-off)', value: ooVal });
         }
+        // Typed for defense routing: a natural attack has no weapon context (bypass []),
+        // so DR applies in full; energy riders still split out by source name.
+        const typed = { phys: 0, physTypes: [], energy: {}, bypass: [] };
+        typed.phys = diceTotal + flat - condDice.total;
+        for (const p of condDice.parts || []) {
+            const etype = inferEnergyType(p.source);
+            if (etype) typed.energy[etype] = (typed.energy[etype] || 0) + p.total;
+            else typed.phys += p.total;
+        }
         return {
             total: diceTotal + flat,
             diceTotal,
@@ -1916,6 +2088,7 @@ window.SheetRoll = (function () {
             diceFlavor,
             label: line.name || 'Natural attack',
             parts,
+            typed,
             conditionals: [
                 ...(cond.bits || []).map((b) => ({ source: b.source, value: b.value })),
                 ...(condDice.details || []).map((d) => ({ source: 'dice', value: d })),
