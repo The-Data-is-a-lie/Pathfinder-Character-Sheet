@@ -293,7 +293,41 @@ window.SheetTabSkills = (function () {
             body.appendChild(t2);
             if (data.profession_pool != null) kv(body, 'Profession rank pool', data.profession_pool);
         }
+
+        // #12: rank budget footer (feat-footer style). Badges only — nothing blocked.
+        body.appendChild(renderRankBudgetFooter(data, rankMap));
         return sec;
+    }
+
+    /** Spent = every rank in skill_ranks (subskill instances live there too). Budget =
+     *  SheetClassInfo.skillRankBudget. Hover the Budget box for the formula. */
+    function renderRankBudgetFooter(data, rankMap) {
+        const spent = Object.values(rankMap).reduce((a, v) => a + (Number(v) || 0), 0);
+        const budget = window.SheetClassInfo?.skillRankBudget?.(data) || { total: 0, parts: [] };
+        const box = (label, value, cls) => {
+            const b = h('div', 'feat-count-box' + (cls ? ' ' + cls : ''));
+            b.appendChild(h('span', 'feat-count-label', label));
+            b.appendChild(h('span', 'feat-count-value', String(value)));
+            return b;
+        };
+        const wrap = h('div', 'feat-counts skill-rank-footer');
+        const joined = h('div', 'feat-count-joined');
+        const budgetBox = box('Budget', budget.total);
+        budgetBox.title = budget.parts.length
+            ? budget.parts.join('\n') + '\nFCB skill levels are set on each class popup.'
+            : 'No class levels found';
+        joined.append(box('Ranks spent', spent), budgetBox);
+        wrap.appendChild(joined);
+        if (budget.total > 0 && spent !== budget.total) {
+            const diff = budget.total - spent;
+            const badge = box(diff > 0 ? 'Unspent' : 'Over budget', Math.abs(diff),
+                diff > 0 ? 'is-missing' : 'is-excess');
+            badge.title = diff > 0
+                ? `${diff} rank${diff === 1 ? '' : 's'} still to place`
+                : `${-diff} more rank${diff === -1 ? '' : 's'} than the budget allows — the sheet warns, it never blocks`;
+            wrap.appendChild(badge);
+        }
+        return wrap;
     }
 
     return { renderSkills };
