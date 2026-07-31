@@ -4814,6 +4814,20 @@ body.tools-resizing .tools-drawer { transition: none; }
 .tools-save-dc {
     width: 3.6em;
 }
+/* #28: free-standing damage/heal row + reroll button */
+.tools-dmg-formula { width: 6.5em; }
+.tools-log-reroll {
+    margin-left: auto;
+    font-size: 0.85rem;
+    padding: 0 0.35rem;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: var(--dim);
+    cursor: pointer;
+}
+.tools-log-reroll:hover { color: var(--accent-dark); border-color: var(--accent); }
+.tools-log-entry > .tools-log-reroll { margin-left: 0.3rem; align-self: flex-start; }
 
 /* Size row on the Combat tab */
 .combat-size-row {

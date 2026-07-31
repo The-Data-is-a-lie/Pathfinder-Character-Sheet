@@ -527,7 +527,8 @@ window.SheetRoll = (function () {
             pushLog(title || formula, result.error || 'Invalid roll', null, { sound: false });
             return result;
         }
-        pushLog(title || ('/roll ' + result.formula), result.detail, result.total);
+        pushLog(title || ('/roll ' + result.formula), result.detail, result.total,
+            { reroll: () => rollAndLog(formula, title) });
         return result;
     }
 
@@ -1397,7 +1398,8 @@ window.SheetRoll = (function () {
     // ---------------------------------------------------------------- log (Foundry-style cards + simple dice)
     function pushLog(title, body, total, opts = {}) {
         if (opts.sound !== false && total != null) playDiceSound();
-        const entry = { id: nextLogId++, type: 'simple', time: new Date(), title, body, total };
+        const entry = { id: nextLogId++, type: 'simple', time: new Date(), title, body, total,
+            reroll: typeof opts.reroll === 'function' ? opts.reroll : null };
         history.unshift(entry);
         if (history.length > LOG_MAX) history.length = LOG_MAX;
         renderLog();
@@ -1406,7 +1408,8 @@ window.SheetRoll = (function () {
 
     function pushRollCard(card, opts = {}) {
         if (opts.sound !== false) playDiceSound();
-        const entry = { id: nextLogId++, type: 'card', time: new Date(), ...card };
+        const entry = { id: nextLogId++, type: 'card', time: new Date(), ...card,
+            reroll: typeof opts.reroll === 'function' ? opts.reroll : null };
         history.unshift(entry);
         if (history.length > LOG_MAX) history.length = LOG_MAX;
         renderLog();
@@ -1422,6 +1425,21 @@ window.SheetRoll = (function () {
     }
 
     /** Right-click a roll log entry to remove it. */
+    /** #28: a small re-roll button when the entry knows how to repeat itself. The
+     *  reroll re-invokes the original action with the SAME arguments — never mutates
+     *  the existing card; it posts a fresh one. */
+    function bindReroll(host, entry) {
+        if (!entry.reroll) return;
+        const b = h('button', 'tools-log-reroll no-print', '↻');
+        b.type = 'button';
+        b.title = 'Re-roll (posts a new card)';
+        b.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            entry.reroll();
+        });
+        host.appendChild(b);
+    }
+
     function bindLogRemove(el, entry) {
         el.classList.add('tools-log-removable');
         el.title = (el.title ? el.title + ' · ' : '') + 'Right-click to remove';
@@ -1690,6 +1708,7 @@ window.SheetRoll = (function () {
         head.appendChild(h('span', 'tools-log-time', fmtTime(e.time)));
         head.appendChild(h('span', 'roll-card-title', e.title || 'Roll'));
         if (e.subtitle) head.appendChild(h('span', 'roll-card-sub', e.subtitle));
+        bindReroll(head, e);
         card.appendChild(head);
 
         const body = h('div', 'roll-card-body');
@@ -1736,6 +1755,7 @@ window.SheetRoll = (function () {
         if (e.body) main.appendChild(h('div', 'tools-log-body', e.body));
         if (e.total != null) main.appendChild(h('div', 'tools-log-total', '= ' + e.total));
         row.appendChild(main);
+        bindReroll(row, e);
         bindLogRemove(row, e);
         return row;
     }
@@ -2108,7 +2128,7 @@ window.SheetRoll = (function () {
             attacks,
             damages,
             riders: collectRiders(...riderLists),
-        });
+        }, { reroll: () => doWeaponAttack({ full, withDamage, itemKey }) });
     }
 
     function doDamageOnly({ itemKey = undefined } = {}) {
@@ -2133,7 +2153,7 @@ window.SheetRoll = (function () {
             attacks: [],
             damages: [dmg],
             riders: collectRiders(dmg.riders),
-        });
+        }, { reroll: () => doDamageOnly({ itemKey }) });
     }
 
     // ---------------------------------------------------------------- attack routines
@@ -2431,7 +2451,7 @@ window.SheetRoll = (function () {
             attacks,
             damages,
             riders: [...notes, ...collectRiders(...riderLists)],
-        });
+        }, { reroll: () => doRoutineAttack(routine) });
         if (ammoSpent) {
             window.SheetApp?.quietSave?.();
             // Repaint so Inventory quantity and the routine editor's ammo counts agree.
@@ -2982,6 +3002,17 @@ window.SheetRoll = (function () {
         dcInput.type = 'number';
         dcInput.placeholder = 'DC';
         dcInput.min = '0';
+        const labels = { fort: 'Fortitude', ref: 'Reflex', will: 'Will' };
+        const postSaveRoll = (saveId, dc) => {
+            const total = Number(window.SheetDerive?.computeDerived?.(currentData)
+                ?.blocks?.[saveId]?.total) || 0;
+            const r = roll('1d20' + (total ? (total > 0 ? '+' : '') + total : ''));
+            if (!r.ok) return;
+            const title = `${labels[saveId]} save` + (dc != null ? ` vs DC ${dc}` : '');
+            const stamp = dc != null ? ` · ${r.total >= dc ? 'PASS ✓' : 'FAIL ✗'}` : '';
+            pushLog(title, r.detail + stamp, r.total,
+                { reroll: () => postSaveRoll(saveId, dc) });
+        };
         const go = h('button', 'tools-quick tools-save-go', 'Save');
         go.type = 'button';
         go.title = 'Roll the selected save; with a DC filled in the card stamps PASS/FAIL';
@@ -2990,15 +3021,8 @@ window.SheetRoll = (function () {
                 pushLog('Save', 'Load a character first.', null, { sound: false });
                 return;
             }
-            const labels = { fort: 'Fortitude', ref: 'Reflex', will: 'Will' };
-            const total = Number(window.SheetDerive?.computeDerived?.(currentData)
-                ?.blocks?.[save]?.total) || 0;
-            const r = roll('1d20' + (total ? (total > 0 ? '+' : '') + total : ''));
-            if (!r.ok) return;
             const dc = dcInput.value.trim() === '' ? null : Number(dcInput.value);
-            const title = `${labels[save]} save` + (dc != null ? ` vs DC ${dc}` : '');
-            const stamp = dc != null ? ` · ${r.total >= dc ? 'PASS ✓' : 'FAIL ✗'}` : '';
-            pushLog(title, r.detail + stamp, r.total);
+            postSaveRoll(save, dc);
         };
         go.addEventListener('click', doSave);
         dcInput.addEventListener('keydown', (e) => {
@@ -3008,6 +3032,80 @@ window.SheetRoll = (function () {
             }
         });
         host.append(seg, dcInput, go);
+    }
+
+    // Free-standing damage/heal roll (#28): formula + type → a card whose Apply buttons
+    // run the same #4 mitigation (or #20 healing) as weapon and spell cards.
+    function rollFreeDamage(formula, type) {
+        const parsed = parseFormula(formula);
+        if (!parsed.ok) {
+            pushLog('Damage', `Invalid formula: ${formula}`, null, { sound: false });
+            return;
+        }
+        const r = rollTerms(parsed.terms);
+        const isHeal = type === 'heal';
+        const dmg = {
+            total: r.total,
+            diceTotal: r.total,
+            flat: 0,
+            critMult: 1,
+            diceFlavor: parsed.formula,
+            label: isHeal ? '' : (type === 'physical' ? 'physical' : type),
+            parts: [{ label: parsed.formula, value: r.total }],
+            conditionals: [],
+            riders: [],
+        };
+        if (isHeal) dmg.isHeal = true;
+        else if (type === 'physical') {
+            // No weapon context → no bypass: DR applies in full (#4 decision).
+            dmg.typed = { phys: r.total, physTypes: [], energy: {}, bypass: [] };
+        } else {
+            dmg.typed = { phys: 0, physTypes: [], energy: { [type]: r.total }, bypass: [] };
+        }
+        pushRollCard({
+            title: isHeal ? 'Healing roll' : 'Damage roll',
+            subtitle: parsed.formula + (isHeal ? '' : ' · ' + type),
+            damages: [dmg],
+        }, { reroll: () => rollFreeDamage(formula, type) });
+    }
+
+    function initDamageRow() {
+        const host = document.getElementById('tools-damage-row');
+        if (!host) return;
+        const input = h('input', 'edit-field tools-dmg-formula');
+        input.type = 'text';
+        input.placeholder = '2d6+3';
+        input.autocomplete = 'off';
+        const typeSel = h('select', 'edit-field tools-dmg-type');
+        for (const t of ['physical', 'fire', 'cold', 'electricity', 'acid', 'sonic',
+            'force', 'negative energy', 'positive energy', 'heal']) {
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = t === 'heal' ? 'healing' : t;
+            typeSel.appendChild(opt);
+        }
+        const go = h('button', 'tools-quick tools-dmg-go', 'Damage');
+        go.type = 'button';
+        go.title = 'Roll ad-hoc damage (or healing) — Apply routes through the Defenses tab';
+        const doIt = () => {
+            const f = input.value.trim();
+            if (!f) {
+                input.focus();
+                return;
+            }
+            rollFreeDamage(f, typeSel.value);
+        };
+        go.addEventListener('click', doIt);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                doIt();
+            }
+        });
+        typeSel.addEventListener('change', () => {
+            go.textContent = typeSel.value === 'heal' ? 'Heal' : 'Damage';
+        });
+        host.append(input, typeSel, go);
     }
 
     function init() {
@@ -3033,8 +3131,7 @@ window.SheetRoll = (function () {
                 b.type = 'button';
                 b.addEventListener('click', () => {
                     if (input) input.value = '/roll d' + sides;
-                    const result = roll('d' + sides);
-                    if (result.ok) pushLog('/roll d' + sides, result.detail, result.total);
+                    rollAndLog('d' + sides); // re-rollable (#28)
                 });
                 quick.appendChild(b);
             }
@@ -3045,6 +3142,7 @@ window.SheetRoll = (function () {
         });
 
         initSaveRow();
+        initDamageRow();
         initSectionMinimize();
         initDrawer();   // attaches SheetEdgePanel, which restores the stored width + open state
         renderLog();
