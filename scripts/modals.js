@@ -1540,6 +1540,8 @@ window.SheetModals = (function () {
         row('Spellcasting', 'casting');
         row('Maneuver progression', 'maneuvers');
         row('Favored class bonus', 'fcb');
+        // #12: levels whose FCB pick was "+1 skill rank" — feeds the Skills-tab budget.
+        row('FCB levels → +1 skill rank', 'fcbSkillLevels', { number: true });
         row('Weapon proficiencies', 'weaponProf');
         row('Armor proficiencies', 'armorProf');
         bodyEl.appendChild(grid);

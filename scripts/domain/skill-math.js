@@ -143,14 +143,22 @@ window.SheetSkillMath = (function () {
     }
     function ranksEditor(data, rankKey, currentRanks) {
         const map = ensureSkillRanksObject(data);
-        if (map[rankKey] == null && currentRanks) map[rankKey] = currentRanks;
-        // Hold ranks on a bag; onChange syncs into skill_ranks map
-        const bag = { ranks: map[rankKey] || 0 };
+        // Display falls back to the loose-matched value (currentRanks) but rendering must
+        // NOT write it into the map: seeding here materialized the fallback — a Craft
+        // parent row loose-matching "craft (traps)" copied the subskill's ranks into
+        // 'craft' and double-counted the #12 budget. onChange persists real edits only.
+        // Max ranks per skill = character level (#12): over-cap shows ⚠, never clamps.
+        const levelCap = Number(data?.level) || 0;
+        const bag = { ranks: map[rankKey] != null ? map[rankKey] : (currentRanks || 0) };
         return dblclickEditable(bag, 'ranks', {
             type: 'number',
             min: 0,
             max: 40,
-            format: (raw) => String(raw == null || raw === '' ? 0 : raw),
+            format: (raw) => {
+                const n = Number(raw) || 0;
+                return String(raw == null || raw === '' ? 0 : raw)
+                    + (levelCap > 0 && n > levelCap ? ' ⚠' : '');
+            },
             parse: (s) => parseIntLoose(s, 0),
             onChange: (v) => {
                 const m = ensureSkillRanksObject(data);

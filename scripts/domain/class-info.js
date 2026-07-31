@@ -130,9 +130,45 @@ window.SheetClassInfo = (function () {
         return out.sort((a, b) => a.name.localeCompare(b.name));
     }
 
+    /**
+     * Skill-rank budget (#12): Σ per class of (chassis ranks/level + Int mod, min 1) ×
+     * class level, plus FCB levels the user marked as +1 skill rank on the class popup
+     * (classInfo override `fcbSkillLevels`, capped at the class level), plus the human
+     * +1/level. Multiclass levels come from classes[]; only the PRIMARY class may fall
+     * back to the whole `level`, so a user-added second class never double-counts.
+     * Returns { total, parts } — parts are display strings for the footer tooltip.
+     */
+    function skillRankBudget(data) {
+        const list = ensureClassList(data);
+        const intMod = Number(window.SheetDerive?.abModOf?.(data, 'int')) || 0;
+        const parts = [];
+        let total = 0;
+        let levelSum = 0;
+        list.forEach((cls, idx) => {
+            const key = classKeyOf(cls);
+            const hit = (Array.isArray(data?.classes) ? data.classes : [])
+                .find((c) => classKeyOf(c.name) === key || classKeyOf(c.display) === key);
+            const lvl = Number(hit?.level) || (idx === 0 ? Number(data?.level) || 0 : 0);
+            if (!lvl) return;
+            levelSum += lvl;
+            const info = classInfoFor(data, cls);
+            const per = Math.max(1, (Number(info.skills) || 2) + intMod);
+            const fcb = Math.min(lvl, Math.max(0, Number(info.fcbSkillLevels) || 0));
+            total += per * lvl + fcb;
+            parts.push(`${titleCase(cls)}: (${Number(info.skills) || 2} + Int ${intMod}, min 1) × ${lvl}`
+                + (fcb ? ` + FCB ${fcb}` : ''));
+        });
+        const race = String(data?.race || '').toLowerCase();
+        if (/human/.test(race) && !/half/.test(race) && levelSum > 0) {
+            total += levelSum;
+            parts.push(`Human +1 × ${levelSum}`);
+        }
+        return { total, parts };
+    }
+
     return {
         classKeyOf, classLevelFor, classInfoFor, setClassInfo, seedClassSkills, archetypeInfoOf,
         archetypeDescHtml, usedArchetypeArr, recordUsedArchetype, usedArchetypeHits,
-        loadArchetypesByClass, classArchetypeHits,
+        loadArchetypesByClass, classArchetypeHits, skillRankBudget,
     };
 })();
