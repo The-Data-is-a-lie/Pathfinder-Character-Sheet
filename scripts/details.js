@@ -580,8 +580,14 @@ window.SheetDetails = (function () {
             });
         }
 
+        // #45 double-count guard: while a spell's auto-cast buff is active, the ledger
+        // already carries its changes — suppress the per-roll toggle until the buff ends.
+        const autoBuffActive = new Set((data._sheet?.buffs || [])
+            .filter((b) => b && b.active !== false && b.autoKey)
+            .map((b) => b.autoKey));
         for (const [spellName, entry] of Object.entries(data.spell_changes_dict || {})) {
             if (!entry) continue;
+            if (autoBuffActive.has('spell:' + String(spellName).toLowerCase())) continue;
             let mods = null;
             let label = spellName;
             if (Array.isArray(entry.modifiers)) {

@@ -911,6 +911,9 @@ window.SheetModals = (function () {
                 if (sd && window.SheetRoll?.rollSpellCast) {
                     window.SheetRoll.rollSpellCast({
                         name: `${item.name} (${item.charges.value} charges left)`,
+                        // #45: the auto-buff hook needs the bare spell name, not the
+                        // decorated wand title.
+                        baseSpellName: guess,
                         level: 1, data, spellData: sd,
                         castingAbility: 'int', castingMod: 0,
                         casterLevel: 1, saveDC: 11, concentration: 1,

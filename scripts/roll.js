@@ -400,6 +400,12 @@ window.SheetRoll = (function () {
             });
         }
 
+        // #45: a buff spell auto-creates/refreshes its Buffs-tab entry — every cast path
+        // (book cast, spontaneous conversion, wand/consumable Use) funnels through here.
+        const buffNote = autoApplySpellBuff(data, opts.baseSpellName || name, sd,
+            { cl, level, mm });
+        if (buffNote) riders.push({ source: 'Buff', text: buffNote });
+
         // If nothing mechanical rolled, still log a "cast" card with riders
         pushRollCard({
             title: name,
@@ -416,6 +422,102 @@ window.SheetRoll = (function () {
             // to read what the spell does right after casting.
             descHtml: opts.descHtml || '',
         });
+    }
+
+    /**
+     * #45: casting a buff spell auto-creates (or refreshes) its Buffs-tab entry. Data
+     * feed, in priority order: a buff-shaped `spell_changes_dict` entry (backend curation
+     * wins; `tagBuff` ally grants are never self-applied, per the standing rule) → the
+     * client SheetData.SPELL_BUFFS table → nothing (no buff, no guess). Change formulas
+     * resolve at cast time (@cl at this cast's CL): buff strength is fixed when cast, and
+     * the always-on ledger sums plain integers. Recasting matches on `autoKey` and
+     * refreshes the entry instead of stacking (PF1 same-source bonuses don't stack).
+     * Returns the roll-card rider text, or null when the spell isn't a known buff.
+     */
+    function autoApplySpellBuff(data, spellName, sd, { cl, level, mm } = {}) {
+        if (!data || !window.SheetState?.ensureBuffs) return null;
+        const lower = String(spellName || '').trim().toLowerCase();
+        if (!lower) return null;
+        let src = null;
+        for (const [k, entry] of Object.entries(data.spell_changes_dict || {})) {
+            if (String(k).toLowerCase() !== lower || !entry) continue;
+            if (entry.tagBuff) return null;
+            if (Array.isArray(entry.changes) && entry.changes.length) {
+                src = { changes: entry.changes, setSize: '', note: '' };
+            }
+            break;
+        }
+        if (!src) {
+            const t = window.SheetData?.SPELL_BUFFS?.[lower];
+            if (t) src = { changes: t.changes || [], setSize: t.setSize || '', note: t.note || '' };
+        }
+        if (!src) return null;
+
+        const clN = Math.max(1, Number(cl) || 1);
+        const changes = [];
+        for (const c of src.changes) {
+            if (!c?.formula || !c.target) continue;
+            const ev = window.SheetFormula?.evaluate?.(String(c.formula), data, { cl: clN });
+            changes.push({
+                formula: ev?.ok && Number.isFinite(ev.value)
+                    ? String(ev.value) : String(c.formula),
+                target: c.target,
+                type: c.type || 'untyped',
+            });
+        }
+
+        // Duration from the spell's own action data; Extend Spell doubles it. Unmapped
+        // units (spec / perm / seeText) → infinite, with the raw text kept in the notes.
+        const act = (sd?.actions && sd.actions[0]) || {};
+        const dRaw = act.duration || {};
+        const unitMap = { round: 'round', turn: 'round', minute: 'minute', hour: 'hour', day: 'day' };
+        const u = unitMap[String(dRaw.units || '')] || '';
+        let duration = { value: '', units: '' };
+        let durText = '';
+        if (u) {
+            const ev = window.SheetFormula?.evaluate?.(String(dRaw.value ?? ''), data, { cl: clN });
+            let n = ev?.ok && Number.isFinite(ev.value) ? Math.max(0, Math.floor(ev.value)) : 0;
+            if (n > 0) {
+                if (mm?.names?.includes('Extend Spell')) n *= 2;
+                duration = u === 'day'
+                    ? { value: String(n * 24), units: 'hour' }
+                    : { value: String(n), units: u };
+                durText = `${n} ${u}${n === 1 ? '' : 's'}`;
+            }
+        }
+        if (!durText && dRaw.value) durText = String(dRaw.value);
+
+        const noteBits = [
+            src.note,
+            !duration.units && durText ? 'Duration: ' + durText : '',
+            `Auto-applied on cast · CL ${clN}`,
+        ].filter(Boolean);
+        const buffs = window.SheetState.ensureBuffs(data);
+        const key = 'spell:' + lower;
+        let b = buffs.find((x) => x && x.autoKey === key);
+        const refreshed = !!b;
+        if (b) {
+            b.active = true;
+            b.duration = duration;
+            b.changes = changes;
+            b.setSize = src.setSize || '';
+            b.notes = noteBits.join(' · ');
+        } else {
+            b = window.SheetState.normalizeBuffEntry({
+                name: spellName, subType: 'spell', active: true,
+                level: Number(level) || 0,
+                duration, changes, setSize: src.setSize || '',
+                notes: noteBits.join(' · '),
+                autoKey: key,
+            });
+            buffs.push(b);
+        }
+        window.SheetApp?.quietSave?.();
+        if (window.SheetApp?.current === data) window.SheetApp?.renderSheet?.(data);
+        const msg = `${b.name} buff ${refreshed ? 'refreshed' : 'active'}`
+            + (durText ? ` — ${durText}` : '');
+        window.SheetOverlay?.toast?.(`${msg} · Buffs tab to dismiss`);
+        return msg;
     }
 
     // ---------------------------------------------------------------- character attack math
