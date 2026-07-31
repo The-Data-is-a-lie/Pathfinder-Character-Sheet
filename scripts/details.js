@@ -159,6 +159,10 @@ window.SheetDetails = (function () {
         for (const arr of Object.values(m.byKey)) {
             for (const e of (Array.isArray(arr) ? arr : [arr])) {
                 if (!(e.classes || []).some((c) => String(c).toLowerCase() === cls)) continue;
+                // Tagged entries (Rage Power, Hex, Domain Power…) are choice-pool members —
+                // a level marker there is a "must be at least Nth level" prerequisite, not
+                // the class progression granting it.
+                if (Array.isArray(e.tags) && e.tags.length) continue;
                 const mark = GAIN_LEVEL_RE.exec(String(e.description || ''));
                 if (!mark || parseInt(mark[1], 10) !== want) continue;
                 const key = String(e.name).toLowerCase();

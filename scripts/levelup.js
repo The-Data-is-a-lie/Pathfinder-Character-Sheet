@@ -328,18 +328,26 @@ window.SheetLevelUp = (function () {
             const { clsName, newLvl } = pendingDiff();
             const found = (window.SheetDetails?.classFeaturesAtLevel?.(clsName, newLvl) || [])
                 .filter((e) => !ownsFeature(e.name));
-            featurePicks = found.map((e) => ({ name: e.name, on: true }));
+            // The measured core progression runs 0–4 features per level; a bigger crop
+            // means pool leakage (wizard school powers, domain auras) — offer those
+            // unchecked so a misparse costs a tick, not an untick-hunt.
+            const pool = found.length > 4;
+            featurePicks = found.map((e) => ({ name: e.name, on: !pool }));
             featuresList.innerHTML = '';
             if (!featurePicks.length) {
                 featuresList.appendChild(h('span', 'dim',
                     `none marked for ${clsName} ${newLvl} — choice pools (rage powers, `
                     + 'hexes…) are added via Browse on the Features tab'));
+            } else if (pool) {
+                featuresList.appendChild(h('span', 'dim',
+                    `${found.length} parsed — reads like a choice pool; `
+                    + 'tick only what your build actually grants: '));
             }
             for (const pick of featurePicks) {
                 const lab = h('label', 'levelup-feature-pick');
                 const cb = h('input');
                 cb.type = 'checkbox';
-                cb.checked = true;
+                cb.checked = pick.on;
                 cb.addEventListener('change', () => {
                     pick.on = cb.checked;
                     updateSummary();
