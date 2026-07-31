@@ -4744,6 +4744,25 @@ body.modal-open { overflow: hidden; }
     padding-left: 0.4rem;
     padding-right: 0.4rem;
 }
+/* Save-vs-DC quick row in the Tools dice section (#20) */
+.tools-save-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.3rem;
+    flex-wrap: wrap;
+}
+.tools-save-seg {
+    display: flex;
+    gap: 0.15rem;
+}
+.tools-save-pick.is-on {
+    background: var(--accent);
+    color: var(--on-accent);
+}
+.tools-save-dc {
+    width: 3.6em;
+}
 
 /* Size row on the Combat tab */
 .combat-size-row {
