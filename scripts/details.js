@@ -382,6 +382,24 @@ window.SheetDetails = (function () {
     }
 
     /**
+     * The MARQUEE_FEATURES entries this character qualifies for, by class presence —
+     * substring match on every class name the payload knows (classes[], class_list, legacy
+     * c_class pair) so "Barbarian (Invulnerable Rager)" still lights up Rage. Read-only:
+     * never seeds class_list.
+     */
+    function marqueeFeaturesFor(data) {
+        const names = [];
+        if (Array.isArray(data?.classes)) {
+            for (const c of data.classes) names.push(c?.name, c?.display);
+        }
+        if (Array.isArray(data?.class_list)) names.push(...data.class_list);
+        names.push(data?.c_class, data?.c_class_2);
+        const lower = names.filter(Boolean).map((n) => String(n).toLowerCase());
+        return (window.SheetData?.MARQUEE_FEATURES || [])
+            .filter((t) => lower.some((n) => n.includes(t.cls)));
+    }
+
+    /**
      * Unified per-roll toggles for this character (Foundry attack-dialog conditionals).
      * Returns [{ id, label, sourceKind, defaultOn, modifiers, rider, source }].
      */
@@ -406,6 +424,22 @@ window.SheetDetails = (function () {
                 label: t.label || t.name,
                 source: t.name,
                 sourceKind: 'combat',
+                defaultOn: false,
+                modifiers: t.modifiers || [],
+                rider: t.rider || '',
+            });
+        }
+
+        // Marquee base class features (Rage, Smite Evil, ...) — curated client-side in
+        // SheetData.MARQUEE_FEATURES, keyed by class presence so already-saved characters
+        // get them without a re-generate. Same dual-write pattern as the combat toggles:
+        // per-roll `modifiers` here, standing `acChanges` in collectChanges ('marquee').
+        for (const t of marqueeFeaturesFor(data)) {
+            push({
+                id: t.id,
+                label: t.label || t.name,
+                source: t.name,
+                sourceKind: 'classFeature',
                 defaultOn: false,
                 modifiers: t.modifiers || [],
                 rider: t.rider || '',
@@ -741,6 +775,14 @@ window.SheetDetails = (function () {
             pushEntry(ledger, t.name, 'combat', { changes: t.acChanges });
         }
 
+        // Active marquee class features (Rage's Str/Con/Will/AC, Smite's deflection AC...)
+        // dual-write the same way — the conditional panel owns the toggle, so 'marquee' is
+        // excluded from the Buffs Permanent list like 'combat' and 'condition'.
+        for (const t of marqueeFeaturesFor(data)) {
+            if (!togglePrefs[t.id] || !t.acChanges?.length) continue;
+            pushEntry(ledger, t.name, 'marquee', { changes: t.acChanges });
+        }
+
         return ledger;
     }
 
@@ -939,6 +981,17 @@ window.SheetDetails = (function () {
         s = s.replace(/@attributes\.hd\.max/gi, String(hd));
         // BAB (same source as SheetFormula's resolver) — the combat toggles scale with it
         s = s.replace(/@attributes\.bab\.total/gi, String(Number(data?.bab_total) || 0));
+        // Class levels, STRICTLY (mirrors SheetFormula.classLevel): a class the character
+        // does not have resolves to 0, never the whole level — the marquee features scale
+        // with these. Lenient classLevelFor only for legacy payloads with no classes[].
+        s = s.replace(/@classes\.([a-z0-9_-]+)\.level/gi, (_, cls) => {
+            if (Array.isArray(data?.classes)) {
+                const hit = data.classes.find((c) => [c?.name, c?.display]
+                    .some((n) => String(n || '').toLowerCase().trim() === cls));
+                return String(Number(hit?.level) || 0);
+            }
+            return String(Number(window.SheetClassInfo?.classLevelFor?.(data, cls)) || 0);
+        });
         // Path of War: initiator level and initiation-stat modifier (stance/maneuver scaling)
         const initLevel = Number(data?.initiator_level) || 0;
         s = s.replace(/@pow\.initLevel/gi, String(initLevel));

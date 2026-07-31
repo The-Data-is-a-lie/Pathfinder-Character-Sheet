@@ -16,12 +16,8 @@ window.SheetTabBuffs = (function () {
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
 
-    function featureUsesEntry(data, name) {
-        const st = sheetState(data);
-        st.featureUses ??= {};
-        if (!st.featureUses[name]) st.featureUses[name] = { value: 0, max: 0 };
-        return st.featureUses[name];
-    }
+    // Shape owner moved to SheetState.featureUses (the marquee spend/tick paths share it).
+    const featureUsesEntry = (data, name) => window.SheetState.featureUses(data, name);
     function renderUsesControls(data, name) {
         const u = featureUsesEntry(data, name);
         const wrap = h('span', 'uses-controls no-print');
@@ -361,7 +357,7 @@ window.SheetTabBuffs = (function () {
             // Conditions have their own tray above — a second toggle row here would fight it.
             const passiveChanges = (ledger.changes || [])
                 .filter((c) => c.sourceKind !== 'buff' && c.sourceKind !== 'condition'
-                    && c.sourceKind !== 'combat');
+                    && c.sourceKind !== 'combat' && c.sourceKind !== 'marquee');
             const allGroups = groupChangesBySource(passiveChanges);
             passive = {
                 groups: allGroups.filter((g) => !isBuffSourceRemoved(data, g.source, g.sourceKind)),
