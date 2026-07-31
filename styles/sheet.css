@@ -4729,6 +4729,21 @@ body.modal-open { overflow: hidden; }
     font-variant-numeric: tabular-nums;
     min-width: 5rem;
 }
+/* Action-economy chips on the round strip (#19): swift/immediate slot + AoO counter */
+.round-strip {
+    flex-wrap: wrap;
+}
+.ae-chip {
+    font-variant-numeric: tabular-nums;
+}
+.ae-chip.ae-spent {
+    opacity: 0.55;
+    text-decoration: line-through;
+}
+.ae-aoo-undo {
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
+}
 
 /* Size row on the Combat tab */
 .combat-size-row {
