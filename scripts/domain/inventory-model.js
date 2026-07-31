@@ -123,6 +123,42 @@ window.SheetInventoryModel = (function () {
         ['consumables', 'Consumables'],
         ['containers', 'Containers'],
     ];
+    // ------------------------------------------- container nesting & coin weight (#10)
+    const WEIGHTLESS_CONTAINERS = /bag of holding|handy haversack|efficient quiver|portable hole/i;
+    /** "Contents don't count" — explicit flag wins; known magical containers default on. */
+    function containerWeightless(item) {
+        if (typeof item?.contentsWeightless === 'boolean') return item.contentsWeightless;
+        return WEIGHTLESS_CONTAINERS.test(String(item?.name || ''));
+    }
+    function containerOf(list, item) {
+        if (!item?.containerId) return null;
+        return (list || []).find((it) => it && typeof it === 'object'
+            && it.id === item.containerId) || null;
+    }
+    /** Contents inherit the container's carried state (drop the bag, drop the lot). */
+    function effectiveCarried(list, item, depth = 0) {
+        const c = depth < 6 ? containerOf(list, item) : null;
+        if (c) return effectiveCarried(list, c, depth + 1);
+        return item?.carried !== false;
+    }
+    /** Whether this item's weight counts (false inside a weightless container). */
+    function weightCounts(list, item, depth = 0) {
+        const c = depth < 6 ? containerOf(list, item) : null;
+        if (!c) return true;
+        if (containerWeightless(c)) return false;
+        return weightCounts(list, c, depth + 1);
+    }
+    /** PF1: 50 coins = 1 lb, all denominations. On by default; Settings toggle. */
+    function coinWeightEnabled() {
+        try { return localStorage.getItem('sheet.coinWeight') !== 'off'; } catch { return true; }
+    }
+    function coinWeightLbs(data) {
+        if (!coinWeightEnabled()) return 0;
+        const coins = ['platinum', 'gold', 'silver', 'copper']
+            .reduce((a, k) => a + (Number(data?.[k]) || 0), 0);
+        return coins / 50;
+    }
+
     /** Slot / type column label (Belt, Ring, Armor, …). */
     function invSlotLabel(item) {
         let s = String(item.slot || item.subType || '').replace(/[_-]+/g, ' ').trim();
@@ -138,6 +174,8 @@ window.SheetInventoryModel = (function () {
     return {
         inventoryCategory, invSlotLabel, addInventoryItem, migrateCoreGear, gearLine,
         normalizeCurrency,
+        containerWeightless, containerOf, effectiveCarried, weightCounts,
+        coinWeightEnabled, coinWeightLbs,
         INV_CATEGORY_ORDER, INV_CAT_ITEMTYPE,
     };
 })();

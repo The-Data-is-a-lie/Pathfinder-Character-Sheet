@@ -185,12 +185,19 @@ window.SheetDerive = (function () {
     }
     /** Total carried weight in lbs (same rule as the Inventory footer: carried × quantity). */
     function carriedWeightLbs(data) {
+        const IM = window.SheetInventoryModel;
+        const list = data?.equipment_list || [];
         let total = 0;
-        for (const it of data?.equipment_list || []) {
-            if (!it || typeof it !== 'object' || it.carried === false) continue;
+        for (const it of list) {
+            if (!it || typeof it !== 'object') continue;
+            // #10: contents inherit the container's carried state; a weightless
+            // container's contents weigh nothing.
+            if (IM?.effectiveCarried ? !IM.effectiveCarried(list, it) : it.carried === false) continue;
+            if (IM?.weightCounts && !IM.weightCounts(list, it)) continue;
             const w = Number(it.weight);
             if (Number.isFinite(w)) total += w * (Number(it.quantity) || 1);
         }
+        total += Number(IM?.coinWeightLbs?.(data)) || 0;
         return total;
     }
     /**

@@ -101,6 +101,25 @@ window.SheetTabSettings = (function () {
         densityRow.appendChild(densityLabel);
         body.appendChild(densityRow);
 
+        // #10: coin weight (PF1: 50 coins = 1 lb) — on by default, per-browser toggle.
+        const coinRow = h('div', 'settings-row');
+        const coinLabel = h('label', 'settings-check');
+        const coinBox = h('input');
+        coinBox.type = 'checkbox';
+        coinBox.checked = window.SheetInventoryModel.coinWeightEnabled();
+        coinBox.addEventListener('change', () => {
+            try {
+                if (coinBox.checked) localStorage.removeItem('sheet.coinWeight');
+                else localStorage.setItem('sheet.coinWeight', 'off');
+            } catch { /* private mode */ }
+            const cur = window.SheetApp.current;
+            if (cur) window.SheetApp.renderSheet(cur);
+        });
+        coinLabel.append(coinBox,
+            h('span', null, 'Coins weigh (50 coins = 1 lb) — counts toward encumbrance'));
+        coinRow.appendChild(coinLabel);
+        body.appendChild(coinRow);
+
         const guideRow = h('div', 'settings-row');
         for (const [label, run] of [['Start here', openStartHere], ['Full instructions', openInstructions]]) {
             const btn = h('button', null, label);
