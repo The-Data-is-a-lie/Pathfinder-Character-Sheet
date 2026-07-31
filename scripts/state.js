@@ -315,6 +315,11 @@ window.SheetState = (function () {
             notes: b.notes != null ? String(b.notes) : '',
             // Size-setting buffs (Enlarge Person → 'large'); '' = no size effect.
             setSize: typeof b.setSize === 'string' ? b.setSize : '',
+            // #16: 'always' = standing ledger changes; 'perRoll' = a Custom-group toggle
+            // in the conditional panel. itemKey optionally scopes a per-roll buff to one
+            // weapon (same scoping enhancement qualities use).
+            activation: b.activation === 'perRoll' ? 'perRoll' : 'always',
+            itemKey: typeof b.itemKey === 'string' ? b.itemKey : '',
         };
     }
     /**

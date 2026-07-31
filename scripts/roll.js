@@ -1297,6 +1297,7 @@ window.SheetRoll = (function () {
     // unlisted sourceKind falls into Other rather than disappearing.
     const COND_GROUPS = [
         ['combat', 'Combat options'],
+        ['custom', 'Custom'],
         ['enhancement', 'Weapon qualities'],
         ['classFeature', 'Class features'],
         ['feat', 'Feats'],

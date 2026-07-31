@@ -227,6 +227,12 @@ window.SheetTabBuffs = (function () {
                     const row = h('div', 'buffs-row' + (buff.active === false ? ' buff-off' : ''));
                     const nameCell = h('div', 'buffs-col-name');
                     nameCell.appendChild(h('span', 'buff-source-name', buff.name));
+                    if (buff.activation === 'perRoll') {
+                        const tag = h('span', 'feat-tag buff-kind-tag', 'per-roll');
+                        tag.title = 'Rolls only: toggle it in the conditional panel '
+                            + '(Custom group) before an attack';
+                        nameCell.appendChild(tag);
+                    }
                     const bits = (buff.changes || []).map((c) => formatChangeLine(c, SD)).join('; ');
                     if (bits) {
                         nameCell.appendChild(h('div', 'buff-source-effects', bits));
