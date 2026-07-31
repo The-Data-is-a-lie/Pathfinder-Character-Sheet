@@ -1076,15 +1076,24 @@ window.SheetRoll = (function () {
             u.max = n;
             u.value = n;
         }
+        // #25: readouts and spends follow a charge link when one is set.
+        const pool = window.SheetState.resolveChargePool?.(
+            data, { kind: 'feature', name: t.uses.name || t.name });
+        const via = pool?.linked ? ` (via ${pool.label})` : '';
         if (t.timed) {
-            toast(u.value > 0
-                ? `${t.name}: ${u.value}/${u.max} rounds — spends on Next round`
+            const v = pool?.linked ? pool.value : u.value;
+            const m = pool?.linked ? pool.max : u.max;
+            toast(v > 0
+                ? `${t.name}: ${v}/${m} rounds${via} — spends on Next round`
                 : `${t.name}: out of ${t.uses.name || t.name} rounds! (running on empty)`);
-        } else if (u.value <= 0) {
-            toast(`${t.name}: out of uses! (0/${u.max} — spending anyway)`);
         } else {
-            u.value -= 1;
-            toast(`${t.name}: ${u.value}/${u.max} uses left`);
+            const spent = window.SheetState.spendPooledUse?.(
+                data, { kind: 'feature', name: t.uses.name || t.name }, 1);
+            if (spent && !spent.ok) {
+                toast(`${t.name}: out of uses! (0/${spent.max}${via} — spending anyway)`);
+            } else if (spent) {
+                toast(`${t.name}: ${spent.left}/${spent.max} uses left${via}`);
+            }
         }
         window.SheetState.quietSave?.();
     }

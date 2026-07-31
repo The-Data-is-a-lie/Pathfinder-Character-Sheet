@@ -1034,8 +1034,19 @@ window.SheetModals = (function () {
                 const si = item.spellItem && typeof item.spellItem === 'object'
                     ? item.spellItem : null;
                 const hasCharges = item.charges.value != null || item.charges.max != null;
+                // #25: a charge link redirects the spend to the pool owner.
+                const linkPool = item.chargeSource
+                    ? window.SheetState?.resolveChargePool?.(data, { kind: 'item', id: item.id })
+                    : null;
                 let leftTxt;
-                if (hasCharges) {
+                if (linkPool?.linked) {
+                    if (linkPool.value <= 0) {
+                        alert(`No charges left in ${linkPool.label}.`);
+                        return;
+                    }
+                    linkPool.value -= 1;
+                    leftTxt = `${linkPool.value} left in ${linkPool.label}`;
+                } else if (hasCharges) {
                     const left = Number(item.charges.value);
                     if (!Number.isFinite(left) || left <= 0) {
                         alert('No charges left — set Charges first.');
@@ -1085,6 +1096,39 @@ window.SheetModals = (function () {
             chPair.append(chIn, h('span', 'item-sheet-hp-sep', '/'), chMaxIn, useBtn);
             chRow.appendChild(chPair);
             side.appendChild(chRow);
+
+            // #25: charge-linking — this item can draw its spends from another pool
+            // (a wand, a per-day item, a feature's uses). Use then debits that owner.
+            const pools = window.SheetState?.chargePoolOptions?.(
+                data, { kind: 'item', id: item.id }) || [];
+            if (pools.length || item.chargeSource) {
+                const linkRow = h('div', 'item-sheet-stat');
+                linkRow.appendChild(h('span', 'item-sheet-stat-label', 'Draws from'));
+                const sel = h('select', 'item-sheet-num item-sheet-container');
+                sel.title = 'Use spends from this pool instead of the item’s own charges';
+                const refKey = (r) => r ? `${r.kind}:${r.id || r.name}` : '';
+                const none = document.createElement('option');
+                none.value = '';
+                none.textContent = '— own charges —';
+                sel.appendChild(none);
+                for (const p of pools) {
+                    const opt = document.createElement('option');
+                    opt.value = refKey(p.ref);
+                    opt.textContent = p.label;
+                    sel.appendChild(opt);
+                }
+                sel.value = refKey(item.chargeSource);
+                if (sel.value !== refKey(item.chargeSource)) sel.value = ''; // stale link
+                sel.addEventListener('change', () => {
+                    const [kind, ...rest] = sel.value.split(':');
+                    const tail = rest.join(':');
+                    item.chargeSource = !sel.value ? null
+                        : (kind === 'item' ? { kind, id: tail } : { kind, name: tail });
+                    quietSave();
+                });
+                linkRow.appendChild(sel);
+                side.appendChild(linkRow);
+            }
         }
 
         const checks = h('div', 'item-sheet-checks');

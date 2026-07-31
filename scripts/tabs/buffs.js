@@ -20,8 +20,18 @@ window.SheetTabBuffs = (function () {
     const featureUsesEntry = (data, name) => window.SheetState.featureUses(data, name);
     function renderUsesControls(data, name) {
         const u = featureUsesEntry(data, name);
+        const SS = window.SheetState;
+        const ref = { kind: 'feature', name };
         const wrap = h('span', 'uses-controls no-print');
-        const label = h('span', 'uses-label', `${u.value || 0}/${u.max || 0}`);
+        // #25: a charge link redirects the readout and the spend to the pool owner.
+        const pool = () => SS.resolveChargePool?.(data, ref);
+        const labelText = () => {
+            const p = pool();
+            return p?.linked
+                ? `${p.value}/${p.max} · via ${p.label}`
+                : `${u.value || 0}/${u.max || 0}`;
+        };
+        const label = h('span', 'uses-label', labelText());
         const bag = { max: u.max || 0 };
         const maxEdit = dblclickEditable(bag, 'max', {
             type: 'number', min: 0, max: 99,
@@ -33,7 +43,7 @@ window.SheetTabBuffs = (function () {
                 if (u.value > n) u.value = n;
                 if (n > 0 && !u.value) u.value = n;
                 quietSave();
-                label.textContent = `${u.value || 0}/${u.max || 0}`;
+                label.textContent = labelText();
             },
         });
         const dec = h('button', 'inv-btn uses-dec', '−');
@@ -42,12 +52,63 @@ window.SheetTabBuffs = (function () {
         dec.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            if ((u.value || 0) <= 0) return;
-            u.value -= 1;
+            const p = pool();
+            if (p?.linked) {
+                if (p.value <= 0) return;
+                p.value -= 1;
+            } else {
+                if ((u.value || 0) <= 0) return;
+                u.value -= 1;
+            }
             quietSave();
-            label.textContent = `${u.value || 0}/${u.max || 0}`;
+            label.textContent = labelText();
         });
-        wrap.append(label, dec, maxEdit);
+        // #25: authoring — pick which pool this feature draws from.
+        const linkBtn = h('button', 'inv-btn uses-link', '🔗');
+        linkBtn.type = 'button';
+        linkBtn.title = u.chargeSource
+            ? 'Charge-linked — click to change or unlink'
+            : 'Draw uses from another pool (wand charges, a shared per-day pool…)';
+        linkBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const body = h('div', 'mm-picker');
+            body.appendChild(h('p', 'dim',
+                `Spending a use of ${name} debits the chosen pool instead of its own counter.`));
+            const sel = h('select', 'edit-field');
+            const refKey = (r) => r ? `${r.kind}:${r.id || r.name}` : '';
+            const none = document.createElement('option');
+            none.value = '';
+            none.textContent = '— own uses —';
+            sel.appendChild(none);
+            for (const p of SS.chargePoolOptions?.(data, ref) || []) {
+                const opt = document.createElement('option');
+                opt.value = refKey(p.ref);
+                opt.textContent = p.label;
+                sel.appendChild(opt);
+            }
+            sel.value = refKey(u.chargeSource);
+            if (sel.value !== refKey(u.chargeSource)) sel.value = '';
+            const saveBtn = h('button', 'inv-btn inv-btn-primary', 'Save');
+            saveBtn.type = 'button';
+            let handle = null;
+            saveBtn.addEventListener('click', () => {
+                const [kind, ...rest] = sel.value.split(':');
+                const tail = rest.join(':');
+                u.chargeSource = !sel.value ? null
+                    : (kind === 'item' ? { kind, id: tail } : { kind, name: tail });
+                quietSave();
+                handle?.close();
+                label.textContent = labelText();
+                linkBtn.classList.toggle('is-linked', !!u.chargeSource);
+            });
+            body.appendChild(sel);
+            handle = window.SheetOverlay.open({
+                title: `${name} — draws uses from`, body, footer: [saveBtn],
+            });
+        });
+        if (u.chargeSource) linkBtn.classList.add('is-linked');
+        wrap.append(label, dec, maxEdit, linkBtn);
         return wrap;
     }
     /** Round tracker: the shared round strip (Round N · Next round · Reset · swift/AoO
