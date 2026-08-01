@@ -244,7 +244,7 @@ window.SheetTabSpells = (function () {
                 casterLevel: bk.cl,
                 saveDC: bookDC(bk, dcLevel),
                 concentration: bk.conc,
-                bab: Number(data.bab_total) || 0,
+                bab: window.SheetDerive?.babTotal?.(data) ?? (Number(data.bab_total) || 0),
                 metamagic: mm && mm.names.length ? mm : null,
             });
         } else {

@@ -914,7 +914,7 @@ window.SheetModals = (function () {
                         level: 1, data, spellData: sd,
                         castingAbility: 'int', castingMod: 0,
                         casterLevel: 1, saveDC: 11, concentration: 1,
-                        bab: Number(data.bab_total) || 0,
+                        bab: window.SheetDerive?.babTotal?.(data) ?? (Number(data.bab_total) || 0),
                     });
                 } else {
                     window.SheetRoll?.rollAndLog?.('d1',

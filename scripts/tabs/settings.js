@@ -14,6 +14,77 @@ window.SheetTabSettings = (function () {
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const backendUrl = () => window.SheetApp.backendUrl();
 
+    // #21: per-CHARACTER opt-in variant rules — stored on _sheet.variantRules so the house
+    // rules travel with the character's one-JSON export, unlike the per-browser rows above.
+    const VARIANT_RULES = [
+        ['fractionalBases', 'Fractional base bonuses',
+            'Multiclass BAB and saves accumulate fractionally from the class chassis instead of stacking floored integers.'],
+        ['backgroundSkills', 'Background skills',
+            'Adds a separate 2 ranks/level budget for background skills (Craft, Profession, Lore, …) plus the Artistry and Lore skills.'],
+        ['woundsVigor', 'Wounds & vigor',
+            'Replaces HP with vigor (hit dice) and wounds (2 × Con score); damage drains vigor first.'],
+        ['abp', 'Automatic bonus progression',
+            'Grants the Unchained attunement bonuses by level as always-on modifiers; per ABP, remove enhancement bonuses from gear.'],
+    ];
+    const ABP_PICKS = [
+        ['mental1', 'Mental prowess', ['int', 'wis', 'cha'], 6],
+        ['physical1', 'Physical prowess', ['str', 'dex', 'con'], 7],
+        ['mental2', '2nd mental', ['int', 'wis', 'cha'], 13],
+        ['physical2', '2nd physical', ['str', 'dex', 'con'], 13],
+        ['mental3', '3rd mental', ['int', 'wis', 'cha'], 17],
+        ['physical3', '3rd physical', ['str', 'dex', 'con'], 17],
+    ];
+
+    function renderVariantRules(body) {
+        const data = window.SheetApp.current;
+        if (!data) return;
+        const vr = window.SheetState.ensureVariantRules(data);
+        body.appendChild(h('h3', null, 'Variant rules'));
+        body.appendChild(h('p', 'dim',
+            'Optional PF1 subsystems, stored with this character (they travel in the JSON '
+            + 'export). All off by default — toggling one recomputes the sheet, never blocks it.'));
+        for (const [key, label, hint] of VARIANT_RULES) {
+            const row = h('div', 'settings-row');
+            const lab = h('label', 'settings-check');
+            const boxEl = h('input');
+            boxEl.type = 'checkbox';
+            boxEl.checked = Boolean(vr[key]);
+            boxEl.addEventListener('change', () => {
+                vr[key] = boxEl.checked;
+                window.SheetApp.quietSave();
+                renderSheet(data);
+            });
+            lab.append(boxEl, h('span', null, label + ' — ' + hint));
+            row.appendChild(lab);
+            body.appendChild(row);
+        }
+        if (vr.abp) {
+            const lvl = Number(data.level) || 0;
+            const picks = h('div', 'settings-row variant-abp-picks');
+            picks.appendChild(h('span', 'settings-row-label', 'ABP ability picks'));
+            for (const [key, label, opts, minLvl] of ABP_PICKS) {
+                if (lvl < minLvl) continue;
+                const wrap = h('label', 'variant-abp-pick');
+                wrap.appendChild(h('span', 'dim', label + ' '));
+                const sel = h('select');
+                for (const ab of opts) {
+                    const opt = h('option', null, ab.toUpperCase());
+                    opt.value = ab;
+                    if ((vr.abpChoices[key] || opts[0]) === ab) opt.selected = true;
+                    sel.appendChild(opt);
+                }
+                sel.addEventListener('change', () => {
+                    vr.abpChoices[key] = sel.value;
+                    window.SheetApp.quietSave();
+                    renderSheet(data);
+                });
+                wrap.appendChild(sel);
+                picks.appendChild(wrap);
+            }
+            body.appendChild(picks);
+        }
+    }
+
     function tabSettings() {
         const { sec, body } = section('Settings');
 
@@ -128,6 +199,8 @@ window.SheetTabSettings = (function () {
             guideRow.appendChild(btn);
         }
         body.appendChild(guideRow);
+
+        renderVariantRules(body);
 
         body.appendChild(h('h3', null, 'Generation Backend'));
         const urlRow = h('div', 'settings-row');

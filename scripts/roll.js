@@ -612,7 +612,7 @@ window.SheetRoll = (function () {
      */
     function attackContext(data, itemKey) {
         if (!data || data.error) return null;
-        const bab = Number(data.bab_total) || 0;
+        const bab = window.SheetDerive?.babTotal?.(data) ?? (Number(data.bab_total) || 0);
         const strM = abilityMod(data, 'str');
         const dexM = abilityMod(data, 'dex');
         const key = itemKey !== undefined ? itemKey : activeWeaponItemKey(data);
@@ -1559,12 +1559,56 @@ window.SheetRoll = (function () {
         return block;
     }
 
+    /** #21 wounds & vigor pools: vigor = HP total minus its Con term, wounds = 2 × Con
+     *  score (threshold = Con score). Mirrors the Summary boxes' math. */
+    function wvPools() {
+        const level = Number(currentData.level) || 0;
+        const conM = Number(window.SheetDerive?.abModOf?.(currentData, 'con')) || 0;
+        const conScore = window.SheetDerive?.abilityInfo?.(currentData, 'con')?.total ?? 10;
+        return {
+            vigorMax: Math.max(0, (Number(currentData.Total_HP) || 0) - conM * level),
+            woundsMax: 2 * conScore,
+            threshold: conScore,
+        };
+    }
+    /** Wounds & vigor damage routing: temp absorbs first (lethal), then vigor; the
+     *  lethal remainder hits wounds (floor 0). Nonlethal drains vigor only. */
+    function applyDamageWoundsVigor(st, n, nonlethal) {
+        const { vigorMax, woundsMax, threshold } = wvPools();
+        let vigor = st.vigorCurrent == null || st.vigorCurrent === ''
+            ? vigorMax : Number(st.vigorCurrent) || 0;
+        let wounds = st.woundsCurrent == null || st.woundsCurrent === ''
+            ? woundsMax : Number(st.woundsCurrent) || 0;
+        let rest = n;
+        const temp = Number(st.hpTemp) || 0;
+        if (!nonlethal && temp > 0) {
+            const used = Math.min(temp, rest);
+            st.hpTemp = temp - used;
+            rest -= used;
+        }
+        const fromVigor = Math.min(Math.max(0, vigor), rest);
+        vigor -= fromVigor;
+        rest -= fromVigor;
+        if (!nonlethal && rest > 0) wounds = Math.max(0, wounds - rest);
+        st.vigorCurrent = vigor;
+        st.woundsCurrent = wounds;
+        window.SheetOverlay?.toast?.(
+            `${n}${nonlethal ? ' nonlethal' : ''} damage — Vigor ${vigor}/${vigorMax}, `
+            + `Wounds ${wounds}/${woundsMax}`
+            + (wounds <= 0 ? ' · dying!' : (wounds <= threshold ? ' · wounded!' : '')));
+        window.SheetApp?.quietSave?.();
+        window.SheetApp?.renderSheet?.(currentData);
+    }
+
     /** Apply rolled damage to the loaded character's HP. Temp HP absorbs first (lethal);
      *  nonlethal accumulates in its own pool. hpCurrent seeds from max on first touch. */
     function applyDamageToHp(amount, { nonlethal = false } = {}) {
         const n = Math.max(0, Math.floor(Number(amount) || 0));
         if (!currentData || !n) return;
         const st = (currentData._sheet ??= {});
+        if (window.SheetState?.variantRuleOn?.(currentData, 'woundsVigor')) {
+            return applyDamageWoundsVigor(st, n, nonlethal);
+        }
         const max = Number(currentData.Total_HP) || 0;
         if (nonlethal) {
             st.hpNonlethal = (Number(st.hpNonlethal) || 0) + n;
@@ -1595,6 +1639,24 @@ window.SheetRoll = (function () {
         const n = Math.max(0, Math.floor(Number(amount) || 0));
         if (!currentData || !n) return null;
         const st = (currentData._sheet ??= {});
+        if (window.SheetState?.variantRuleOn?.(currentData, 'woundsVigor')) {
+            // Wounds first, then vigor (simplified from the variant's per-source rules).
+            const { vigorMax, woundsMax } = wvPools();
+            const wounds = st.woundsCurrent == null || st.woundsCurrent === ''
+                ? woundsMax : Number(st.woundsCurrent) || 0;
+            const vigor = st.vigorCurrent == null || st.vigorCurrent === ''
+                ? vigorMax : Number(st.vigorCurrent) || 0;
+            const toWounds = Math.max(0, Math.min(n, woundsMax - wounds));
+            const toVigor = Math.max(0, Math.min(n - toWounds, vigorMax - vigor));
+            st.woundsCurrent = wounds + toWounds;
+            st.vigorCurrent = vigor + toVigor;
+            window.SheetOverlay?.toast?.(
+                `Healed ${toWounds + toVigor} — Vigor ${st.vigorCurrent}/${vigorMax}, `
+                + `Wounds ${st.woundsCurrent}/${woundsMax}`);
+            window.SheetApp?.quietSave?.();
+            window.SheetApp?.renderSheet?.(currentData);
+            return { healed: toWounds + toVigor, nlHealed: 0, over: n - toWounds - toVigor };
+        }
         const max = Number(currentData.Total_HP) || 0;
         const cur = st.hpCurrent == null || st.hpCurrent === ''
             ? max : Number(st.hpCurrent) || 0;

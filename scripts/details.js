@@ -793,6 +793,34 @@ window.SheetDetails = (function () {
             }
         }
 
+        // #21 Automatic Bonus Progression: the Unchained attunement bonuses enter the
+        // always-on ledger keyed off character level, so the AC grid / save buckets /
+        // attack math pick them up like any other source. It renders as a Permanent
+        // Buffs row ('abp' sourceKind), so it can be inspected there; prowess abilities
+        // come from the Settings picks (defaults match the Settings UI: INT / STR).
+        const vr = data._sheet?.variantRules;
+        if (vr?.abp && window.SheetData?.abpBonuses) {
+            const b = window.SheetData.abpBonuses(data.level);
+            const ch = [];
+            const add = (value, target, type) =>
+                ch.push({ formula: '+' + value, target, type });
+            if (b.resistance) add(b.resistance, 'allSavingThrows', 'resist');
+            if (b.armor) add(b.armor, 'aac', 'enh');
+            if (b.weapon) { add(b.weapon, 'attack', 'enh'); add(b.weapon, 'damage', 'enh'); }
+            if (b.deflection) add(b.deflection, 'ac', 'deflect');
+            if (b.toughening) add(b.toughening, 'nac', 'enh');
+            const picks = vr.abpChoices || {};
+            b.mental.forEach((v, i) => {
+                if (v) add(v, picks['mental' + (i + 1)] || 'int', 'enh');
+            });
+            b.physical.forEach((v, i) => {
+                if (v) add(v, picks['physical' + (i + 1)] || 'str', 'enh');
+            });
+            if (ch.length) {
+                pushEntry(ledger, 'Automatic Bonus Progression', 'abp', { changes: ch });
+            }
+        }
+
         // Checked combat toggles (conditional panel "Combat options" group) dual-write their
         // standing side — AC, saves — so every derived total updates while they're on. The
         // per-roll attack/damage side stays in collectRollConditionals; the panel owns the
@@ -1008,7 +1036,8 @@ window.SheetDetails = (function () {
         s = s.replace(/@attributes\.hd\.total/gi, String(hd));
         s = s.replace(/@attributes\.hd\.max/gi, String(hd));
         // BAB (same source as SheetFormula's resolver) — the combat toggles scale with it
-        s = s.replace(/@attributes\.bab\.total/gi, String(Number(data?.bab_total) || 0));
+        s = s.replace(/@attributes\.bab\.total/gi,
+            String(window.SheetDerive?.babTotal?.(data) ?? (Number(data?.bab_total) || 0)));
         // Class levels, STRICTLY (mirrors SheetFormula.classLevel): a class the character
         // does not have resolves to 0, never the whole level — the marquee features scale
         // with these. Lenient classLevelFor only for legacy payloads with no classes[].

@@ -252,13 +252,46 @@ window.SheetTabSummary = (function () {
 
         // --- HP / Speed line
         const hpLine = line('Hit Points / Speed');
+        const conScore = window.SheetDerive.abilityInfo(data, 'con').total ?? 10;
+        if (window.SheetState.variantRuleOn?.(data, 'woundsVigor')) {
+            // #21 wounds & vigor: vigor = the HP block minus its Con term (hit dice +
+            // feats), wounds = 2 × Con score, wound threshold = Con score. Damage
+            // routing (temp → vigor → wounds) lives in roll.js applyDamageToHp.
+            const vigorMax = Math.max(0,
+                d.blocks.hp.total - (d.conM || 0) * (Number(data.level) || 0));
+            const woundsMax = 2 * conScore;
+            if (st.vigorCurrent == null || st.vigorCurrent === '') st.vigorCurrent = vigorMax;
+            if (st.woundsCurrent == null || st.woundsCurrent === '') st.woundsCurrent = woundsMax;
+            const vigVal = h('span', 'summary-hp-pair');
+            vigVal.appendChild(editNumNode(st, 'vigorCurrent'));
+            vigVal.appendChild(document.createTextNode(' / ' + vigorMax));
+            const wndVal = h('span', 'summary-hp-pair');
+            wndVal.appendChild(editNumNode(st, 'woundsCurrent'));
+            wndVal.appendChild(document.createTextNode(' / ' + woundsMax));
+            const wounds = Number(st.woundsCurrent) || 0;
+            let wvState = null;
+            if (wounds <= 0) wvState = ['Dying (0 wounds)', 'hp-state-dead'];
+            else if (wounds <= conScore) {
+                wvState = [`Wounded (threshold ${conScore})`, 'hp-state-stagger'];
+            }
+            if (wvState) wndVal.appendChild(h('span', 'hp-state ' + wvState[1], wvState[0]));
+            box(hpLine, 'Vigor', vigVal, {
+                title: 'Hit dice + feats (HP without the Con term) — drains before wounds.',
+                cls: vigorMax > 0 && Number(st.vigorCurrent) <= vigorMax / 2
+                    ? 'is-bloodied' : undefined,
+            });
+            box(hpLine, 'Temp', editNumNode(st, 'hpTemp'));
+            box(hpLine, 'Wounds', wndVal, {
+                title: `2 × Con score. At or below the wound threshold (${conScore}) `
+                    + `you're wounded (staggered); at 0 you're dying.`,
+            });
+        } else {
         const hpVal = h('span', 'summary-hp-pair');
         hpVal.appendChild(editNumNode(st, 'hpCurrent', { min: -999 }));
         hpVal.appendChild(document.createTextNode(' / ' + d.blocks.hp.total));
         const cur = Number(st.hpCurrent) || 0;
         // PF1 negative-HP states: disabled at 0, dying below, dead at −Con score.
         // Nonlethal ≥ current HP = staggered; above it = unconscious.
-        const conScore = window.SheetDerive.abilityInfo(data, 'con').total ?? 10;
         const nl = Number(st.hpNonlethal) || 0;
         let hpState = null;
         if (cur <= -conScore) hpState = ['Dead (−Con)', 'hp-state-dead'];
@@ -273,6 +306,7 @@ window.SheetTabSummary = (function () {
         });
         box(hpLine, 'Temp', editNumNode(st, 'hpTemp'));
         box(hpLine, 'Nonlethal', editNumNode(st, 'hpNonlethal'));
+        }
         for (const [key, label] of [
             ['land', 'Land'], ['climb', 'Climb'], ['swim', 'Swim'], ['fly', 'Fly'], ['burrow', 'Burrow'],
         ]) {

@@ -414,6 +414,8 @@ window.SheetData = (function () {
     const ALL_SKILLS = [
         { name: 'Acrobatics', ab: 'dex', id: 'acr', acp: true },
         { name: 'Appraise', ab: 'int', id: 'apr' },
+        // Unchained background-skills variant only (#21) — rows render when the toggle is on.
+        { name: 'Artistry', ab: 'int', id: 'art', variant: 'backgroundSkills' },
         { name: 'Bluff', ab: 'cha', id: 'blf' },
         { name: 'Climb', ab: 'str', id: 'clm', acp: true },
         { name: 'Craft', ab: 'int', id: 'crf' },
@@ -436,6 +438,7 @@ window.SheetData = (function () {
         { name: 'Knowledge (Planes)', ab: 'int', id: 'kpl' },
         { name: 'Knowledge (Religion)', ab: 'int', id: 'kre' },
         { name: 'Linguistics', ab: 'int', id: 'lin' },
+        { name: 'Lore', ab: 'int', id: 'lor', variant: 'backgroundSkills' },
         { name: 'Perception', ab: 'wis', id: 'per' },
         { name: 'Perform', ab: 'cha', id: 'prf' },
         { name: 'Profession', ab: 'wis', id: 'pro' },
@@ -449,10 +452,40 @@ window.SheetData = (function () {
         { name: 'Use Magic Device', ab: 'cha', id: 'umd' },
     ];
 
+    // #21 Automatic Bonus Progression (Unchained) — bonuses by character level on the
+    // single-item track (no attunement splitting; where the table offers "+X/+Y or +Z"
+    // the consolidated option is used). Levels 19–20 grant legendary gifts — manual.
+    function abpBonuses(level) {
+        const lvl = Number(level) || 0;
+        const pick = (tbl) => {
+            let v = 0;
+            for (const [at, val] of tbl) if (lvl >= at) v = val;
+            return v;
+        };
+        const attune = pick([[4, 1], [9, 2], [14, 3], [15, 4], [17, 5]]);
+        return {
+            resistance: pick([[3, 1], [8, 2], [10, 3], [13, 4], [14, 5]]),
+            armor: attune,
+            weapon: attune,
+            deflection: pick([[5, 1], [10, 2], [16, 3], [17, 4], [18, 5]]),
+            toughening: pick([[8, 1], [13, 2], [16, 3], [17, 4], [18, 5]]),
+            mental: [pick([[6, 2], [11, 4], [15, 6]]), pick([[13, 2], [18, 4]]), pick([[17, 2]])],
+            physical: [pick([[7, 2], [12, 4], [16, 6]]), pick([[13, 2], [18, 4]]), pick([[17, 2]])],
+            legendary: lvl >= 19,
+        };
+    }
+
+    // Unchained background-skills variant (#21): the skills the 2 ranks/level background
+    // budget may buy (subskill instances of these — "Craft (Weapons)" — count too).
+    const BACKGROUND_SKILL_IDS = [
+        'apr', 'art', 'crf', 'han', 'ken', 'kge', 'khi', 'kno', 'lin', 'lor', 'prf', 'pro', 'slt',
+    ];
+
     return {
         REGIONS, RACES, CLASSES, CORE_RACES, CORE_CLASSES, DEITIES,
         PF1_CONDITIONS, CONDITION_CHANGES, COMBAT_TOGGLES, TWO_HANDED_WEAPONS,
         MARQUEE_FEATURES, SIZES, SMALL_RACES, stepDice,
-        CLASS_STATS, DEFAULT_CLASS_INFO, ALL_SKILLS, FEAT_GROUPS,
+        CLASS_STATS, DEFAULT_CLASS_INFO, ALL_SKILLS, BACKGROUND_SKILL_IDS, FEAT_GROUPS,
+        abpBonuses,
     };
 })();

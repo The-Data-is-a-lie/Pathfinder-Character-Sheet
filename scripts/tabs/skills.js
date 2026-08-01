@@ -76,7 +76,10 @@ window.SheetTabSkills = (function () {
         // Multi-instance skills (Foundry subskills): user-added Craft/Perform/Profession
         // variants, stored as labels in _sheet.subSkills[skillId]. Each instance keeps its
         // own ranks (skill_ranks under "craft (weapons)") and bonus row ("crf:weapons").
-        const SUBSKILL_PARENTS = { crf: 'Craft', prf: 'Perform', pro: 'Profession' };
+        const SUBSKILL_PARENTS = {
+            crf: 'Craft', prf: 'Perform', pro: 'Profession',
+            art: 'Artistry', lor: 'Lore', // background-skills variant rows
+        };
         const subSkillsOf = (id) => {
             const st = (data._sheet ??= {});
             st.subSkills ??= {};
@@ -151,6 +154,9 @@ window.SheetTabSkills = (function () {
 
         const craftLabel = data.craft_type ? `Craft (${data.craft_type})` : 'Craft';
         for (const skill of ALL_SKILLS) {
+            // Variant-gated rows (Artistry / Lore) render only while their rule is on;
+            // ranks typed into them survive a toggle-off in skill_ranks, just unlisted.
+            if (skill.variant && !window.SheetState.variantRuleOn?.(data, skill.variant)) continue;
             const displayName = skill.name === 'Craft' ? craftLabel
                 : skill.name === 'Profession' && nonEmpty(data.profession_ranks)
                     ? null // handled in profession block with detail
@@ -310,16 +316,41 @@ window.SheetTabSkills = (function () {
             b.appendChild(h('span', 'feat-count-value', String(value)));
             return b;
         };
+        // Background-skills variant (#21): ranks in background skills draw on their own
+        // 2/level pool first; only the overflow counts against the adventuring budget.
+        let bg = null;
+        if (window.SheetState.variantRuleOn?.(data, 'backgroundSkills')) {
+            const ids = new Set(window.SheetData.BACKGROUND_SKILL_IDS || []);
+            const bgNames = new Set((window.SheetData.ALL_SKILLS || [])
+                .filter((s) => ids.has(s.id)).map((s) => s.name.toLowerCase()));
+            let bgSpent = 0;
+            for (const [k, v] of Object.entries(rankMap)) {
+                const n = Number(v) || 0;
+                if (!n) continue;
+                const kl = String(k).toLowerCase().trim();
+                const base = kl.replace(/\s*\(.*$/, '').trim();
+                if (bgNames.has(kl) || bgNames.has(base)) bgSpent += n;
+            }
+            const bgBudget = 2 * (Number(budget.levelSum) || 0);
+            bg = { spent: bgSpent, budget: bgBudget, used: Math.min(bgSpent, bgBudget) };
+        }
+        const advSpent = spent - (bg ? bg.used : 0);
         const wrap = h('div', 'feat-counts skill-rank-footer');
         const joined = h('div', 'feat-count-joined');
         const budgetBox = box('Budget', budget.total);
         budgetBox.title = budget.parts.length
             ? budget.parts.join('\n') + '\nFCB skill levels are set on each class popup.'
             : 'No class levels found';
-        joined.append(box('Ranks spent', spent), budgetBox);
+        joined.append(box(bg ? 'Adventuring' : 'Ranks spent', advSpent), budgetBox);
+        if (bg) {
+            const bgBox = box('Background', `${bg.spent}/${bg.budget}`);
+            bgBox.title = '2 background ranks per class level (Unchained). Background-skill '
+                + 'ranks past this pool count against the adventuring budget.';
+            joined.append(bgBox);
+        }
         wrap.appendChild(joined);
-        if (budget.total > 0 && spent !== budget.total) {
-            const diff = budget.total - spent;
+        if (budget.total > 0 && advSpent !== budget.total) {
+            const diff = budget.total - advSpent;
             const badge = box(diff > 0 ? 'Unspent' : 'Over budget', Math.abs(diff),
                 diff > 0 ? 'is-missing' : 'is-excess');
             badge.title = diff > 0

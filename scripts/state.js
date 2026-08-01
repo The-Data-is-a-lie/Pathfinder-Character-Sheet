@@ -609,6 +609,22 @@ window.SheetState = (function () {
         return st.defenses;
     }
 
+    /** #21 variant rules — per-character opt-in toggles. House rules are campaign
+     *  properties, so they live on _sheet (travel in the one-JSON export), not in
+     *  localStorage. All default OFF: an existing character must not shift by a point. */
+    function ensureVariantRules(data) {
+        const st = sheetState(data);
+        st.variantRules ??= {};
+        const vr = st.variantRules;
+        vr.woundsVigor ??= false;
+        vr.backgroundSkills ??= false;
+        vr.fractionalBases ??= false;
+        vr.abp ??= false;
+        vr.abpChoices ??= {};
+        return vr;
+    }
+    const variantRuleOn = (data, key) => Boolean(data?._sheet?.variantRules?.[key]);
+
     return {
         sheetState, quietSave, refreshDerived, seedBackendStatBonuses, seedRacialColumn,
         disabledBuffSet, buffSourceKey, removedBuffSet, isBuffSourceActive, isBuffSourceRemoved,
@@ -619,6 +635,7 @@ window.SheetState = (function () {
         createBuff, addBuffFromCatalog, ensureSpellCasts, spendSpellSlot,
         ensureCastingAbility, ensureInitiationStat, ensureInventoryObjects, ensureDefenses,
         ensureClassList, syncLegacyClasses, ensureArchetypeList, ensureSkillRanksObject,
+        ensureVariantRules, variantRuleOn,
         BUFF_SUBTYPES, BUFF_DURATION_UNITS,
     };
 })();

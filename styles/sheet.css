@@ -1103,6 +1103,8 @@ select,
     cursor: pointer;
     appearance: auto;
 }
+.variant-abp-picks { display: flex; flex-wrap: wrap; gap: 0.4rem 0.9rem; align-items: center; }
+.variant-abp-pick { display: inline-flex; align-items: center; gap: 0.25rem; }
 select option,
 select optgroup {
     background-color: var(--select-bg);
