@@ -17,7 +17,7 @@ window.SheetTabInventory = (function () {
     const { quietSave, ensureInventoryObjects } = window.SheetState;
     const {
         openItemSheet, addBlankInventoryItem, formatChangeLine, sectionCatalogToolbar,
-        openCatalogPicker,
+        openCatalogPicker, openSpellConsumableBuilder,
     } = window.SheetModals;
     const {
         inventoryCategory, invSlotLabel, addInventoryItem, migrateCoreGear, gearLine,
@@ -317,6 +317,14 @@ window.SheetTabInventory = (function () {
                     invRerender(data);
                     openItemSheet(data, it);
                 },
+                // #26: consumables can be authored straight from a catalog spell.
+                onFromSpell: cat === 'consumables' ? () => openCatalogPicker({
+                    title: 'Consumable from spell',
+                    kinds: ['spells'],
+                    allowCustom: false,
+                    onPick: (hit) => openSpellConsumableBuilder(data, hit.name,
+                        () => invRerender(data)),
+                }) : null,
             }));
             addWrap.appendChild(addBtn);
             head.appendChild(addWrap);
