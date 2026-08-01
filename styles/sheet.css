@@ -4760,6 +4760,15 @@ body.tools-resizing .tools-drawer { transition: none; }
 .levelup-hp-val { font-weight: 600; }
 .levelup-summary { margin: 0.2rem 0 0 1.1rem; font-size: 0.85rem; }
 .levelup-summary li { margin: 0.1rem 0; }
+/* #24: class-feature suggestions gained at the new level */
+.levelup-features-list { display: inline-flex; flex-wrap: wrap; gap: 0.15rem 0.7rem; }
+.levelup-feature-pick {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
 /* #13: in-wizard rank spending, spells-known picks, prereq badge */
 .levelup-ranks summary { cursor: pointer; font-weight: 600; }
 .levelup-ranks summary.is-over { color: #b3261e; }
