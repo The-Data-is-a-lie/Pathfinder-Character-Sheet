@@ -726,6 +726,9 @@
             form.elements[name].addEventListener('change', () => syncQuickLevel(form));
         }
         document.getElementById('gen-surprise')?.addEventListener('click', () => surpriseMe(form));
+        // #44: the guided-create wizard (concept → abilities → generate → finish checklist).
+        document.getElementById('gen-guided')?.addEventListener('click',
+            () => window.SheetCreate?.open());
         document.querySelectorAll('.gen-preset').forEach((btn) => {
             btn.addEventListener('click', () => applyGenPreset(form, btn.dataset.preset));
         });

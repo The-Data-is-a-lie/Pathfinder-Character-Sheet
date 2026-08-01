@@ -3432,6 +3432,34 @@ button:disabled { opacity: 0.55; cursor: wait; }
 .uses-link.is-linked { border-color: var(--accent); color: var(--accent-dark); }
 .feature-search, .inv-filter { font-size: 0.85rem; }
 
+/* #44: guided PC creation wizard */
+.create-wizard { min-width: min(30rem, 84vw); }
+.create-steps { display: flex; gap: 0.4rem; margin-bottom: 0.7rem; flex-wrap: wrap; }
+.create-step-tag {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.55rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--ink-dim);
+}
+.create-step-tag.is-active { border-color: var(--accent); color: var(--accent-dark); font-weight: 600; }
+.create-step-tag.is-done { opacity: 0.65; }
+.create-row .edit-field { flex: 1; }
+.create-class-info { margin: 0.1rem 0 0.4rem; font-size: 0.8rem; }
+.create-methods { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.6rem; }
+.create-method.is-active { border-color: var(--accent); color: var(--accent-dark); font-weight: 600; }
+.create-abil-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.3rem 1rem; }
+.create-abil-row { display: flex; align-items: center; gap: 0.45rem; }
+.create-abil-name { min-width: 6.5rem; font-weight: 600; }
+.create-abil-mod { min-width: 2rem; text-align: right; font-variant-numeric: tabular-nums; color: var(--accent-dark); }
+.create-abil-hint { font-size: 0.72rem; flex: 1; }
+.create-pb-summary.is-over { color: var(--danger, #b3261e); }
+.create-review-line { display: flex; gap: 0.6rem; padding: 0.15rem 0; }
+.create-review-k { min-width: 7rem; font-weight: 600; }
+.create-finish-item { display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; padding: 0.3rem 0; }
+.create-status { margin-right: auto; }
+@media (max-width: 700px) { .create-abil-grid { grid-template-columns: 1fr; } }
+
 /* Spells cast */
 .spell-cast-btn { margin-right: 0.35rem; }
 .spell-prep-row {
