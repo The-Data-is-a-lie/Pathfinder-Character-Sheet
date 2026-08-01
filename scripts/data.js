@@ -276,6 +276,54 @@ window.SheetData = (function () {
         },
     ];
 
+    // ---------------------------------------------------- auto-buff spells (issue #45)
+    // Client fallback for the marquee self-buffs a payload rarely curates. Keyed by
+    // lowercased spell name; a buff-shaped `spell_changes_dict` entry always wins over
+    // this table. `changes` use the normal ledger target vocabulary; `setSize` rides the
+    // buff (Enlarge Person works exactly like the buff editor's size field). Spells whose
+    // whole effect is prose (Blur) ship changes: [] with the rule in `note` — the buff
+    // still tracks the duration. Scaling formulas use @cl, resolved at cast time.
+    const SPELL_BUFFS = {
+        'shield': { changes: [{ formula: '4', target: 'sac', type: 'untyped' }],
+            note: 'Blocks magic missile. No effect if you already carry a shield bonus.' },
+        'mage armor': { changes: [{ formula: '4', target: 'aac', type: 'untyped' }],
+            note: 'Force armor — incorporeal touch attacks do not ignore it.' },
+        "bull's strength": { changes: [{ formula: '4', target: 'str', type: 'enh' }] },
+        "cat's grace": { changes: [{ formula: '4', target: 'dex', type: 'enh' }] },
+        "bear's endurance": { changes: [{ formula: '4', target: 'con', type: 'enh' }] },
+        "fox's cunning": { changes: [{ formula: '4', target: 'int', type: 'enh' }] },
+        "owl's wisdom": { changes: [{ formula: '4', target: 'wis', type: 'enh' }] },
+        "eagle's splendor": { changes: [{ formula: '4', target: 'cha', type: 'enh' }] },
+        'enlarge person': { setSize: 'large',
+            changes: [{ formula: '2', target: 'str', type: 'size' },
+                { formula: '-2', target: 'dex', type: 'size' }],
+            note: 'Size attack/AC/CMB and damage-dice steps come from the size system.' },
+        'reduce person': { setSize: 'small',
+            changes: [{ formula: '-2', target: 'str', type: 'size' },
+                { formula: '2', target: 'dex', type: 'size' }],
+            note: 'Size attack/AC/CMB and damage-dice steps come from the size system.' },
+        'haste': { changes: [{ formula: '1', target: 'attack', type: 'untyped' },
+            { formula: '1', target: 'ac', type: 'dodge' },
+            { formula: '1', target: 'ref', type: 'dodge' }],
+            note: 'One extra attack on a full attack (add a routine line); +30 ft speed (max ×2).' },
+        'heroism': { changes: [{ formula: '2', target: 'attack', type: 'morale' },
+            { formula: '2', target: 'allSavingThrows', type: 'morale' },
+            { formula: '2', target: 'skills', type: 'morale' }] },
+        'bless': { changes: [{ formula: '1', target: 'attack', type: 'morale' }],
+            note: '+1 morale on saves vs fear as well.' },
+        'aid': { changes: [{ formula: '1', target: 'attack', type: 'morale' }],
+            note: '+1 morale on saves vs fear; 1d8+CL (max +10) temp HP — add to Temp by hand.' },
+        'divine favor': {
+            changes: [{ formula: 'min(3, max(1, floor(@cl / 3)))', target: 'attack', type: 'luck' },
+                { formula: 'min(3, max(1, floor(@cl / 3)))', target: 'damage', type: 'luck' }] },
+        'shield of faith': {
+            changes: [{ formula: 'min(5, 2 + floor(@cl / 6))', target: 'ac', type: 'deflect' }] },
+        'barkskin': {
+            changes: [{ formula: 'min(5, 2 + floor((@cl - 3) / 3))', target: 'nac', type: 'enh' }] },
+        'blur': { changes: [], note: 'Attacks against you have a 20% miss chance.' },
+        'displacement': { changes: [], note: 'Attacks against you have a 50% miss chance.' },
+    };
+
     // ------------------------------------------------------------ size categories
     // `mod` is the size modifier to attack & AC; the special size modifier (CMB/CMD) is its
     // negation. `steps` is the damage-dice progression distance from Medium.
@@ -557,7 +605,7 @@ window.SheetData = (function () {
     return {
         REGIONS, RACES, CLASSES, CORE_RACES, CORE_CLASSES, DEITIES,
         PF1_CONDITIONS, CONDITION_CHANGES, COMBAT_TOGGLES, TWO_HANDED_WEAPONS,
-        MARQUEE_FEATURES, SIZES, SMALL_RACES, stepDice,
+        MARQUEE_FEATURES, SPELL_BUFFS, SIZES, SMALL_RACES, stepDice,
         CLASS_STATS, DEFAULT_CLASS_INFO, ALL_SKILLS, BACKGROUND_SKILL_IDS, FEAT_GROUPS,
         abpBonuses,
         SPELL_SLOT_TABLES, spellSlotShapeOf, standardSpellSlots, abilityBonusSlots,

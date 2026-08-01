@@ -320,6 +320,9 @@ window.SheetState = (function () {
             // weapon (same scoping enhancement qualities use).
             activation: b.activation === 'perRoll' ? 'perRoll' : 'always',
             itemKey: typeof b.itemKey === 'string' ? b.itemKey : '',
+            // #45: set on buffs auto-created by a spell cast ('spell:<name lowercased>').
+            // Recasting matches on it and refreshes instead of stacking a duplicate.
+            autoKey: typeof b.autoKey === 'string' ? b.autoKey : '',
         };
     }
     /**
