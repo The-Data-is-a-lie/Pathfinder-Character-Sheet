@@ -2483,6 +2483,23 @@ button:disabled { opacity: 0.55; cursor: wait; }
 .spell-level-meta {
     font-size: 0.8rem;
 }
+/* #23: warn-only diff badge on Per Day cells vs the standard progression table */
+.slot-table-badge {
+    display: inline-block;
+    margin-left: 0.35rem;
+    padding: 0 0.3rem;
+    font-size: 0.68rem;
+    font-weight: bold;
+    border: 1px solid var(--warning);
+    border-radius: 6px;
+    color: var(--warning);
+    white-space: nowrap;
+    cursor: help;
+}
+.spell-table-tools {
+    margin: 0.4rem 0 0.25rem;
+    font-size: 0.8rem;
+}
 .spell-level-min {
     flex: 0 0 auto;
     width: 1.75rem;
