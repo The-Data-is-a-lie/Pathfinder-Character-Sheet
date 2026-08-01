@@ -3427,6 +3427,9 @@ button:disabled { opacity: 0.55; cursor: wait; }
     color: var(--accent-dark);
 }
 .uses-dec { padding: 0.05rem 0.35rem !important; min-width: 1.4rem; }
+/* #25: charge-link picker button; accent border marks an active link */
+.uses-link { padding: 0.05rem 0.3rem !important; min-width: 1.4rem; }
+.uses-link.is-linked { border-color: var(--accent); color: var(--accent-dark); }
 .feature-search, .inv-filter { font-size: 0.85rem; }
 
 /* Spells cast */
