@@ -115,6 +115,7 @@
     const { tabAttributes } = window.SheetTabAttributes;
     const { renderSkills } = window.SheetTabSkills;
     const { renderSpells } = window.SheetTabSpells;
+    const { renderPsionics } = window.SheetTabPsionics;
     const { renderSimpleSheet } = window.SheetSimple;
     const { tabSummary } = window.SheetTabSummary;
     const {
@@ -440,6 +441,7 @@
         { id: 'skills', label: 'Skills', render: (d) => renderSkills(d) },
         { id: 'path-of-war', label: 'Path of War', render: (d) => renderPathOfWar(d) || emptyState('Not an initiator — no maneuvers or stances.') },
         { id: 'spells', label: 'Spells', render: (d) => renderSpells(d) },
+        { id: 'psionics', label: 'Psionics', render: (d) => renderPsionics(d) || emptyState('Not a manifester — no powers, power points or mind blade.') },
         { id: 'buffs', label: 'Buffs', render: (d) => renderModifiers(d) },
         { id: 'companions', label: 'Companions', render: (d) => renderCompanions(d) },
         { id: 'biography', label: 'Biography', render: (d) => renderBiographyVitals(d) },
