@@ -4759,15 +4759,22 @@ body.tools-resizing .tools-drawer { transition: none; }
 .companion-head .companion-del { margin-left: auto; }
 .companion-type { font-weight: 400; }
 .companion-vitals,
-.companion-abilities {
+.companion-abilities,
+.companion-skills {
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem 0.9rem;
     margin: 0.35rem 0;
     font-variant-numeric: tabular-nums;
 }
+/* Skill names are words, not the three-letter ability codes — let them keep their case and stay
+   readable at the smaller label size rather than shouting a full sentence of capitals. */
+.companion-skills .companion-vital-label { text-transform: capitalize; letter-spacing: 0; }
 .companion-vital,
-.companion-ab { display: inline-flex; align-items: center; gap: 0.25rem; }
+.companion-ab,
+.companion-skill { display: inline-flex; align-items: center; gap: 0.25rem; }
+/* Absence lines are payload-owned, not user-owned: no × and no editors, so they read as a note. */
+.companion-absence { margin: 0.35rem 0; font-style: italic; }
 .companion-vital-label {
     font-size: 0.72rem;
     font-weight: 700;

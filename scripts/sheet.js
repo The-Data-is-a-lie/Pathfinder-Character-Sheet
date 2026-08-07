@@ -530,6 +530,10 @@
         // Seed the Inherent / Level-up / Racial columns from the generator before any ability math.
         seedBackendStatBonuses(data);
         seedRacialColumn(data);
+        // Seed generated bonded creatures into the user-owned companions array. Own flag, exactly as
+        // the two above, and ABOVE the simple-view early return so the fill happens in both view
+        // modes and on loadCharacter() as well as on a fresh generation.
+        window.SheetTabCompanions?.seedCompanions?.(data);
 
         if (viewMode() === 'simple') {
             sheet.appendChild(renderSimpleSheet(data));
