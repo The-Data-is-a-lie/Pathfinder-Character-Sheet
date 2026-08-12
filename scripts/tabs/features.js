@@ -580,7 +580,13 @@ window.SheetTabFeatures = (function () {
         }));
         const extras = [
             ['Wizard School', data.school !== 'N/A' ? data.school : null],
-            ['Opposition Schools', nonEmpty(data.opposing_school) ? data.opposing_school.join(', ') : null],
+            // Specialization detail (#68): focused schools, and counter_schools as the
+            // newer array form of the legacy opposing_school field (legacy wins when set).
+            ['Focused Schools', nonEmpty(data.specialty_schools) ? data.specialty_schools.join(', ') : null],
+            ['Opposition Schools', nonEmpty(data.opposing_school) ? data.opposing_school.join(', ')
+                : (nonEmpty(data.counter_schools) ? data.counter_schools.join(', ') : null)],
+            ['Chosen Descriptors', nonEmpty(data.chosen_spell_descriptor) ? data.chosen_spell_descriptor.join(', ') : null],
+            ['Opposition Descriptors', nonEmpty(data.counter_spell_descriptor) ? data.counter_spell_descriptor.join(', ') : null],
             ['Bloodline', data.bloodline && data.bloodline !== 'N/A' ? data.bloodline : null],
             ['Domains', nonEmpty(data.full_domain) ? data.full_domain.join(', ') : null],
         ];

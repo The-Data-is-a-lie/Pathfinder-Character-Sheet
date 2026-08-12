@@ -106,8 +106,20 @@ window.SheetTabSpheres = (function () {
             if (data[key] != null && data[key] !== '') kv(body, label, data[key]);
         }
         if (nonEmpty(data.spheres_chosen)) {
+            // sphere_counts (#68): the generator's talent tally per sphere
+            // ({normal, advanced, feats}) rides the label when present.
+            const counts = data.sphere_counts || {};
+            const countBits = (c) => [
+                c.normal ? `${c.normal} talent${c.normal === 1 ? '' : 's'}` : '',
+                c.advanced ? `${c.advanced} advanced` : '',
+                c.feats ? `${c.feats} via feats` : '',
+            ].filter(Boolean).join(', ');
             kv(body, 'Spheres', data.spheres_chosen
-                .map((s) => `${s.sphere} (${s.system})`).join(', '));
+                .map((s) => {
+                    const c = counts[s.sphere];
+                    const extra = c ? countBits(c) : '';
+                    return `${s.sphere} (${s.system}${extra ? '; ' + extra : ''})`;
+                }).join(', '));
         }
         const detailList = (title, names, detailArr) => {
             if (!nonEmpty(names)) return;

@@ -523,7 +523,8 @@ window.SheetData = (function () {
         { title: 'Trainer', listKey: 'trainer_feats', labelsKey: 'trainer_feat_labels',
             prefix: 'Trainer', start: 1, step: 1, taxKey: 'trainer_feat_tax_dict' },
         { title: 'Profession', listKey: 'profession_feats', prefix: 'Profession', start: 1, step: 1 },
-        { title: 'Sphere Feat', listKey: 'sphere_feats', prefix: 'Sphere Feat', start: 1, step: 1 },
+        { title: 'Sphere Feat', listKey: 'sphere_feats', prefix: 'Sphere Feat', start: 1, step: 1,
+            taxKey: 'sphere_feat_tax' },
         // No `mt_feats` group: the backend distributes every Martial Training feat into the normal
         // feats / class_feats / trainer_feats buckets (mentor-funded ones land under a Trainer slot),
         // so a dedicated group here would render each one twice and double-count it in the Bonus/Total
