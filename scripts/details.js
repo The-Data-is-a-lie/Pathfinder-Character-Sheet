@@ -706,7 +706,17 @@ window.SheetDetails = (function () {
             }
         }
 
+        // Backend-curated flaw mechanics (#66): {changes, contextNotes, description, tier}
+        // keyed by flaw name, already filtered to this character's flaws. pushEntry lands
+        // the penalties in the same ledger the AC grid, save buckets, skills and the Buffs
+        // Permanent list read. Names pre-seed seenTraits so the generic compendium loop
+        // below can't double-count a flaw that also matches a trait/feat entry.
         const seenTraits = new Set();
+        for (const [name, entry] of Object.entries(data.flaw_effects_dict || {})) {
+            if (!name || !entry || seenTraits.has(name)) continue;
+            seenTraits.add(name);
+            pushEntry(ledger, name, 'flaw', entry);
+        }
         for (const bucket of TRAIT_BUCKETS) {
             for (const name of data[bucket] || []) {
                 if (!name || seenTraits.has(name)) continue;

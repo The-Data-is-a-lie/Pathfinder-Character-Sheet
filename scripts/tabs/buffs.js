@@ -168,6 +168,7 @@ window.SheetTabBuffs = (function () {
     }
     const PASSIVE_KIND_TAGS = {
         feat: 'Feat', trait: 'Trait', classFeat: 'Class', item: 'Item', talent: 'Talent',
+        flaw: 'Flaw',
     };
     /**
      * Always-on source (feat/trait/item/class feature) as a row in the Permanent buff
