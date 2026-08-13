@@ -107,7 +107,13 @@ window.SheetSimple = (function () {
             },
         })));
         id.appendChild(spCell('Homeland', edit(data, 'region')));
-        id.appendChild(spCell('Size', edit(data, 'size')));
+        // Size lives in _sheet.size (Combat tab select); blank means "derived from race",
+        // so show the derived label rather than an empty cell on the printed sheet.
+        id.appendChild(spCell('Size', edit(st, 'size', {
+            format: (v) => (v ? titled(String(v)) : (window.SheetDerive?.sizeInfo?.(data)?.label || '')),
+            parse: (s) => s.trim().toLowerCase(),
+            rerender: true,
+        })));
         id.appendChild(spCell('Gender', edit(data, 'gender', { format: titled })));
         id.appendChild(spCell('Age', editNum(data, 'age_number', { min: 0 })));
         id.appendChild(spCell('Height', edit(data, 'height_number')));
@@ -568,8 +574,12 @@ window.SheetSimple = (function () {
         l2.appendChild(moneyGrid);
 
         r2.appendChild(spHeading('Experience'));
+        // _sheet.xp is an object ({value, track}, owned by the Summary tab) — bind the
+        // numeric value, not the object, or the box prints "[object Object]".
+        st.xp ??= {};
+        if (!Number.isFinite(Number(st.xp.value))) st.xp.value = 0;
         const xpBox = h('div', 'simple-writein-box');
-        xpBox.appendChild(edit(st, 'xp'));
+        xpBox.appendChild(editNum(st.xp, 'value', { min: 0 }));
         r2.appendChild(xpBox);
 
         // Spells — fixed levels 0–9 like the paper sheet; blank but editable for non-casters.
