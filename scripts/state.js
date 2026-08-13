@@ -313,6 +313,15 @@ window.SheetState = (function () {
             },
             changes: Array.isArray(b.changes) ? cloneChanges(b.changes) : [],
             notes: b.notes != null ? String(b.notes) : '',
+            // Situational context notes ({text, target}) — surfaced as ⓘ hover tooltips on
+            // the matching skill/attack rows, same pipeline feats and items feed.
+            contextNotes: Array.isArray(b.contextNotes)
+                ? b.contextNotes
+                    .map((n) => (typeof n === 'string'
+                        ? { text: n, target: '' }
+                        : { text: String(n?.text || ''), target: String(n?.target || '') }))
+                    .filter((n) => n.text)
+                : [],
             // Size-setting buffs (Enlarge Person → 'large'); '' = no size effect.
             setSize: typeof b.setSize === 'string' ? b.setSize : '',
             // #16: 'always' = standing ledger changes; 'perRoll' = a Custom-group toggle
@@ -627,6 +636,7 @@ window.SheetState = (function () {
             duration: opts.duration || { value: '', units: '' },
             changes,
             notes: opts.notes || '',
+            contextNotes: opts.contextNotes || [],
         });
         list.push(buff);
         quietSave();
@@ -639,6 +649,7 @@ window.SheetState = (function () {
             name: name || entry?.name || 'Buff',
             subType: subType || 'temp',
             changes: cloneChanges(entry?.changes),
+            contextNotes: entry?.contextNotes || [],
             seedDefault: false,
         });
     }
