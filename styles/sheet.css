@@ -3432,6 +3432,43 @@ button:disabled { opacity: 0.55; cursor: wait; }
 .uses-link.is-linked { border-color: var(--accent); color: var(--accent-dark); }
 .feature-search, .inv-filter { font-size: 0.85rem; }
 
+/* #43: combat HUD — full-screen one-tap surface (prototype candidate A, productionized) */
+.combat-hud { min-width: min(28rem, 92vw); display: flex; flex-direction: column; gap: 0.7rem; }
+.hud-card { border: 1px solid var(--border); border-radius: 0.6rem; padding: 0.6rem; }
+.hud-hp-line { display: flex; align-items: baseline; gap: 0.45rem; }
+.hud-hp-cur { font-size: 2.4rem; font-weight: 700; line-height: 1; }
+.hud-hp-cur.is-low { color: var(--danger, #b3261e); }
+.hud-hp-max { font-size: 1.2rem; color: var(--ink-dim); }
+.hud-hp-side { margin-left: auto; font-size: 0.85rem; color: var(--ink-dim); }
+.hud-apply-row { display: flex; gap: 0.45rem; margin-top: 0.5rem; }
+.hud-amt { width: 4.5rem; font-size: 1.2rem; padding: 0.3rem; text-align: center; }
+.hud-btn-big {
+    flex: 1;
+    font-size: 1.05rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 0.55rem;
+    background: var(--panel);
+    color: inherit;
+    cursor: pointer;
+    min-height: 2.9rem; /* comfortable thumb target */
+}
+.hud-btn-big:hover { border-color: var(--accent); }
+.hud-btn-dmg { border-color: var(--danger, #b3261e); }
+.hud-btn-heal { border-color: var(--ok, #2e7d32); }
+.hud-btn-attack { font-weight: 700; }
+.hud-ac-row { display: flex; gap: 0.45rem; flex-wrap: wrap; }
+.hud-ac-chip {
+    display: inline-flex; gap: 0.35rem; align-items: baseline;
+    border: 1px solid var(--border); border-radius: 999px; padding: 0.2rem 0.65rem;
+}
+.hud-ac-label { font-size: 0.75rem; color: var(--ink-dim); }
+.hud-ac-val { font-weight: 700; }
+.hud-rolls { display: flex; flex-direction: column; gap: 0.45rem; }
+.hud-saves { display: flex; gap: 0.45rem; }
+.hud-conds { display: flex; flex-wrap: wrap; gap: 0.3rem; max-height: 9rem; overflow-y: auto; }
+.hud-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; flex-wrap: wrap; }
+
 /* #44: guided PC creation wizard */
 .create-wizard { min-width: min(30rem, 84vw); }
 .create-steps { display: flex; gap: 0.4rem; margin-bottom: 0.7rem; flex-wrap: wrap; }

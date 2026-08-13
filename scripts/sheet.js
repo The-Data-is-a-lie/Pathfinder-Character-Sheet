@@ -760,6 +760,9 @@
         // #44: the guided-create wizard (concept → abilities → generate → finish checklist).
         document.getElementById('gen-guided')?.addEventListener('click',
             () => window.SheetCreate?.open());
+        // #43: the combat HUD — one-tap phone/tablet surface over the loaded character.
+        document.getElementById('hud-btn')?.addEventListener('click',
+            () => window.SheetCombatHud?.openHud());
         document.querySelectorAll('.gen-preset').forEach((btn) => {
             btn.addEventListener('click', () => applyGenPreset(form, btn.dataset.preset));
         });
