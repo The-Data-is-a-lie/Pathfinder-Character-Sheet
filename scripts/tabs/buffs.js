@@ -385,6 +385,83 @@ window.SheetTabBuffs = (function () {
         }
     }
     // Foundry-like Buffs tab: Conditions → Buff sections (Permanent holds always-on sources)
+    // ------------------------------------------------------------ buff presets (#83)
+    // Named groups of buff ids toggled together ("battle prep" in one click), stored on
+    // the character as _sheet.buffPresets. A preset only flips its members' Active state —
+    // round-denominated members still tick down individually via the round counter.
+    function ensureBuffPresets(data) {
+        const st = sheetState(data);
+        if (!Array.isArray(st.buffPresets)) st.buffPresets = [];
+        return st.buffPresets;
+    }
+    function renderBuffPresets(body, data) {
+        const presets = ensureBuffPresets(data);
+        const buffs = ensureBuffs(data);
+        const wrap = h('div', 'buff-presets no-print');
+        wrap.appendChild(h('span', 'k', 'Presets'));
+
+        for (const p of presets) {
+            const members = buffs.filter((b) => p.buffIds.includes(b.id));
+            const allOn = members.length > 0 && members.every((b) => b.active);
+            const chipWrap = h('span', 'buff-preset' + (allOn ? ' is-active' : ''));
+            const chip = h('button', 'buff-preset-chip', `${p.name} (${members.length})`);
+            chip.type = 'button';
+            chip.title = members.length
+                ? (allOn ? 'Deactivate: ' : 'Activate: ') + members.map((b) => b.name).join(', ')
+                : 'No member buffs left — its buffs were deleted';
+            chip.addEventListener('click', () => {
+                if (!members.length) return;
+                for (const b of members) b.active = !allOn;
+                quietSave();
+                window.SheetOverlay?.toast?.(
+                    `${p.name}: ${members.length} buff${members.length === 1 ? '' : 's'} `
+                    + (allOn ? 'off' : 'on'));
+                renderSheet(data);
+            });
+            const del = h('button', 'buff-preset-del', '×');
+            del.type = 'button';
+            del.title = 'Delete this preset (its buffs stay)';
+            del.addEventListener('click', () => {
+                const i = presets.indexOf(p);
+                if (i >= 0) presets.splice(i, 1);
+                quietSave();
+                renderSheet(data);
+            });
+            chipWrap.append(chip, del);
+            wrap.appendChild(chipWrap);
+        }
+
+        // Snapshot the currently-active buffs under a new name.
+        const nameIn = h('input', 'edit-field buff-preset-name');
+        nameIn.placeholder = 'New preset from active buffs…';
+        const saveBtn = h('button', 'inv-btn', 'Save set');
+        saveBtn.type = 'button';
+        saveBtn.title = 'Save the currently ACTIVE buffs as a one-click preset';
+        const saveSet = () => {
+            const active = buffs.filter((b) => b.active);
+            if (!active.length) {
+                window.SheetOverlay?.toast?.('No active buffs to save — tick some Active boxes first');
+                return;
+            }
+            const name = nameIn.value.trim()
+                || 'Preset ' + (presets.length + 1);
+            presets.push({
+                id: 'preset-' + Date.now().toString(36),
+                name,
+                buffIds: active.map((b) => b.id),
+            });
+            quietSave();
+            window.SheetOverlay?.toast?.(`${name} saved — ${active.length} buff${active.length === 1 ? '' : 's'}`);
+            renderSheet(data);
+        };
+        saveBtn.addEventListener('click', saveSet);
+        nameIn.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); saveSet(); }
+        });
+        wrap.append(nameIn, saveBtn);
+        body.appendChild(wrap);
+    }
+
     function renderModifiers(data) {
         const SD = window.SheetDetails;
         const { sec, body } = section('Buffs & Conditions', 'modifiers buffs-tab');
@@ -393,6 +470,9 @@ window.SheetTabBuffs = (function () {
 
         // 1) Conditions (Foundry buffs-conditions)
         renderConditionsTray(body, data);
+
+        // 1.5) Presets (#83): one-click battle prep over the buff sections below.
+        renderBuffPresets(body, data);
 
         // Ledger first: the Permanent section lists always-on sources as rows.
         let passive = { groups: [], removed: [] };

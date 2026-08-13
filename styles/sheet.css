@@ -3474,6 +3474,32 @@ button:disabled { opacity: 0.55; cursor: wait; }
 .hud-conds { display: flex; flex-wrap: wrap; gap: 0.3rem; max-height: 9rem; overflow-y: auto; }
 .hud-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; flex-wrap: wrap; }
 
+/* #83: buff presets — one-click named buff groups on the Buffs tab */
+.buff-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.55rem; margin: 0.5rem 0; }
+.buff-preset { display: inline-flex; align-items: stretch; }
+.buff-preset-chip {
+    border: 1px solid var(--border);
+    border-radius: 999px 0 0 999px;
+    padding: 0.15rem 0.3rem 0.15rem 0.65rem;
+    background: var(--panel);
+    color: inherit;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+.buff-preset.is-active .buff-preset-chip { border-color: var(--accent); color: var(--accent-dark); font-weight: 600; }
+.buff-preset-del {
+    border: 1px solid var(--border);
+    border-left: none;
+    border-radius: 0 999px 999px 0;
+    padding: 0.15rem 0.5rem 0.15rem 0.3rem;
+    background: var(--panel);
+    color: var(--ink-dim);
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+.buff-preset-del:hover { color: var(--danger, #b3261e); }
+.buff-preset-name { max-width: 15rem; font-size: 0.85rem; }
+
 /* #44: guided PC creation wizard */
 .create-wizard { min-width: min(30rem, 84vw); }
 .create-steps { display: flex; gap: 0.4rem; margin-bottom: 0.7rem; flex-wrap: wrap; }
