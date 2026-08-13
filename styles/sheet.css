@@ -5505,8 +5505,18 @@ html[data-theme="high-contrast"] .roll-card-result.is-nat20 {
     .simple-bio-band { margin-top: 5px; }
     .simple-bio-notes { margin-top: 3px; }
     .simple-bio-text { font-size: 8.5px; line-height: 1.3; }
-    /* The band's whole content is now the notes text, so it prints from the mirror. */
-    .simple-bio-notes .notes-print { font-size: 8.5px; line-height: 1.3; }
+    /* The band's whole content is now the notes text, so it prints from the mirror.
+       Clamped: a level-20 generator character ships ~40 lines of notes, which pushed
+       the handout onto a 3rd page — the handout stays 2 pages and the full text lives
+       on the Notes tab (same trade as the 2-line spell-list clamp above). */
+    .simple-bio-notes .notes-print {
+        font-size: 8.5px;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 14;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
 
     .simple-table { font-size: 8.5px; }
     .simple-table th { font-size: 6px; padding: 1px 3px; }
@@ -5562,6 +5572,11 @@ html[data-theme="high-contrast"] .roll-card-result.is-nat20 {
     /* Tables may split across pages (an unbreakable 400px+ skills table would
        otherwise jump wholesale to a fresh sheet, wasting most of a page). */
     .simple-stat-grid, .simple-id-grid { break-inside: avoid; }
+
+    /* The bio band moves to a fresh page as ONE block when page 2 is already full
+       (a level-20 full caster's ten spell rows can fill it) — orphaned "Biography &
+       Notes" headings at a page edge read as a layout bug on paper. */
+    .simple-bio-band { break-inside: avoid; }
 }
 
 /* The Print button's handout holder: a hidden second render of the simple sheet,
