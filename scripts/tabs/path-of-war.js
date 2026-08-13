@@ -100,6 +100,19 @@ window.SheetTabPathOfWar = (function () {
         if (nonEmpty(data.martial_disciplines)) {
             kvEdit(body, 'Disciplines', data, 'martial_disciplines', { asArray: true });
         }
+        // Generator per-maneuver-level budgets (#68): index 0 = maneuver level 1. Display
+        // only — the Ready checkboxes below stay the source of truth for what's readied.
+        if (nonEmpty(data.maneuvers_known_list)) {
+            const fmtCounts = (arr) => (arr || [])
+                .map((n, i) => `L${i + 1}: ${Number(n) || 0}`).join(' · ');
+            const row = h('div', 'kv');
+            row.appendChild(h('span', 'k', 'Per level'));
+            const v = h('span', 'v', 'Known — ' + fmtCounts(data.maneuvers_known_list)
+                + (nonEmpty(data.maneuvers_readied_list)
+                    ? '  ·  Readied — ' + fmtCounts(data.maneuvers_readied_list) : ''));
+            row.appendChild(v);
+            body.appendChild(row);
+        }
 
         const descs = data.maneuvers_desc_dict || {};
         const readied = readiedManeuverSet(data);

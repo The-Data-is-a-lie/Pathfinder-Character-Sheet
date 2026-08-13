@@ -144,6 +144,14 @@ window.SheetTabNotes = (function () {
             if (facts) noteBits.push(facts);
             const seeded = seedNotesText(data);
             if (seeded) noteBits.push(seeded);
+            // Generator build-family label + tactics blurb (#68) — GM-facing "how this
+            // NPC fights" prose, seeded once like the rest of the background.
+            const buildBits = [];
+            const bArch = joinProseField(data.build_archetype);
+            if (bArch) buildBits.push('Build: ' + bArch);
+            const bTac = joinProseField(data.build_tactics);
+            if (bTac) buildBits.push(bTac);
+            if (buildBits.length) noteBits.push(buildBits.join('\n'));
             if (st.notes) noteBits.push(String(st.notes).trim());
             if (!data.formatted_bio) {
                 const parents = joinProseField(data.parents);
