@@ -76,6 +76,14 @@ window.SheetFormula = (function () {
         [/@cl\b/gi, (_m, data, ctx) => ctx.cl ?? null],
         [/@sl\b/gi, (_m, data, ctx) => ctx.sl ?? null],
         [/@ablMod\b/gi, (_m, data, ctx) => ctx.ablMod ?? null],
+        // Spell-rider vocabulary (spell_riders_dict): the named spellbook's caster level —
+        // the CL of the cast in flight when the roll provides one, else the payload's
+        // generation-time caster_level. Only `primary` is curated today, but any book name
+        // resolves the same way rather than failing loudly on a future book id.
+        [/@spells\.[a-z0-9_-]+\.cl\.total\b/gi, (_m, data, ctx) =>
+            ctx.cl ?? (Number(data?.caster_level) || null)],
+        [/@slvl\b/gi, (_m, data, ctx) => ctx.sl ?? null],
+        [/@castMod\b/gi, (_m, data, ctx) => ctx.ablMod ?? null],
     ];
 
     /** Skill total for @skills.<id>.mod — composed from the same pieces the Skills tab sums. */

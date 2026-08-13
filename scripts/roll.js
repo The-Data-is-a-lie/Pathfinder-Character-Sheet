@@ -146,9 +146,9 @@ window.SheetRoll = (function () {
      * `floor()/min()/ifelse()` and computed dice counts (`(floor(@classes.magus.level / 3))d6`) all
      * resolve, and an unknown `@token` comes back in `unresolved` instead of silently becoming 0.
      */
-    function cleanFormulaSafe(formula, data) {
+    function cleanFormulaSafe(formula, data, extraCtx) {
         const F = window.SheetFormula;
-        const ctx = { INITMOD: initiationMod(data) };
+        const ctx = { INITMOD: initiationMod(data), ...(extraCtx || {}) };
         if (!F) return { formula: cleanFormula(formula, data), unresolved: [] };
         const r = F.evaluateToRollable(formula, data, ctx);
         if (r.ok) return { formula: r.formula, unresolved: r.unresolved };
@@ -244,6 +244,17 @@ window.SheetRoll = (function () {
         s = s.replace(/@[a-zA-Z0-9_.]+/g, '0');
         s = s.replace(/\s+/g, '');
         return s;
+    }
+
+    // Case-insensitive lookup into the backend's spell_riders_dict (keys are display names,
+    // already filtered server-side to the spells this character actually has).
+    function lookupSpellRiders(data, spellName) {
+        const lower = String(spellName || '').trim().toLowerCase();
+        if (!lower) return null;
+        for (const [k, entry] of Object.entries(data?.spell_riders_dict || {})) {
+            if (entry && String(k).toLowerCase() === lower) return entry;
+        }
+        return null;
     }
 
     function isSpellAttackType(t) {
@@ -391,6 +402,19 @@ window.SheetRoll = (function () {
             source: 'Spell',
             text: metaBits.join(' · '),
         });
+
+        // #65: curated cast-time effect text (spell_riders_dict — Bucket B of the backend's
+        // spell curation; Bucket A buff spells arrive via spell_changes_dict, so the two
+        // never overlap). The entry's `save`/`attack` fields are NOT consumed separately:
+        // the rider prose already narrates them, and the card's own Save/DC line comes from
+        // spell_details action data — a second source would double-print. [[inline rolls]]
+        // resolve at this cast's CL / slot level / casting mod via `ctx`.
+        const riderEntry = lookupSpellRiders(data, opts.baseSpellName || name);
+        for (const rt of riderEntry?.riders || []) {
+            if (!rt) continue;
+            riders.push({ source: 'Effect', text: expandRiderInlineRolls(rt, data, ctx) });
+        }
+
         if (mm?.names?.length) {
             riders.push({
                 source: 'Metamagic',
@@ -1067,7 +1091,7 @@ window.SheetRoll = (function () {
         return { total: out, steps };
     }
 
-    function expandRiderInlineRolls(text, data) {
+    function expandRiderInlineRolls(text, data, ctx) {
         // Replace [[ formula ]] with rolled totals, keeping [[total]] so the
         // log still chips the result (and hover shows the original formula).
         return String(text || '').replace(/\[\[([^\]]+)\]\]/g, (_, inner) => {
@@ -1075,7 +1099,7 @@ window.SheetRoll = (function () {
             // Some curated riders put PROSE in the roll brackets ("[[ DC 15 ]]", "[[ 15 +
             // enhancement bonus ]]"). Those legitimately fail to parse and must survive as their
             // original text, which is why this returns the raw marker rather than zeroing anything.
-            const { formula: f } = cleanFormulaSafe(inner, data);
+            const { formula: f } = cleanFormulaSafe(inner, data, ctx);
             const parsed = f ? parseFormula(f) : { ok: false };
             if (!parsed.ok) return '[[' + raw + ']]';
             const r = rollTerms(parsed.terms);
