@@ -1103,6 +1103,11 @@ select,
     cursor: pointer;
     appearance: auto;
 }
+/* #80: snapshot history (Settings) — time · summary · Preview/Restore/× per row */
+.settings-history { display: flex; flex-direction: column; gap: 0.3rem; }
+.settings-history-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.8rem; }
+.settings-history-row > span:first-child { min-width: 11rem; }
+.snapshot-preview { max-height: 70vh; overflow-y: auto; }
 .variant-abp-picks { display: flex; flex-wrap: wrap; gap: 0.4rem 0.9rem; align-items: center; }
 .variant-abp-pick { display: inline-flex; align-items: center; gap: 0.25rem; }
 select option,
