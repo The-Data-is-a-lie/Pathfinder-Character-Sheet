@@ -283,7 +283,11 @@ window.SheetTabSettings = (function () {
             } catch (err) { alert('Import failed: ' + err.message); }
             e.target.value = '';
         });
-        libRow.append(exportBtn, importInput);
+        // #82: Paizo-style plain-text stat block of the CURRENT character → clipboard.
+        const statblockBtn = h('button', null, 'Copy stat block');
+        statblockBtn.title = 'Copy the current character as Paizo-style stat-block text (for prep docs and forum posts)';
+        statblockBtn.addEventListener('click', () => window.SheetStatblock?.copyStatBlock?.());
+        libRow.append(exportBtn, importInput, statblockBtn);
         body.appendChild(libRow);
 
         // Generator provenance (#68): which backend build produced this character, plus
