@@ -780,6 +780,14 @@ window.SheetModals = (function () {
         browse.title = opts.browseTitle || 'Search the local database and add an entry';
         browse.addEventListener('click', () => openCatalogPicker(opts.picker));
         bar.appendChild(browse);
+        // #107: from-scratch creation beside every Browse (inventory's Blank-item pattern).
+        if (opts.onBlank) {
+            const blank = h('button', 'inv-btn catalog-blank-btn', opts.blankLabel || '+ Blank');
+            blank.type = 'button';
+            blank.title = 'Create an empty entry and open its sheet';
+            blank.addEventListener('click', () => opts.onBlank());
+            bar.appendChild(blank);
+        }
         if (opts.extra) bar.appendChild(opts.extra);
         return bar;
     }
@@ -1445,17 +1453,43 @@ window.SheetModals = (function () {
      * Custom buffs persist on _sheet.featureChanges and feed the whole sheet math.
      */
     function openFeatureBuffMenu(anchor, data, name, sourceKind = 'feat') {
-        const SD = window.SheetDetails;
         document.getElementById('feat-buff-menu')?.remove();
         const menu = h('div', 'feat-buff-menu no-print');
         menu.id = 'feat-buff-menu';
         menu.appendChild(h('div', 'feat-buff-menu-title', name));
+        menu.appendChild(buildFeatureChangesPanel(data, name, sourceKind));
+        document.body.appendChild(menu);
+        const r = anchor.getBoundingClientRect();
+        const w = menu.offsetWidth || 260;
+        menu.style.top = (window.scrollY + r.bottom + 4) + 'px';
+        menu.style.left = (window.scrollX
+            + Math.max(4, Math.min(r.left, window.innerWidth - w - 8))) + 'px';
 
-        // Recompute the built-in vs custom split from the live ledger each redraw.
+        const close = () => {
+            menu.remove();
+            document.removeEventListener('mousedown', onDoc, true);
+            document.removeEventListener('keydown', onKey, true);
+        };
+        const onDoc = (e) => {
+            if (!menu.contains(e.target) && e.target !== anchor) close();
+        };
+        const onKey = (e) => { if (e.key === 'Escape') close(); };
+        setTimeout(() => {
+            document.addEventListener('mousedown', onDoc, true);
+            document.addEventListener('keydown', onKey, true);
+        }, 0);
+    }
+    /**
+     * The feature-changes editor body, extracted from openFeatureBuffMenu (#107) so the
+     * feature sheet's Changes tab and the ⚙ popover share one implementation: Active
+     * toggle, built-in (read-only) modifiers, and the user's own typed modifiers on
+     * _sheet.featureChanges.
+     */
+    function buildFeatureChangesPanel(data, name, sourceKind = 'feat') {
+        const SD = window.SheetDetails;
         const bodyWrap = h('div', 'feat-buff-menu-body');
-        menu.appendChild(bodyWrap);
 
-        // Apply an edit: persist, refresh the derived ledger in place, redraw the popover.
+        // Apply an edit: persist, refresh the derived ledger in place, redraw the panel.
         const commit = () => {
             pruneFeatureCustom(data, name);
             quietSave();
@@ -1564,26 +1598,7 @@ window.SheetModals = (function () {
         }
 
         redraw();
-        document.body.appendChild(menu);
-        const r = anchor.getBoundingClientRect();
-        const w = menu.offsetWidth || 260;
-        menu.style.top = (window.scrollY + r.bottom + 4) + 'px';
-        menu.style.left = (window.scrollX
-            + Math.max(4, Math.min(r.left, window.innerWidth - w - 8))) + 'px';
-
-        const close = () => {
-            menu.remove();
-            document.removeEventListener('mousedown', onDoc, true);
-            document.removeEventListener('keydown', onKey, true);
-        };
-        const onDoc = (e) => {
-            if (!menu.contains(e.target) && e.target !== anchor) close();
-        };
-        const onKey = (e) => { if (e.key === 'Escape') close(); };
-        setTimeout(() => {
-            document.addEventListener('mousedown', onDoc, true);
-            document.addEventListener('keydown', onKey, true);
-        }, 0);
+        return bodyWrap;
     }
     /**
      * Inline editor for a maneuver/stance's mechanical modifiers, stored per-character as a
@@ -1867,6 +1882,7 @@ window.SheetModals = (function () {
     return {
         openItemSheet, openClassSheet, openArchetypeSheet, openCatalogPicker, openBuffEditor,
         openPortraitLightbox, openPowModifierEditor, openFeatureBuffMenu, buildItemBuffsPanel,
+        buildFeatureChangesPanel, openFrameless,
         sectionCatalogToolbar, prettyTypeWord, formatChangeLine, parseEnhancements,
         enhancementDescHtml, enhancementEffectHtml, addBlankInventoryItem, processPortraitFile,
         openSpellConsumableBuilder,
