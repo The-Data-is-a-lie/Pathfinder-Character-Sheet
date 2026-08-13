@@ -647,6 +647,27 @@ window.SheetRoll = (function () {
         }
     }
 
+    /** #101: post a feature to the log as a real card — name, type, description, and a
+     *  live uses row with a Use button when the feature has a pool. No dice, no sound. */
+    function postFeatureCard(opts = {}) {
+        const data = currentData;
+        const title = opts.title || opts.name || 'Feature';
+        const card = {
+            title,
+            subtitle: opts.typeLabel || opts.kind || 'Feature',
+            descHtml: opts.descHtml || '',
+            descOpen: false,
+        };
+        // Uses row only when a pool already exists (or a marquee one is owed) — posting a
+        // plain feat must not sprout empty 0/0 pools as a side effect.
+        const usesName = opts.usesName || opts.name || title;
+        if (data && window.SheetState?.hasFeaturePool?.(data, usesName)) {
+            window.SheetState.featureUses(data, usesName); // ensure seeded / alias-linked
+            card.usesRef = { kind: 'feature', name: usesName };
+        }
+        return pushRollCard(card, { sound: false });
+    }
+
     function rollAndLog(formula, title) {
         const result = roll(formula);
         if (!result.ok) {
@@ -1195,12 +1216,12 @@ window.SheetRoll = (function () {
             return;
         }
         if (!t.uses) return;
+        // featureUses seeds the pool from its formula on first touch (#100 — shared with
+        // the Features tab). Floor at 1/1 when the formula didn't resolve: warn, not block.
         const u = window.SheetState.featureUses(data, t.uses.name || t.name);
-        if (!u.max && t.uses.max) {
-            const ev = window.SheetDetails?.evalSimpleFormula?.(t.uses.max, data);
-            const n = Math.max(1, ev?.ok ? ev.value : 1);
-            u.max = n;
-            u.value = n;
+        if (!u.max && !u.chargeSource) {
+            u.max = 1;
+            u.value = 1;
         }
         // #25: readouts and spends follow a charge link when one is set.
         const pool = window.SheetState.resolveChargePool?.(
@@ -1927,10 +1948,37 @@ window.SheetRoll = (function () {
         }
         // Full spell description (collapsible, open by default) — shown after casting so
         // the effect text is right there in the log without reopening the Spells tab.
+        // #101: feature cards — live remaining-uses readout + a Use spend (never blocks).
+        if (e.usesRef) {
+            const row = h('div', 'roll-card-uses');
+            const label = h('span', 'roll-card-uses-label', '');
+            const paint = () => {
+                const pool = window.SheetState?.resolveChargePool?.(currentData, e.usesRef);
+                label.textContent = pool
+                    ? `Uses: ${pool.value}/${pool.max}` + (pool.linked ? ` (via ${pool.label})` : '')
+                    : '';
+            };
+            paint();
+            const use = h('button', 'inv-btn roll-card-use no-print', 'Use');
+            use.type = 'button';
+            use.title = 'Spend one use';
+            use.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                const spent = window.SheetState?.spendPooledUse?.(currentData, e.usesRef, 1);
+                if (!spent) return;
+                window.SheetOverlay?.toast?.(spent.ok
+                    ? `${e.title}: ${spent.left}/${spent.max} uses left`
+                    : `${e.title}: out of uses! (0/${spent.max} — spending anyway)`);
+                window.SheetState?.quietSave?.();
+                paint();
+            });
+            row.append(label, use);
+            body.appendChild(row);
+        }
         if (e.descHtml) {
             const det = document.createElement('details');
             det.className = 'roll-card-desc';
-            det.open = true;
+            det.open = e.descOpen !== false;
             const sum = document.createElement('summary');
             sum.textContent = 'Description';
             det.appendChild(sum);
@@ -3427,7 +3475,7 @@ window.SheetRoll = (function () {
     return {
         parseFormula,
         roll,
-        rollAndLog,
+        rollAndLog, postFeatureCard,
         setCharacter,
         setOpen,
         toggle,
