@@ -141,6 +141,39 @@ window.SheetDetails = (function () {
         return talentConditionals[sphereNorm(name)] || null;
     }
 
+    // #24: compendium class features owned by `className` whose DESCRIPTION marks them
+    // as gained at `level` ("At 5th level…", "Starting at 3rd level…"). The extract has
+    // no level field, but explicit markers cover exactly the core progression features
+    // (0–4 per class level); the unmarked mass is choice-pool members (rage powers,
+    // hexes…), which must not be auto-suggested anyway. Advisory for the level-up
+    // wizard — a wrong guess costs one untick, never a block.
+    const GAIN_LEVEL_RE =
+        /(?:^|[>.\s])(?:at|starting at|beginning at|upon reaching)\s+(\d+)(?:st|nd|rd|th)\s+level/i;
+    function classFeaturesAtLevel(className, level) {
+        const m = maps.classFeatures;
+        const want = Number(level) || 0;
+        if (!m || !className || want < 1) return [];
+        const cls = String(className).toLowerCase().trim();
+        const out = [];
+        const seen = new Set();
+        for (const arr of Object.values(m.byKey)) {
+            for (const e of (Array.isArray(arr) ? arr : [arr])) {
+                if (!(e.classes || []).some((c) => String(c).toLowerCase() === cls)) continue;
+                // Tagged entries (Rage Power, Hex, Domain Power…) are choice-pool members —
+                // a level marker there is a "must be at least Nth level" prerequisite, not
+                // the class progression granting it.
+                if (Array.isArray(e.tags) && e.tags.length) continue;
+                const mark = GAIN_LEVEL_RE.exec(String(e.description || ''));
+                if (!mark || parseInt(mark[1], 10) !== want) continue;
+                const key = String(e.name).toLowerCase();
+                if (seen.has(key)) continue;
+                seen.add(key);
+                out.push(e);
+            }
+        }
+        return out.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    }
+
     // Weapon roll stats (dice, crit, actionType) for the Tools attack menu.
     function lookupWeapon(name) {
         return lookup('weapons', name);
@@ -580,8 +613,14 @@ window.SheetDetails = (function () {
             });
         }
 
+        // #45 double-count guard: while a spell's auto-cast buff is active, the ledger
+        // already carries its changes — suppress the per-roll toggle until the buff ends.
+        const autoBuffActive = new Set((data._sheet?.buffs || [])
+            .filter((b) => b && b.active !== false && b.autoKey)
+            .map((b) => b.autoKey));
         for (const [spellName, entry] of Object.entries(data.spell_changes_dict || {})) {
             if (!entry) continue;
+            if (autoBuffActive.has('spell:' + String(spellName).toLowerCase())) continue;
             let mods = null;
             let label = spellName;
             if (Array.isArray(entry.modifiers)) {
@@ -790,6 +829,34 @@ window.SheetDetails = (function () {
             const entry = condTable[id];
             if (entry?.changes?.length) {
                 pushEntry(ledger, condLabels.get(id) || id, 'condition', entry);
+            }
+        }
+
+        // #21 Automatic Bonus Progression: the Unchained attunement bonuses enter the
+        // always-on ledger keyed off character level, so the AC grid / save buckets /
+        // attack math pick them up like any other source. It renders as a Permanent
+        // Buffs row ('abp' sourceKind), so it can be inspected there; prowess abilities
+        // come from the Settings picks (defaults match the Settings UI: INT / STR).
+        const vr = data._sheet?.variantRules;
+        if (vr?.abp && window.SheetData?.abpBonuses) {
+            const b = window.SheetData.abpBonuses(data.level);
+            const ch = [];
+            const add = (value, target, type) =>
+                ch.push({ formula: '+' + value, target, type });
+            if (b.resistance) add(b.resistance, 'allSavingThrows', 'resist');
+            if (b.armor) add(b.armor, 'aac', 'enh');
+            if (b.weapon) { add(b.weapon, 'attack', 'enh'); add(b.weapon, 'damage', 'enh'); }
+            if (b.deflection) add(b.deflection, 'ac', 'deflect');
+            if (b.toughening) add(b.toughening, 'nac', 'enh');
+            const picks = vr.abpChoices || {};
+            b.mental.forEach((v, i) => {
+                if (v) add(v, picks['mental' + (i + 1)] || 'int', 'enh');
+            });
+            b.physical.forEach((v, i) => {
+                if (v) add(v, picks['physical' + (i + 1)] || 'str', 'enh');
+            });
+            if (ch.length) {
+                pushEntry(ledger, 'Automatic Bonus Progression', 'abp', { changes: ch });
             }
         }
 
@@ -1008,7 +1075,8 @@ window.SheetDetails = (function () {
         s = s.replace(/@attributes\.hd\.total/gi, String(hd));
         s = s.replace(/@attributes\.hd\.max/gi, String(hd));
         // BAB (same source as SheetFormula's resolver) — the combat toggles scale with it
-        s = s.replace(/@attributes\.bab\.total/gi, String(Number(data?.bab_total) || 0));
+        s = s.replace(/@attributes\.bab\.total/gi,
+            String(window.SheetDerive?.babTotal?.(data) ?? (Number(data?.bab_total) || 0)));
         // Class levels, STRICTLY (mirrors SheetFormula.classLevel): a class the character
         // does not have resolves to 0, never the whole level — the marquee features scale
         // with these. Lenient classLevelFor only for legacy payloads with no classes[].
@@ -1187,6 +1255,6 @@ window.SheetDetails = (function () {
         collectRollConditionals, normalizeInventoryEntry, powNorm,
         parseEnhancements, lookupEnhancement, collectEnhancements, coreGearItemKey,
         targetLabel, typeLabel, evalSimpleFormula, changesForTargets,
-        searchCatalog, catalogKinds,
+        searchCatalog, catalogKinds, classFeaturesAtLevel,
     };
 })();

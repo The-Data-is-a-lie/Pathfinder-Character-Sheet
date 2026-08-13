@@ -500,6 +500,20 @@ window.SheetTabFeatures = (function () {
         inquisitions: { label: 'Inquisitions', singular: 'Inquisition' },
         bloodline: { label: 'Bloodline', singular: 'Bloodline' },
         spirits: { label: 'Spirits', singular: 'Spirit' },
+        // Occult Adventures. Labels match the generator module's CLASS_FEATURE_BUCKETS verbatim so
+        // the two sheets name the same pick the same way. 'medium_spirit', not 'spirit' -- the
+        // shaman already owns 'spirits' just above, and two buckets one letter apart is a trap.
+        implements: { label: 'Implement Schools', singular: 'Implement' },
+        focus_powers: { label: 'Focus Powers', singular: 'Focus Power' },
+        elemental_focus: { label: 'Elemental Focus', singular: 'Element' },
+        wild_talents: { label: 'Wild Talents', singular: 'Wild Talent' },
+        infusions: { label: 'Infusions', singular: 'Infusion' },
+        medium_spirit: { label: 'Channeled Spirit', singular: 'Spirit' },
+        mesmerist_tricks: { label: 'Mesmerist Tricks', singular: 'Trick' },
+        bold_stare: { label: 'Bold Stare', singular: 'Bold Stare' },
+        psychic_discipline: { label: 'Psychic Discipline', singular: 'Discipline' },
+        phrenic_amplifications: { label: 'Phrenic Amplifications', singular: 'Amplification' },
+        emotional_focus: { label: 'Phantom Emotional Focus', singular: 'Emotional Focus' },
     };
     function classChoiceLabels(bucket) {
         const known = CLASS_CHOICE_BUCKETS[String(bucket).toLowerCase()];

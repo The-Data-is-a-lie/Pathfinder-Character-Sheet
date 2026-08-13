@@ -276,6 +276,54 @@ window.SheetData = (function () {
         },
     ];
 
+    // ---------------------------------------------------- auto-buff spells (issue #45)
+    // Client fallback for the marquee self-buffs a payload rarely curates. Keyed by
+    // lowercased spell name; a buff-shaped `spell_changes_dict` entry always wins over
+    // this table. `changes` use the normal ledger target vocabulary; `setSize` rides the
+    // buff (Enlarge Person works exactly like the buff editor's size field). Spells whose
+    // whole effect is prose (Blur) ship changes: [] with the rule in `note` — the buff
+    // still tracks the duration. Scaling formulas use @cl, resolved at cast time.
+    const SPELL_BUFFS = {
+        'shield': { changes: [{ formula: '4', target: 'sac', type: 'untyped' }],
+            note: 'Blocks magic missile. No effect if you already carry a shield bonus.' },
+        'mage armor': { changes: [{ formula: '4', target: 'aac', type: 'untyped' }],
+            note: 'Force armor — incorporeal touch attacks do not ignore it.' },
+        "bull's strength": { changes: [{ formula: '4', target: 'str', type: 'enh' }] },
+        "cat's grace": { changes: [{ formula: '4', target: 'dex', type: 'enh' }] },
+        "bear's endurance": { changes: [{ formula: '4', target: 'con', type: 'enh' }] },
+        "fox's cunning": { changes: [{ formula: '4', target: 'int', type: 'enh' }] },
+        "owl's wisdom": { changes: [{ formula: '4', target: 'wis', type: 'enh' }] },
+        "eagle's splendor": { changes: [{ formula: '4', target: 'cha', type: 'enh' }] },
+        'enlarge person': { setSize: 'large',
+            changes: [{ formula: '2', target: 'str', type: 'size' },
+                { formula: '-2', target: 'dex', type: 'size' }],
+            note: 'Size attack/AC/CMB and damage-dice steps come from the size system.' },
+        'reduce person': { setSize: 'small',
+            changes: [{ formula: '-2', target: 'str', type: 'size' },
+                { formula: '2', target: 'dex', type: 'size' }],
+            note: 'Size attack/AC/CMB and damage-dice steps come from the size system.' },
+        'haste': { changes: [{ formula: '1', target: 'attack', type: 'untyped' },
+            { formula: '1', target: 'ac', type: 'dodge' },
+            { formula: '1', target: 'ref', type: 'dodge' }],
+            note: 'One extra attack on a full attack (add a routine line); +30 ft speed (max ×2).' },
+        'heroism': { changes: [{ formula: '2', target: 'attack', type: 'morale' },
+            { formula: '2', target: 'allSavingThrows', type: 'morale' },
+            { formula: '2', target: 'skills', type: 'morale' }] },
+        'bless': { changes: [{ formula: '1', target: 'attack', type: 'morale' }],
+            note: '+1 morale on saves vs fear as well.' },
+        'aid': { changes: [{ formula: '1', target: 'attack', type: 'morale' }],
+            note: '+1 morale on saves vs fear; 1d8+CL (max +10) temp HP — add to Temp by hand.' },
+        'divine favor': {
+            changes: [{ formula: 'min(3, max(1, floor(@cl / 3)))', target: 'attack', type: 'luck' },
+                { formula: 'min(3, max(1, floor(@cl / 3)))', target: 'damage', type: 'luck' }] },
+        'shield of faith': {
+            changes: [{ formula: 'min(5, 2 + floor(@cl / 6))', target: 'ac', type: 'deflect' }] },
+        'barkskin': {
+            changes: [{ formula: 'min(5, 2 + floor((@cl - 3) / 3))', target: 'nac', type: 'enh' }] },
+        'blur': { changes: [], note: 'Attacks against you have a 20% miss chance.' },
+        'displacement': { changes: [], note: 'Attacks against you have a 50% miss chance.' },
+    };
+
     // ------------------------------------------------------------ size categories
     // `mod` is the size modifier to attack & AC; the special size modifier (CMB/CMD) is its
     // negation. `steps` is the damage-dice progression distance from Medium.
@@ -381,6 +429,79 @@ window.SheetData = (function () {
         weaponProf: '—', armorProf: '—', alignment: 'Any', classSkills: [],
     };
 
+    // -------------------------------------------- standard spell-slot progressions (#23)
+    // The four canonical PF1 spells-per-day shapes (validated against d20pfsrd), indexed by
+    // class level 1–20; each row is per spell level 0–9, null = "—" (no slots at all — at-will
+    // cantrips for spontaneous casters, or a level the class never reaches). A 0 entry is a
+    // real row: it grants slots only via the casting-ability bonus, per PF1.
+    // Prestige progressions and oddballs (arcanist's prepared-spontaneous, medium…) are
+    // deliberately absent — no badge beats a wrong one.
+    const SPELL_SLOT_TABLES = {
+        // Wizard/cleric/druid/witch/shaman (domain & school extras are #11's restricted slots).
+        nine_prepared: [
+            [3, 1], [4, 2], [4, 2, 1], [4, 3, 2], [4, 3, 2, 1], [4, 3, 3, 2],
+            [4, 4, 3, 2, 1], [4, 4, 3, 3, 2], [4, 4, 4, 3, 2, 1], [4, 4, 4, 3, 3, 2],
+            [4, 4, 4, 4, 3, 2, 1], [4, 4, 4, 4, 3, 3, 2], [4, 4, 4, 4, 4, 3, 2, 1],
+            [4, 4, 4, 4, 4, 3, 3, 2], [4, 4, 4, 4, 4, 4, 3, 2, 1], [4, 4, 4, 4, 4, 4, 3, 3, 2],
+            [4, 4, 4, 4, 4, 4, 4, 3, 2, 1], [4, 4, 4, 4, 4, 4, 4, 3, 3, 2],
+            [4, 4, 4, 4, 4, 4, 4, 4, 3, 3], [4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+        ],
+        // Sorcerer/oracle/psychic — cantrips are at-will (null).
+        nine_spontaneous: [
+            [null, 3], [null, 4], [null, 5], [null, 6, 3], [null, 6, 4], [null, 6, 5, 3],
+            [null, 6, 6, 4], [null, 6, 6, 5, 3], [null, 6, 6, 6, 4], [null, 6, 6, 6, 5, 3],
+            [null, 6, 6, 6, 6, 4], [null, 6, 6, 6, 6, 5, 3], [null, 6, 6, 6, 6, 6, 4],
+            [null, 6, 6, 6, 6, 6, 5, 3], [null, 6, 6, 6, 6, 6, 6, 4],
+            [null, 6, 6, 6, 6, 6, 6, 5, 3], [null, 6, 6, 6, 6, 6, 6, 6, 4],
+            [null, 6, 6, 6, 6, 6, 6, 6, 5, 3], [null, 6, 6, 6, 6, 6, 6, 6, 6, 4],
+            [null, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+        ],
+        // Bard progression, shared by every 6-level caster (magus, alchemist, inquisitor…).
+        six: [
+            [null, 1], [null, 2], [null, 3], [null, 3, 1], [null, 4, 2], [null, 4, 3],
+            [null, 4, 3, 1], [null, 4, 4, 2], [null, 5, 4, 3], [null, 5, 4, 3, 1],
+            [null, 5, 4, 4, 2], [null, 5, 5, 4, 3], [null, 5, 5, 4, 3, 1],
+            [null, 5, 5, 4, 4, 2], [null, 5, 5, 5, 4, 3], [null, 5, 5, 5, 4, 3, 1],
+            [null, 5, 5, 5, 4, 4, 2], [null, 5, 5, 5, 5, 4, 3], [null, 5, 5, 5, 5, 5, 4],
+            [null, 5, 5, 5, 5, 5, 5],
+        ],
+        // Paladin/ranger/bloodrager — delayed entry at class level 4.
+        four_delayed: [
+            [], [], [], [null, 0], [null, 1], [null, 1], [null, 1, 0], [null, 1, 1],
+            [null, 2, 1], [null, 2, 1, 0], [null, 2, 1, 1], [null, 2, 2, 1],
+            [null, 3, 2, 1, 0], [null, 3, 2, 1, 1], [null, 3, 2, 2, 1], [null, 3, 3, 2, 1],
+            [null, 4, 3, 2, 1], [null, 4, 3, 2, 2], [null, 4, 3, 3, 2], [null, 4, 4, 3, 3],
+        ],
+    };
+    /** Map a CLASS_STATS `casting` string to a slot-table shape (null = no badge). */
+    function spellSlotShapeOf(castingStr) {
+        const s = String(castingStr || '').toLowerCase();
+        if (s.includes('prepared-spontaneous')) return null; // arcanist — its own table
+        if (s.includes('9th-level')) {
+            if (s.includes('prepared')) return 'nine_prepared';
+            if (s.includes('spontaneous')) return 'nine_spontaneous';
+            return null;
+        }
+        if (s.includes('6th-level')) return 'six';
+        if (s.includes('4th-level')) return 'four_delayed';
+        return null;
+    }
+    /** The standard per-day row for a shape at a class level: array per spell level 0–9
+     *  (null = no slots), or null when the shape/level is off-table. */
+    function standardSpellSlots(shape, classLevel) {
+        const table = SPELL_SLOT_TABLES[shape];
+        const lvl = Number(classLevel);
+        if (!table || !Number.isFinite(lvl) || lvl < 1) return null;
+        return table[Math.min(20, Math.floor(lvl)) - 1] || null;
+    }
+    /** PF1 bonus spells per day from the casting-ability modifier (spell levels 1–9). */
+    function abilityBonusSlots(abMod, spellLevel) {
+        const m = Number(abMod) || 0;
+        const s = Number(spellLevel) || 0;
+        if (s < 1 || s > 9 || m < s) return 0;
+        return Math.floor((m - s) / 4) + 1;
+    }
+
     // Mirrors Foundry module addingReceivedLocationToName / Feats_n_Traits prefixes.
     // labelArray → "Label: Feat"; taxDict → "Name > Child > …" (applyFeatTax).
     const FEAT_GROUPS = [
@@ -414,6 +535,8 @@ window.SheetData = (function () {
     const ALL_SKILLS = [
         { name: 'Acrobatics', ab: 'dex', id: 'acr', acp: true },
         { name: 'Appraise', ab: 'int', id: 'apr' },
+        // Unchained background-skills variant only (#21) — rows render when the toggle is on.
+        { name: 'Artistry', ab: 'int', id: 'art', variant: 'backgroundSkills' },
         { name: 'Bluff', ab: 'cha', id: 'blf' },
         { name: 'Climb', ab: 'str', id: 'clm', acp: true },
         { name: 'Craft', ab: 'int', id: 'crf' },
@@ -436,6 +559,7 @@ window.SheetData = (function () {
         { name: 'Knowledge (Planes)', ab: 'int', id: 'kpl' },
         { name: 'Knowledge (Religion)', ab: 'int', id: 'kre' },
         { name: 'Linguistics', ab: 'int', id: 'lin' },
+        { name: 'Lore', ab: 'int', id: 'lor', variant: 'backgroundSkills' },
         { name: 'Perception', ab: 'wis', id: 'per' },
         { name: 'Perform', ab: 'cha', id: 'prf' },
         { name: 'Profession', ab: 'wis', id: 'pro' },
@@ -449,10 +573,41 @@ window.SheetData = (function () {
         { name: 'Use Magic Device', ab: 'cha', id: 'umd' },
     ];
 
+    // #21 Automatic Bonus Progression (Unchained) — bonuses by character level on the
+    // single-item track (no attunement splitting; where the table offers "+X/+Y or +Z"
+    // the consolidated option is used). Levels 19–20 grant legendary gifts — manual.
+    function abpBonuses(level) {
+        const lvl = Number(level) || 0;
+        const pick = (tbl) => {
+            let v = 0;
+            for (const [at, val] of tbl) if (lvl >= at) v = val;
+            return v;
+        };
+        const attune = pick([[4, 1], [9, 2], [14, 3], [15, 4], [17, 5]]);
+        return {
+            resistance: pick([[3, 1], [8, 2], [10, 3], [13, 4], [14, 5]]),
+            armor: attune,
+            weapon: attune,
+            deflection: pick([[5, 1], [10, 2], [16, 3], [17, 4], [18, 5]]),
+            toughening: pick([[8, 1], [13, 2], [16, 3], [17, 4], [18, 5]]),
+            mental: [pick([[6, 2], [11, 4], [15, 6]]), pick([[13, 2], [18, 4]]), pick([[17, 2]])],
+            physical: [pick([[7, 2], [12, 4], [16, 6]]), pick([[13, 2], [18, 4]]), pick([[17, 2]])],
+            legendary: lvl >= 19,
+        };
+    }
+
+    // Unchained background-skills variant (#21): the skills the 2 ranks/level background
+    // budget may buy (subskill instances of these — "Craft (Weapons)" — count too).
+    const BACKGROUND_SKILL_IDS = [
+        'apr', 'art', 'crf', 'han', 'ken', 'kge', 'khi', 'kno', 'lin', 'lor', 'prf', 'pro', 'slt',
+    ];
+
     return {
         REGIONS, RACES, CLASSES, CORE_RACES, CORE_CLASSES, DEITIES,
         PF1_CONDITIONS, CONDITION_CHANGES, COMBAT_TOGGLES, TWO_HANDED_WEAPONS,
-        MARQUEE_FEATURES, SIZES, SMALL_RACES, stepDice,
-        CLASS_STATS, DEFAULT_CLASS_INFO, ALL_SKILLS, FEAT_GROUPS,
+        MARQUEE_FEATURES, SPELL_BUFFS, SIZES, SMALL_RACES, stepDice,
+        CLASS_STATS, DEFAULT_CLASS_INFO, ALL_SKILLS, BACKGROUND_SKILL_IDS, FEAT_GROUPS,
+        abpBonuses,
+        SPELL_SLOT_TABLES, spellSlotShapeOf, standardSpellSlots, abilityBonusSlots,
     };
 })();

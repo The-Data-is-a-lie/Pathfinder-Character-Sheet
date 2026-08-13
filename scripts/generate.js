@@ -216,6 +216,24 @@ window.SheetGenerate = (function () {
             for (const b of buttons) b.disabled = false;
         }
     }
+    /**
+     * #44: the guided-create wizard's exit — post the gen form's payload with the wizard's
+     * picks overriding it, adopt the result, and hand the data back for post-processing
+     * (name + chosen ability scores). Throws on HTTP failure so the wizard can show it.
+     */
+    async function generateCustom(overrides = {}) {
+        const form = document.getElementById('gen-form');
+        const payload = { ...buildPayload(form), ...overrides };
+        const resp = await fetch(backendUrl() + '/update_character_data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        await adoptCharacter(data);
+        return data;
+    }
     function loadJsonText(text) {
         try {
             const data = JSON.parse(text);
@@ -228,6 +246,7 @@ window.SheetGenerate = (function () {
 
     return {
         fillSelect, fillGroupedSelect, buildPayload, quickLevelSelect, fillQuickLevel,
-        applyQuickLevel, syncQuickLevel, applyGenPreset, surpriseMe, generate, loadJsonText,
+        applyQuickLevel, syncQuickLevel, applyGenPreset, surpriseMe, generate, generateCustom,
+        loadJsonText,
     };
 })();

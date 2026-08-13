@@ -115,6 +115,7 @@
     const { tabAttributes } = window.SheetTabAttributes;
     const { renderSkills } = window.SheetTabSkills;
     const { renderSpells } = window.SheetTabSpells;
+    const { renderPsionics } = window.SheetTabPsionics;
     const { renderSimpleSheet } = window.SheetSimple;
     const { tabSummary } = window.SheetTabSummary;
     const {
@@ -440,6 +441,7 @@
         { id: 'skills', label: 'Skills', render: (d) => renderSkills(d) },
         { id: 'path-of-war', label: 'Path of War', render: (d) => renderPathOfWar(d) || emptyState('Not an initiator — no maneuvers or stances.') },
         { id: 'spells', label: 'Spells', render: (d) => renderSpells(d) },
+        { id: 'psionics', label: 'Psionics', render: (d) => renderPsionics(d) || emptyState('Not a manifester — no powers, power points or mind blade.') },
         { id: 'buffs', label: 'Buffs', render: (d) => renderModifiers(d) },
         { id: 'companions', label: 'Companions', render: (d) => renderCompanions(d) },
         { id: 'biography', label: 'Biography', render: (d) => renderBiographyVitals(d) },
@@ -528,6 +530,10 @@
         // Seed the Inherent / Level-up / Racial columns from the generator before any ability math.
         seedBackendStatBonuses(data);
         seedRacialColumn(data);
+        // Seed generated bonded creatures into the user-owned companions array. Own flag, exactly as
+        // the two above, and ABOVE the simple-view early return so the fill happens in both view
+        // modes and on loadCharacter() as well as on a fresh generation.
+        window.SheetTabCompanions?.seedCompanions?.(data);
 
         if (viewMode() === 'simple') {
             sheet.appendChild(renderSimpleSheet(data));
@@ -726,6 +732,9 @@
             form.elements[name].addEventListener('change', () => syncQuickLevel(form));
         }
         document.getElementById('gen-surprise')?.addEventListener('click', () => surpriseMe(form));
+        // #44: the guided-create wizard (concept → abilities → generate → finish checklist).
+        document.getElementById('gen-guided')?.addEventListener('click',
+            () => window.SheetCreate?.open());
         document.querySelectorAll('.gen-preset').forEach((btn) => {
             btn.addEventListener('click', () => applyGenPreset(form, btn.dataset.preset));
         });

@@ -400,6 +400,12 @@ window.SheetRoll = (function () {
             });
         }
 
+        // #45: a buff spell auto-creates/refreshes its Buffs-tab entry — every cast path
+        // (book cast, spontaneous conversion, wand/consumable Use) funnels through here.
+        const buffNote = autoApplySpellBuff(data, opts.baseSpellName || name, sd,
+            { cl, level, mm });
+        if (buffNote) riders.push({ source: 'Buff', text: buffNote });
+
         // If nothing mechanical rolled, still log a "cast" card with riders
         pushRollCard({
             title: name,
@@ -416,6 +422,102 @@ window.SheetRoll = (function () {
             // to read what the spell does right after casting.
             descHtml: opts.descHtml || '',
         });
+    }
+
+    /**
+     * #45: casting a buff spell auto-creates (or refreshes) its Buffs-tab entry. Data
+     * feed, in priority order: a buff-shaped `spell_changes_dict` entry (backend curation
+     * wins; `tagBuff` ally grants are never self-applied, per the standing rule) → the
+     * client SheetData.SPELL_BUFFS table → nothing (no buff, no guess). Change formulas
+     * resolve at cast time (@cl at this cast's CL): buff strength is fixed when cast, and
+     * the always-on ledger sums plain integers. Recasting matches on `autoKey` and
+     * refreshes the entry instead of stacking (PF1 same-source bonuses don't stack).
+     * Returns the roll-card rider text, or null when the spell isn't a known buff.
+     */
+    function autoApplySpellBuff(data, spellName, sd, { cl, level, mm } = {}) {
+        if (!data || !window.SheetState?.ensureBuffs) return null;
+        const lower = String(spellName || '').trim().toLowerCase();
+        if (!lower) return null;
+        let src = null;
+        for (const [k, entry] of Object.entries(data.spell_changes_dict || {})) {
+            if (String(k).toLowerCase() !== lower || !entry) continue;
+            if (entry.tagBuff) return null;
+            if (Array.isArray(entry.changes) && entry.changes.length) {
+                src = { changes: entry.changes, setSize: '', note: '' };
+            }
+            break;
+        }
+        if (!src) {
+            const t = window.SheetData?.SPELL_BUFFS?.[lower];
+            if (t) src = { changes: t.changes || [], setSize: t.setSize || '', note: t.note || '' };
+        }
+        if (!src) return null;
+
+        const clN = Math.max(1, Number(cl) || 1);
+        const changes = [];
+        for (const c of src.changes) {
+            if (!c?.formula || !c.target) continue;
+            const ev = window.SheetFormula?.evaluate?.(String(c.formula), data, { cl: clN });
+            changes.push({
+                formula: ev?.ok && Number.isFinite(ev.value)
+                    ? String(ev.value) : String(c.formula),
+                target: c.target,
+                type: c.type || 'untyped',
+            });
+        }
+
+        // Duration from the spell's own action data; Extend Spell doubles it. Unmapped
+        // units (spec / perm / seeText) → infinite, with the raw text kept in the notes.
+        const act = (sd?.actions && sd.actions[0]) || {};
+        const dRaw = act.duration || {};
+        const unitMap = { round: 'round', turn: 'round', minute: 'minute', hour: 'hour', day: 'day' };
+        const u = unitMap[String(dRaw.units || '')] || '';
+        let duration = { value: '', units: '' };
+        let durText = '';
+        if (u) {
+            const ev = window.SheetFormula?.evaluate?.(String(dRaw.value ?? ''), data, { cl: clN });
+            let n = ev?.ok && Number.isFinite(ev.value) ? Math.max(0, Math.floor(ev.value)) : 0;
+            if (n > 0) {
+                if (mm?.names?.includes('Extend Spell')) n *= 2;
+                duration = u === 'day'
+                    ? { value: String(n * 24), units: 'hour' }
+                    : { value: String(n), units: u };
+                durText = `${n} ${u}${n === 1 ? '' : 's'}`;
+            }
+        }
+        if (!durText && dRaw.value) durText = String(dRaw.value);
+
+        const noteBits = [
+            src.note,
+            !duration.units && durText ? 'Duration: ' + durText : '',
+            `Auto-applied on cast · CL ${clN}`,
+        ].filter(Boolean);
+        const buffs = window.SheetState.ensureBuffs(data);
+        const key = 'spell:' + lower;
+        let b = buffs.find((x) => x && x.autoKey === key);
+        const refreshed = !!b;
+        if (b) {
+            b.active = true;
+            b.duration = duration;
+            b.changes = changes;
+            b.setSize = src.setSize || '';
+            b.notes = noteBits.join(' · ');
+        } else {
+            b = window.SheetState.normalizeBuffEntry({
+                name: spellName, subType: 'spell', active: true,
+                level: Number(level) || 0,
+                duration, changes, setSize: src.setSize || '',
+                notes: noteBits.join(' · '),
+                autoKey: key,
+            });
+            buffs.push(b);
+        }
+        window.SheetApp?.quietSave?.();
+        if (window.SheetApp?.current === data) window.SheetApp?.renderSheet?.(data);
+        const msg = `${b.name} buff ${refreshed ? 'refreshed' : 'active'}`
+            + (durText ? ` — ${durText}` : '');
+        window.SheetOverlay?.toast?.(`${msg} · Buffs tab to dismiss`);
+        return msg;
     }
 
     // ---------------------------------------------------------------- character attack math
@@ -612,7 +714,7 @@ window.SheetRoll = (function () {
      */
     function attackContext(data, itemKey) {
         if (!data || data.error) return null;
-        const bab = Number(data.bab_total) || 0;
+        const bab = window.SheetDerive?.babTotal?.(data) ?? (Number(data.bab_total) || 0);
         const strM = abilityMod(data, 'str');
         const dexM = abilityMod(data, 'dex');
         const key = itemKey !== undefined ? itemKey : activeWeaponItemKey(data);
@@ -1076,15 +1178,24 @@ window.SheetRoll = (function () {
             u.max = n;
             u.value = n;
         }
+        // #25: readouts and spends follow a charge link when one is set.
+        const pool = window.SheetState.resolveChargePool?.(
+            data, { kind: 'feature', name: t.uses.name || t.name });
+        const via = pool?.linked ? ` (via ${pool.label})` : '';
         if (t.timed) {
-            toast(u.value > 0
-                ? `${t.name}: ${u.value}/${u.max} rounds — spends on Next round`
+            const v = pool?.linked ? pool.value : u.value;
+            const m = pool?.linked ? pool.max : u.max;
+            toast(v > 0
+                ? `${t.name}: ${v}/${m} rounds${via} — spends on Next round`
                 : `${t.name}: out of ${t.uses.name || t.name} rounds! (running on empty)`);
-        } else if (u.value <= 0) {
-            toast(`${t.name}: out of uses! (0/${u.max} — spending anyway)`);
         } else {
-            u.value -= 1;
-            toast(`${t.name}: ${u.value}/${u.max} uses left`);
+            const spent = window.SheetState.spendPooledUse?.(
+                data, { kind: 'feature', name: t.uses.name || t.name }, 1);
+            if (spent && !spent.ok) {
+                toast(`${t.name}: out of uses! (0/${spent.max}${via} — spending anyway)`);
+            } else if (spent) {
+                toast(`${t.name}: ${spent.left}/${spent.max} uses left${via}`);
+            }
         }
         window.SheetState.quietSave?.();
     }
@@ -1559,12 +1670,56 @@ window.SheetRoll = (function () {
         return block;
     }
 
+    /** #21 wounds & vigor pools: vigor = HP total minus its Con term, wounds = 2 × Con
+     *  score (threshold = Con score). Mirrors the Summary boxes' math. */
+    function wvPools() {
+        const level = Number(currentData.level) || 0;
+        const conM = Number(window.SheetDerive?.abModOf?.(currentData, 'con')) || 0;
+        const conScore = window.SheetDerive?.abilityInfo?.(currentData, 'con')?.total ?? 10;
+        return {
+            vigorMax: Math.max(0, (Number(currentData.Total_HP) || 0) - conM * level),
+            woundsMax: 2 * conScore,
+            threshold: conScore,
+        };
+    }
+    /** Wounds & vigor damage routing: temp absorbs first (lethal), then vigor; the
+     *  lethal remainder hits wounds (floor 0). Nonlethal drains vigor only. */
+    function applyDamageWoundsVigor(st, n, nonlethal) {
+        const { vigorMax, woundsMax, threshold } = wvPools();
+        let vigor = st.vigorCurrent == null || st.vigorCurrent === ''
+            ? vigorMax : Number(st.vigorCurrent) || 0;
+        let wounds = st.woundsCurrent == null || st.woundsCurrent === ''
+            ? woundsMax : Number(st.woundsCurrent) || 0;
+        let rest = n;
+        const temp = Number(st.hpTemp) || 0;
+        if (!nonlethal && temp > 0) {
+            const used = Math.min(temp, rest);
+            st.hpTemp = temp - used;
+            rest -= used;
+        }
+        const fromVigor = Math.min(Math.max(0, vigor), rest);
+        vigor -= fromVigor;
+        rest -= fromVigor;
+        if (!nonlethal && rest > 0) wounds = Math.max(0, wounds - rest);
+        st.vigorCurrent = vigor;
+        st.woundsCurrent = wounds;
+        window.SheetOverlay?.toast?.(
+            `${n}${nonlethal ? ' nonlethal' : ''} damage — Vigor ${vigor}/${vigorMax}, `
+            + `Wounds ${wounds}/${woundsMax}`
+            + (wounds <= 0 ? ' · dying!' : (wounds <= threshold ? ' · wounded!' : '')));
+        window.SheetApp?.quietSave?.();
+        window.SheetApp?.renderSheet?.(currentData);
+    }
+
     /** Apply rolled damage to the loaded character's HP. Temp HP absorbs first (lethal);
      *  nonlethal accumulates in its own pool. hpCurrent seeds from max on first touch. */
     function applyDamageToHp(amount, { nonlethal = false } = {}) {
         const n = Math.max(0, Math.floor(Number(amount) || 0));
         if (!currentData || !n) return;
         const st = (currentData._sheet ??= {});
+        if (window.SheetState?.variantRuleOn?.(currentData, 'woundsVigor')) {
+            return applyDamageWoundsVigor(st, n, nonlethal);
+        }
         const max = Number(currentData.Total_HP) || 0;
         if (nonlethal) {
             st.hpNonlethal = (Number(st.hpNonlethal) || 0) + n;
@@ -1595,6 +1750,24 @@ window.SheetRoll = (function () {
         const n = Math.max(0, Math.floor(Number(amount) || 0));
         if (!currentData || !n) return null;
         const st = (currentData._sheet ??= {});
+        if (window.SheetState?.variantRuleOn?.(currentData, 'woundsVigor')) {
+            // Wounds first, then vigor (simplified from the variant's per-source rules).
+            const { vigorMax, woundsMax } = wvPools();
+            const wounds = st.woundsCurrent == null || st.woundsCurrent === ''
+                ? woundsMax : Number(st.woundsCurrent) || 0;
+            const vigor = st.vigorCurrent == null || st.vigorCurrent === ''
+                ? vigorMax : Number(st.vigorCurrent) || 0;
+            const toWounds = Math.max(0, Math.min(n, woundsMax - wounds));
+            const toVigor = Math.max(0, Math.min(n - toWounds, vigorMax - vigor));
+            st.woundsCurrent = wounds + toWounds;
+            st.vigorCurrent = vigor + toVigor;
+            window.SheetOverlay?.toast?.(
+                `Healed ${toWounds + toVigor} — Vigor ${st.vigorCurrent}/${vigorMax}, `
+                + `Wounds ${st.woundsCurrent}/${woundsMax}`);
+            window.SheetApp?.quietSave?.();
+            window.SheetApp?.renderSheet?.(currentData);
+            return { healed: toWounds + toVigor, nlHealed: 0, over: n - toWounds - toVigor };
+        }
         const max = Number(currentData.Total_HP) || 0;
         const cur = st.hpCurrent == null || st.hpCurrent === ''
             ? max : Number(st.hpCurrent) || 0;

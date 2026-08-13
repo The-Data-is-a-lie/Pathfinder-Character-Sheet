@@ -320,6 +320,9 @@ window.SheetState = (function () {
             // weapon (same scoping enhancement qualities use).
             activation: b.activation === 'perRoll' ? 'perRoll' : 'always',
             itemKey: typeof b.itemKey === 'string' ? b.itemKey : '',
+            // #45: set on buffs auto-created by a spell cast ('spell:<name lowercased>').
+            // Recasting matches on it and refreshes instead of stacking a duplicate.
+            autoKey: typeof b.autoKey === 'string' ? b.autoKey : '',
         };
     }
     /**
@@ -346,6 +349,90 @@ window.SheetState = (function () {
         st.featureUses ??= {};
         if (!st.featureUses[name]) st.featureUses[name] = { value: 0, max: 0 };
         return st.featureUses[name];
+    }
+
+    // ------------------------------------------------------------ charge-linking (#25)
+    // A spender (inventory item or feature-uses entry) may carry `chargeSource`:
+    // {kind:'item', id} | {kind:'feature', name}. Spends follow the chain to the terminal
+    // pool owner; a broken link falls back to the spender's own pool (warn, never block).
+    /** Every linkable pool: charged items + feature pools with a max. */
+    function chargePoolOptions(data, exclude = null) {
+        const out = [];
+        for (const it of (Array.isArray(data?.equipment_list) ? data.equipment_list : [])) {
+            if (!it || typeof it !== 'object') continue;
+            const ch = it.charges;
+            if (!ch || (ch.value == null && ch.max == null)) continue;
+            if (exclude?.kind === 'item' && exclude.id === it.id) continue;
+            out.push({ ref: { kind: 'item', id: it.id }, label: it.name || 'Item' });
+        }
+        for (const [name, u] of Object.entries(data?._sheet?.featureUses || {})) {
+            if (!u || !(Number(u.max) > 0)) continue;
+            if (exclude?.kind === 'feature' && exclude.name === name) continue;
+            out.push({ ref: { kind: 'feature', name }, label: name });
+        }
+        return out;
+    }
+    /** The pool a ref points AT (no chain-following). Null when the target is gone. */
+    function poolAt(data, ref) {
+        if (!ref || typeof ref !== 'object') return null;
+        if (ref.kind === 'item') {
+            const it = (data?.equipment_list || []).find(
+                (x) => x && typeof x === 'object' && x.id === ref.id);
+            if (!it) return null;
+            it.charges = it.charges && typeof it.charges === 'object' ? it.charges : {};
+            return {
+                kind: 'item', item: it, label: it.name || 'Item',
+                get value() { return Number(it.charges.value) || 0; },
+                set value(v) { it.charges.value = Math.max(0, v); },
+                get max() { return Number(it.charges.max) || 0; },
+                source: it.chargeSource,
+            };
+        }
+        if (ref.kind === 'feature') {
+            if (!data?._sheet?.featureUses?.[ref.name]) return null;
+            const u = featureUses(data, ref.name);
+            return {
+                kind: 'feature', entry: u, label: ref.name,
+                get value() { return Number(u.value) || 0; },
+                set value(v) { u.value = Math.max(0, v); },
+                get max() { return Number(u.max) || 0; },
+                source: u.chargeSource,
+            };
+        }
+        return null;
+    }
+    /**
+     * Terminal pool owner for a spender ref — follows chargeSource links (depth ≤ 4,
+     * cycle-safe). `linked` is true when the result is a different pool than the
+     * spender's own. Returns null only when even the spender's own pool is gone.
+     */
+    function resolveChargePool(data, ref) {
+        const seen = new Set();
+        let cur = poolAt(data, ref);
+        let curRef = ref;
+        let linked = false;
+        for (let i = 0; i < 4 && cur; i++) {
+            const key = curRef.kind + ':' + (curRef.id || curRef.name);
+            if (seen.has(key)) break;
+            seen.add(key);
+            const nextRef = cur.source;
+            if (!nextRef) break;
+            const next = poolAt(data, nextRef);
+            if (!next) break; // broken link → stop at the last live pool
+            cur = next;
+            curRef = nextRef;
+            linked = true;
+        }
+        if (cur) cur.linked = linked;
+        return cur;
+    }
+    /** Spend n from the spender's terminal pool. Never blocks — `ok:false` = ran dry. */
+    function spendPooledUse(data, ref, n = 1) {
+        const pool = resolveChargePool(data, ref);
+        if (!pool) return null;
+        const ok = pool.value >= n;
+        pool.value = Math.max(0, pool.value - n);
+        return { ok, left: pool.value, max: pool.max, label: pool.label, linked: pool.linked };
     }
 
     /**
@@ -407,9 +494,11 @@ window.SheetState = (function () {
         // applies fatigued (PF1: for 2× rounds raged; the duration stays a chip note).
         for (const t of window.SheetData?.MARQUEE_FEATURES || []) {
             if (!t.timed || !prefs[t.id]) continue;
-            const u = featureUses(data, t.uses?.name || t.name);
-            u.value = Math.max(0, (Number(u.value) || 0) - 1);
-            if (u.value <= 0) {
+            const uname = t.uses?.name || t.name;
+            featureUses(data, uname); // ensure the entry exists for the resolver
+            // #25: the burn follows a charge link when one is set (pool owner pays).
+            const spent = spendPooledUse(data, { kind: 'feature', name: uname }, 1);
+            if (!spent || spent.left <= 0) {
                 prefs[t.id] = false;
                 let label = t.name;
                 if (t.endCondition) {
@@ -609,6 +698,22 @@ window.SheetState = (function () {
         return st.defenses;
     }
 
+    /** #21 variant rules — per-character opt-in toggles. House rules are campaign
+     *  properties, so they live on _sheet (travel in the one-JSON export), not in
+     *  localStorage. All default OFF: an existing character must not shift by a point. */
+    function ensureVariantRules(data) {
+        const st = sheetState(data);
+        st.variantRules ??= {};
+        const vr = st.variantRules;
+        vr.woundsVigor ??= false;
+        vr.backgroundSkills ??= false;
+        vr.fractionalBases ??= false;
+        vr.abp ??= false;
+        vr.abpChoices ??= {};
+        return vr;
+    }
+    const variantRuleOn = (data, key) => Boolean(data?._sheet?.variantRules?.[key]);
+
     return {
         sheetState, quietSave, refreshDerived, seedBackendStatBonuses, seedRacialColumn,
         disabledBuffSet, buffSourceKey, removedBuffSet, isBuffSourceActive, isBuffSourceRemoved,
@@ -616,9 +721,11 @@ window.SheetState = (function () {
         setStanceActive, activeConditions, setConditionActive, notesForTargets, attachNotesHover,
         featureCustomList, featureCustomEntry, pruneFeatureCustom, ensureBuffs, normalizeBuffEntry,
         formatBuffDuration, advanceRound, resetRoundCounter, featureUses, ensureActionEconomy,
+        chargePoolOptions, resolveChargePool, spendPooledUse,
         createBuff, addBuffFromCatalog, ensureSpellCasts, spendSpellSlot,
         ensureCastingAbility, ensureInitiationStat, ensureInventoryObjects, ensureDefenses,
         ensureClassList, syncLegacyClasses, ensureArchetypeList, ensureSkillRanksObject,
+        ensureVariantRules, variantRuleOn,
         BUFF_SUBTYPES, BUFF_DURATION_UNITS,
     };
 })();

@@ -414,6 +414,129 @@ window.SheetModals = (function () {
         quietSave();
         return item;
     }
+
+    /**
+     * #26: build a wand / scroll / potion from a catalog spell. Pricing is PF1 RAW —
+     * potion L×CL×50 gp, scroll L×CL×25 gp, wand L×CL×750 gp with 50 charges; a 0-level
+     * spell counts as ½; crafted = half market. Save DC uses the minimum-caster
+     * convention (10 + L + ⌊L/2⌋). The item carries `spellItem` {name, level, cl, dc} so
+     * the item sheet's Use button casts at the item's own CL. A potion above 3rd level
+     * warns, never blocks (house philosophy).
+     */
+    const CONSUMABLE_TYPES = {
+        wand: { label: 'Wand', mult: 750 },
+        scroll: { label: 'Scroll', mult: 25 },
+        potion: { label: 'Potion', mult: 50 },
+    };
+    function openSpellConsumableBuilder(data, spellName, onDone) {
+        const sd = window.SheetDetails?.lookup?.('spells', spellName);
+        const display = sd?.name || spellName;
+        const learned = sd?.learnedAt && typeof sd.learnedAt === 'object'
+            ? Object.values(sd.learnedAt).map(Number).filter(Number.isFinite) : [];
+        const defLevel = learned.length ? Math.min(...learned) : 1;
+
+        const body = h('div', 'mm-picker');
+        body.appendChild(h('p', 'dim',
+            `Build a consumable that casts ${display}. Price and DC follow the PF1 tables; every field stays editable.`));
+        const mkRow = (label, ctrl) => {
+            const r = h('label', 'mm-row');
+            r.append(h('span', 'mm-name', label), ctrl);
+            return r;
+        };
+        const typeSel = h('select', 'edit-field');
+        for (const [id, t] of Object.entries(CONSUMABLE_TYPES)) {
+            const opt = document.createElement('option');
+            opt.value = id;
+            opt.textContent = t.label;
+            typeSel.appendChild(opt);
+        }
+        const num = (val, min, max) => {
+            const inp = h('input', 'item-sheet-num');
+            inp.type = 'number';
+            inp.min = String(min);
+            if (max != null) inp.max = String(max);
+            inp.value = String(val);
+            return inp;
+        };
+        const levelIn = num(defLevel, 0, 9);
+        const clIn = num(Math.max(1, defLevel * 2 - 1), 1, 20);
+        const qtyIn = num(1, 1);
+        const craftedCb = h('input');
+        craftedCb.type = 'checkbox';
+        body.append(mkRow('Type', typeSel), mkRow('Spell level', levelIn),
+            mkRow('Caster level', clIn), mkRow('Quantity', qtyIn),
+            mkRow('Crafted (half price)', craftedCb));
+        const priceLine = h('p', 'mm-summary');
+        const warnLine = h('p', 'dim');
+        body.append(priceLine, warnLine);
+
+        const readState = () => {
+            const type = CONSUMABLE_TYPES[typeSel.value] ? typeSel.value : 'wand';
+            const level = Math.max(0, Math.min(9, parseIntLoose(levelIn.value, defLevel)));
+            const cl = Math.max(1, parseIntLoose(clIn.value, 1));
+            const qty = Math.max(1, parseIntLoose(qtyIn.value, 1));
+            const effL = level === 0 ? 0.5 : level;
+            const market = CONSUMABLE_TYPES[type].mult * effL * cl;
+            const price = craftedCb.checked ? market / 2 : market;
+            const dc = 10 + level + Math.floor(level / 2);
+            return { type, level, cl, qty, price, dc };
+        };
+        const sync = () => {
+            const s = readState();
+            priceLine.textContent = `${s.price} gp each`
+                + (s.type === 'wand' ? ' (50 charges)' : '')
+                + ` · save DC ${s.dc}`;
+            warnLine.textContent = s.type === 'potion' && s.level > 3
+                ? 'Heads up: potions top out at 3rd-level spells in PF1 — above that is house-rule territory.'
+                : (s.cl < Math.max(1, s.level * 2 - 1)
+                    ? `Heads up: CL ${s.cl} is below the minimum to cast a level-${s.level} spell.` : '');
+        };
+        [typeSel, levelIn, clIn, qtyIn, craftedCb].forEach((el) => {
+            el.addEventListener('change', sync);
+            el.addEventListener('input', sync);
+        });
+        sync();
+
+        const createBtn = h('button', 'inv-btn inv-btn-primary', 'Create');
+        createBtn.type = 'button';
+        let handle = null;
+        createBtn.addEventListener('click', () => {
+            const s = readState();
+            ensureInventoryObjects(data);
+            const name = `${CONSUMABLE_TYPES[s.type].label} of ${display}`;
+            const item = {
+                id: 'eq:spell-item-' + Date.now(),
+                name,
+                equipped: false,
+                carried: true,
+                identified: true,
+                quantity: s.qty,
+                weight: null,
+                price: s.price,
+                description: `<p><em>Casts ${display} at CL ${s.cl} (save DC ${s.dc}).</em></p>`
+                    + (sd?.description || ''),
+                changes: [],
+                contextNotes: [],
+                changesCustomized: false,
+                subType: s.type,
+                slot: '',
+                itemType: 'consumable',
+                containerId: null,
+                spellItem: { name: display, level: s.level, cl: s.cl, dc: s.dc },
+            };
+            if (s.type === 'wand') item.charges = { value: 50, max: 50 };
+            data.equipment_list.push(item);
+            quietSave();
+            handle?.close();
+            window.SheetOverlay?.toast?.(`${name} added to inventory (${s.price} gp each)`);
+            onDone?.(item);
+        });
+        handle = window.SheetOverlay.open({
+            title: `Consumable from spell — ${display}`,
+            body,
+            footer: [createBtn],
+        });
+    }
     /** Attack targets are the only ones where the initial roll and the crit confirm differ. */
     function isAttackishTarget(t) {
         const s = String(t || '').toLowerCase();
@@ -520,6 +643,17 @@ window.SheetModals = (function () {
                     opts.onBlank();
                 });
                 customRow.appendChild(blankBtn);
+            }
+            // #26: consumables can be authored from a catalog spell (wand/scroll/potion).
+            if (opts.onFromSpell) {
+                const spellBtn = h('button', 'inv-btn', 'From spell…');
+                spellBtn.type = 'button';
+                spellBtn.title = 'Build a wand, scroll or potion from a catalog spell';
+                spellBtn.addEventListener('click', () => {
+                    close();
+                    opts.onFromSpell();
+                });
+                customRow.appendChild(spellBtn);
             }
             card.appendChild(customRow);
         }
@@ -893,38 +1027,110 @@ window.SheetModals = (function () {
             });
             const useBtn = h('button', 'inv-btn item-use-btn no-print', 'Use');
             useBtn.type = 'button';
-            useBtn.title = 'Spend one charge; casts the linked spell when the name matches one';
+            useBtn.title = 'Spend one charge (or one of the stack); casts the linked spell';
             useBtn.addEventListener('click', () => {
-                const left = Number(item.charges.value);
-                if (!Number.isFinite(left) || left <= 0) {
+                // #26: builder-made items carry their casting facts; charge pools spend a
+                // charge, chargeless spell items (scrolls, potions) consume 1 quantity.
+                const si = item.spellItem && typeof item.spellItem === 'object'
+                    ? item.spellItem : null;
+                const hasCharges = item.charges.value != null || item.charges.max != null;
+                // #25: a charge link redirects the spend to the pool owner.
+                const linkPool = item.chargeSource
+                    ? window.SheetState?.resolveChargePool?.(data, { kind: 'item', id: item.id })
+                    : null;
+                let leftTxt;
+                if (linkPool?.linked) {
+                    if (linkPool.value <= 0) {
+                        alert(`No charges left in ${linkPool.label}.`);
+                        return;
+                    }
+                    linkPool.value -= 1;
+                    leftTxt = `${linkPool.value} left in ${linkPool.label}`;
+                } else if (hasCharges) {
+                    const left = Number(item.charges.value);
+                    if (!Number.isFinite(left) || left <= 0) {
+                        alert('No charges left — set Charges first.');
+                        return;
+                    }
+                    item.charges.value = left - 1;
+                    chIn.value = String(item.charges.value);
+                    leftTxt = `${item.charges.value} charges left`;
+                } else if (si) {
+                    const q = Number(item.quantity) || 0;
+                    if (q <= 0) {
+                        alert('None left — quantity is 0.');
+                        return;
+                    }
+                    item.quantity = q - 1;
+                    leftTxt = `${item.quantity} left`;
+                } else {
                     alert('No charges left — set Charges first.');
                     return;
                 }
-                item.charges.value = left - 1;
-                chIn.value = String(item.charges.value);
                 quietSave();
                 const guess = String(item.name || '')
                     .replace(/\s*\[[^\]]+\]\s*$/, '')
                     .replace(/^(wand|staff|scroll|potion|rod)\s+of\s+/i, '').trim();
-                const sd = window.SheetDetails?.lookup?.('spells', guess);
+                const spellName = si?.name || guess;
+                const sd = window.SheetDetails?.lookup?.('spells', spellName);
                 window.SheetRoll?.setOpen?.(true);
                 if (sd && window.SheetRoll?.rollSpellCast) {
+                    const lvl = Number(si?.level) || 1;
+                    const cl = Number(si?.cl) || 1;
                     window.SheetRoll.rollSpellCast({
-                        name: `${item.name} (${item.charges.value} charges left)`,
-                        level: 1, data, spellData: sd,
+                        name: `${item.name} (${leftTxt})`,
+                        // #45: the auto-buff hook needs the bare spell name, not the
+                        // decorated wand title.
+                        baseSpellName: spellName,
+                        level: lvl, data, spellData: sd,
                         castingAbility: 'int', castingMod: 0,
-                        casterLevel: 1, saveDC: 11, concentration: 1,
-                        bab: Number(data.bab_total) || 0,
+                        casterLevel: cl,
+                        saveDC: si?.dc != null ? Number(si.dc) : 10 + lvl,
+                        concentration: cl,
+                        bab: window.SheetDerive?.babTotal?.(data) ?? (Number(data.bab_total) || 0),
                     });
                 } else {
                     window.SheetRoll?.rollAndLog?.('d1',
-                        `${item.name}: charge spent (${item.charges.value} left)`);
+                        `${item.name}: 1 spent (${leftTxt})`);
                 }
-                window.SheetOverlay?.toast?.(`${item.name}: ${item.charges.value} charges left`);
+                window.SheetOverlay?.toast?.(`${item.name}: ${leftTxt}`);
             });
             chPair.append(chIn, h('span', 'item-sheet-hp-sep', '/'), chMaxIn, useBtn);
             chRow.appendChild(chPair);
             side.appendChild(chRow);
+
+            // #25: charge-linking — this item can draw its spends from another pool
+            // (a wand, a per-day item, a feature's uses). Use then debits that owner.
+            const pools = window.SheetState?.chargePoolOptions?.(
+                data, { kind: 'item', id: item.id }) || [];
+            if (pools.length || item.chargeSource) {
+                const linkRow = h('div', 'item-sheet-stat');
+                linkRow.appendChild(h('span', 'item-sheet-stat-label', 'Draws from'));
+                const sel = h('select', 'item-sheet-num item-sheet-container');
+                sel.title = 'Use spends from this pool instead of the item’s own charges';
+                const refKey = (r) => r ? `${r.kind}:${r.id || r.name}` : '';
+                const none = document.createElement('option');
+                none.value = '';
+                none.textContent = '— own charges —';
+                sel.appendChild(none);
+                for (const p of pools) {
+                    const opt = document.createElement('option');
+                    opt.value = refKey(p.ref);
+                    opt.textContent = p.label;
+                    sel.appendChild(opt);
+                }
+                sel.value = refKey(item.chargeSource);
+                if (sel.value !== refKey(item.chargeSource)) sel.value = ''; // stale link
+                sel.addEventListener('change', () => {
+                    const [kind, ...rest] = sel.value.split(':');
+                    const tail = rest.join(':');
+                    item.chargeSource = !sel.value ? null
+                        : (kind === 'item' ? { kind, id: tail } : { kind, name: tail });
+                    quietSave();
+                });
+                linkRow.appendChild(sel);
+                side.appendChild(linkRow);
+            }
         }
 
         const checks = h('div', 'item-sheet-checks');
@@ -1606,5 +1812,6 @@ window.SheetModals = (function () {
         openPortraitLightbox, openPowModifierEditor, openFeatureBuffMenu, buildItemBuffsPanel,
         sectionCatalogToolbar, prettyTypeWord, formatChangeLine, parseEnhancements,
         enhancementDescHtml, enhancementEffectHtml, addBlankInventoryItem, processPortraitFile,
+        openSpellConsumableBuilder,
     };
 })();

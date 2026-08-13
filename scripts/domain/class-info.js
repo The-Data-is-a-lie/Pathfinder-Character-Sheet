@@ -163,7 +163,7 @@ window.SheetClassInfo = (function () {
             total += levelSum;
             parts.push(`Human +1 × ${levelSum}`);
         }
-        return { total, parts };
+        return { total, parts, levelSum };
     }
 
     return {

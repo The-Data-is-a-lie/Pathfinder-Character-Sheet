@@ -313,6 +313,52 @@ window.SheetLevelUp = (function () {
         clsSel.addEventListener('change', syncSpellsRow);
         body.appendChild(spellsRow);
 
+        // --- class features gained at the new level (#24). Compendium suggestions from
+        // the "at Nth level" description markers — preselected, untickable; choice pools
+        // (rage powers, hexes…) have no marker and stay Browse-only by design.
+        let featurePicks = []; // { name, on }
+        const ownsFeature = (name) => (Array.isArray(data.class_ability) ? data.class_ability : [])
+            .some((x) => String(x).toLowerCase().includes(String(name).toLowerCase()));
+        const featuresBox = h('div', 'levelup-row levelup-features');
+        const featuresLabel = h('span', 'levelup-label', 'Class features');
+        const featuresList = h('span', 'levelup-features-list');
+        featuresBox.append(featuresLabel, featuresList);
+        body.appendChild(featuresBox);
+        const refreshFeatures = () => {
+            const { clsName, newLvl } = pendingDiff();
+            const found = (window.SheetDetails?.classFeaturesAtLevel?.(clsName, newLvl) || [])
+                .filter((e) => !ownsFeature(e.name));
+            // The measured core progression runs 0–4 features per level; a bigger crop
+            // means pool leakage (wizard school powers, domain auras) — offer those
+            // unchecked so a misparse costs a tick, not an untick-hunt.
+            const pool = found.length > 4;
+            featurePicks = found.map((e) => ({ name: e.name, on: !pool }));
+            featuresList.innerHTML = '';
+            if (!featurePicks.length) {
+                featuresList.appendChild(h('span', 'dim',
+                    `none marked for ${clsName} ${newLvl} — choice pools (rage powers, `
+                    + 'hexes…) are added via Browse on the Features tab'));
+            } else if (pool) {
+                featuresList.appendChild(h('span', 'dim',
+                    `${found.length} parsed — reads like a choice pool; `
+                    + 'tick only what your build actually grants: '));
+            }
+            for (const pick of featurePicks) {
+                const lab = h('label', 'levelup-feature-pick');
+                const cb = h('input');
+                cb.type = 'checkbox';
+                cb.checked = pick.on;
+                cb.addEventListener('change', () => {
+                    pick.on = cb.checked;
+                    updateSummary();
+                });
+                lab.append(cb, h('span', null, pick.name));
+                featuresList.appendChild(lab);
+            }
+            updateSummary();
+        };
+        clsSel.addEventListener('change', refreshFeatures);
+
         // --- live diff summary
         const summary = h('ul', 'levelup-summary');
         body.appendChild(h('h4', null, 'Will apply'));
@@ -360,11 +406,16 @@ window.SheetLevelUp = (function () {
             if (spellPicks.length) {
                 li('Spells known: + ' + spellPicks.map((s) => `${s.name} (L${s.level})`).join(', '));
             }
+            const featsOn = featurePicks.filter((f) => f.on);
+            if (featsOn.length) {
+                li('Class features: + ' + featsOn.map((f) => f.name).join(', '));
+            }
             if (String(p.info.casting || '—') !== '—' && p.info.casting !== 'None') {
                 li('Caster: update slots on the Spells tab (per-day table is editable)');
             }
         }
         updateSummary();
+        refreshFeatures();
 
         const applyBtn = h('button', 'inv-btn inv-btn-primary', `Apply level ${totalNext}`);
         applyBtn.type = 'button';
@@ -418,6 +469,14 @@ window.SheetLevelUp = (function () {
             for (const [key, n] of Object.entries(pendingRanks)) {
                 if (n > 0) rankMap[key] = (Number(rankMap[key]) || 0) + n;
             }
+            // Class features gained (#24) — the same class_ability shape the Features
+            // tab's Browse add writes, so curated changes apply immediately.
+            const featsOn = featurePicks.filter((f) => f.on && !ownsFeature(f.name));
+            if (featsOn.length) {
+                if (!Array.isArray(data.class_ability)) data.class_ability = [];
+                const clsSuffix = String(p.clsName).toLowerCase().replace(/\s+/g, '');
+                for (const f of featsOn) data.class_ability.push(f.name + '_' + clsSuffix);
+            }
             // Spells known (spontaneous casters): into the primary book's known list
             for (const s of spellPicks) {
                 if (!Array.isArray(data.spell_list_choose_from)) data.spell_list_choose_from = [];
@@ -437,7 +496,9 @@ window.SheetLevelUp = (function () {
                 `Level ${totalNext}: ${p.clsName} ${p.newLvl}`
                 + (spentNow ? ` — ${spentNow} ranks placed` : '')
                 + (leftover > 0 ? ` — ${leftover} skill ranks left for the Skills tab` : '')
-                + (spellPicks.length ? ` — ${spellPicks.length} spells learned` : '') + '.');
+                + (spellPicks.length ? ` — ${spellPicks.length} spells learned` : '')
+                + (featsOn.length ? ` — ${featsOn.length} class feature${featsOn.length === 1 ? '' : 's'} gained` : '')
+                + '.');
         });
     }
 

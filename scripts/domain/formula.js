@@ -62,7 +62,8 @@ window.SheetFormula = (function () {
         // character level, which is what the curated contextNotes assume.
         [/@class\.level\b/gi, (_m, data) => characterLevel(data)],
         [/@attributes\.hd\.total\b/gi, (_m, data) => characterLevel(data)],
-        [/@attributes\.bab\.total\b/gi, (_m, data) => Number(data?.bab_total) || 0],
+        [/@attributes\.bab\.total\b/gi,
+            (_m, data) => window.SheetDerive?.babTotal?.(data) ?? (Number(data?.bab_total) || 0)],
         // Spheres of Power caster level — the payload's sphere_cl (falls back to character
         // level, the common default for talents on a full-progression tradition).
         [/@spheres\.cl\.total\b/gi, (_m, data) =>
