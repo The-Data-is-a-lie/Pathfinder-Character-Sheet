@@ -3305,6 +3305,76 @@ window.SheetRoll = (function () {
         host.append(input, typeSel, go);
     }
 
+    // ------------------------------------------------------- session log export (#87)
+    // The in-memory roll log, serialized to Markdown chronologically. Attack/damage lines
+    // reuse the card renderers (clone, strip the no-print buttons, read the text), so the
+    // export can never disagree with what the log showed.
+    function stripInlineRollMarkers(text) {
+        return String(text || '').replace(/\[\[\s*([^¦\]]*?)\s*(?:¦[^\]]*)?\]\]/g, '$1');
+    }
+    function blockText(renderFn, block) {
+        try {
+            const el = renderFn(block);
+            if (!el) return '';
+            el.querySelectorAll('.no-print').forEach((n) => n.remove());
+            // Join text NODES with spaces — bare textContent mashes sibling spans
+            // ("Attack11d20:4…") because the DOM renderer needs no separators.
+            const parts = [];
+            const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+            while (walker.nextNode()) {
+                const t = walker.currentNode.nodeValue.replace(/\s+/g, ' ').trim();
+                if (t) parts.push(t);
+            }
+            return parts.join(' ');
+        } catch { return ''; }
+    }
+    function buildSessionLog() {
+        const name = currentData?.character_full_name || 'character';
+        const now = new Date();
+        const lines = [`# Session log — ${name} — ${now.toLocaleDateString()}`, ''];
+        for (const e of [...history].reverse()) {   // stored newest-first; read as a session
+            const t = fmtTime(e.time);
+            if (e.type === 'simple') {
+                lines.push(`- **${t}** ${e.title}${e.body ? ' — ' + e.body : ''}`
+                    + (e.total != null ? ` = **${e.total}**` : ''));
+                continue;
+            }
+            lines.push(`- **${t}** ${[e.title, e.subtitle].filter(Boolean).join(' · ')}`);
+            for (const a of e.attacks || []) {
+                const txt = blockText(renderAttackBlock, a);
+                if (txt) lines.push(`  - ${txt}`);
+            }
+            for (const d of e.damages || []) {
+                const txt = blockText(renderDamageBlock, d);
+                if (txt) lines.push(`  - ${txt}`);
+            }
+            for (const r of e.riders || []) {
+                const txt = stripInlineRollMarkers(r.text).replace(/\s+/g, ' ').trim();
+                if (txt) lines.push(`  - _${r.source || 'Conditional'}:_ ${txt}`);
+            }
+        }
+        lines.push('', `_Exported ${now.toLocaleString()} — ${history.length} `
+            + `entr${history.length === 1 ? 'y' : 'ies'}._`);
+        return lines.join('\n');
+    }
+    function exportSessionLog() {
+        if (!history.length) {
+            window.SheetOverlay?.toast?.('Roll log is empty — nothing to export');
+            return '';
+        }
+        const md = buildSessionLog();
+        const name = (currentData?.character_full_name || 'character')
+            .replace(/[^\w-]+/g, '-').toLowerCase();
+        const blob = new Blob([md], { type: 'text/markdown' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `session-log-${name}-${new Date().toISOString().slice(0, 10)}.md`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        window.SheetOverlay?.toast?.(`Session log exported — ${history.length} entries`);
+        return md;
+    }
+
     function init() {
         const closeBtn = document.getElementById('tools-close');
         const rollBtn = document.getElementById('tools-dice-roll');
@@ -3314,6 +3384,8 @@ window.SheetRoll = (function () {
         // The ☰ toggle's own click/drag wiring lives in SheetEdgePanel.
         if (closeBtn) closeBtn.addEventListener('click', () => setOpen(false));
         if (rollBtn) rollBtn.addEventListener('click', doFreeformRoll);
+        document.getElementById('tools-log-export')
+            ?.addEventListener('click', exportSessionLog);
         if (input) {
             input.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
