@@ -5853,7 +5853,19 @@ body.density-compact .tab-pane h3 { margin-top: 0.5rem; margin-bottom: 0.3rem; }
 .feat-edit-btn { font-size: 0.8rem; }
 .fs-edited-badge { color: var(--accent); font-weight: 600; }
 .fs-revert-btn { margin: 0.25rem 0 0.5rem; }
-.feature-sheet-card .rt-surface { min-height: 12rem; }
+/* Fixed-size card: the modal must not resize/re-center when tabs switch or the
+   description grows while typing — panes scroll inside instead. */
+.feature-sheet-card {
+    width: min(46rem, 95vw);
+    height: min(42rem, 92vh);
+    max-height: none;
+}
+.feature-sheet-card .item-sheet-grid { overflow: hidden; min-height: 0; }
+.feature-sheet-card .item-sheet-side { overflow-y: auto; min-height: 0; }
+.feature-sheet-card .item-sheet-content { min-height: 0; }
+.feature-sheet-card .item-sheet-pane { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+/* Only the pane scrolls — no nested scrollbar inside the editor surface. */
+.feature-sheet-card .rt-surface { min-height: 12rem; max-height: none; }
 
 /* ---- Copy/share (#110) ---- */
 .fs-share-btn { display: block; width: 100%; margin-top: 0.35rem; }
