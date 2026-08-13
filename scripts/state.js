@@ -569,8 +569,9 @@ window.SheetState = (function () {
                 operator: 'add', priority: 0,
             });
         }
+        // No explicit id: normalizeBuffEntry's default carries a random suffix, so two
+        // buffs created in the same millisecond cannot collide — presets (#83) key on it.
         const buff = normalizeBuffEntry({
-            id: 'buff-' + Date.now(),
             name: opts.name || 'New buff',
             subType: opts.subType || 'temp',
             active: opts.active !== false,
