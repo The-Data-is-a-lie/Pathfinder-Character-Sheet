@@ -53,7 +53,8 @@ window.SheetModals = (function () {
         levelIn.min = '0';
         levelIn.max = '40';
         levelIn.value = String(buff.level || 0);
-        levelIn.title = 'Buff level (for scaling formulas)';
+        levelIn.title = 'Caster level — use @cl in this buff\'s change formulas '
+            + '(an ally\'s CL-10 Heroism, a fixed-CL scroll). 0 = none.';
         const durVal = h('input', 'edit-field');
         durVal.placeholder = 'Duration value';
         durVal.value = buff.duration?.value || '';
@@ -124,7 +125,7 @@ window.SheetModals = (function () {
 
         addField('Name', nameIn);
         addField('Category', subSel);
-        addField('Level', levelIn);
+        addField('Caster level', levelIn);
         addField('Duration', durVal);
         addField('Units', durUnit);
         addField('Sets size', sizeSel);
@@ -137,6 +138,62 @@ window.SheetModals = (function () {
         notesIn.placeholder = 'Notes / description (optional)';
         notesIn.value = buff.notes || '';
         panel.appendChild(notesIn);
+
+        // Situational context notes: text pinned to a change target, shown as ⓘ hover
+        // tooltips on the matching skill/attack rows — same pipeline feats and items feed.
+        panel.appendChild(h('h4', null, 'Context notes'));
+        const noteList = h('div', 'inv-buffs-list');
+        function redrawNotes() {
+            noteList.innerHTML = '';
+            const notes = Array.isArray(buff.contextNotes) ? buff.contextNotes : [];
+            if (!notes.length) {
+                noteList.appendChild(h('p', 'tools-empty',
+                    'No situational notes — they show as ⓘ tooltips on the target\'s rows.'));
+                return;
+            }
+            notes.forEach((n, idx) => {
+                const row = h('div', 'inv-buffs-row');
+                row.appendChild(h('span', 'inv-buffs-line',
+                    `${SD?.targetLabel?.(n.target) || n.target || 'general'}: ${n.text}`));
+                const del = h('button', 'inv-btn inv-btn-danger', '×');
+                del.type = 'button';
+                del.addEventListener('click', () => {
+                    buff.contextNotes.splice(idx, 1);
+                    quietSave();
+                    redrawNotes();
+                    refreshDerived();
+                });
+                row.appendChild(del);
+                noteList.appendChild(row);
+            });
+        }
+        redrawNotes();
+        panel.appendChild(noteList);
+
+        const noteForm = h('div', 'inv-buffs-add');
+        const noteTextIn = h('input', 'edit-field');
+        noteTextIn.placeholder = 'Situational note (e.g. +2 vs fear)';
+        const noteTargetSel = h('select', 'edit-field');
+        for (const t of INV_TARGET_OPTIONS) {
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = SD?.targetLabel?.(t) || t;
+            noteTargetSel.appendChild(opt);
+        }
+        noteTargetSel.value = 'attack';
+        const noteAddBtn = h('button', 'inv-btn', 'Add note');
+        noteAddBtn.type = 'button';
+        noteAddBtn.addEventListener('click', () => {
+            const text = String(noteTextIn.value || '').trim();
+            if (!text) { noteTextIn.focus(); return; }
+            (buff.contextNotes ??= []).push({ text, target: noteTargetSel.value });
+            noteTextIn.value = '';
+            quietSave();
+            redrawNotes();
+            refreshDerived();
+        });
+        noteForm.append(noteTextIn, noteTargetSel, noteAddBtn);
+        panel.appendChild(noteForm);
 
         panel.appendChild(h('h4', null, 'Changes'));
         const list = h('div', 'inv-buffs-list');
@@ -167,7 +224,7 @@ window.SheetModals = (function () {
 
         const form = h('div', 'inv-buffs-add');
         const formulaIn = h('input', 'edit-field');
-        formulaIn.placeholder = 'Formula (e.g. 2 or +1)';
+        formulaIn.placeholder = 'Formula (e.g. 2, +1, min(@cl,10))';
         const targetSel = h('select', 'edit-field');
         for (const t of INV_TARGET_OPTIONS) {
             const opt = document.createElement('option');
