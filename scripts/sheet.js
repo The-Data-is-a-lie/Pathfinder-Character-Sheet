@@ -563,6 +563,30 @@
         window.SheetRoll?.setCharacter(data);
     }
 
+    // Print = the 2-page handout, from either view. Simple view already IS the handout;
+    // in complex view the simple sheet is rendered into a hidden print-only holder so the
+    // tabbed view (and any in-flight inline edit) is left untouched. Browser print (Ctrl+P)
+    // still prints the current view, so the all-tabs dump stays reachable.
+    function printHandout() {
+        if (viewMode() === 'simple' || !currentData || currentData.error) {
+            window.print();
+            return;
+        }
+        const holder = h('div', '');
+        holder.id = 'print-handout';
+        holder.appendChild(renderSimpleSheet(currentData));
+        wrapWideTables(holder);
+        document.body.appendChild(holder);
+        document.body.classList.add('printing-handout');
+        const cleanup = () => {
+            holder.remove();
+            document.body.classList.remove('printing-handout');
+            window.removeEventListener('afterprint', cleanup);
+        };
+        window.addEventListener('afterprint', cleanup);
+        window.print();
+    }
+
     // Exposed for console debugging, Tools drawer, and inline editors.
     window.renderSheet = renderSheet;
     window.SheetApp = {
@@ -668,7 +692,7 @@
         // Core topbar buttons FIRST, before anything that can throw — a bad stored
         // theme/form value must never take Print or Generate down with it.
         document.getElementById('toggle-load').addEventListener('click', () => togglePanel('load-panel'));
-        document.getElementById('print-btn').addEventListener('click', () => window.print());
+        document.getElementById('print-btn').addEventListener('click', () => printHandout());
         // Generate / view switch / Explain / Start here render into the top bar AND the rail
         // from one definition, so the two can't disagree about state or wording.
         applyExplainMode();
