@@ -369,7 +369,11 @@ window.SheetTabSettings = (function () {
         const statblockBtn = h('button', null, 'Copy stat block');
         statblockBtn.title = 'Copy the current character as Paizo-style stat-block text (for prep docs and forum posts)';
         statblockBtn.addEventListener('click', () => window.SheetStatblock?.copyStatBlock?.());
-        libRow.append(exportBtn, importInput, statblockBtn);
+        // #86: side-by-side comparison of two library characters (or #80 snapshots).
+        const diffBtn = h('button', null, 'Compare…');
+        diffBtn.title = 'Compare two saved characters side by side, deltas highlighted';
+        diffBtn.addEventListener('click', () => window.SheetCharDiff?.open?.());
+        libRow.append(exportBtn, importInput, statblockBtn, diffBtn);
         body.appendChild(libRow);
 
         // Generator provenance (#68): which backend build produced this character, plus

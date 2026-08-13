@@ -3500,6 +3500,17 @@ button:disabled { opacity: 0.55; cursor: wait; }
 .buff-preset-del:hover { color: var(--danger, #b3261e); }
 .buff-preset-name { max-width: 15rem; font-size: 0.85rem; }
 
+/* #86: character comparison overlay */
+.chardiff { min-width: min(34rem, 90vw); display: flex; flex-direction: column; gap: 0.7rem; }
+.chardiff-picks { display: flex; gap: 1rem; flex-wrap: wrap; }
+.chardiff-pick { display: inline-flex; align-items: center; gap: 0.4rem; }
+.chardiff-pick select { max-width: 14rem; }
+.chardiff-grid { border-collapse: collapse; width: 100%; }
+.chardiff-grid th, .chardiff-grid td { padding: 0.2rem 0.6rem; text-align: left; border-bottom: 1px solid var(--border); }
+.chardiff-stat { font-weight: 600; }
+.chardiff-differs td { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.chardiff-delta { font-weight: 700; color: var(--accent-dark); }
+
 /* #44: guided PC creation wizard */
 .create-wizard { min-width: min(30rem, 84vw); }
 .create-steps { display: flex; gap: 0.4rem; margin-bottom: 0.7rem; flex-wrap: wrap; }
