@@ -4,7 +4,7 @@
 // setters (audience/viewMode/explainMode/density) + backendUrl late-bind via SheetApp.
 window.SheetTabSettings = (function () {
     'use strict';
-    const { h, section } = window.SheetUI;
+    const { h, section, titleCase } = window.SheetUI;
     const { buildCustomThemeControls, renderThemeCards, themePreference } = window.SheetTheme;
     const { refreshRoster } = window.SheetRoster;
     const {
@@ -83,6 +83,87 @@ window.SheetTabSettings = (function () {
             }
             body.appendChild(picks);
         }
+    }
+
+    // #80: per-character snapshot history. Checkpoints are automatic (library.js takes at
+    // most one per 5-minute burst of saves, newest 20 kept); this section lists them with
+    // Preview (read-only) / Restore / delete. Restore is always undoable: it snapshots the
+    // current state first — so no confirm dialog (house rule: warn, never block).
+    function renderHistory(body) {
+        const data = window.SheetApp.current;
+        if (!data || data.error || !window.SheetLibrary?.listSnapshots) return;
+        body.appendChild(h('h3', null, 'History'));
+        body.appendChild(h('p', 'dim',
+            'Automatic snapshots of this character — one per burst of edits, newest 20 kept. '
+            + 'Preview is read-only; Restore keeps a “before restore” snapshot so it can '
+            + 'always be undone.'));
+        const list = h('div', 'settings-history');
+        body.appendChild(list);
+        const fmtTime = (ts) => new Date(ts).toLocaleString();
+        const snapClone = async (key) => {
+            const rec = await window.SheetLibrary.getSnapshot(key);
+            return rec ? JSON.parse(JSON.stringify(rec.data)) : null;
+        };
+        const restoreSnap = async (s) => {
+            const snap = await snapClone(s.key);
+            if (!snap) return;
+            await window.SheetLibrary.takeSnapshot(window.SheetApp.current, 'before restore');
+            const sheet = (snap._sheet ??= {});
+            sheet.id = data._sheet.id;               // same character, replaced in place…
+            sheet.fileName = data._sheet?.fileName;  // …and the same disk-mirror file
+            renderSheet(snap);
+            await window.SheetApp.saveCurrent();
+            window.SheetOverlay?.toast?.(`Restored the ${fmtTime(s.ts)} snapshot`);
+        };
+        const repaint = async () => {
+            list.innerHTML = '';
+            const id = data._sheet?.id;
+            const snaps = id ? await window.SheetLibrary.listSnapshots(id).catch(() => []) : [];
+            if (!snaps.length) {
+                list.appendChild(h('p', 'dim', 'No snapshots yet — they appear as you edit.'));
+                return;
+            }
+            for (const s of snaps) {
+                const row = h('div', 'settings-row settings-history-row');
+                row.appendChild(h('span', null, fmtTime(s.ts)));
+                row.appendChild(h('span', 'dim',
+                    `${s.name} — ${titleCase(String(s.klass || '?'))} ${s.level}`
+                    + (s.reason ? ` · ${s.reason}` : '')));
+                const prevBtn = h('button', null, 'Preview');
+                prevBtn.type = 'button';
+                prevBtn.addEventListener('click', async () => {
+                    const snap = await snapClone(s.key);
+                    if (!snap || !window.SheetSimple || !window.SheetOverlay) return;
+                    const wrap = h('div', 'snapshot-preview');
+                    wrap.appendChild(window.SheetSimple.renderSimpleSheet(snap));
+                    wrap.style.pointerEvents = 'none';   // a preview must not edit or roll
+                    const restoreBtn = h('button', null, 'Restore this snapshot');
+                    restoreBtn.type = 'button';
+                    const handle = window.SheetOverlay.open({
+                        title: `Snapshot — ${fmtTime(s.ts)}`,
+                        body: wrap,
+                        footer: [restoreBtn],
+                    });
+                    restoreBtn.addEventListener('click', async () => {
+                        handle.close();
+                        await restoreSnap(s);
+                    });
+                });
+                const restBtn = h('button', null, 'Restore');
+                restBtn.type = 'button';
+                restBtn.addEventListener('click', () => restoreSnap(s));
+                const delBtn = h('button', null, '×');
+                delBtn.type = 'button';
+                delBtn.title = 'Delete this snapshot';
+                delBtn.addEventListener('click', async () => {
+                    await window.SheetLibrary.removeSnapshot(s.key);
+                    repaint();
+                });
+                row.append(prevBtn, restBtn, delBtn);
+                list.appendChild(row);
+            }
+        };
+        repaint();
     }
 
     function tabSettings() {
@@ -201,6 +282,7 @@ window.SheetTabSettings = (function () {
         body.appendChild(guideRow);
 
         renderVariantRules(body);
+        renderHistory(body);
 
         body.appendChild(h('h3', null, 'Generation Backend'));
         const urlRow = h('div', 'settings-row');

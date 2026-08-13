@@ -13,15 +13,27 @@ window.SheetLibrary = (function () {
 
     const DB_NAME = 'sheet-library';
     const DIR_KEY = 'dirHandle';
+    // #80: undo/snapshots — per-character history checkpoints, IndexedDB only (never
+    // mirrored to the connected folder). At most one auto-checkpoint per BURST_MS of
+    // editing; SNAP_CAP newest kept per character, oldest pruned.
+    const SNAP_CAP = 20;
+    const BURST_MS = 5 * 60 * 1000;
 
     // ---------------------------------------------------------------- IndexedDB plumbing
     let dbPromise = null;
     function db() {
         dbPromise ??= new Promise((resolve, reject) => {
-            const req = indexedDB.open(DB_NAME, 1);
+            const req = indexedDB.open(DB_NAME, 2);
             req.onupgradeneeded = () => {
-                req.result.createObjectStore('characters', { keyPath: 'id' });
-                req.result.createObjectStore('meta');
+                const d = req.result;
+                if (!d.objectStoreNames.contains('characters')) {
+                    d.createObjectStore('characters', { keyPath: 'id' });
+                }
+                if (!d.objectStoreNames.contains('meta')) d.createObjectStore('meta');
+                // v2 (#80): snapshot history, key = `${charId}:${ts}`.
+                if (!d.objectStoreNames.contains('snapshots')) {
+                    d.createObjectStore('snapshots', { keyPath: 'key' });
+                }
             };
             req.onsuccess = () => resolve(req.result);
             req.onerror = () => reject(req.error);
@@ -43,6 +55,10 @@ window.SheetLibrary = (function () {
     const idbGet = (id) => tx('characters', 'readonly', (s) => s.get(id));
     const idbPut = (rec) => tx('characters', 'readwrite', (s) => s.put(rec));
     const idbDelete = (id) => tx('characters', 'readwrite', (s) => s.delete(id));
+    const snapAll = () => tx('snapshots', 'readonly', (s) => s.getAll());
+    const snapGet = (key) => tx('snapshots', 'readonly', (s) => s.get(key));
+    const snapPut = (rec) => tx('snapshots', 'readwrite', (s) => s.put(rec));
+    const snapDelete = (key) => tx('snapshots', 'readwrite', (s) => s.delete(key));
     const metaGet = (key) => tx('meta', 'readonly', (s) => s.get(key));
     const metaPut = (key, val) => tx('meta', 'readwrite', (s) => s.put(val, key));
     const metaDelete = (key) => tx('meta', 'readwrite', (s) => s.delete(key));
@@ -180,10 +196,65 @@ window.SheetLibrary = (function () {
 
     async function save(data) {
         const record = toRecord(data);
+        await maybeCheckpoint(data);   // #80: before the write, so a burst starts with history
         if (folderState === 'connected') await writeFile(record);
         await idbPut(record);
         cache.set(record.id, record);
         return record;
+    }
+
+    // ---------------------------------------------------------------- snapshots (#80)
+    /** All snapshots for one character, newest first. */
+    async function listSnapshots(charId) {
+        const all = await snapAll().catch(() => []);
+        return all.filter((s) => s.charId === charId).sort((a, b) => b.ts - a.ts);
+    }
+    const getSnapshot = (key) => snapGet(key);
+    const removeSnapshot = (key) => snapDelete(key);
+
+    // Newest-snapshot time per character, so the every-save checkpoint probe stays in
+    // memory — snapshots carry full payloads, and a getAll per quiet-save would be heavy.
+    const lastSnapTs = new Map();
+
+    /** Deep-copy `data` into the history now (restore points, pre-level-up, pre-restore).
+     *  Prunes to SNAP_CAP newest. No-ops on an unsaved character (no _sheet.id). */
+    async function takeSnapshot(data, reason) {
+        const charId = data?._sheet?.id;
+        if (!charId) return null;
+        // Monotonic per character: same-millisecond snapshots must not collide on the key.
+        const ts = Math.max(Date.now(), (lastSnapTs.get(charId) || 0) + 1);
+        lastSnapTs.set(charId, ts);
+        const rec = {
+            key: `${charId}:${ts}`,
+            charId,
+            ts,
+            reason: reason || '',
+            name: data.character_full_name || 'Unnamed',
+            klass: data.c_class_display || data.c_class || '',
+            level: data.level ?? '',
+            data: JSON.parse(JSON.stringify(data)),
+        };
+        await snapPut(rec);
+        const mine = await listSnapshots(charId);
+        for (const old of mine.slice(SNAP_CAP)) await snapDelete(old.key);
+        return rec;
+    }
+
+    /** Auto-checkpoint at most once per BURST_MS: the first save after a quiet gap
+     *  records the state carrying that burst's opening edit. */
+    async function maybeCheckpoint(data) {
+        const charId = data?._sheet?.id;
+        if (!charId) return;
+        try {
+            let known = lastSnapTs.get(charId);
+            if (known == null) {   // first probe this session — one real read, then cached
+                known = (await listSnapshots(charId))[0]?.ts ?? 0;
+                lastSnapTs.set(charId, known);
+            }
+            if (Date.now() - known >= BURST_MS) await takeSnapshot(data, '');
+        } catch (err) {
+            console.warn('SheetLibrary: snapshot checkpoint failed', err);
+        }
     }
 
     async function remove(id) {
@@ -195,6 +266,8 @@ window.SheetLibrary = (function () {
             try { await dirHandle.removeEntry(fileName); }
             catch (err) { console.warn('SheetLibrary: could not delete ' + fileName, err); }
         }
+        // #80: history goes with the character (Delete is already confirm()-guarded).
+        for (const s of await listSnapshots(id).catch(() => [])) await snapDelete(s.key);
         return record;
     }
 
@@ -204,5 +277,6 @@ window.SheetLibrary = (function () {
     }
 
     return { init, list, get, save, remove, status, connectFolder, reconnectFolder,
-        disconnectFolder, exportAll };
+        disconnectFolder, exportAll,
+        listSnapshots, getSnapshot, removeSnapshot, takeSnapshot };
 })();

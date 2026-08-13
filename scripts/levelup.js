@@ -429,6 +429,9 @@ window.SheetLevelUp = (function () {
                 alert('Roll or take average HP first.');
                 return;
             }
+            // #80: a level is the classic "wish I could go back" boundary — snapshot the
+            // pre-level state (fire-and-forget; the apply itself must not wait on IDB).
+            window.SheetLibrary?.takeSnapshot?.(data, `before level ${totalNext}`);
             const p = pendingDiff();
             // Class level
             if (p.existing) {
