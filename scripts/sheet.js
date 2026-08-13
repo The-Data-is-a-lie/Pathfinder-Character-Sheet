@@ -81,6 +81,7 @@
     // CURRENT_KEY / ensureProse are shell-owned; roster.js reaches them via SheetApp below.
     const {
         rosterSelect, refreshRoster, saveCurrent, loadCharacter, deleteCurrent, adoptCharacter,
+        cloneCurrent,
     } = window.SheetRoster;
 
     // Generation form, lifted into scripts/generate.js (window.SheetGenerate). backendUrl /
@@ -745,6 +746,7 @@
 
         rosterSelect().addEventListener('change', (e) => { if (e.target.value) loadCharacter(e.target.value); });
         document.getElementById('save-btn').addEventListener('click', () => saveCurrent());
+        document.getElementById('clone-btn').addEventListener('click', () => cloneCurrent());
         document.getElementById('delete-btn').addEventListener('click', deleteCurrent);
         const reconnectChip = document.getElementById('reconnect-chip');
         reconnectChip.addEventListener('click', async () => {

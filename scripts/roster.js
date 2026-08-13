@@ -74,5 +74,33 @@ window.SheetRoster = (function () {
         await saveCurrent(); // auto-save: every generated/loaded character lands in the library
     }
 
-    return { rosterSelect, refreshRoster, saveCurrent, loadCharacter, deleteCurrent, adoptCharacter };
+    // ---------------------------------------------------------------- quick clone (#84)
+    /** "Goblin" → first free "Goblin (2)" / "Goblin (3)" …; cloning a clone re-numbers the stem. */
+    function cloneName(base, taken) {
+        const stem = String(base || 'Unnamed').replace(/\s+\(\d+\)$/, '');
+        for (let n = 2; n < 100; n++) {
+            const candidate = `${stem} (${n})`;
+            if (!taken.has(candidate)) return candidate;
+        }
+        return `${stem} (${Date.now().toString(36)})`;
+    }
+    async function cloneCurrent() {
+        const src = window.SheetApp.current;
+        if (!src || src.error) return null;
+        await saveCurrent({ quiet: true });    // the clone should carry any in-flight edits
+        const data = JSON.parse(JSON.stringify(src));
+        const sheet = (data._sheet ??= {});
+        delete sheet.id;        // SheetLibrary.save() re-keys the copy…
+        delete sheet.fileName;  // …and the folder mirror writes a fresh <Name>.json
+        const records = await window.SheetLibrary.list().catch(() => []);
+        data.character_full_name = cloneName(src.character_full_name,
+            new Set(records.map((r) => r.name)));
+        renderSheet(data);      // the clone becomes the character being edited
+        const record = await saveCurrent();
+        window.SheetOverlay?.toast?.(`Cloned — now editing ${data.character_full_name}`);
+        return record;
+    }
+
+    return { rosterSelect, refreshRoster, saveCurrent, loadCharacter, deleteCurrent, adoptCharacter,
+        cloneCurrent };
 })();
