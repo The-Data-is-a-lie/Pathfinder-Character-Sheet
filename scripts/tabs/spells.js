@@ -464,7 +464,7 @@ window.SheetTabSpells = (function () {
             renderSheet(data);
             setActiveTab('spells');
             window.SheetFeatureSheet.openFeatureSheet(data, {
-                kind: 'spell', name, sourceKind: 'spell', typeLabel: 'Spell',
+                kind: 'spell', name, sourceKind: 'spell', typeLabel: 'Spell', level: to,
                 canRegroup: false, showUses: false,
                 panels: { details: buildSpellDetailsPanel(data, bk, to, name) },
             });
@@ -784,13 +784,14 @@ window.SheetTabSpells = (function () {
                 onPick: (hit) => addSpellAt(parseInt(levelSel.value, 10) || 0, hit.name),
                 onCustom: (name) => addSpellAt(parseInt(levelSel.value, 10) || 0, name),
             },
+            importBundles: data,
             onBlank: () => {
                 const lv = parseInt(levelSel.value, 10) || 0;
                 const name = window.SheetFeatureSheet.blankName('New Spell',
                     (bk.lists || []).flat());
                 addSpellAt(lv, name);
                 window.SheetFeatureSheet.openFeatureSheet(data, {
-                    kind: 'spell', name, sourceKind: 'spell', typeLabel: 'Spell',
+                    kind: 'spell', name, sourceKind: 'spell', typeLabel: 'Spell', level: lv,
                     canRegroup: false, showUses: false,
                     panels: { details: buildSpellDetailsPanel(data, bk, lv, name) },
                 });
@@ -999,6 +1000,7 @@ window.SheetTabSpells = (function () {
                         window.SheetFeatureSheet.openFeatureSheet(data, {
                             kind: 'spell',
                             name,
+                            level,
                             sourceKind: 'spell',
                             typeLabel: 'Spell',
                             canRegroup: false,

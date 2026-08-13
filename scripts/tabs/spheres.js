@@ -198,6 +198,7 @@ window.SheetTabSpheres = (function () {
                     setActiveTab('spheres');
                 },
             },
+            importBundles: data,
             onBlank: () => {
                 const existing = [...(data.magic_talent_items || []), ...(data.combat_talent_items || [])]
                     .map((x) => x?.name);

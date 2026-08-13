@@ -377,6 +377,7 @@ window.SheetTabFeatures = (function () {
                     setActiveTab('features');
                 },
             },
+            importBundles: data,
             onBlank: () => {
                 const name = window.SheetFeatureSheet.blankName('New Feat', data.feats);
                 addToArrayField(data, 'feats', name);
@@ -481,6 +482,7 @@ window.SheetTabFeatures = (function () {
                     setActiveTab('features');
                 },
             },
+            importBundles: data,
             onBlank: () => {
                 const name = window.SheetFeatureSheet.blankName('New Trait', data.selected_traits);
                 addToArrayField(data, 'selected_traits', name);
@@ -645,6 +647,7 @@ window.SheetTabFeatures = (function () {
                     setActiveTab('features');
                 },
             },
+            importBundles: data,
             onBlank: () => {
                 const bases = (data.class_ability || []).map((e) => {
                     const cut = String(e).lastIndexOf('_');

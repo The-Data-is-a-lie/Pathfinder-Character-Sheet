@@ -111,6 +111,184 @@ window.SheetFeatureSheet = (function () {
         return true;
     }
 
+    // ---- Feature bundles (#110): one entry as a portable JSON snippet -----------------
+    // Everything a feat/buff/spell/maneuver/talent carries on this character — override,
+    // custom changes, uses config, PoW overrides, the object itself — so it can be copied
+    // to another library character or shared as homebrew.
+    const clone = (x) => JSON.parse(JSON.stringify(x));
+
+    function buildFeatureBundle(data, ref) {
+        const SD = window.SheetDetails;
+        const st = data._sheet || {};
+        const bundle = { version: 1, kind: ref.kind, name: ref.name };
+        if (ref.listKey) bundle.listKey = ref.listKey;
+        if (ref.level != null) bundle.level = ref.level;
+        const ov = SD.getFeatureOverride(data, ref.kind, ref.name);
+        if (ov) bundle.override = clone(ov);
+        if (st.featureChanges?.[ref.name]) bundle.featureChanges = clone(st.featureChanges[ref.name]);
+        if (st.featureUses?.[ref.name]) {
+            bundle.featureUses = clone(st.featureUses[ref.name]);
+            // Charge links point at pools the target character may not have.
+            delete bundle.featureUses.chargeSource;
+        }
+        if (ref.kind === 'maneuver' || ref.kind === 'stance') {
+            const powKey = SD.powNorm(ref.name);
+            if (ref.kind === 'maneuver' && st.powOverrides?.[powKey]) {
+                bundle.powOverride = clone(st.powOverrides[powKey]);
+            }
+            if (ref.kind === 'stance' && st.stanceOverrides?.[powKey]) {
+                bundle.stanceOverride = clone(st.stanceOverrides[powKey]);
+            }
+            const d = data.maneuvers_desc_dict?.[ref.name];
+            if (d != null) bundle.descDictEntry = clone(d);
+        }
+        if (ref.obj) {
+            bundle.object = clone(ref.obj);
+            if (ref.kind === 'talent') {
+                bundle.arrayKey = (data.combat_talent_items || []).includes(ref.obj)
+                    ? 'combat_talent_items' : 'magic_talent_items';
+            }
+        }
+        return bundle;
+    }
+
+    /** Land a bundle on a character. Dedup by name; existing entries only gain the extras. */
+    function applyFeatureBundle(data, bundle) {
+        const SD = window.SheetDetails;
+        const SS = window.SheetState;
+        if (!bundle || bundle.version !== 1 || !bundle.kind || !bundle.name) {
+            return { ok: false, reason: 'not a feature bundle' };
+        }
+        const kind = bundle.kind;
+        const name = String(bundle.name);
+        const lc = name.toLowerCase();
+        const hasName = (arr) => (arr || []).some(
+            (x) => String(x?.name ?? x).toLowerCase() === lc);
+        if (kind === 'buff') {
+            const buffs = SS.ensureBuffs(data);
+            if (!hasName(buffs)) {
+                const obj = bundle.object || { name };
+                delete obj.id; // fresh id on the target
+                buffs.push(obj);
+                SS.ensureBuffs(data); // normalize the pushed entry
+            }
+        } else if (kind === 'talent') {
+            const arrKey = bundle.arrayKey === 'combat_talent_items'
+                ? 'combat_talent_items' : 'magic_talent_items';
+            if (!hasName(data.magic_talent_items) && !hasName(data.combat_talent_items)) {
+                (data[arrKey] ??= []).push(bundle.object || { name, sphere: 'Other' });
+            }
+        } else if (kind === 'maneuver') {
+            if (bundle.descDictEntry != null) {
+                (data.maneuvers_desc_dict ??= {})[name] ??= bundle.descDictEntry;
+            }
+            const all = (data.maneuvers_choose_from || []).flat();
+            if (!hasName(all)) {
+                if (!Array.isArray(data.maneuvers_choose_from)) data.maneuvers_choose_from = [];
+                if (!Array.isArray(data.maneuvers_choose_from[0])) data.maneuvers_choose_from[0] = [];
+                data.maneuvers_choose_from[0].push(name);
+            }
+            if (bundle.powOverride) SD.setPowOverride(data, name, bundle.powOverride);
+        } else if (kind === 'stance') {
+            if (bundle.descDictEntry != null) {
+                (data.maneuvers_desc_dict ??= {})[name] ??= bundle.descDictEntry;
+            }
+            if (!hasName(data.stances_chosen)) (data.stances_chosen ??= []).push(name);
+            if (bundle.stanceOverride) SD.setStanceOverride(data, name, bundle.stanceOverride);
+        } else if (kind === 'spell') {
+            const lv = Math.max(0, Math.min(9, Number(bundle.level) || 0));
+            if (!Array.isArray(data.spell_list_choose_from)) data.spell_list_choose_from = [];
+            while (data.spell_list_choose_from.length <= lv) data.spell_list_choose_from.push([]);
+            if (!(data.spell_list_choose_from || []).flat().some(
+                (n) => String(n).toLowerCase() === lc)) {
+                data.spell_list_choose_from[lv].push(name);
+            }
+        } else if (kind === 'classFeat') {
+            const idx = classAbilityIndex(data, name);
+            if (idx < 0) {
+                const cls = String(data.c_class || 'class').toLowerCase().replace(/\s+/g, '');
+                (data.class_ability ??= []).push(name + '_' + cls);
+            }
+        } else { // feat / trait
+            const listKey = bundle.listKey
+                || (kind === 'trait' ? 'selected_traits' : 'feats');
+            if (!hasName(data[listKey])) (data[listKey] ??= []).push(name);
+        }
+        if (bundle.override) {
+            const { kind: _k, name: _n, ...rest } = bundle.override;
+            SD.setFeatureOverride(data, kind, name, rest);
+        }
+        const st = (data._sheet ??= {});
+        if (bundle.featureChanges) (st.featureChanges ??= {})[name] = clone(bundle.featureChanges);
+        if (bundle.featureUses) (st.featureUses ??= {})[name] = clone(bundle.featureUses);
+        return { ok: true };
+    }
+
+    /** Paste-a-bundle dialog, reachable from the catalog toolbars. */
+    function openBundleImport(data) {
+        const body = h('div', 'bundle-import');
+        body.appendChild(h('p', 'dim',
+            'Paste a feature JSON exported from a feature sheet (feat, buff, spell, '
+            + 'maneuver, stance, or talent).'));
+        const ta = h('textarea', 'edit-field');
+        ta.rows = 8;
+        ta.placeholder = '{ "version": 1, "kind": "feat", "name": "…", … }';
+        body.appendChild(ta);
+        const apply = h('button', 'inv-btn inv-btn-primary', 'Import');
+        apply.type = 'button';
+        const handle = window.SheetOverlay.open({ title: 'Import feature JSON', body, footer: [apply] });
+        apply.addEventListener('click', () => {
+            let bundle = null;
+            try { bundle = JSON.parse(ta.value); } catch { /* fall through */ }
+            const r = applyFeatureBundle(data, bundle);
+            if (!r.ok) {
+                window.SheetOverlay?.toast?.('Import failed: ' + (r.reason || 'invalid JSON'));
+                return;
+            }
+            quietSave();
+            handle.close();
+            renderSheet(data);
+            window.SheetOverlay?.toast?.(`Imported “${bundle.name}”.`);
+        });
+    }
+
+    /** Library picker for "Copy to…" — our answer to Foundry's cross-actor drag. */
+    async function openCopyToCharacter(data, ref) {
+        const lib = window.SheetLibrary;
+        const records = await lib.list().catch(() => []);
+        const selfId = data._sheet?.id;
+        const others = records.filter((r) => r.id !== selfId);
+        if (!others.length) {
+            window.SheetOverlay?.toast?.('No other characters in the library yet.');
+            return;
+        }
+        const body = h('div', 'copy-to-list');
+        const handle = window.SheetOverlay.open({
+            title: `Copy “${ref.name}” to…`, body,
+        });
+        for (const r of others) {
+            const btn = h('button', 'inv-btn copy-to-row',
+                `${r.name}${r.klass ? ' — ' + r.klass : ''}${r.level !== '' ? ' ' + r.level : ''}`);
+            btn.type = 'button';
+            btn.addEventListener('click', async () => {
+                const rec = await lib.get(r.id);
+                if (!rec?.data) {
+                    window.SheetOverlay?.toast?.('Could not load that character.');
+                    return;
+                }
+                const res = applyFeatureBundle(rec.data, buildFeatureBundle(data, ref));
+                if (!res.ok) {
+                    window.SheetOverlay?.toast?.('Copy failed: ' + res.reason);
+                    return;
+                }
+                await lib.save(rec.data);
+                handle.close();
+                window.SheetOverlay?.toast?.(`Copied “${ref.name}” to ${r.name}.`);
+            });
+            body.appendChild(btn);
+        }
+    }
+
     let sheetHandle = null;
 
     /**
@@ -253,6 +431,25 @@ window.SheetFeatureSheet = (function () {
             row.appendChild(sel);
             side.appendChild(row);
         }
+
+        // Copy / share (#110) — the entry plus its overrides, changes and uses config.
+        const copyBtn = h('button', 'inv-btn fs-share-btn no-print', 'Copy to…');
+        copyBtn.type = 'button';
+        copyBtn.title = 'Copy this entry (with your edits) to another library character';
+        copyBtn.addEventListener('click', () => openCopyToCharacter(data, ref));
+        const exportBtn = h('button', 'inv-btn fs-share-btn no-print', 'Export JSON');
+        exportBtn.type = 'button';
+        exportBtn.title = 'Copy this entry as a JSON snippet for sharing (Import JSON pastes it)';
+        exportBtn.addEventListener('click', async () => {
+            const json = JSON.stringify(buildFeatureBundle(data, ref), null, 2);
+            try {
+                await navigator.clipboard.writeText(json);
+                window.SheetOverlay?.toast?.('Feature JSON copied to the clipboard.');
+            } catch {
+                window.prompt('Copy the feature JSON:', json);
+            }
+        });
+        side.append(copyBtn, exportBtn);
         grid.appendChild(side);
 
         // ---- tabs ----
@@ -358,5 +555,8 @@ window.SheetFeatureSheet = (function () {
         return base + ' ' + Date.now();
     }
 
-    return { openFeatureSheet, blankName, groupTargets };
+    return {
+        openFeatureSheet, blankName, groupTargets,
+        buildFeatureBundle, applyFeatureBundle, openBundleImport, openCopyToCharacter,
+    };
 })();

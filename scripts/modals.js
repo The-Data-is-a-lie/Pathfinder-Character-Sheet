@@ -780,6 +780,16 @@ window.SheetModals = (function () {
             blank.addEventListener('click', () => opts.onBlank());
             bar.appendChild(blank);
         }
+        // #110: paste a shared feature bundle. Routes by the bundle's own kind, so any
+        // toolbar can import any kind.
+        if (opts.importBundles) {
+            const imp = h('button', 'inv-btn catalog-import-btn', 'Import JSON');
+            imp.type = 'button';
+            imp.title = 'Paste a feature JSON exported from a feature sheet';
+            imp.addEventListener('click', () =>
+                window.SheetFeatureSheet?.openBundleImport?.(opts.importBundles));
+            bar.appendChild(imp);
+        }
         if (opts.extra) bar.appendChild(opts.extra);
         return bar;
     }

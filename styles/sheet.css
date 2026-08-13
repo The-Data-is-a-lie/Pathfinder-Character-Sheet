@@ -5854,3 +5854,9 @@ body.density-compact .tab-pane h3 { margin-top: 0.5rem; margin-bottom: 0.3rem; }
 .fs-edited-badge { color: var(--accent); font-weight: 600; }
 .fs-revert-btn { margin: 0.25rem 0 0.5rem; }
 .feature-sheet-card .rt-surface { min-height: 12rem; }
+
+/* ---- Copy/share (#110) ---- */
+.fs-share-btn { display: block; width: 100%; margin-top: 0.35rem; }
+.copy-to-list { display: flex; flex-direction: column; gap: 0.4rem; min-width: 16rem; }
+.copy-to-row { text-align: left; }
+.bundle-import textarea { width: 100%; min-width: 24rem; font-family: ui-monospace, Consolas, monospace; font-size: 0.8rem; }
