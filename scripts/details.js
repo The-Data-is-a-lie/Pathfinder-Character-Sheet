@@ -141,6 +141,26 @@ window.SheetDetails = (function () {
         return talentConditionals[sphereNorm(name)] || null;
     }
 
+    /**
+     * Per-roll conditional for a sphere talent (#109): the talent OBJECT's own
+     * modifiers/rider (catalog adds and feature-sheet edits live there) win over the
+     * shipped conditionals database. Accepts the object or a name.
+     */
+    function resolveTalentConditional(data, t) {
+        const obj = t && typeof t === 'object' ? t
+            : [...(data?.magic_talent_items || []), ...(data?.combat_talent_items || [])]
+                .find((x) => x?.name === t);
+        if (obj && (obj.modifiers?.length || obj.rider)) {
+            return {
+                sphere: obj.sphere || 'Other',
+                label: obj.name,
+                modifiers: obj.modifiers || [],
+                rider: obj.rider || '',
+            };
+        }
+        return conditionalForTalent(obj?.name || t);
+    }
+
     // #24: compendium class features owned by `className` whose DESCRIPTION marks them
     // as gained at `level` ("At 5th level…", "Starting at 3rd level…"). The extract has
     // no level field, but explicit markers cover exactly the core progression features
@@ -880,7 +900,7 @@ window.SheetDetails = (function () {
 
         for (const t of [...(data.magic_talent_items || []), ...(data.combat_talent_items || [])]) {
             if (!t?.name) continue;
-            const cond = conditionalForTalent(t.name);
+            const cond = resolveTalentConditional(data, t);
             if (!cond || !(cond.modifiers?.length || cond.rider)) continue;
             push({
                 id: 'talent:' + sphereNorm(t.name),
@@ -1594,6 +1614,7 @@ window.SheetDetails = (function () {
         setStanceOverride, clearStanceOverride, conditionalForTalent, collectChanges,
         getFeatureOverride, setFeatureOverride, clearFeatureOverride, isFeatureEdited,
         resolveFeature, resolveSpell, renameFeature, sphereNorm, OVERRIDE_KINDS,
+        resolveTalentConditional,
         collectRollConditionals, normalizeInventoryEntry, powNorm,
         parseEnhancements, lookupEnhancement, collectEnhancements, coreGearItemKey,
         targetLabel, typeLabel, evalSimpleFormula, changesForTargets,

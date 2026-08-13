@@ -1603,6 +1603,35 @@ window.SheetModals = (function () {
         // Only one editor open at a time within Path of War.
         host.closest('.section-body')?.querySelectorAll('.pow-mod-editor')
             .forEach((p) => p.remove());
+        const panel = buildPowModifierPanel(data, name, opts);
+        const actions = h('div', 'inv-buffs-actions');
+        const resetBtn = h('button', 'inv-btn', 'Reset to default');
+        resetBtn.type = 'button';
+        resetBtn.title = 'Discard custom edits and restore the compendium values';
+        resetBtn.addEventListener('click', () => {
+            const SD = window.SheetDetails;
+            if (opts.mode === 'changes') SD?.clearStanceOverride?.(data, name);
+            else SD?.clearPowOverride?.(data, name);
+            quietSave();
+            refreshDerived();
+            renderSheet(data);
+            setActiveTab('path-of-war');
+        });
+        const closeBtn = h('button', 'inv-btn', 'Close');
+        closeBtn.type = 'button';
+        closeBtn.addEventListener('click', () => {
+            renderSheet(data);
+            setActiveTab('path-of-war');
+        });
+        actions.append(resetBtn, closeBtn);
+        panel.appendChild(actions);
+        host.appendChild(panel);
+    }
+    /**
+     * The maneuver/stance modifier editor body (#109) — shared by the inline PoW editor
+     * above and the feature sheet's Changes tab.
+     */
+    function buildPowModifierPanel(data, name, opts = {}) {
         const SD = window.SheetDetails;
         // 'changes' = stance always-on benefits (pf1 change shape, feed the sheet math);
         // 'modifiers' = maneuver per-roll conditionals (feed the roll dialog).
@@ -1705,28 +1734,7 @@ window.SheetModals = (function () {
         });
         form.append(formulaIn, targetSel, typeSel, addBtn);
         panel.appendChild(form);
-
-        const actions = h('div', 'inv-buffs-actions');
-        const resetBtn = h('button', 'inv-btn', 'Reset to default');
-        resetBtn.type = 'button';
-        resetBtn.title = 'Discard custom edits and restore the compendium values';
-        resetBtn.addEventListener('click', () => {
-            if (isStance) SD?.clearStanceOverride?.(data, name);
-            else SD?.clearPowOverride?.(data, name);
-            quietSave();
-            refreshDerived();
-            renderSheet(data);
-            setActiveTab('path-of-war');
-        });
-        const closeBtn = h('button', 'inv-btn', 'Close');
-        closeBtn.type = 'button';
-        closeBtn.addEventListener('click', () => {
-            renderSheet(data);
-            setActiveTab('path-of-war');
-        });
-        actions.append(resetBtn, closeBtn);
-        panel.appendChild(actions);
-        host.appendChild(panel);
+        return panel;
     }
     /** Class detail popup — defaults line + editable chassis + class-skill checkboxes. */
     function openClassSheet(data, clsName) {
@@ -1875,7 +1883,7 @@ window.SheetModals = (function () {
         openItemSheet, openClassSheet, openArchetypeSheet, openCatalogPicker,
         buildBuffDetailsPanel, buildBuffChangesPanel,
         openPortraitLightbox, openPowModifierEditor, openFeatureBuffMenu, buildItemBuffsPanel,
-        buildFeatureChangesPanel, openFrameless,
+        buildFeatureChangesPanel, buildPowModifierPanel, openFrameless,
         sectionCatalogToolbar, prettyTypeWord, formatChangeLine, parseEnhancements,
         enhancementDescHtml, enhancementEffectHtml, addBlankInventoryItem, processPortraitFile,
         openSpellConsumableBuilder,

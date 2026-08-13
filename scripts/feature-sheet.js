@@ -178,12 +178,13 @@ window.SheetFeatureSheet = (function () {
         revertBtn.type = 'button';
         revertBtn.title = 'Drop every edit on this entry and go back to the compendium/backend text';
         const syncEdited = () => {
-            const on = SD.isFeatureEdited(data, kind, ref.name);
+            const on = SD.isFeatureEdited(data, kind, ref.name) || !!ref.extraEdited?.();
             badge.style.display = on ? '' : 'none';
             revertBtn.style.display = on ? '' : 'none';
         };
         revertBtn.addEventListener('click', () => {
             SD.clearFeatureOverride(data, kind, ref.name);
+            ref.onRevert?.(); // kind-specific stores (powOverrides, stanceOverrides, …)
             quietSave();
             const base = SD.resolveFeature(data, kind, ref.name,
                 { classes: ref.classes, fallbackDesc: ref.fallbackDesc });
