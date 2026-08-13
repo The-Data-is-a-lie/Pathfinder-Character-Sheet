@@ -26,20 +26,16 @@ window.SheetModals = (function () {
     const { setClassInfo, classInfoFor, classLevelFor, archetypeDescHtml } = window.SheetClassInfo;
     const { refreshFeatureLedger, featureBuffGroup } = window.SheetFeatureLedger;
 
-    function openBuffEditor(data, buff, host) {
-        const existing = host.querySelector('.buff-editor-panel');
-        if (existing) {
-            existing.remove();
-            return;
-        }
+    /**
+     * Buff Details panel (#108): every meta field of the old inline buff editor, now
+     * committing on change (no Save button) — embedded in the feature sheet's Details
+     * tab. The name lives in the sheet header, which runs the rename engine.
+     */
+    function buildBuffDetailsPanel(data, buff) {
         const SD = window.SheetDetails;
         const panel = h('div', 'buff-editor-panel inv-buffs-editor no-print');
-        panel.appendChild(h('div', 'inv-buffs-title', 'Edit buff'));
 
         const meta = h('div', 'buff-editor-meta');
-        const nameIn = h('input', 'edit-field');
-        nameIn.value = buff.name || '';
-        nameIn.placeholder = 'Buff name';
         const subSel = h('select', 'edit-field');
         for (const s of BUFF_SUBTYPES) {
             const opt = document.createElement('option');
@@ -123,7 +119,6 @@ window.SheetModals = (function () {
         activSel.addEventListener('change', syncWeaponSel);
         syncWeaponSel();
 
-        addField('Name', nameIn);
         addField('Category', subSel);
         addField('Caster level', levelIn);
         addField('Duration', durVal);
@@ -135,9 +130,28 @@ window.SheetModals = (function () {
 
         const notesIn = h('textarea', 'edit-field buff-editor-notes');
         notesIn.rows = 2;
-        notesIn.placeholder = 'Notes / description (optional)';
+        notesIn.placeholder = 'Notes / rider text (prints with per-roll toggles)';
         notesIn.value = buff.notes || '';
         panel.appendChild(notesIn);
+
+        // Every field commits on change — the feature sheet has no Save button.
+        const commitMeta = () => {
+            buff.subType = subSel.value;
+            buff.level = parseIntLoose(levelIn.value, 0);
+            buff.duration = {
+                value: String(durVal.value || '').trim(),
+                units: durUnit.value || '',
+            };
+            buff.setSize = sizeSel.value || '';
+            buff.notes = notesIn.value || '';
+            buff.activation = activSel.value === 'perRoll' ? 'perRoll' : 'always';
+            buff.itemKey = buff.activation === 'perRoll' ? (weaponSel.value || '') : '';
+            quietSave();
+            refreshDerived();
+        };
+        for (const ctl of [subSel, levelIn, durVal, durUnit, sizeSel, activSel, weaponSel, notesIn]) {
+            ctl.addEventListener('change', commitMeta);
+        }
 
         // Situational context notes: text pinned to a change target, shown as ⓘ hover
         // tooltips on the matching skill/attack rows — same pipeline feats and items feed.
@@ -194,8 +208,13 @@ window.SheetModals = (function () {
         });
         noteForm.append(noteTextIn, noteTargetSel, noteAddBtn);
         panel.appendChild(noteForm);
+        return panel;
+    }
 
-        panel.appendChild(h('h4', null, 'Changes'));
+    /** Buff Changes panel (#108) — change list + add form, feature sheet Changes tab. */
+    function buildBuffChangesPanel(data, buff) {
+        const SD = window.SheetDetails;
+        const panel = h('div', 'inv-buffs-editor no-print');
         const list = h('div', 'inv-buffs-list');
         function redrawList() {
             list.innerHTML = '';
@@ -286,34 +305,7 @@ window.SheetModals = (function () {
         });
         form.append(formulaIn, targetSel, typeSel, whenSel, addBtn);
         panel.appendChild(form);
-
-        const actions = h('div', 'inv-buffs-actions');
-        const commitMeta = () => {
-            buff.name = String(nameIn.value || '').trim() || buff.name;
-            buff.subType = subSel.value;
-            buff.level = parseIntLoose(levelIn.value, 0);
-            buff.duration = {
-                value: String(durVal.value || '').trim(),
-                units: durUnit.value || '',
-            };
-            buff.setSize = sizeSel.value || '';
-            buff.notes = notesIn.value || '';
-            buff.activation = activSel.value === 'perRoll' ? 'perRoll' : 'always';
-            buff.itemKey = buff.activation === 'perRoll' ? (weaponSel.value || '') : '';
-            quietSave();
-            renderSheet(data);
-            setActiveTab('buffs');
-        };
-        const saveBtn = h('button', 'inv-btn inv-btn-primary', 'Save');
-        saveBtn.type = 'button';
-        saveBtn.addEventListener('click', commitMeta);
-        const closeBtn = h('button', 'inv-btn', 'Close');
-        closeBtn.type = 'button';
-        // Apply meta fields on close too
-        closeBtn.addEventListener('click', commitMeta);
-        actions.append(saveBtn, closeBtn);
-        panel.appendChild(actions);
-        host.appendChild(panel);
+        return panel;
     }
     // ---------------------------------------------------------------- section renderers
     // --- Character portrait ---------------------------------------------------------
@@ -1880,7 +1872,8 @@ window.SheetModals = (function () {
     }
 
     return {
-        openItemSheet, openClassSheet, openArchetypeSheet, openCatalogPicker, openBuffEditor,
+        openItemSheet, openClassSheet, openArchetypeSheet, openCatalogPicker,
+        buildBuffDetailsPanel, buildBuffChangesPanel,
         openPortraitLightbox, openPowModifierEditor, openFeatureBuffMenu, buildItemBuffsPanel,
         buildFeatureChangesPanel, openFrameless,
         sectionCatalogToolbar, prettyTypeWord, formatChangeLine, parseEnhancements,

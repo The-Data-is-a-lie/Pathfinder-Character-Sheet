@@ -313,6 +313,9 @@ window.SheetState = (function () {
             },
             changes: Array.isArray(b.changes) ? cloneChanges(b.changes) : [],
             notes: b.notes != null ? String(b.notes) : '',
+            // Rich HTML description from the feature sheet (#108) — display-only; the
+            // plain `notes` stays the per-roll rider text.
+            description: b.description != null ? String(b.description) : '',
             // Situational context notes ({text, target}) — surfaced as ⓘ hover tooltips on
             // the matching skill/attack rows, same pipeline feats and items feed.
             contextNotes: Array.isArray(b.contextNotes)

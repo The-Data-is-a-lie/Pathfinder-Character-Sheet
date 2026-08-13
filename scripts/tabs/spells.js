@@ -215,7 +215,9 @@ window.SheetTabSpells = (function () {
                 return;
             }
         }
-        const sd = foundry('spells', name);
+        // resolveSpell (#108): the user's mechanics edits (save, damage, school, …)
+        // feed the cast card, not just the display row.
+        const sd = window.SheetDetails?.resolveSpell?.(data, name) || foundry('spells', name);
         // #11 warn-only rules: an opposition-school cast costs a second slot (spend it
         // when one exists, warn either way); restricted-slot books get a reminder that
         // one slot per level is domain/school-only.
@@ -364,10 +366,11 @@ window.SheetTabSpells = (function () {
         });
         return s;
     }
-    // One expandable entry per spell: compendium description plus a compact meta line
-    // (school / action / save+DC / damage / range / duration) from the slim spell extract.
-    function spellItem(name, dc) {
-        const sd = foundry('spells', name);
+    // One expandable entry per spell: description plus a compact meta line (school /
+    // action / save+DC / damage / range / duration). Reads resolveSpell (#108) so
+    // per-character mechanics/description edits render and roll.
+    function spellItem(data, name, dc) {
+        const sd = window.SheetDetails?.resolveSpell?.(data, name) || foundry('spells', name);
         if (!sd?.description && !sd?.actions?.length) return h('span', 'spell-name', name);
         const act = sd?.actions?.[0] || {};
         const dmgParts = (act.damage?.parts || [])
@@ -399,6 +402,127 @@ window.SheetTabSpells = (function () {
             ? enrichSpellHtml(sd.description)
             : '<p class="dim">No description on file.</p>';
         return details(name, metaHtml + desc, 'spell-details');
+    }
+
+    /**
+     * Spell Details panel for the feature sheet (#108): roll-relevant mechanics —
+     * school, action type, save, damage, range, duration — written into the override
+     * layer (details.spell mirrors the native action shape, resolveSpell merges it),
+     * plus a Level mover that re-buckets the list AND the prepared state.
+     */
+    function buildSpellDetailsPanel(data, bk, level, name) {
+        const SD = window.SheetDetails;
+        const panel = h('div', 'spell-details-panel');
+        const base = SD?.resolveSpell?.(data, name) || {};
+        const act = base.actions?.[0] || {};
+
+        const row = (label, ctl) => {
+            const r = h('label', 'item-sheet-stat');
+            r.appendChild(h('span', 'item-sheet-stat-label', label));
+            r.appendChild(ctl);
+            return r;
+        };
+        const select = (options, value) => {
+            const sel = h('select', 'item-sheet-select');
+            for (const [val, lab] of options) {
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = lab;
+                if (val === (value ?? '')) opt.selected = true;
+                sel.appendChild(opt);
+            }
+            return sel;
+        };
+        const text = (value, placeholder) => {
+            const inp = h('input', 'item-sheet-text');
+            inp.type = 'text';
+            inp.value = value ?? '';
+            if (placeholder) inp.placeholder = placeholder;
+            return inp;
+        };
+
+        // Level mover — this book only; prepared state follows the spell.
+        panel.appendChild(h('h4', 'item-sheet-h', 'Spell level'));
+        const lvSel = select(
+            Array.from({ length: 10 }, (_, i) => [String(i), i === 0 ? '0 (cantrip)' : String(i)]),
+            String(level));
+        lvSel.addEventListener('change', () => {
+            const to = parseInt(lvSel.value, 10);
+            if (!Number.isFinite(to) || to === level) return;
+            const bucket = bk.lists[level];
+            const i = (bucket || []).findIndex((n) => String(n) === String(name));
+            if (i < 0) return;
+            const wasPrepared = bk.preparedMode && preparedSetAt(data, bk, level).has(name);
+            bucket.splice(i, 1);
+            writePreparedAt(data, bk, level, name, false);
+            while (bk.lists.length <= to) bk.lists.push([]);
+            if (!bk.lists[to].some((n) => String(n).toLowerCase() === String(name).toLowerCase())) {
+                bk.lists[to].push(name);
+            }
+            if (wasPrepared) writePreparedAt(data, bk, to, name, true);
+            quietSave();
+            renderSheet(data);
+            setActiveTab('spells');
+            window.SheetFeatureSheet.openFeatureSheet(data, {
+                kind: 'spell', name, sourceKind: 'spell', typeLabel: 'Spell',
+                canRegroup: false, showUses: false,
+                panels: { details: buildSpellDetailsPanel(data, bk, to, name) },
+            });
+        });
+        panel.appendChild(row('Level', lvSel));
+
+        panel.appendChild(h('h4', 'item-sheet-h', 'Mechanics'));
+        const schoolSel = select([['', '—'], ...Object.entries(SPELL_SCHOOLS)], base.school);
+        const actionSel = select([['', '—'], ...Object.entries(ACTION_TYPE_LABELS)
+            .filter(([k]) => k !== 'save')], act.actionType);
+        const saveSel = select([['', 'None'], ['fort', 'Fortitude'], ['ref', 'Reflex'], ['will', 'Will']],
+            act.save?.type);
+        const saveDescIn = text(act.save?.description, 'Reflex half, Will negates, …');
+        const dmgIn = text((act.damage?.parts || []).map((p) => p.formula).filter(Boolean).join('; '),
+            '(min(10, @cl))d6; 1d4');
+        dmgIn.title = 'Damage formulas, ";"-separated — @cl expands at cast time';
+        const rangeUnitsIn = text(act.range?.units, 'close / medium / long / ft');
+        const rangeValIn = text(act.range?.value, 'value');
+        const durUnitsIn = text(act.duration?.units, 'round / minute / hour / inst');
+        const durValIn = text(act.duration?.value, 'value or formula');
+
+        const commit = () => {
+            const spell = {};
+            if (schoolSel.value) spell.school = schoolSel.value;
+            if (actionSel.value) spell.actionType = actionSel.value;
+            if (saveSel.value || saveDescIn.value.trim()) {
+                spell.save = { type: saveSel.value, description: saveDescIn.value.trim() };
+            }
+            const parts = dmgIn.value.split(';').map((s) => s.trim()).filter(Boolean);
+            if (parts.length) spell.damageParts = parts.map((f) => ({ formula: f }));
+            if (rangeUnitsIn.value.trim() || rangeValIn.value.trim()) {
+                spell.range = { units: rangeUnitsIn.value.trim(), value: rangeValIn.value.trim() };
+            }
+            if (durUnitsIn.value.trim() || durValIn.value.trim()) {
+                spell.duration = { units: durUnitsIn.value.trim(), value: durValIn.value.trim() };
+            }
+            SD.setFeatureOverride(data, 'spell', name,
+                { details: Object.keys(spell).length ? { spell } : null });
+            quietSave();
+        };
+        for (const ctl of [schoolSel, actionSel, saveSel, saveDescIn, dmgIn,
+            rangeUnitsIn, rangeValIn, durUnitsIn, durValIn]) {
+            ctl.addEventListener('change', commit);
+        }
+
+        panel.appendChild(row('School', schoolSel));
+        panel.appendChild(row('Action', actionSel));
+        panel.appendChild(row('Save', saveSel));
+        panel.appendChild(row('Save text', saveDescIn));
+        panel.appendChild(row('Damage', dmgIn));
+        panel.appendChild(row('Range', rangeUnitsIn));
+        panel.appendChild(row('Range value', rangeValIn));
+        panel.appendChild(row('Duration', durUnitsIn));
+        panel.appendChild(row('Duration value', durValIn));
+        panel.appendChild(h('p', 'dim',
+            'Edits store on this character and feed the Cast card. Blank fields fall back '
+            + 'to the compendium entry; Revert (sidebar) clears everything.'));
+        return panel;
     }
 
     // ------------------------------------------- standard-progression badges (#23, warn-only)
@@ -660,6 +784,17 @@ window.SheetTabSpells = (function () {
                 onPick: (hit) => addSpellAt(parseInt(levelSel.value, 10) || 0, hit.name),
                 onCustom: (name) => addSpellAt(parseInt(levelSel.value, 10) || 0, name),
             },
+            onBlank: () => {
+                const lv = parseInt(levelSel.value, 10) || 0;
+                const name = window.SheetFeatureSheet.blankName('New Spell',
+                    (bk.lists || []).flat());
+                addSpellAt(lv, name);
+                window.SheetFeatureSheet.openFeatureSheet(data, {
+                    kind: 'spell', name, sourceKind: 'spell', typeLabel: 'Spell',
+                    canRegroup: false, showUses: false,
+                    panels: { details: buildSpellDetailsPanel(data, bk, lv, name) },
+                });
+            },
         }));
 
         // Slots table. Per Day is dblclick-editable (extra books start all zeroes).
@@ -849,7 +984,29 @@ window.SheetTabSpells = (function () {
                     castBtn.title = 'Cast and spend a slot (if required)';
                     castBtn.addEventListener('click', () => promptCast(data, bk, level, name));
                     row.appendChild(castBtn);
-                    row.appendChild(spellItem(name, dc));
+                    row.appendChild(spellItem(data, name, dc));
+                    // ✎ opens the spell's feature sheet (#108): description, mechanics,
+                    // level mover, rename, revert.
+                    if (window.SheetDetails?.isFeatureEdited?.(data, 'spell', name)) {
+                        const chip = h('span', 'feat-edited-chip', '✎');
+                        chip.title = 'Edited on this character';
+                        row.appendChild(chip);
+                    }
+                    const editBtn = h('button', 'inv-btn feat-edit-btn no-print', '✎');
+                    editBtn.type = 'button';
+                    editBtn.title = 'Edit this spell — description, save, damage, level';
+                    editBtn.addEventListener('click', () => {
+                        window.SheetFeatureSheet.openFeatureSheet(data, {
+                            kind: 'spell',
+                            name,
+                            sourceKind: 'spell',
+                            typeLabel: 'Spell',
+                            canRegroup: false,
+                            showUses: false,
+                            panels: { details: buildSpellDetailsPanel(data, bk, level, name) },
+                        });
+                    });
+                    row.appendChild(editBtn);
                     const rm = h('button', 'inv-btn inv-btn-danger no-print', '×');
                     rm.type = 'button';
                     rm.title = 'Remove from spell list';

@@ -116,13 +116,16 @@ window.SheetFeatureSheet = (function () {
     /**
      * Open the feature sheet.
      * ref: { kind, name, listKey?, sourceKind?, fallbackDesc?, typeLabel?, classes?,
-     *        showUses?, canRegroup?, canRename? }
+     *        showUses?, canRegroup?, canRename?, obj?, panels? }
+     * Object-backed kinds (buffs, talents) pass `obj` — description edits land on the
+     * object itself, not the override layer — plus prebuilt Details/Changes `panels`.
      */
     function openFeatureSheet(data, ref) {
         sheetHandle?.close(); // replace-on-reopen, same as the item sheet
         const SD = window.SheetDetails;
         const SM = window.SheetModals;
         const kind = ref.kind;
+        const obj = ref.obj || null;
         const resolved = SD.resolveFeature(data, kind, ref.name,
             { classes: ref.classes, fallbackDesc: ref.fallbackDesc });
 
@@ -191,6 +194,22 @@ window.SheetFeatureSheet = (function () {
         });
         side.append(badge, revertBtn);
 
+        // Active checkbox for object-backed buffs (mirrors the Buffs-tab column).
+        if (kind === 'buff' && obj) {
+            const row = h('label', 'item-sheet-stat');
+            row.appendChild(h('span', 'item-sheet-stat-label', 'Active'));
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = obj.active !== false;
+            cb.addEventListener('change', () => {
+                obj.active = cb.checked;
+                quietSave();
+                window.SheetState.refreshDerived?.();
+            });
+            row.appendChild(cb);
+            side.appendChild(row);
+        }
+
         // Uses tracker — same control the Features tab renders.
         if (ref.showUses !== false && (kind === 'feat' || kind === 'classFeat')) {
             const usesRow = h('div', 'item-sheet-stat');
@@ -253,8 +272,8 @@ window.SheetFeatureSheet = (function () {
         }
         content.appendChild(tabBar);
 
-        // Description — the shared rich editor, committing into the override layer. An
-        // edit identical to the base text clears the override instead of storing a copy.
+        // Description — the shared rich editor. Override-layer kinds clear the override
+        // when the edit matches the base text; object-backed kinds write the object.
         const descPane = h('div', 'item-sheet-pane');
         const baseDesc = () => {
             const base = SD.resolveFeature(data, kind, ref.name,
@@ -263,12 +282,16 @@ window.SheetFeatureSheet = (function () {
         };
         let descEditor = null;
         descEditor = window.SheetRichText.richTextEditor({
-            html: resolved.description || '',
+            html: (obj ? obj.description : resolved.description) || '',
             placeholder: 'Description…',
             onCommit: (html) => {
-                const same = html === baseDesc()
-                    || (!html && !baseDesc());
-                SD.setFeatureOverride(data, kind, ref.name, { description: same ? null : html });
+                if (obj) {
+                    obj.description = html;
+                } else {
+                    const same = html === baseDesc() || (!html && !baseDesc());
+                    SD.setFeatureOverride(data, kind, ref.name,
+                        { description: same ? null : html });
+                }
                 quietSave();
                 syncEdited();
             },
@@ -276,31 +299,37 @@ window.SheetFeatureSheet = (function () {
         descPane.appendChild(descEditor.el);
         panes.description = descPane;
 
-        // Details — tags plus kind-specific facts.
+        // Details — a prebuilt kind panel when given (buffs, later spells/PoW), else
+        // the generic tags editor.
         const detPane = h('div', 'item-sheet-pane hidden');
-        detPane.appendChild(h('h4', 'item-sheet-h', 'Identity'));
-        const tagsRow = h('label', 'item-sheet-stat');
-        tagsRow.appendChild(h('span', 'item-sheet-stat-label', 'Tags'));
-        const tagsIn = h('input', 'item-sheet-text');
-        tagsIn.type = 'text';
-        tagsIn.placeholder = 'Combat, Teamwork, …';
-        tagsIn.value = (resolved.tags || []).join(', ');
-        tagsIn.addEventListener('change', () => {
-            const tags = tagsIn.value.split(',').map((s) => s.trim()).filter(Boolean);
-            const baseTags = (resolved.base?.tags || []).join('|');
-            SD.setFeatureOverride(data, kind, ref.name,
-                { tags: tags.join('|') === baseTags ? null : tags });
-            quietSave();
-            syncEdited();
-        });
-        tagsRow.appendChild(tagsIn);
-        detPane.appendChild(tagsRow);
+        const tagsIn = h('input', 'item-sheet-text'); // referenced by revert even when unused
+        if (ref.panels?.details) {
+            detPane.appendChild(ref.panels.details);
+        } else {
+            detPane.appendChild(h('h4', 'item-sheet-h', 'Identity'));
+            const tagsRow = h('label', 'item-sheet-stat');
+            tagsRow.appendChild(h('span', 'item-sheet-stat-label', 'Tags'));
+            tagsIn.type = 'text';
+            tagsIn.placeholder = 'Combat, Teamwork, …';
+            tagsIn.value = (resolved.tags || []).join(', ');
+            tagsIn.addEventListener('change', () => {
+                const tags = tagsIn.value.split(',').map((s) => s.trim()).filter(Boolean);
+                const baseTags = (resolved.base?.tags || []).join('|');
+                SD.setFeatureOverride(data, kind, ref.name,
+                    { tags: tags.join('|') === baseTags ? null : tags });
+                quietSave();
+                syncEdited();
+            });
+            tagsRow.appendChild(tagsIn);
+            detPane.appendChild(tagsRow);
+        }
         if (ref.detailRows) for (const row of ref.detailRows) detPane.appendChild(row);
         panes.details = detPane;
 
-        // Changes — the shared feature-changes editor (built-ins + your typed modifiers).
+        // Changes — a prebuilt panel (buff changes) or the shared feature-changes editor.
         const chgPane = h('div', 'item-sheet-pane hidden');
-        chgPane.appendChild(SM.buildFeatureChangesPanel(data, ref.name, ref.sourceKind || kind));
+        chgPane.appendChild(ref.panels?.changes
+            || SM.buildFeatureChangesPanel(data, ref.name, ref.sourceKind || kind));
         panes.changes = chgPane;
 
         for (const pane of Object.values(panes)) content.appendChild(pane);
