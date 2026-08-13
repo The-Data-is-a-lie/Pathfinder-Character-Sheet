@@ -79,7 +79,89 @@ window.SheetShortcuts = (function () {
         if (window.SheetRoll?.toggle) {
             cmds.push({ label: 'Toggle Tools drawer', group: 'Action', run: () => window.SheetRoll.toggle() });
         }
+        cmds.push(...contentCommands());
         return cmds;
+    }
+
+    // ------------------------------------------------------- deep content jumps (#85)
+    // Fuzzy-jump to any inventory item, spell, skill, feature or settings section on the
+    // CURRENT character: open the right tab, scroll the row into view, flash it. Built
+    // fresh each palette open, same as the shell commands — no second source of truth.
+    function jumpTo(tabId, name) {
+        document.querySelector(`.tab-btn[data-tab="${tabId}"]`)?.click();
+        // Panes are pre-rendered; one frame lets the tab switch paint before we scroll.
+        setTimeout(() => {
+            const pane = document.querySelector(`.tab-pane[data-tab="${tabId}"]`);
+            if (!pane) return;
+            const needle = String(name).toLowerCase();
+            let best = null;
+            for (const el of pane.querySelectorAll('*')) {
+                if (el.children.length > 6) continue;              // rows, not whole sections
+                const t = el.textContent;
+                if (!t || t.length > 300) continue;
+                if (!t.toLowerCase().includes(needle)) continue;
+                if (!best || t.length < best.textContent.length) best = el;
+            }
+            if (!best) return;
+            const row = best.closest(
+                'tr, li, .spell-prep-row, .dnd-item, .settings-row, details, h3') || best;
+            row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            row.classList.add('cmdk-flash');
+            setTimeout(() => row.classList.remove('cmdk-flash'), 1600);
+        }, 60);
+    }
+
+    function contentCommands() {
+        const d = window.SheetApp?.current;
+        if (!d || d.error) return [];
+        const cmds = [];
+        const seen = new Set();
+        const add = (label, group, tabId) => {
+            const name = String(label || '').trim();
+            const key = group + '|' + name.toLowerCase();
+            if (!name || seen.has(key)) return;
+            seen.add(key);
+            cmds.push({ label: name, group, run: () => jumpTo(tabId, name) });
+        };
+        for (const it of d.equipment_list || []) {
+            add(typeof it === 'string' ? it : it?.name, 'Item', 'inventory');
+        }
+        for (const lvl of d.spell_list_choose_from || []) {
+            for (const s of lvl || []) add(s, 'Spell', 'spells');
+        }
+        for (const bk of d._sheet?.extraSpellbooks || []) {
+            for (const lvl of bk.lists || []) for (const s of lvl || []) add(s, 'Spell', 'spells');
+        }
+        for (const sk of window.SheetData?.ALL_SKILLS || []) add(sk.name, 'Skill', 'skills');
+        for (const g of window.SheetData?.FEAT_GROUPS || []) {
+            const list = d[g.listKey];
+            if (Array.isArray(list)) for (const f of list) add(f, 'Feature', 'features');
+        }
+        for (const picks of Object.values(d.class_features || {})) {
+            if (picks && typeof picks === 'object' && !Array.isArray(picks)) {
+                for (const n of Object.keys(picks)) add(n, 'Feature', 'features');
+            }
+        }
+        for (const t of d.traits || d.selected_traits || []) add(t, 'Feature', 'features');
+        document.querySelectorAll('.tab-pane[data-tab="settings"] h3').forEach((el) => {
+            add(el.textContent, 'Setting', 'settings');
+        });
+        return cmds;
+    }
+
+    /** Substring beats prefix-ish beats subsequence; shorter labels win ties. −1 = no match. */
+    function fuzzyScore(label, needle) {
+        const l = label.toLowerCase();
+        const idx = l.indexOf(needle);
+        if (idx === 0) return 100 - l.length * 0.01;
+        if (idx > 0) return 60 - idx * 0.1 - l.length * 0.01;
+        let li = 0;
+        for (const ch of needle) {
+            li = l.indexOf(ch, li);
+            if (li < 0) return -1;
+            li += 1;
+        }
+        return 30 - l.length * 0.01;
     }
 
     // ---------------------------------------------------------------- palette
@@ -128,9 +210,16 @@ window.SheetShortcuts = (function () {
 
         function filter(q) {
             const needle = q.trim().toLowerCase();
-            filtered = needle
-                ? all.filter((c) => c.label.toLowerCase().includes(needle))
-                : all;
+            if (!needle) {
+                filtered = all.slice(0, 60);   // content commands run to hundreds — type to reach them
+            } else {
+                filtered = all
+                    .map((c) => [fuzzyScore(c.label, needle), c])
+                    .filter(([s]) => s >= 0)
+                    .sort((a, b) => b[0] - a[0])
+                    .slice(0, 50)
+                    .map(([, c]) => c);
+            }
             sel = 0;
             renderList();
         }
@@ -159,7 +248,7 @@ window.SheetShortcuts = (function () {
             // Escape falls through to SheetOverlay's stack handler.
         });
 
-        renderList();
+        filter('');
         handle = o.open({
             title: 'Command palette',
             body: wrap,
