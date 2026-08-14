@@ -128,6 +128,13 @@ window.SheetTabFeatures = (function () {
                 + bits;
             nameCell.appendChild(mark);
         }
+        // #79: ⚠ when the audit could not satisfy this feat's own stated prerequisites. Best
+        // effort by construction (it reads prose), so it flags and explains — never blocks.
+        if (opts.data) {
+            const healthMark = window.SheetHealthUI?.rowBadge?.(opts.data, 'feat',
+                String(opts.name).replace(/^\([^)]*\)\s*/, '').trim());
+            if (healthMark) nameCell.appendChild(healthMark);
+        }
         li.appendChild(nameCell);
 
         const typeCell = h('div', 'feat-cell feat-cell-type');

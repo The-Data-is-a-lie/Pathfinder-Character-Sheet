@@ -514,6 +514,10 @@
         }
 
         currentData = data;
+        // #79: the audit is memoized for one paint (its feat-prerequisite rule parses prose for
+        // every feat, and every skill/feat row asks it a question). A render is the only thing
+        // that can change the answer, so this is where the memo is dropped.
+        window.SheetHealth?.invalidate?.();
         const sheet = document.getElementById('sheet');
         sheet.innerHTML = '';
         if (!data || typeof data !== 'object' || data.error) {
@@ -522,6 +526,7 @@
             syncThemeControls(themePreference());
             window.sheetChanges = { changes: [], notes: [], conditionals: [] };
             window.SheetRoll?.setCharacter(null);
+            window.SheetHealthUI?.syncIndicator?.();
             return;
         }
 
@@ -541,6 +546,7 @@
             wrapWideTables(sheet);
             syncThemeControls(themePreference());
             window.SheetRoll?.setCharacter(data);
+            window.SheetHealthUI?.syncIndicator?.();   // #79 — no rows to badge, but the count holds
             return;
         }
 
@@ -568,6 +574,8 @@
         syncThemeControls(themePreference());
         // Tools drawer attacks refresh after tabs run (Buffs sets window.sheetChanges).
         window.SheetRoll?.setCharacter(data);
+        // #79: last, so the count reflects the ledger the tabs just built.
+        window.SheetHealthUI?.syncIndicator?.();
     }
 
     // Print = the 2-page handout, from either view. Simple view already IS the handout;
@@ -701,6 +709,8 @@
         // theme/form value must never take Print or Generate down with it.
         document.getElementById('toggle-load').addEventListener('click', () => togglePanel('load-panel'));
         document.getElementById('print-btn').addEventListener('click', () => printHandout());
+        document.getElementById('health-btn').addEventListener('click',
+            () => window.SheetHealthUI?.openPanel?.(currentData));
         // #61 offline PWA: registers the service worker on window load, tracks online state
         // and updates. Entirely self-contained — nothing below depends on it succeeding.
         window.SheetPWA?.init?.();

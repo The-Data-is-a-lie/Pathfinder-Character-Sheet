@@ -88,6 +88,11 @@
     <script src="scripts/domain/class-info.js" defer></script>
     <script src="scripts/domain/inventory-model.js" defer></script>
     <script src="scripts/domain/feature-ledger.js" defer></script>
+    <!-- #79 warn-only audit: pure rules module + its surface. Both read SheetDerive /
+         SheetSkillMath / SheetDetails at call time, so position only has to precede
+         the tab modules that hang badges off them. -->
+    <script src="scripts/domain/health-check.js" defer></script>
+    <script src="scripts/health-ui.js" defer></script>
     <!-- #78: the seven PF1 simple creature templates, applied as reversible buffs.
          Reads SheetData/SheetDerive/SheetState at call time only. -->
     <script src="scripts/domain/creature-templates.js" defer></script>
@@ -183,6 +188,7 @@
         <button id="reconnect-chip" type="button" class="hidden" title="Re-grant access to the remembered character folder">Reconnect folder</button>
     </div>
     <div class="topbar-buttons utility">
+        <button id="health-btn" type="button" class="health-btn hidden" title="Rules warnings">⚠ 0</button>
         <button id="theme-btn" type="button" title="Choose color theme">Theme</button>
         <button id="hud-btn" type="button" title="One-tap combat surface: HP, attacks, saves, conditions, rounds">⚔ Combat</button>
         <button id="toggle-load" type="button">Load JSON</button>

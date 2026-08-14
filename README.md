@@ -18,6 +18,9 @@ in your browser and saves locally.
   equipped gear that feeds the character's numbers.
 - **Path of War & Spheres of Power** — maneuvers, readied/stance toggles, spell casting with
   roll-log cards, and a buffs/conditions ledger that drives every derived number.
+- **Rules health check** — a ⚠ badge flags over-spent skill ranks, unmet feat prerequisites and
+  encumbrance surprises. It only ever warns: nothing is blocked, nothing is auto-corrected, and
+  any warning can be muted.
 - **Creature templates** — turn a stock NPC into its Advanced, Giant, Young, Celestial, Fiendish,
   Entropic or Resolute variant with one click. They apply as toggles you can switch off, and they
   stack.
