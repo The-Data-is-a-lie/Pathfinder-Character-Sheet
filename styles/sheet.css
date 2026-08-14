@@ -6125,3 +6125,11 @@ body.is-offline .pa-generate {
 .rebuild-h { margin: 1.1rem 0 0.2rem; border-top: 1px solid var(--rule); padding-top: 0.7rem; }
 .rebuild-warn { margin: 0 0 0.5rem; }
 .template-row.is-rebuild { border-style: dashed; }
+
+/* ============================================================ share a character (#118) */
+.share-dialog { display: flex; flex-direction: column; gap: 0.35rem; min-width: 22rem; }
+.share-dialog h4 { margin: 0.7rem 0 0.2rem; }
+.share-row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+/* The size/loss note under each button is the whole point of this dialog: what a link costs is
+   stated at copy time, not discovered by the person who receives it. */
+.share-note { margin: 0.15rem 0 0; font-size: 0.82rem; line-height: 1.45; }

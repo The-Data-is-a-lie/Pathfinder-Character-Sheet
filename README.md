@@ -21,6 +21,9 @@ in your browser and saves locally.
 - **Encounters and related NPCs in one click** — roll a CR-budgeted encounter (boss + minions,
   matched pair, mook squad) as a grouped set of editable characters, or generate a rival,
   nemesis, mentor or ally derived from whoever is open and linked to them on both sides.
+- **Share a character** — send one character as a JSON file, or as a self-contained link when it
+  is small enough to survive being pasted. The dialog tells you which you get, and what a link
+  leaves out, before you copy it.
 - **Rules health check** — a ⚠ badge flags over-spent skill ranks, unmet feat prerequisites and
   encumbrance surprises. It only ever warns: nothing is blocked, nothing is auto-corrected, and
   any warning can be muted.

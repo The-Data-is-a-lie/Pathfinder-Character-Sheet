@@ -426,11 +426,15 @@ window.SheetTabSettings = (function () {
         const statblockBtn = h('button', null, 'Copy stat block');
         statblockBtn.title = 'Copy the current character as Paizo-style stat-block text (for prep docs and forum posts)';
         statblockBtn.addEventListener('click', () => window.SheetStatblock?.copyStatBlock?.());
+        // #118: hand THIS character to another person — a file, or a link when one fits.
+        const shareBtn = h('button', null, 'Share character…');
+        shareBtn.title = 'Send this character to someone else as a file, or as a link when it is small enough';
+        shareBtn.addEventListener('click', () => window.SheetShare?.open?.(window.SheetApp?.current));
         // #86: side-by-side comparison of two library characters (or #80 snapshots).
         const diffBtn = h('button', null, 'Compare…');
         diffBtn.title = 'Compare two saved characters side by side, deltas highlighted';
         diffBtn.addEventListener('click', () => window.SheetCharDiff?.open?.());
-        libRow.append(exportBtn, importInput, statblockBtn, diffBtn);
+        libRow.append(exportBtn, importInput, shareBtn, statblockBtn, diffBtn);
         body.appendChild(libRow);
         body.appendChild(offlineSection());
 
