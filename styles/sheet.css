@@ -5798,3 +5798,53 @@ body.density-compact .tab-pane h3 { margin-top: 0.5rem; margin-bottom: 0.3rem; }
 .cmdk-group { font-size: 0.75rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.03em; }
 .cmdk-empty { padding: 0.75rem; color: var(--dim); text-align: center; }
 .cmdk-foot { font-size: 0.78rem; color: var(--dim); text-align: center; padding-top: 0.1rem; }
+
+/* ============================================================ generate recipes (#73, #74) */
+.recipe-dialog { display: flex; flex-direction: column; gap: 0.75rem; }
+.recipe-types { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.recipe-params {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 0.6rem;
+}
+.recipe-field { display: flex; flex-direction: column; gap: 0.2rem; }
+.recipe-field-label {
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--dim);
+}
+/* The solved budget is the point of the encounter dialog — give it panel weight. */
+.recipe-preview {
+    padding: 0.6rem 0.75rem;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+}
+.recipe-preview-head { margin: 0 0 0.4rem; font-weight: 600; font-size: 0.92rem; }
+.recipe-slot-list {
+    margin: 0 0 0.4rem;
+    padding-left: 1.1rem;
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+.recipe-preview .dim { margin: 0; font-size: 0.79rem; }
+.recipe-status { margin: 0; min-height: 1.2em; font-size: 0.85rem; color: var(--dim); }
+.relationship-list { display: flex; flex-direction: column; gap: 0.3rem; margin: 0.3rem 0 0.8rem; }
+.relationship-row { display: flex; align-items: baseline; gap: 0.5rem; }
+.relationship-type {
+    min-width: 5.5rem;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--dim);
+}
+.relationship-open {
+    border: none;
+    background: none;
+    padding: 0;
+    color: var(--accent-dark);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}

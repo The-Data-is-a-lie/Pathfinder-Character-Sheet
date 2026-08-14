@@ -77,6 +77,10 @@
     <script src="scripts/domain/class-info.js" defer></script>
     <script src="scripts/domain/inventory-model.js" defer></script>
     <script src="scripts/domain/feature-ledger.js" defer></script>
+    <!-- #73/#74: client-side recipes over the existing generate endpoint (no backend
+         work), plus their dialogs. Read SheetData/SheetGenerate at call time. -->
+    <script src="scripts/domain/generate-recipes.js" defer></script>
+    <script src="scripts/recipes-ui.js" defer></script>
     <script src="scripts/theme.js" defer></script>
     <script src="scripts/shell-ui.js" defer></script>
     <script src="scripts/modals.js" defer></script>
@@ -228,6 +232,7 @@
                 <button type="submit" id="gen-roll" class="gen-roll">🎲 Roll it!</button>
                 <button type="button" id="gen-surprise" class="gen-surprise">🎠 Surprise me</button>
                 <button type="button" id="gen-guided" class="gen-surprise" title="Step-by-step: concept, ability scores, then the generator builds the rest">🧭 Guided create</button>
+                <button type="button" id="gen-encounter" class="gen-surprise" title="Roll a whole CR-budgeted encounter at once — a boss and minions, a matched pair, a mook squad">⚔ Encounter…</button>
                 <span id="gen-status" role="status"></span>
             </div>
         </div>

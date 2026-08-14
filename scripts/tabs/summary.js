@@ -192,6 +192,9 @@ window.SheetTabSummary = (function () {
             'Rest with long-term care (Heal DC 15, tended): HP heals at 2×level');
         mk('Level up', () => window.SheetLevelUp?.open?.(data),
             'Advance a level in place: class, HP, BAB/saves, feat, ability bump');
+        mk('Generate related…', () => window.SheetRecipesUI?.openRelated?.(data),
+            'Roll up a rival, nemesis, mentor or ally derived from this character, '
+            + 'linked to it on both sides (#73)');
         mk('Tools', () => window.SheetRoll?.setOpen?.(true));
         body.appendChild(bar);
     }
