@@ -14,6 +14,62 @@ window.SheetTabSettings = (function () {
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const backendUrl = () => window.SheetApp.backendUrl();
 
+    /**
+     * #61 "Offline & install": everything about this browser's copy of the app and of the
+     * library. Deliberately one block — install, update, offline status and durability are the
+     * same question ("is this thing going to be here next game night?") asked four ways.
+     *
+     * It repaints in place from SheetPWA.onChange rather than re-rendering the tab, so a
+     * service-worker update landing mid-edit cannot blow away a field the user is typing in.
+     */
+    let dropOfflineListener = null;
+    function offlineSection() {
+        const PWA = window.SheetPWA;
+        const wrap = h('div', 'settings-offline');
+        wrap.appendChild(h('h3', null, 'Offline & install'));
+        if (!PWA) {
+            wrap.appendChild(h('p', 'dim', 'Offline support is unavailable in this build.'));
+            return wrap;
+        }
+        const status = h('p', 'dim');
+        const nudge = h('p', 'settings-nudge');
+        const row = h('div', 'settings-row');
+        const installBtn = h('button', null, 'Install app');
+        installBtn.title = 'Add the sheet to this device so it opens in its own window and works offline';
+        installBtn.addEventListener('click', () => PWA.install());
+        const updateBtn = h('button', null, 'Reload for update');
+        updateBtn.addEventListener('click', () => PWA.applyUpdate());
+        row.append(installBtn, updateBtn);
+
+        const paint = async () => {
+            const s = PWA.state();
+            const bits = [];
+            if (!s.supported) bits.push('This browser has no service worker, so the sheet cannot run offline.');
+            else if (s.registered) bits.push('Offline ready — the sheet and its rules data are cached on this device.');
+            else bits.push('Not cached yet. Offline mode needs an https:// page (or localhost); it stays off on file://.');
+            if (s.installed) bits.push('Running as an installed app.');
+            bits.push(s.online ? 'Online.' : 'Offline — Generate is unavailable, everything else works.');
+            if (s.persisted === true) bits.push('Storage marked persistent by this browser.');
+            else if (s.persisted === false) bits.push('This browser has not marked the storage persistent, so it can be reclaimed.');
+            status.textContent = bits.join(' ');
+            installBtn.classList.toggle('hidden', !s.canInstall);
+            updateBtn.classList.toggle('hidden', !s.updateReady);
+
+            const count = await window.SheetLibrary?.list?.().then((l) => l.length).catch(() => 0);
+            const n = PWA.exportNudge(count);
+            nudge.textContent = n.show ? n.reason : '';
+            nudge.classList.toggle('hidden', !n.show);
+        };
+        // Settings is rebuilt on every tab switch, so the previous section's subscription has
+        // to go with it — otherwise each visit leaves another listener repainting dead nodes.
+        dropOfflineListener?.();
+        dropOfflineListener = PWA.onChange(paint);
+        wrap.append(status, nudge, row);
+        // Fires after the section is in the DOM; the nudge needs an async library read anyway.
+        paint();
+        return wrap;
+    }
+
     // #21: per-CHARACTER opt-in variant rules — stored on _sheet.variantRules so the house
     // rules travel with the character's one-JSON export, unlike the per-browser rows above.
     const VARIANT_RULES = [
@@ -350,6 +406,7 @@ window.SheetTabSettings = (function () {
             aEl.download = 'characters-export.json';
             aEl.click();
             URL.revokeObjectURL(aEl.href);
+            window.SheetPWA?.markExported?.();   // #61: silences the "no backup" nudge
         });
         const importInput = h('input');
         importInput.type = 'file';
@@ -375,6 +432,7 @@ window.SheetTabSettings = (function () {
         diffBtn.addEventListener('click', () => window.SheetCharDiff?.open?.());
         libRow.append(exportBtn, importInput, statblockBtn, diffBtn);
         body.appendChild(libRow);
+        body.appendChild(offlineSection());
 
         // Generator provenance (#68): which backend build produced this character, plus
         // the OGL licence pointer the backend ships (license_url is backend-relative).

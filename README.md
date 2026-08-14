@@ -21,6 +21,9 @@ in your browser and saves locally.
 - **Dice roller with sound** — roll attacks, saves and skills from the sheet or the Tools drawer.
 - **15+ light & dark themes** plus a custom-theme builder (WCAG-checked); deep-link a look with
   `?theme=dusk`.
+- **Works offline, installable** — the sheet and its rules data cache on your device, so it opens
+  at a table with no signal. Install it from **Settings → Offline & install** (or your browser's
+  install button) and it runs in its own window. Only **Generate** needs a connection.
 - **Local character library** — stored in-browser (IndexedDB), with optional sync to a real disk
   folder (Chrome/Edge). Print-friendly output too.
 
