@@ -20,10 +20,25 @@ window.SheetRoster = (function () {
         const placeholder = h('option', null, records.length ? '— pick a character —' : '(no saved characters)');
         placeholder.value = '';
         sel.appendChild(placeholder);
+        // #74: encounter members bunch under their group's optgroup so a six-mook squad reads
+        // as one entry's worth of list instead of scattering through the alphabet. Ungrouped
+        // characters keep their flat position, which is every character that predates this.
+        const groupNodes = new Map();
+        const hostFor = (r) => {
+            const g = r.data?._sheet?.encounterGroup;
+            if (!g?.id) return sel;
+            if (!groupNodes.has(g.id)) {
+                const og = document.createElement('optgroup');
+                og.label = g.name || 'Encounter';
+                groupNodes.set(g.id, og);
+                sel.appendChild(og);
+            }
+            return groupNodes.get(g.id);
+        };
         for (const r of records) {
             const opt = h('option', null, `${r.name} — ${titleCase(r.klass || '?')} ${r.level}`);
             opt.value = r.id;
-            sel.appendChild(opt);
+            hostFor(r).appendChild(opt);
         }
         const want = selectedId ?? window.SheetApp.current?._sheet?.id ?? localStorage.getItem(window.SheetApp.CURRENT_KEY);
         if (want && records.some((r) => r.id === want)) sel.value = want;

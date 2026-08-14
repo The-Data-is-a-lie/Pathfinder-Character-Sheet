@@ -709,6 +709,10 @@
         // theme/form value must never take Print or Generate down with it.
         document.getElementById('toggle-load').addEventListener('click', () => togglePanel('load-panel'));
         document.getElementById('print-btn').addEventListener('click', () => printHandout());
+        // #74: encounters live beside the generate form because that is what they are — a
+        // batch of generate calls, not a new kind of document.
+        document.getElementById('gen-encounter').addEventListener('click',
+            () => window.SheetRecipesUI?.openEncounter?.());
         document.getElementById('health-btn').addEventListener('click',
             () => window.SheetHealthUI?.openPanel?.(currentData));
         // #61 offline PWA: registers the service worker on window load, tracks online state
