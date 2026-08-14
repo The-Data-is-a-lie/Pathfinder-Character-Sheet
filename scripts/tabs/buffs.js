@@ -11,7 +11,9 @@ window.SheetTabBuffs = (function () {
         ensureBuffs, isBuffSourceRemoved, isBuffSourceActive, setBuffSourceActive, removeBuffSource,
         BUFF_SUBTYPES, addBuffFromCatalog, formatBuffDuration, restoreRemovedBuffSources,
     } = window.SheetState;
-    const { formatChangeLine, openCatalogPicker, openBuffEditor } = window.SheetModals;
+    const {
+        formatChangeLine, openCatalogPicker, buildBuffDetailsPanel, buildBuffChangesPanel,
+    } = window.SheetModals;
     const { PF1_CONDITIONS } = window.SheetData;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
@@ -288,6 +290,23 @@ window.SheetTabBuffs = (function () {
         row.appendChild(activeCell);
 
         const ctrl = h('div', 'buffs-col-ctrl no-print');
+        // #108: features/traits/class features open their owning feature sheet from here.
+        if (['feat', 'trait', 'classFeat'].includes(g.sourceKind)) {
+            const editBtn = h('button', 'inv-btn', 'Edit');
+            editBtn.type = 'button';
+            editBtn.title = 'Open this feature’s sheet';
+            editBtn.addEventListener('click', () => {
+                window.SheetFeatureSheet.openFeatureSheet(data, {
+                    kind: g.sourceKind,
+                    name: g.source,
+                    sourceKind: g.sourceKind,
+                    listKey: g.sourceKind === 'feat' ? 'feats'
+                        : (g.sourceKind === 'trait' ? 'selected_traits' : undefined),
+                    canRegroup: false,
+                });
+            });
+            ctrl.appendChild(editBtn);
+        }
         const rm = h('button', 'inv-btn inv-btn-danger', '×');
         rm.type = 'button';
         rm.title = 'Delete this source from the sheet math and list';
@@ -414,7 +433,20 @@ window.SheetTabBuffs = (function () {
                     const ctrl = h('div', 'buffs-col-ctrl no-print');
                     const editBtn = h('button', 'inv-btn', 'Edit');
                     editBtn.type = 'button';
-                    editBtn.addEventListener('click', () => openBuffEditor(data, buff, row));
+                    editBtn.addEventListener('click', () => {
+                        // #108: the unified feature sheet replaces the inline buff editor.
+                        window.SheetFeatureSheet.openFeatureSheet(data, {
+                            kind: 'buff',
+                            name: buff.name,
+                            obj: buff,
+                            typeLabel: 'Buff',
+                            sourceKind: 'custom',
+                            panels: {
+                                details: buildBuffDetailsPanel(data, buff),
+                                changes: buildBuffChangesPanel(data, buff),
+                            },
+                        });
+                    });
                     const dupBtn = h('button', 'inv-btn', '⧉');
                     dupBtn.type = 'button';
                     dupBtn.title = 'Duplicate buff';
