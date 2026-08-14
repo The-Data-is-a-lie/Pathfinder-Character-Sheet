@@ -192,6 +192,13 @@ window.SheetGenerate = (function () {
     }
     async function generate(form) {
         const status = document.getElementById('gen-status');
+        // #61: Generate is the sheet's ONLY network call, so it is the only thing offline mode
+        // has to speak to. Say so up front rather than letting the user watch a fetch time out.
+        if (navigator.onLine === false) {
+            status.textContent = 'You are offline — rolling up a new character needs the '
+                + 'generator backend. Everything else on the sheet keeps working.';
+            return;
+        }
         // Two ways in now — the quick "Roll it!" and the advanced "Generate Character".
         const buttons = ['gen-roll', 'gen-submit', 'gen-surprise']
             .map((id) => document.getElementById(id)).filter(Boolean);
@@ -222,6 +229,9 @@ window.SheetGenerate = (function () {
      * (name + chosen ability scores). Throws on HTTP failure so the wizard can show it.
      */
     async function generateCustom(overrides = {}) {
+        if (navigator.onLine === false) {
+            throw new Error('You are offline — creating a character needs the generator backend.');
+        }
         const form = document.getElementById('gen-form');
         const payload = { ...buildPayload(form), ...overrides };
         const resp = await fetch(backendUrl() + '/update_character_data', {

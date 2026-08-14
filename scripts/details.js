@@ -31,6 +31,12 @@ window.SheetDetails = (function () {
     async function fetchJson(url) {
         const resp = await fetch(url);
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        // #61: hand a clone to the offline cache. The service worker cannot catch these on the
+        // very first visit — it is still installing while they are already in flight — and
+        // these ARE the offline build (~22 MB of compendium extracts the sheet loads on every
+        // boot). Warming from the response we already have costs no extra bandwidth, so the
+        // sheet is offline-ready after one successful load instead of two.
+        window.SheetPWA?.warmCache?.(url, resp.clone());
         return resp.json();
     }
 
