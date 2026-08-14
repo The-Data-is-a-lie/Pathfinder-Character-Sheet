@@ -18,6 +18,84 @@ window.SheetTabBuffs = (function () {
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
 
+    /**
+     * #78 "Templates" picker — the seven PF1 simple templates as reversible toggles.
+     *
+     * A row per template, showing what it does and (for the size-changers) the size it will
+     * actually move this character to from where they stand now. An applied template's row
+     * becomes Refresh / Remove: refresh matters because the DR/resistance note is banded by
+     * hit dice, so one click after a level-up re-reads the table.
+     */
+    function templatesButton(data) {
+        const T = window.SheetTemplates;
+        const btn = h('button', 'inv-btn', 'Templates');
+        btn.type = 'button';
+        if (!T) { btn.disabled = true; return btn; }
+        btn.title = 'Apply a PF1 simple creature template (Advanced, Giant, Young, Celestial…)';
+        btn.addEventListener('click', () => {
+            const body = h('div', 'template-picker');
+            body.appendChild(h('p', 'dim',
+                'Simple templates apply as toggles you can switch off or delete — nothing about '
+                + 'this character is rewritten. They stack: an Advanced Giant is a legal creature.'));
+            const rebuild = () => {
+                list.innerHTML = '';
+                for (const tpl of T.TEMPLATES) {
+                    const applied = T.appliedBuff(data, tpl.id);
+                    const row = h('div', 'template-row' + (applied ? ' is-applied' : ''));
+                    const info = h('div', 'template-row-info');
+                    const title = h('div', 'template-row-title');
+                    title.appendChild(h('strong', null, tpl.label));
+                    title.appendChild(h('span', 'template-row-cr', 'CR ' + tpl.cr));
+                    if (applied) title.appendChild(h('span', 'feat-tag', 'applied'));
+                    info.appendChild(title);
+                    info.appendChild(h('p', 'template-row-sum', tpl.summary));
+                    if (tpl.sizeStep) {
+                        const to = T.nextSize(data, tpl.sizeStep);
+                        const label = (window.SheetData?.SIZES || []).find((s) => s.id === to)?.label;
+                        info.appendChild(h('p', 'template-row-size', to
+                            ? `Size → ${label}`
+                            : 'No size change available — already at the end of the size ladder.'));
+                    }
+                    const ctrl = h('div', 'template-row-ctrl');
+                    const apply = h('button', 'inv-btn' + (applied ? '' : ' inv-btn-primary'),
+                        applied ? 'Refresh' : 'Apply');
+                    apply.type = 'button';
+                    if (applied) apply.title = 'Re-read the hit-dice-banded DR / resistance note and the size step';
+                    apply.addEventListener('click', () => {
+                        T.applyTemplate(data, tpl.id);
+                        renderSheet(data);
+                        setActiveTab('buffs');
+                        rebuild();
+                    });
+                    ctrl.appendChild(apply);
+                    if (applied) {
+                        const rm = h('button', 'inv-btn', 'Remove');
+                        rm.type = 'button';
+                        rm.addEventListener('click', () => {
+                            T.removeTemplate(data, tpl.id);
+                            renderSheet(data);
+                            setActiveTab('buffs');
+                            rebuild();
+                        });
+                        ctrl.appendChild(rm);
+                    }
+                    row.append(info, ctrl);
+                    list.appendChild(row);
+                }
+            };
+            const list = h('div', 'template-list');
+            body.appendChild(list);
+            rebuild();
+            const done = h('button', null, 'Done');
+            done.type = 'button';
+            const handle = window.SheetOverlay.open({
+                title: 'Creature templates', body, footer: [done],
+            });
+            done.addEventListener('click', () => handle.close());
+        });
+        return btn;
+    }
+
     // Shape owner moved to SheetState.featureUses (the marquee spend/tick paths share it).
     const featureUsesEntry = (data, name) => window.SheetState.featureUses(data, name);
     function renderUsesControls(data, name) {
@@ -294,6 +372,10 @@ window.SheetTabBuffs = (function () {
                 });
             });
             headCtrl.append(addBtn, browseBtn);
+            // #78: the Template category gets a third button — the curated simple-template
+            // picker. + and Browse still work here (a homebrew template is just a buff), this
+            // is only the shortcut to the seven the sheet knows the numbers for.
+            if (sec.id === 'template') headCtrl.appendChild(templatesButton(data));
             head.appendChild(headCtrl);
             sectionEl.appendChild(head);
 

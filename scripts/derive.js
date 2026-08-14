@@ -765,12 +765,26 @@ window.SheetDerive = (function () {
         }
         return out;
     }
-    /** SR = editable base (seeded from the generator) + feat/trait/class/misc boxes. */
+    /**
+     * SR = editable base (seeded from the generator) + feat/trait/class/misc boxes + anything
+     * in the changes ledger targeting `spellResist`.
+     *
+     * The ledger term arrived with #78: a celestial/fiendish/entropic/resolute template's ONE
+     * numeric defensive part is its SR, and without this it would sit visibly in the buff and
+     * silently do nothing to the number on Defenses. Same treatment every other ledger target
+     * already gets.
+     */
     function srTotal(data) {
         const st = sheetState(data);
         const b = st.srBonus || {};
+        let ledger = 0;
+        for (const c of (effectiveLedger(data).changes || [])) {
+            if (c?.target !== 'spellResist') continue;
+            const r = window.SheetFormula?.evaluate?.(c.formula, data);
+            if (r?.ok) ledger += Number(r.value) || 0;
+        }
         return (Number(st.sr) || 0) + (Number(b.feat) || 0) + (Number(b.trait) || 0)
-            + (Number(b.class) || 0) + (Number(b.misc) || 0);
+            + (Number(b.class) || 0) + (Number(b.misc) || 0) + ledger;
     }
     /** Iterative attack string from BAB: "+11/+6/+1" (max 4 attacks, PF1-style). */
     function babIterativesStr(bab) {

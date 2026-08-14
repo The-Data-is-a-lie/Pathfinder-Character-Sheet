@@ -18,6 +18,9 @@ in your browser and saves locally.
   equipped gear that feeds the character's numbers.
 - **Path of War & Spheres of Power** — maneuvers, readied/stance toggles, spell casting with
   roll-log cards, and a buffs/conditions ledger that drives every derived number.
+- **Creature templates** — turn a stock NPC into its Advanced, Giant, Young, Celestial, Fiendish,
+  Entropic or Resolute variant with one click. They apply as toggles you can switch off, and they
+  stack.
 - **Dice roller with sound** — roll attacks, saves and skills from the sheet or the Tools drawer.
 - **15+ light & dark themes** plus a custom-theme builder (WCAG-checked); deep-link a look with
   `?theme=dusk`.

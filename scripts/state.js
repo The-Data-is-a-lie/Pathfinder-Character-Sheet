@@ -257,6 +257,10 @@ window.SheetState = (function () {
         { id: 'feat', label: 'Feat' },
         { id: 'perm', label: 'Permanent' },
         { id: 'item', label: 'Item' },
+        // #78: creature templates are buff-like toggles, so they get their own bucket rather
+        // than hiding among hand-made buffs. Not a pf1 subtype — pf1 has no such concept — but
+        // an unknown subType falls back to 'temp', so an older character is unaffected.
+        { id: 'template', label: 'Template' },
         { id: 'misc', label: 'Misc' },
     ];
     const BUFF_DURATION_UNITS = [

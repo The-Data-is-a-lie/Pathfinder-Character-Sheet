@@ -5808,6 +5808,36 @@ body.density-compact .tab-pane h3 { margin-top: 0.5rem; margin-bottom: 0.3rem; }
 .cmdk-empty { padding: 0.75rem; color: var(--dim); text-align: center; }
 .cmdk-foot { font-size: 0.78rem; color: var(--dim); text-align: center; padding-top: 0.1rem; }
 
+/* ============================================================ creature templates (#78) */
+.template-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+}
+.template-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.9rem;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    background: var(--row-bg);
+}
+.template-row.is-applied { background: var(--panel); border-color: var(--accent); }
+.template-row-info { flex: 1; min-width: 0; }
+.template-row-title { display: flex; align-items: center; gap: 0.5rem; }
+.template-row-cr { font-size: 0.75rem; color: var(--dim); }
+.template-row-sum,
+.template-row-size {
+    margin: 0.2rem 0 0;
+    font-size: 0.83rem;
+    line-height: 1.4;
+    color: var(--dim);
+}
+.template-row-size { font-style: italic; }
+.template-row-ctrl { display: flex; gap: 0.35rem; flex-shrink: 0; }
 /* ============================================================ offline PWA (#61) */
 .settings-offline { margin-top: 1.2rem; }
 /* The export nudge is a warning, not an error: readable, not alarming — the standing
