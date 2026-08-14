@@ -149,7 +149,14 @@ window.SheetTabFeatures = (function () {
             e.preventDefault();
             e.stopPropagation();
             window.SheetRoll?.setOpen?.(true);
-            window.SheetRoll?.rollAndLog?.('d1', (opts.chatKind || 'Feature') + ': ' + opts.title);
+            // #101: a real card (name, type, description, uses + Use) — not a d1 roll.
+            window.SheetRoll?.postFeatureCard?.({
+                title: opts.title,
+                name: opts.name,
+                kind: opts.chatKind || 'Feature',
+                typeLabel: opts.typeLabel,
+                descHtml: opts.descHtml || '',
+            });
         });
         chatCell.appendChild(chat);
         li.appendChild(chatCell);

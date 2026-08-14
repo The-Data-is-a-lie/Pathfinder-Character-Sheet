@@ -353,11 +353,59 @@ window.SheetState = (function () {
      * first touch. One owner for the shape — the Buffs-tab controls and the marquee
      * class-feature spend/tick paths all read this same object.
      */
+    // Class level lookup mirroring evalSimpleFormula's strict @classes resolver: a class
+    // the character does not have is 0, never the whole level.
+    function classLevelOf(data, cls) {
+        if (!cls) return 0;
+        const want = String(cls).toLowerCase();
+        if (Array.isArray(data?.classes)) {
+            const hit = data.classes.find((c) => [c?.name, c?.display]
+                .some((n) => String(n || '').toLowerCase().trim() === want));
+            return Number(hit?.level) || 0;
+        }
+        return Number(window.SheetClassInfo?.classLevelFor?.(data, cls)) || 0;
+    }
+    /** The MARQUEE_FEATURES entry whose uses pool `name` refers to — only when the
+     *  character actually has the owning class (a fighter's "Rage" note must not
+     *  sprout a rage pool). Paren-stripped, so a backend "Rage (Ex)" row matches. */
+    function marqueeUsesFor(data, name) {
+        const norm = (s) => String(s || '').split(' (')[0].trim().toLowerCase();
+        const t = (window.SheetData?.MARQUEE_FEATURES || [])
+            .find((x) => x.uses && norm(x.uses.name || x.name) === norm(name));
+        return t && classLevelOf(data, t.cls) > 0 ? t : null;
+    }
+    /** True when `name` already tracks uses, or is a marquee pool this character owns. */
+    function hasFeaturePool(data, name) {
+        const e = data?._sheet?.featureUses?.[name];
+        if (e && (e.max || e.chargeSource)) return true;
+        return !!marqueeUsesFor(data, name);
+    }
     function featureUses(data, name) {
         const st = sheetState(data);
         st.featureUses ??= {};
-        if (!st.featureUses[name]) st.featureUses[name] = { value: 0, max: 0 };
-        return st.featureUses[name];
+        const entry = (st.featureUses[name] ??= { value: 0, max: 0 });
+        // #100: marquee pools (Rage rounds, Smite uses) seed from their formula on first
+        // touch anywhere — the Features tab included — not only via the Combat toggle.
+        if (!entry.max && !entry.chargeSource) {
+            const t = marqueeUsesFor(data, name);
+            if (t) {
+                const canonical = t.uses.name || t.name;
+                if (canonical === name) {
+                    const ev = window.SheetDetails?.evalSimpleFormula?.(t.uses.max, data);
+                    if (ev?.ok && ev.value > 0) {
+                        entry.max = ev.value;
+                        entry.value = ev.value;
+                    }
+                } else {
+                    // Alias row ("Rage (Ex)") — seed the canonical pool and draw from it
+                    // via the existing charge-link, so the Combat toggle and this row
+                    // share one counter instead of forking.
+                    featureUses(data, canonical);
+                    entry.chargeSource = { kind: 'feature', name: canonical };
+                }
+            }
+        }
+        return entry;
     }
 
     // ------------------------------------------------------------ charge-linking (#25)
@@ -732,7 +780,8 @@ window.SheetState = (function () {
         setBuffSourceActive, removeBuffSource, restoreRemovedBuffSources, activeStanceSet,
         setStanceActive, activeConditions, setConditionActive, notesForTargets, attachNotesHover,
         featureCustomList, featureCustomEntry, pruneFeatureCustom, ensureBuffs, normalizeBuffEntry,
-        formatBuffDuration, advanceRound, resetRoundCounter, featureUses, ensureActionEconomy,
+        formatBuffDuration, advanceRound, resetRoundCounter, featureUses, hasFeaturePool,
+        ensureActionEconomy,
         chargePoolOptions, resolveChargePool, spendPooledUse,
         createBuff, addBuffFromCatalog, ensureSpellCasts, spendSpellSlot,
         ensureCastingAbility, ensureInitiationStat, ensureInventoryObjects, ensureDefenses,

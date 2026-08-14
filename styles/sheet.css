@@ -5275,6 +5275,15 @@ html[data-theme="high-contrast"] .roll-card-result.is-nat20 {
     color: var(--ink);
     word-break: break-word;
 }
+/* #101: feature-card uses row — live remaining-uses readout + a Use spend button. */
+.roll-card-uses {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+    font-size: 0.85rem;
+}
+.roll-card-uses-label { color: var(--ink-dim); }
 /* Full spell text in a cast card — collapsible, scrolls if long so the log stays usable. */
 .roll-card-desc {
     margin-top: 0.35rem;
