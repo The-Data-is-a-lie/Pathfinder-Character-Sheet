@@ -21,6 +21,9 @@ in your browser and saves locally.
 - **Encounters and related NPCs in one click** — roll a CR-budgeted encounter (boss + minions,
   matched pair, mook squad) as a grouped set of editable characters, or generate a rival,
   nemesis, mentor or ally derived from whoever is open and linked to them on both sides.
+- **Treasure by CR** — roll one encounter's worth of coins, gems and items against Paizo's
+  per-encounter value table, then drop it into any character in your library, including one you do
+  not have open. Pick and choose what goes in.
 - **Rules health check** — a ⚠ badge flags over-spent skill ranks, unmet feat prerequisites and
   encumbrance surprises. It only ever warns: nothing is blocked, nothing is auto-corrected, and
   any warning can be muted.

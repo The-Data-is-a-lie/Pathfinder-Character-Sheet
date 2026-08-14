@@ -92,6 +92,9 @@
          work), plus their dialogs. Read SheetData/SheetGenerate at call time. -->
     <script src="scripts/domain/generate-recipes.js" defer></script>
     <script src="scripts/recipes-ui.js" defer></script>
+    <!-- #81: treasure dialog. Feature-detects the backend's /generate_loot and stays invisible
+         when it is absent, so this ships independently of the backend deploy. -->
+    <script src="scripts/loot-ui.js" defer></script>
     <!-- #79 warn-only audit: pure rules module + its surface. Both read SheetDerive /
          SheetSkillMath / SheetDetails at call time, so position only has to precede
          the tab modules that hang badges off them. -->
@@ -255,6 +258,9 @@
                 <button type="button" id="gen-surprise" class="gen-surprise">🎠 Surprise me</button>
                 <button type="button" id="gen-guided" class="gen-surprise" title="Step-by-step: concept, ability scores, then the generator builds the rest">🧭 Guided create</button>
                 <button type="button" id="gen-encounter" class="gen-surprise" title="Roll a whole CR-budgeted encounter at once — a boss and minions, a matched pair, a mook squad">⚔ Encounter…</button>
+                <!-- #81: hidden until SheetLootUI.init() confirms the backend answers
+                     GET /generate_loot. An older backend simply never reveals it. -->
+                <button type="button" id="gen-loot" class="gen-surprise" hidden title="Roll one encounter's worth of treasure and add it to any character in your library">💰 Treasure…</button>
                 <span id="gen-status" role="status"></span>
             </div>
         </div>

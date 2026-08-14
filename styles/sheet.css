@@ -6029,3 +6029,26 @@ body.is-offline .pa-generate {
 .copy-to-list { display: flex; flex-direction: column; gap: 0.4rem; min-width: 16rem; }
 .copy-to-row { text-align: left; }
 .bundle-import textarea { width: 100%; min-width: 24rem; font-family: ui-monospace, Consolas, monospace; font-size: 0.8rem; }
+
+/* ============================================================ treasure (#81) */
+.loot-result { display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.6rem; }
+.loot-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.4rem;
+    border-radius: 5px;
+}
+.loot-row:hover { background: var(--row-bg); }
+.loot-row-name { flex: 1; min-width: 0; }
+.loot-row-price { font-variant-numeric: tabular-nums; color: var(--dim); }
+/* The magic/gem tag is a label, not a button — same weight as a feat's type chip. */
+.loot-row-tag {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--dim);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 0 0.3rem;
+}

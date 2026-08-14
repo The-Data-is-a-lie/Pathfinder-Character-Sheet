@@ -713,6 +713,12 @@
         // batch of generate calls, not a new kind of document.
         document.getElementById('gen-encounter').addEventListener('click',
             () => window.SheetRecipesUI?.openEncounter?.());
+        // #81: the button beside it is hidden until the probe answers, so init() is what decides
+        // whether this sheet can offer treasure at all against whichever backend it is pointed at.
+        // The probe itself fires further down, AFTER ?backend= has been applied — probing here
+        // would ask the previous backend and cache that answer for the session.
+        document.getElementById('gen-loot').addEventListener('click',
+            () => window.SheetLootUI?.open?.());
         document.getElementById('health-btn').addEventListener('click',
             () => window.SheetHealthUI?.openPanel?.(currentData));
         // #61 offline PWA: registers the service worker on window load, tracks online state
@@ -739,6 +745,10 @@
         const backendParam = new URLSearchParams(location.search).get('backend');
         if (backendParam === 'default') localStorage.removeItem(BACKEND_KEY);
         else if (backendParam) localStorage.setItem(BACKEND_KEY, backendParam.replace(/\/+$/, ''));
+
+        // #81: now that the backend is settled, ask it whether it can roll treasure. The answer is
+        // cached for the session and decides whether the 💰 button ever appears.
+        window.SheetLootUI?.init?.();
 
         const form = document.getElementById('gen-form');
         fillSelect(form.elements.region, REGIONS);
