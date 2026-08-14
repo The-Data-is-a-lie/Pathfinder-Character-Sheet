@@ -4,7 +4,7 @@
 // before the tabs. backendUrl / togglePanel are shell-owned and late-bound via SheetApp.
 window.SheetGenerate = (function () {
     'use strict';
-    const { parseIntLoose } = window.SheetUI;
+    const { parseIntLoose, h } = window.SheetUI;
     const { adoptCharacter } = window.SheetRoster;
     const backendUrl = () => window.SheetApp.backendUrl();
     const { togglePanel } = window.SheetShellUI;
@@ -235,18 +235,113 @@ window.SheetGenerate = (function () {
         return data;
     }
     function loadJsonText(text) {
+        let data;
         try {
-            const data = JSON.parse(text);
-            adoptCharacter(data);
-            document.getElementById('load-panel').classList.add('hidden');
+            data = JSON.parse(text);
         } catch (err) {
             alert('Not valid JSON: ' + err.message);
+            return;
         }
+        // #59: a FoundryVTT pf1 actor export is valid JSON but a completely different shape.
+        // Sniffing here means the existing paste box and file picker both "just work" — the
+        // Import from Foundry button is discoverability, not a second code path.
+        const FI = window.SheetFoundryImport;
+        if (FI?.detect(data).ok) { importFoundryActor(data); return; }
+        adoptCharacter(data);
+        document.getElementById('load-panel').classList.add('hidden');
+    }
+    /**
+     * #59: convert a pf1 actor export and adopt it like any other character, then show what
+     * did and did not survive the crossing. The transform never throws on partial data — a
+     * half-mapped character the user can fix beats a refusal — so the report is the honesty.
+     */
+    function importFoundryActor(actor) {
+        const FI = window.SheetFoundryImport;
+        const check = FI?.detect(actor);
+        if (!check?.ok) {
+            alert('That does not look like a FoundryVTT pf1 actor export.'
+                + (check?.reason ? '\n\n' + check.reason : ''));
+            return;
+        }
+        let result;
+        try {
+            result = FI.transform(actor);
+        } catch (err) {
+            alert('Could not convert that actor: ' + err.message);
+            return;
+        }
+        adoptCharacter(result.data);
+        document.getElementById('load-panel').classList.add('hidden');
+        showImportReport(result.report);
+    }
+    /** The post-import "here is what happened" overlay. */
+    function showImportReport(report) {
+        const body = h('div', 'import-report');
+        const COUNT_LABELS = {
+            classes: 'Classes', skills: 'Skills', items: 'Inventory items', feats: 'Feats',
+            classFeatures: 'Class features', traits: 'Traits', buffs: 'Buffs',
+            spells: 'Spells', spellbooks: 'Spellbooks', maneuvers: 'Maneuvers',
+        };
+        body.appendChild(h('p', 'import-report-lead',
+            `Imported ${report.actorName || 'an actor'} from FoundryVTT`
+            + (report.systemVersion ? ` (pf1 ${report.systemVersion}).` : '.')));
+
+        const grid = h('div', 'import-report-counts');
+        for (const [key, label] of Object.entries(COUNT_LABELS)) {
+            const n = report.counts[key];
+            if (!n) continue;
+            const cell = h('div', 'import-report-count');
+            cell.appendChild(h('strong', null, String(n)));
+            cell.appendChild(h('span', null, label));
+            grid.appendChild(cell);
+        }
+        if (grid.childElementCount) body.appendChild(grid);
+
+        // One <details> per bucket, each collapsed: a good import should read as one line.
+        const section = (title, lines, open) => {
+            if (!lines.length) return;
+            const box = h('details', 'import-report-section');
+            if (open) box.open = true;
+            box.appendChild(h('summary', null, `${title} (${lines.length})`));
+            const ul = h('ul');
+            for (const line of lines) ul.appendChild(h('li', null, line));
+            box.appendChild(ul);
+            body.appendChild(box);
+        };
+        section('Recomputed by this sheet', report.derived, false);
+        section('Left behind', report.skipped, true);
+        // Many changes can share one reason; collapse to "reason × N" so the list stays short.
+        const tally = (rows, fmt) => {
+            const map = new Map();
+            for (const r of rows) {
+                const key = fmt(r);
+                map.set(key, (map.get(key) || 0) + 1);
+            }
+            return [...map.entries()]
+                .sort((a, b) => b[1] - a[1])
+                .map(([k, n]) => (n > 1 ? `${k} — ${n} modifiers` : k));
+        };
+        section('Applied more broadly than in Foundry',
+            tally(report.approximate, (r) => r.why), false);
+        section('Modifiers this sheet has no home for',
+            tally(report.unmapped, (r) => `${r.target || '(blank)'} — ${r.why}`), false);
+
+        body.appendChild(h('p', 'import-report-foot',
+            'Everything imported is editable — nothing here is locked to the Foundry copy.'));
+
+        const ok = h('button', null, 'Got it');
+        ok.type = 'button';
+        const handle = window.SheetOverlay.open({
+            title: 'Imported from Foundry',
+            body,
+            footer: [ok],
+        });
+        ok.addEventListener('click', () => handle.close());
     }
 
     return {
         fillSelect, fillGroupedSelect, buildPayload, quickLevelSelect, fillQuickLevel,
         applyQuickLevel, syncQuickLevel, applyGenPreset, surpriseMe, generate, generateCustom,
-        loadJsonText,
+        loadJsonText, importFoundryActor,
     };
 })();

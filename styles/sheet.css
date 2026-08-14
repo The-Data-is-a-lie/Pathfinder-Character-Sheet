@@ -5798,3 +5798,62 @@ body.density-compact .tab-pane h3 { margin-top: 0.5rem; margin-bottom: 0.3rem; }
 .cmdk-group { font-size: 0.75rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.03em; }
 .cmdk-empty { padding: 0.75rem; color: var(--dim); text-align: center; }
 .cmdk-foot { font-size: 0.78rem; color: var(--dim); text-align: center; padding-top: 0.1rem; }
+
+/* ============================================================ Foundry import (#59) */
+.load-foundry-note {
+    margin: 1rem 0 0.4rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.88rem;
+    color: var(--dim);
+    line-height: 1.45;
+}
+.import-report-lead {
+    margin: 0 0 0.9rem;
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+/* Counts first and biggest: the common case is "it worked", and this is the proof. */
+.import-report-counts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+.import-report-count {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.5rem 0.4rem;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    text-align: center;
+}
+.import-report-count strong { font-size: 1.25rem; color: var(--accent-dark); }
+.import-report-count span { font-size: 0.72rem; color: var(--dim); }
+.import-report-section {
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+    margin-bottom: 0.5rem;
+}
+.import-report-section > summary {
+    cursor: pointer;
+    font-size: 0.86rem;
+    font-weight: 600;
+}
+.import-report-section ul {
+    margin: 0.5rem 0 0.2rem;
+    padding-left: 1.1rem;
+    font-size: 0.83rem;
+    color: var(--dim);
+    line-height: 1.45;
+}
+.import-report-section li { margin-bottom: 0.3rem; }
+.import-report-foot {
+    margin: 0.9rem 0 0;
+    font-size: 0.82rem;
+    color: var(--dim);
+}

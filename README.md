@@ -21,6 +21,9 @@ in your browser and saves locally.
 - **Dice roller with sound** — roll attacks, saves and skills from the sheet or the Tools drawer.
 - **15+ light & dark themes** plus a custom-theme builder (WCAG-checked); deep-link a look with
   `?theme=dusk`.
+- **Import from FoundryVTT** — export a `pf1` actor (right-click → *Export Data*) and drop the
+  file in; classes, skills, gear, feats, buffs, spellbooks and Path of War maneuvers come across,
+  with a report of anything that couldn't.
 - **Local character library** — stored in-browser (IndexedDB), with optional sync to a real disk
   folder (Chrome/Edge). Print-friendly output too.
 
@@ -39,7 +42,8 @@ Character **generation** is powered by the companion
 Hit **Generate** and the sheet posts your options to the generator's backend (defaulting to a
 free hosted instance), which returns a complete character that the sheet renders and auto-saves.
 Point it at your own backend from **Settings** or with `?backend=…`. Already have a character?
-Use **Load JSON** to open a saved export — no backend needed.
+Use **Load JSON** to open a saved export, or **Import from Foundry…** to convert a FoundryVTT
+`pf1` actor — no backend needed for either.
 
 > The hosted generator backend sleeps when idle, so the first **Generate** after a quiet spell can
 > take up to a minute to wake. Loading a saved character is instant.

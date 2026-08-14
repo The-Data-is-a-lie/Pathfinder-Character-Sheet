@@ -779,6 +779,17 @@
             const file = e.target.files[0];
             if (file) file.text().then(loadJsonText);
         });
+        // #59 Import from Foundry: its own file picker so the label can say what it wants,
+        // but the same loadJsonText sniff behind it — a mis-picked generator payload still
+        // loads instead of erroring.
+        const foundryFile = document.getElementById('foundry-file');
+        document.getElementById('import-foundry').addEventListener('click', () => foundryFile.click());
+        foundryFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            // Reset first: picking the same file twice in a row fires no change event otherwise.
+            e.target.value = '';
+            if (file) file.text().then(loadJsonText);
+        });
 
         rosterSelect().addEventListener('change', (e) => { if (e.target.value) loadCharacter(e.target.value); });
         document.getElementById('save-btn').addEventListener('click', () => saveCurrent());

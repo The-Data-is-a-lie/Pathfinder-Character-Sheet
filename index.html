@@ -77,6 +77,9 @@
     <script src="scripts/domain/class-info.js" defer></script>
     <script src="scripts/domain/inventory-model.js" defer></script>
     <script src="scripts/domain/feature-ledger.js" defer></script>
+    <!-- Pure pf1-actor → payload transform (#59). Reads SheetData's spell-slot tables at call
+         time only, so its position just has to be before generate.js wires the load panel. -->
+    <script src="scripts/domain/foundry-import.js" defer></script>
     <script src="scripts/theme.js" defer></script>
     <script src="scripts/shell-ui.js" defer></script>
     <script src="scripts/modals.js" defer></script>
@@ -377,6 +380,17 @@
     <div class="form-actions">
         <button id="render-paste" type="button">Render Pasted JSON</button>
         <input type="file" id="json-file" accept=".json,application/json">
+    </div>
+    <!-- #59. Both paths above already sniff for a Foundry actor and reroute, so this button
+         is the discoverable entry point rather than a separate code path. -->
+    <p class="load-foundry-note">
+        Playing in <strong>FoundryVTT</strong>? Right-click an actor → <em>Export Data</em>, then
+        drop that file here — a pf1 actor is detected automatically and converted, with a report
+        of anything that could not come across.
+    </p>
+    <div class="form-actions">
+        <button id="import-foundry" type="button">Import from Foundry…</button>
+        <input type="file" id="foundry-file" accept=".json,application/json" class="hidden">
     </div>
 </section>
 
