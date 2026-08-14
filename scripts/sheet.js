@@ -826,8 +826,11 @@
         }
 
         await refreshRoster();
-        const startId = localStorage.getItem(CURRENT_KEY);
-        let loaded = false;
+        // #118: a `#c=` share link takes precedence over the last-viewed character — someone who
+        // opened a link came for the character in it. adoptCharacter saves it to their library, so
+        // the next reload restores it the ordinary way.
+        let loaded = await (window.SheetShare?.init?.() || false);
+        const startId = loaded ? null : localStorage.getItem(CURRENT_KEY);
         if (startId) {
             const record = await window.SheetLibrary.get(startId);
             if (record) {
