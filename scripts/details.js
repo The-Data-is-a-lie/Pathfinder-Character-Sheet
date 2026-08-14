@@ -492,7 +492,7 @@ window.SheetDetails = (function () {
                 sourceKind: 'custom',
                 itemKey: b.itemKey || undefined,
                 defaultOn: false,
-                modifiers: (b.changes || []).map((c) => ({
+                modifiers: applyBuffLevel(b.changes, b.level).map((c) => ({
                     formula: String(c.formula ?? ''),
                     target: c.target || 'attack',
                     type: c.type || 'untyped',
@@ -678,6 +678,18 @@ window.SheetDetails = (function () {
         }
     }
 
+    // A buff's level is ITS caster level (an ally's CL-10 Heroism, a fixed-CL scroll):
+    // substitute @cl/@sl here, so downstream evaluators need no per-entry ctx. Level 0 or
+    // blank leaves the token in place — it surfaces as unresolved, never a silent 0.
+    function applyBuffLevel(changes, level) {
+        const lv = Number(level) || 0;
+        if (!lv) return changes || [];
+        return (changes || []).map((c) => ({
+            ...c,
+            formula: String(c.formula ?? '').replace(/@(?:cl|sl)\b/gi, String(lv)),
+        }));
+    }
+
     // Aggregate every numeric modifier the character owns into one normalized ledger:
     //   changes      always-on pf1 changes  {source, sourceKind, formula, target, type, operator, priority}
     //   notes        situational contextNotes {source, sourceKind, text, target}
@@ -812,11 +824,14 @@ window.SheetDetails = (function () {
         if (Array.isArray(buffs)) {
             for (const b of buffs) {
                 if (!b || b.active === false) continue;
-                if (!b.changes?.length) continue;
+                if (!b.changes?.length && !b.contextNotes?.length) continue;
                 // Per-roll buffs (#16) are conditional-panel toggles, not standing
                 // modifiers — collectRollConditionals owns them.
                 if (b.activation === 'perRoll') continue;
-                pushEntry(ledger, b.name || 'Buff', 'buff', { changes: b.changes });
+                pushEntry(ledger, b.name || 'Buff', 'buff', {
+                    changes: applyBuffLevel(b.changes, b.level),
+                    contextNotes: b.contextNotes || [],
+                });
             }
         }
 
