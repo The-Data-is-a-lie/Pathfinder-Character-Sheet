@@ -141,6 +141,26 @@ window.SheetDetails = (function () {
         return talentConditionals[sphereNorm(name)] || null;
     }
 
+    /**
+     * Per-roll conditional for a sphere talent (#109): the talent OBJECT's own
+     * modifiers/rider (catalog adds and feature-sheet edits live there) win over the
+     * shipped conditionals database. Accepts the object or a name.
+     */
+    function resolveTalentConditional(data, t) {
+        const obj = t && typeof t === 'object' ? t
+            : [...(data?.magic_talent_items || []), ...(data?.combat_talent_items || [])]
+                .find((x) => x?.name === t);
+        if (obj && (obj.modifiers?.length || obj.rider)) {
+            return {
+                sphere: obj.sphere || 'Other',
+                label: obj.name,
+                modifiers: obj.modifiers || [],
+                rider: obj.rider || '',
+            };
+        }
+        return conditionalForTalent(obj?.name || t);
+    }
+
     // #24: compendium class features owned by `className` whose DESCRIPTION marks them
     // as gained at `level` ("At 5th level…", "Starting at 3rd level…"). The extract has
     // no level field, but explicit markers cover exactly the core progression features
@@ -400,6 +420,321 @@ window.SheetDetails = (function () {
         if (store) delete store[powNorm(name)];
     }
 
+    // --- Per-character feature overrides (#104/#105) -------------------------------------
+    // One store for every name-keyed kind the sheet renders read-only from the compendium /
+    // backend dicts: _sheet.featureOverrides["<kind>::<sphereNorm(name)>"] =
+    //   { kind, name, description?, tags?, details? }.
+    // Overrides WIN over compendium + backend text; the shipped data/*.json stay pristine
+    // and the edit travels in the character JSON. Object-backed kinds (buffs, talents) are
+    // edited in place instead and never need an entry here — except for description/tags on
+    // talents, whose objects the backend re-sends.
+    const OVERRIDE_KINDS = ['feat', 'trait', 'classFeat', 'spell', 'maneuver', 'stance', 'talent'];
+
+    function featureOverrideStore(data, create) {
+        const st = data && data._sheet;
+        if (!st) return null;
+        if (!st.featureOverrides && create) st.featureOverrides = {};
+        return st.featureOverrides || null;
+    }
+
+    function featureOvKey(kind, name) {
+        return String(kind) + '::' + sphereNorm(name);
+    }
+
+    function getFeatureOverride(data, kind, name) {
+        const store = featureOverrideStore(data, false);
+        return (store && store[featureOvKey(kind, name)]) || null;
+    }
+
+    /** Merge `patch` into the override; empty patches prune the entry (revert). */
+    function setFeatureOverride(data, kind, name, patch) {
+        if (!data || !name) return null;
+        const store = featureOverrideStore(data, true);
+        const key = featureOvKey(kind, name);
+        const entry = store[key] ??= { kind, name: String(name) };
+        Object.assign(entry, patch || {});
+        entry.kind = kind;
+        entry.name = String(name);
+        // Drop null/'' fields so a cleared edit reads as "not overridden".
+        for (const k of Object.keys(entry)) {
+            if (entry[k] == null || entry[k] === '') delete entry[k];
+        }
+        const hasContent = Object.keys(entry).some((k) => k !== 'kind' && k !== 'name');
+        if (!hasContent) {
+            delete store[key];
+            return null;
+        }
+        return entry;
+    }
+
+    function clearFeatureOverride(data, kind, name) {
+        const store = featureOverrideStore(data, false);
+        if (store) delete store[featureOvKey(kind, name)];
+    }
+
+    function isFeatureEdited(data, kind, name) {
+        return !!getFeatureOverride(data, kind, name);
+    }
+
+    /**
+     * Resolved display record for a feature-ish thing: override → compendium → the
+     * caller's backend fallback (`opts.fallbackDesc` — features.js knows which desc dict
+     * its group reads; this layer does not). `opts.classes` disambiguates class features.
+     */
+    function resolveFeature(data, kind, name, opts = {}) {
+        const ov = getFeatureOverride(data, kind, name);
+        let base = null;
+        if (kind === 'feat') base = lookup('feats', name);
+        else if (kind === 'trait') base = lookup('traits', name) || lookup('feats', name);
+        else if (kind === 'classFeat') base = lookupClassFeature(name, opts.classes);
+        else if (kind === 'spell') base = lookup('spells', name);
+        const description = ov?.description ?? base?.description ?? (opts.fallbackDesc || '');
+        const tags = Array.isArray(ov?.tags) ? ov.tags
+            : (Array.isArray(base?.tags) ? base.tags : []);
+        return { kind, name, description, tags, details: ov?.details || {}, edited: !!ov, base };
+    }
+
+    /**
+     * Spell record with the user's mechanics edits merged over a clone of the compendium
+     * entry — the Cast flow reads this instead of `lookup('spells', name)` so an edited
+     * save/damage/range actually rolls. `details.spell` mirrors the native action shape.
+     */
+    function resolveSpell(data, name) {
+        const base = lookup('spells', name);
+        const ov = getFeatureOverride(data, 'spell', name);
+        if (!ov) return base;
+        const out = base ? JSON.parse(JSON.stringify(base)) : { name: String(name) };
+        if (ov.description != null) out.description = ov.description;
+        const d = ov.details?.spell;
+        if (d) {
+            if (d.school) out.school = d.school;
+            out.actions = Array.isArray(out.actions) && out.actions.length
+                ? out.actions : [{ name: 'Use' }];
+            const act = out.actions[0];
+            if (d.actionType) act.actionType = d.actionType;
+            if (d.save) act.save = { ...(act.save || {}), ...d.save };
+            if (d.range) act.range = { ...(act.range || {}), ...d.range };
+            if (d.duration) act.duration = { ...(act.duration || {}), ...d.duration };
+            if (Array.isArray(d.damageParts)) {
+                act.damage = { ...(act.damage || {}), parts: d.damageParts.map((p) => ({ ...p })) };
+            }
+        }
+        out._edited = true;
+        return out;
+    }
+
+    // --- Rename engine (#105) ------------------------------------------------------------
+    // The display name is the join key for everything: membership lists, desc/mechanics
+    // dicts, uses/pools, per-roll toggle prefs, disabled-source sets. One table-driven
+    // pass per kind; a store missed here silently detaches state after a rename, so new
+    // name-keyed stores MUST be added to this walker.
+    const FEAT_LIST_KEYS = ['flavor_feats', 'flaw_feats', 'story_feats', 'feats',
+        'teamwork_feats', 'class_feats', 'bloodline_feats', 'trainer_feats',
+        'profession_feats', 'sphere_feats', 'mt_feats'];
+    const FEAT_TAX_KEYS = ['flavor_feat_tax_dict', 'flaw_feat_tax_dict', 'story_feat_tax_dict',
+        'feats_feat_tax_dict', 'class_feat_tax_dict', 'trainer_feat_tax_dict', 'sphere_feat_tax'];
+    const TRAIT_LIST_KEYS = ['selected_traits', 'background_traits', 'sphere_traits', 'flaw'];
+
+    /** Membership arrays a duplicate-name check scans, per kind. */
+    function membershipArrays(data, kind) {
+        if (kind === 'feat') return FEAT_LIST_KEYS.map((k) => data[k]);
+        if (kind === 'trait') return TRAIT_LIST_KEYS.map((k) => data[k]);
+        if (kind === 'classFeat') {
+            return [(data.class_ability || []).map((e) => {
+                const cut = String(e).lastIndexOf('_');
+                return cut > 0 ? String(e).slice(0, cut) : String(e);
+            })];
+        }
+        if (kind === 'spell') {
+            const out = [(data.spell_list_choose_from || []).flat()];
+            for (const bk of data._sheet?.extraSpellbooks || []) {
+                out.push((bk?.lists || []).flat());
+            }
+            return out;
+        }
+        if (kind === 'maneuver') return [(data.maneuvers_choose_from || []).flat()];
+        if (kind === 'stance') return [data.stances_chosen];
+        if (kind === 'talent') {
+            return [[...(data.magic_talent_items || []), ...(data.combat_talent_items || [])]
+                .map((t) => t?.name)];
+        }
+        if (kind === 'buff') return [(data._sheet?.buffs || []).map((b) => b?.name)];
+        return [];
+    }
+
+    function renameFeature(data, kind, oldName, newName) {
+        oldName = String(oldName || '').trim();
+        newName = String(newName || '').trim();
+        if (!data || !oldName || !newName || oldName === newName) {
+            return { ok: false, reason: 'no-op' };
+        }
+        const oldLc = oldName.toLowerCase();
+        const newLc = newName.toLowerCase();
+        if (oldLc !== newLc) {
+            for (const arr of membershipArrays(data, kind)) {
+                if ((arr || []).some((x) => String(x || '').toLowerCase() === newLc)) {
+                    return { ok: false, reason: 'duplicate' };
+                }
+            }
+        }
+        let n = 0;
+        const isOld = (x) => String(x || '').toLowerCase().trim() === oldLc;
+        const inArray = (arr) => {
+            if (!Array.isArray(arr)) return;
+            arr.forEach((x, i) => { if (isOld(x)) { arr[i] = newName; n++; } });
+        };
+        const inNested = (arrOfArrays) => {
+            for (const arr of arrOfArrays || []) inArray(arr);
+        };
+        const keyMove = (obj) => {
+            if (!obj || typeof obj !== 'object') return;
+            const hit = Object.keys(obj).find(isOld);
+            if (hit === undefined || (newName in obj)) return;
+            obj[newName] = obj[hit];
+            delete obj[hit];
+            n++;
+        };
+        const inObjArray = (arr, field = 'name') => {
+            for (const o of arr || []) {
+                if (o && typeof o === 'object' && isOld(o[field])) { o[field] = newName; n++; }
+            }
+        };
+        const st = data._sheet || {};
+        // Per-roll toggle prefs: remap ids whose name-derived segment matches.
+        const prefsRemap = (oldId, newId) => {
+            const prefs = st.conditionalPrefs;
+            if (!prefs) return;
+            for (const id of Object.keys(prefs)) {
+                if (id !== oldId && !id.startsWith(oldId + ':')) continue;
+                const nid = newId + id.slice(oldId.length);
+                if (nid in prefs) continue;
+                prefs[nid] = prefs[id];
+                delete prefs[id];
+                n++;
+            }
+        };
+
+        if (kind === 'feat') {
+            for (const k of FEAT_LIST_KEYS) inArray(data[k]);
+            for (const k of FEAT_TAX_KEYS) {
+                const dict = data[k];
+                keyMove(dict);
+                for (const children of Object.values(dict || {})) inArray(children);
+            }
+            for (const k of ['homebrew_feat_desc_dict', 'profession_feat_desc',
+                'feat_changes_dict', 'feat_conditionals_dict']) keyMove(data[k]);
+            prefsRemap('feat:' + oldLc, 'feat:' + newLc);
+        } else if (kind === 'trait') {
+            for (const k of TRAIT_LIST_KEYS) inArray(data[k]);
+            inObjArray(data.selected_traits_desc);
+            keyMove(data.flaw_effects_dict);
+        } else if (kind === 'classFeat') {
+            const list = data.class_ability;
+            if (Array.isArray(list)) {
+                list.forEach((raw, i) => {
+                    const s = String(raw);
+                    const cut = s.lastIndexOf('_');
+                    const base = cut > 0 ? s.slice(0, cut) : s;
+                    if (!isOld(base)) return;
+                    list[i] = cut > 0 ? newName + s.slice(cut) : newName;
+                    n++;
+                });
+            }
+            keyMove(data.class_ability_desc);
+            keyMove(data.class_feature_changes_dict);
+            keyMove(data.class_feature_conditionals_dict);
+            // Choice-pool names live one level down: class_features[bucket][choice].
+            for (const bucket of Object.values(data.class_features || {})) keyMove(bucket);
+            for (const bucket of Object.values(data.class_feature_levels || {})) keyMove(bucket);
+            inObjArray(data.profession_ability_items);
+            prefsRemap('classFeature:' + sphereNorm(oldName), 'classFeature:' + sphereNorm(newName));
+        } else if (kind === 'spell') {
+            inNested(data.spell_list_choose_from);
+            inNested(data.spells_prepared_names);
+            for (const bk of st.extraSpellbooks || []) {
+                inNested(bk?.lists);
+                inNested(bk?.prepared);
+            }
+            keyMove(data.spell_changes_dict);
+            for (const b of st.buffs || []) {
+                if (b && b.autoKey === 'spell:' + oldLc) { b.autoKey = 'spell:' + newLc; n++; }
+            }
+            prefsRemap('spell:' + oldLc, 'spell:' + newLc);
+        } else if (kind === 'maneuver') {
+            inNested(data.maneuvers_choose_from);
+            inNested(data.maneuvers_readied_names);
+            keyMove(data.maneuvers_desc_dict);
+            inArray(st.maneuverOrder);
+            const pov = st.powOverrides;
+            if (pov && pov[powNorm(oldName)] !== undefined && !(powNorm(newName) in pov)) {
+                pov[powNorm(newName)] = pov[powNorm(oldName)];
+                delete pov[powNorm(oldName)];
+                n++;
+            }
+            prefsRemap('maneuver:' + powNorm(oldName), 'maneuver:' + powNorm(newName));
+        } else if (kind === 'stance') {
+            inArray(data.stances_chosen);
+            keyMove(data.maneuvers_desc_dict);
+            inArray(st.activeStances);
+            const sov = st.stanceOverrides;
+            if (sov && sov[powNorm(oldName)] !== undefined && !(powNorm(newName) in sov)) {
+                sov[powNorm(newName)] = sov[powNorm(oldName)];
+                delete sov[powNorm(oldName)];
+                n++;
+            }
+            prefsRemap('stance:' + powNorm(oldName), 'stance:' + powNorm(newName));
+        } else if (kind === 'talent') {
+            inObjArray(data.magic_talent_items);
+            inObjArray(data.combat_talent_items);
+            prefsRemap('talent:' + sphereNorm(oldName), 'talent:' + sphereNorm(newName));
+        } else if (kind === 'buff') {
+            inObjArray(st.buffs);
+            prefsRemap('custombuff:' + oldName, 'custombuff:' + newName);
+        }
+
+        // ---- stores shared by every kind ----
+        keyMove(st.featureChanges);
+        const uses = st.featureUses;
+        if (uses) {
+            keyMove(uses);
+            // Charge links point AT pools by name — follow both directions.
+            for (const u of Object.values(uses)) {
+                const cs = u?.chargeSource;
+                if (cs?.kind === 'feature' && isOld(cs.name)) { cs.name = newName; n++; }
+            }
+        }
+        for (const it of data.equipment_list || []) {
+            const cs = it && typeof it === 'object' ? it.chargeSource : null;
+            if (cs?.kind === 'feature' && isOld(cs.name)) { cs.name = newName; n++; }
+        }
+        // Disabled/removed passive-source sets: entries are "<sourceKind>::<name>" where
+        // sourceKind is the LEDGER vocabulary (feat/trait/classFeat/marquee/…), not ours —
+        // match on the name half only.
+        for (const k of ['disabledBuffSources', 'removedBuffSources']) {
+            const arr = st[k];
+            if (!Array.isArray(arr)) continue;
+            arr.forEach((entry, i) => {
+                const cut = String(entry).indexOf('::');
+                if (cut < 0 || !isOld(String(entry).slice(cut + 2))) return;
+                arr[i] = String(entry).slice(0, cut) + '::' + newName;
+                n++;
+            });
+        }
+        // The override itself moves last (its key embeds the name).
+        const store = featureOverrideStore(data, false);
+        if (store) {
+            const okey = featureOvKey(kind, oldName);
+            const nkey = featureOvKey(kind, newName);
+            if (store[okey] !== undefined && okey !== nkey && !(nkey in store)) {
+                store[nkey] = store[okey];
+                delete store[okey];
+                n++;
+            }
+            if (store[nkey]) store[nkey].name = newName;
+        }
+        return { ok: true, changed: n };
+    }
+
     // Conditional modifier -> always-on ledger change. Attack/damage targets are valid
     // change targets and pass straight through; everything else passes through as-is.
     function stanceChangesFromModifiers(mods) {
@@ -565,7 +900,7 @@ window.SheetDetails = (function () {
 
         for (const t of [...(data.magic_talent_items || []), ...(data.combat_talent_items || [])]) {
             if (!t?.name) continue;
-            const cond = conditionalForTalent(t.name);
+            const cond = resolveTalentConditional(data, t);
             if (!cond || !(cond.modifiers?.length || cond.rider)) continue;
             push({
                 id: 'talent:' + sphereNorm(t.name),
@@ -1277,6 +1612,9 @@ window.SheetDetails = (function () {
         lookupManeuverConditional, resolvePowConditional, setPowOverride, clearPowOverride,
         stanceChangesFromModifiers, lookupStanceBenefit, resolveStanceEntry,
         setStanceOverride, clearStanceOverride, conditionalForTalent, collectChanges,
+        getFeatureOverride, setFeatureOverride, clearFeatureOverride, isFeatureEdited,
+        resolveFeature, resolveSpell, renameFeature, sphereNorm, OVERRIDE_KINDS,
+        resolveTalentConditional,
         collectRollConditionals, normalizeInventoryEntry, powNorm,
         parseEnhancements, lookupEnhancement, collectEnhancements, coreGearItemKey,
         targetLabel, typeLabel, evalSimpleFormula, changesForTargets,
