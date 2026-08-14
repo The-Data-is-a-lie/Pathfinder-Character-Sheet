@@ -6029,3 +6029,11 @@ body.is-offline .pa-generate {
 .copy-to-list { display: flex; flex-direction: column; gap: 0.4rem; min-width: 16rem; }
 .copy-to-row { text-align: left; }
 .bundle-import textarea { width: 100%; min-width: 24rem; font-family: ui-monospace, Consolas, monospace; font-size: 0.8rem; }
+
+/* ============================================================ share a character (#118) */
+.share-dialog { display: flex; flex-direction: column; gap: 0.35rem; min-width: 22rem; }
+.share-dialog h4 { margin: 0.7rem 0 0.2rem; }
+.share-row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+/* The size/loss note under each button is the whole point of this dialog: what a link costs is
+   stated at copy time, not discovered by the person who receives it. */
+.share-note { margin: 0.15rem 0 0; font-size: 0.82rem; line-height: 1.45; }
