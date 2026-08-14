@@ -69,7 +69,7 @@
     // tab internals, which the shell late-binds to them via SheetApp below; here we just pull
     // back the overlays the shell itself opens.
     const {
-        openItemSheet, openClassSheet, openArchetypeSheet, openCatalogPicker, openBuffEditor,
+        openItemSheet, openClassSheet, openArchetypeSheet, openCatalogPicker,
         openPortraitLightbox, openPowModifierEditor, openFeatureBuffMenu, sectionCatalogToolbar,
         formatChangeLine, addBlankInventoryItem, processPortraitFile,
     } = window.SheetModals;
@@ -675,6 +675,7 @@
             if (records.length) return false;             // real characters win, always
             const resp = await fetch('data/demo-character.json', { cache: 'no-store' });
             if (!resp.ok) return false;
+            window.SheetPWA?.warmCache?.('data/demo-character.json', resp.clone());  // #61
             const data = await resp.json();
             if (!data || typeof data !== 'object' || data.error) return false;
             demoData = data;
@@ -710,6 +711,9 @@
         document.getElementById('print-btn').addEventListener('click', () => printHandout());
         document.getElementById('health-btn').addEventListener('click',
             () => window.SheetHealthUI?.openPanel?.(currentData));
+        // #61 offline PWA: registers the service worker on window load, tracks online state
+        // and updates. Entirely self-contained — nothing below depends on it succeeding.
+        window.SheetPWA?.init?.();
         // Generate / view switch / Explain / Start here render into the top bar AND the rail
         // from one definition, so the two can't disagree about state or wording.
         applyExplainMode();

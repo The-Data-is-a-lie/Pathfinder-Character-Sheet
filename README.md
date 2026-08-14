@@ -21,9 +21,15 @@ in your browser and saves locally.
 - **Rules health check** — a ⚠ badge flags over-spent skill ranks, unmet feat prerequisites and
   encumbrance surprises. It only ever warns: nothing is blocked, nothing is auto-corrected, and
   any warning can be muted.
+- **Creature templates** — turn a stock NPC into its Advanced, Giant, Young, Celestial, Fiendish,
+  Entropic or Resolute variant with one click. They apply as toggles you can switch off, and they
+  stack.
 - **Dice roller with sound** — roll attacks, saves and skills from the sheet or the Tools drawer.
 - **15+ light & dark themes** plus a custom-theme builder (WCAG-checked); deep-link a look with
   `?theme=dusk`.
+- **Works offline, installable** — the sheet and its rules data cache on your device, so it opens
+  at a table with no signal. Install it from **Settings → Offline & install** (or your browser's
+  install button) and it runs in its own window. Only **Generate** needs a connection.
 - **Local character library** — stored in-browser (IndexedDB), with optional sync to a real disk
   folder (Chrome/Edge). Print-friendly output too.
 
