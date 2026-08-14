@@ -30,7 +30,10 @@ window.SheetTabFeatures = (function () {
         const entry = foundry('feats', name);
         return entry?.name || name;
     }
-    function featTags(name) {
+    function featTags(data, name) {
+        // Per-character tag edits (#107) win over the compendium's tag list.
+        const ov = window.SheetDetails?.getFeatureOverride?.(data, 'feat', name);
+        if (Array.isArray(ov?.tags)) return ov.tags;
         const tags = foundry('feats', name)?.tags || [];
         return tags.filter((t) => FEAT_TAG_SHOW.has(t));
     }
@@ -67,11 +70,13 @@ window.SheetTabFeatures = (function () {
         return `(${group.prefix} ${level}) ${disp}${taxSuffix}`;
     }
     /** Primary description + Foundry-style tax children under <hr><strong>Name</strong>. */
-    function featDescriptionHtml(name, descSource, taxChain) {
-        const primary = foundry('feats', name)?.description
-            || descSource?.[name]
-            || descSource?.[String(name).toLowerCase()]
-            || '';
+    function featDescriptionHtml(data, name, descSource, taxChain) {
+        const ov = window.SheetDetails?.getFeatureOverride?.(data, 'feat', name);
+        const primary = ov?.description
+            ?? (foundry('feats', name)?.description
+                || descSource?.[name]
+                || descSource?.[String(name).toLowerCase()]
+                || '');
         const parts = [];
         if (primary) parts.push(primary);
         for (const child of taxChain || []) {
@@ -107,6 +112,13 @@ window.SheetTabFeatures = (function () {
         nameCell.appendChild(opts.descHtml
             ? details(opts.title, opts.descHtml, 'feat-details')
             : h('span', 'feat-title', opts.title));
+        // Per-character edits marker (#107) — the feature sheet's Revert clears it.
+        if (opts.sheetRef
+            && window.SheetDetails?.isFeatureEdited?.(opts.data, opts.sheetRef.kind, opts.name)) {
+            const chip = h('span', 'feat-edited-chip', '✎');
+            chip.title = 'Edited on this character — open the sheet to revert';
+            nameCell.appendChild(chip);
+        }
         // ✦ marker when this feature carries built-in modifiers (dimmed if toggled off).
         if (buffGroup) {
             const active = isBuffSourceActive(opts.data, buffGroup.source, buffGroup.sourceKind);
@@ -115,6 +127,13 @@ window.SheetTabFeatures = (function () {
             mark.title = (active ? 'Built-in buffs (active): ' : 'Built-in buffs (inactive): ')
                 + bits;
             nameCell.appendChild(mark);
+        }
+        // #79: ⚠ when the audit could not satisfy this feat's own stated prerequisites. Best
+        // effort by construction (it reads prose), so it flags and explains — never blocks.
+        if (opts.data) {
+            const healthMark = window.SheetHealthUI?.rowBadge?.(opts.data, 'feat',
+                String(opts.name).replace(/^\([^)]*\)\s*/, '').trim());
+            if (healthMark) nameCell.appendChild(healthMark);
         }
         li.appendChild(nameCell);
 
@@ -149,12 +168,35 @@ window.SheetTabFeatures = (function () {
             e.preventDefault();
             e.stopPropagation();
             window.SheetRoll?.setOpen?.(true);
-            window.SheetRoll?.rollAndLog?.('d1', (opts.chatKind || 'Feature') + ': ' + opts.title);
+            // #101: a real card (name, type, description, uses + Use) — not a d1 roll.
+            window.SheetRoll?.postFeatureCard?.({
+                title: opts.title,
+                name: opts.name,
+                kind: opts.chatKind || 'Feature',
+                typeLabel: opts.typeLabel,
+                descHtml: opts.descHtml || '',
+            });
         });
         chatCell.appendChild(chat);
         li.appendChild(chatCell);
 
         const ctrlCell = h('div', 'feat-cell feat-cell-controls no-print');
+        // ✎ opens the full feature sheet (#107) — description, details, changes, rename.
+        if (opts.sheetRef && opts.data) {
+            const edit = h('button', 'inv-btn feat-edit-btn', '✎');
+            edit.type = 'button';
+            edit.title = 'Open the feature sheet — edit description, rename, move, revert';
+            edit.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.SheetFeatureSheet?.openFeatureSheet?.(opts.data, {
+                    name: opts.name,
+                    typeLabel: opts.typeLabel,
+                    ...opts.sheetRef,
+                });
+            });
+            ctrlCell.appendChild(edit);
+        }
         if (opts.onRemove) {
             const rm = h('button', 'inv-btn inv-btn-danger feat-remove', '×');
             rm.type = 'button';
@@ -342,6 +384,15 @@ window.SheetTabFeatures = (function () {
                     setActiveTab('features');
                 },
             },
+            importBundles: data,
+            onBlank: () => {
+                const name = window.SheetFeatureSheet.blankName('New Feat', data.feats);
+                addToArrayField(data, 'feats', name);
+                renderSheet(data);
+                setActiveTab('features');
+                window.SheetFeatureSheet.openFeatureSheet(data,
+                    { kind: 'feat', name, listKey: 'feats', sourceKind: 'feat' });
+            },
         }));
         if (!groups.length) {
             body.appendChild(h('p', 'tools-empty', 'No feats yet — browse the catalog to add some.'));
@@ -361,16 +412,22 @@ window.SheetTabFeatures = (function () {
             const list = data[listKey] || [];
             list.forEach((f, i) => {
                 const tax = featTaxChain(f, g.taxDict);
-                const tags = featTags(f);
+                const tags = featTags(data, f);
                 ul.appendChild(featureRow({
                     name: f,
                     title: foundryFeatTitle(f, i, { ...g, taxChain: tax }),
-                    descHtml: featDescriptionHtml(f, descSource, tax),
+                    descHtml: featDescriptionHtml(data, f, descSource, tax),
                     typeLabel: tags[0] || 'Feat',
                     tags: tags.slice(1),
                     data,
                     sourceKind: 'feat',
                     chatKind: 'Feat',
+                    sheetRef: {
+                        kind: 'feat',
+                        listKey,
+                        sourceKind: 'feat',
+                        fallbackDesc: descSource?.[f] ?? descSource?.[String(f).toLowerCase()] ?? '',
+                    },
                     extraClass: tax.length ? 'has-feat-tax' : '',
                     onRemove: (nm) => {
                         removeFromArrayField(data, listKey, nm);
@@ -432,6 +489,15 @@ window.SheetTabFeatures = (function () {
                     setActiveTab('features');
                 },
             },
+            importBundles: data,
+            onBlank: () => {
+                const name = window.SheetFeatureSheet.blankName('New Trait', data.selected_traits);
+                addToArrayField(data, 'selected_traits', name);
+                renderSheet(data);
+                setActiveTab('features');
+                window.SheetFeatureSheet.openFeatureSheet(data,
+                    { kind: 'trait', name, listKey: 'selected_traits', sourceKind: 'trait' });
+            },
         }));
         const typeLabels = {
             Traits: 'Trait',
@@ -448,8 +514,10 @@ window.SheetTabFeatures = (function () {
             wrap.appendChild(ul);
             ul.appendChild(featureListHeader());
             list.forEach((t) => {
-                const desc = foundry('traits', t)?.description
-                    || foundry('feats', t)?.description || backendDesc[t];
+                const ov = window.SheetDetails?.getFeatureOverride?.(data, 'trait', t);
+                const desc = ov?.description
+                    ?? (foundry('traits', t)?.description
+                        || foundry('feats', t)?.description || backendDesc[t]);
                 ul.appendChild(featureRow({
                     name: t,
                     title: t,
@@ -459,6 +527,13 @@ window.SheetTabFeatures = (function () {
                     sourceKind: 'trait',
                     showUses: false,
                     chatKind: typeLabels[title] || 'Trait',
+                    sheetRef: {
+                        kind: 'trait',
+                        listKey: fieldKey,
+                        sourceKind: 'trait',
+                        fallbackDesc: backendDesc[t] || '',
+                        showUses: false,
+                    },
                     onRemove: (nm) => {
                         removeFromArrayField(data, fieldKey, nm);
                         renderSheet(data);
@@ -541,9 +616,11 @@ window.SheetTabFeatures = (function () {
                 const cut = String(entry).lastIndexOf('_');
                 const name = cut > 0 ? entry.slice(0, cut) : entry;
                 const cls = cut > 0 ? titleCase(String(entry).slice(cut + 1)) : '';
-                const desc = window.SheetDetails?.lookupClassFeature(name, classes)?.description
-                    || data.class_ability_desc?.[name] || data.class_features?.[name]?.description;
-                items.push([titleCase(name), desc, cls]);
+                const ov = window.SheetDetails?.getFeatureOverride?.(data, 'classFeat', name);
+                const desc = ov?.description
+                    ?? (window.SheetDetails?.lookupClassFeature(name, classes)?.description
+                        || data.class_ability_desc?.[name] || data.class_features?.[name]?.description);
+                items.push([titleCase(name), desc, cls, name]);
             }
         }
         for (const pa of data.profession_ability_items || []) {
@@ -576,6 +653,21 @@ window.SheetTabFeatures = (function () {
                     renderSheet(data);
                     setActiveTab('features');
                 },
+            },
+            importBundles: data,
+            onBlank: () => {
+                const bases = (data.class_ability || []).map((e) => {
+                    const cut = String(e).lastIndexOf('_');
+                    return cut > 0 ? String(e).slice(0, cut) : String(e);
+                });
+                const name = window.SheetFeatureSheet.blankName('New Class Feature', bases);
+                if (!Array.isArray(data.class_ability)) data.class_ability = [];
+                data.class_ability.push(name);
+                quietSave();
+                renderSheet(data);
+                setActiveTab('features');
+                window.SheetFeatureSheet.openFeatureSheet(data,
+                    { kind: 'classFeat', name, sourceKind: 'classFeat', classes: ensureClassList(data) });
             },
         }));
         const extras = [
@@ -615,6 +707,13 @@ window.SheetTabFeatures = (function () {
                 data,
                 sourceKind: 'classFeat',
                 chatKind: 'Class Feature',
+                sheetRef: {
+                    kind: 'classFeat',
+                    sourceKind: 'classFeat',
+                    classes,
+                    fallbackDesc: data.class_ability_desc?.[name]
+                        ?? data.class_ability_desc?.[String(name).toLowerCase()] ?? '',
+                },
                 onRemove: (nm) => {
                     const idx = rawList.findIndex((raw) => {
                         const cut = String(raw).lastIndexOf('_');

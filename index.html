@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pathfinder NPC Sheet</title>
+    <!-- Installable offline app (#61). Paths stay relative: the site is served from
+         /Pathfinder-Character-Sheet/ on GitHub Pages and from / in local dev. theme-color
+         matches the Sepia top bar, which is the default theme for a fresh profile. -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#3e2c20">
+    <link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <script>
     /* Apply theme before CSS paint to avoid flash (mirrors sheet.js resolveTheme).
        DEFAULT below must match DEFAULT_THEME in sheet.js — change both together. */
@@ -57,6 +64,10 @@
     </script>
     <link rel="stylesheet" href="styles/sheet.css">
     <script src="scripts/ui.js" defer></script>
+    <!-- Ahead of details.js: that module starts fetching the compendium extracts the moment it
+         parses, and hands each response to SheetPWA.warmCache so the offline copy is built
+         from the download the page was doing anyway (#61). -->
+    <script src="scripts/pwa.js" defer></script>
     <script src="scripts/data.js" defer></script>
     <script src="scripts/details.js" defer></script>
     <script src="scripts/library.js" defer></script>
@@ -81,9 +92,19 @@
          work), plus their dialogs. Read SheetData/SheetGenerate at call time. -->
     <script src="scripts/domain/generate-recipes.js" defer></script>
     <script src="scripts/recipes-ui.js" defer></script>
+    <!-- #79 warn-only audit: pure rules module + its surface. Both read SheetDerive /
+         SheetSkillMath / SheetDetails at call time, so position only has to precede
+         the tab modules that hang badges off them. -->
+    <script src="scripts/domain/health-check.js" defer></script>
+    <script src="scripts/health-ui.js" defer></script>
+    <!-- #78: the seven PF1 simple creature templates, applied as reversible buffs.
+         Reads SheetData/SheetDerive/SheetState at call time only. -->
+    <script src="scripts/domain/creature-templates.js" defer></script>
+    <script src="scripts/domain/rich-text.js" defer></script>
     <script src="scripts/theme.js" defer></script>
     <script src="scripts/shell-ui.js" defer></script>
     <script src="scripts/modals.js" defer></script>
+    <script src="scripts/feature-sheet.js" defer></script>
     <script src="scripts/header.js" defer></script>
     <script src="scripts/roster.js" defer></script>
     <script src="scripts/generate.js" defer></script>
@@ -171,6 +192,7 @@
         <button id="reconnect-chip" type="button" class="hidden" title="Re-grant access to the remembered character folder">Reconnect folder</button>
     </div>
     <div class="topbar-buttons utility">
+        <button id="health-btn" type="button" class="health-btn hidden" title="Rules warnings">⚠ 0</button>
         <button id="theme-btn" type="button" title="Choose color theme">Theme</button>
         <button id="hud-btn" type="button" title="One-tap combat surface: HP, attacks, saves, conditions, rounds">⚔ Combat</button>
         <button id="toggle-load" type="button">Load JSON</button>

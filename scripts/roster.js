@@ -59,6 +59,10 @@ window.SheetRoster = (function () {
         }
         const record = await window.SheetLibrary.save(window.SheetApp.current);
         localStorage.setItem(window.SheetApp.CURRENT_KEY, record.id);
+        // #61: the first real save is the moment to ask for persistent storage — engines weigh
+        // site engagement, so the same request on a cold load is the one they silently deny.
+        // Self-limiting to one ask per session; never blocks the save.
+        window.SheetPWA?.requestPersistence?.();
         if (!quiet) await refreshRoster(record.id);
         return record;
     }

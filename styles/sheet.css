@@ -5275,6 +5275,15 @@ html[data-theme="high-contrast"] .roll-card-result.is-nat20 {
     color: var(--ink);
     word-break: break-word;
 }
+/* #101: feature-card uses row — live remaining-uses readout + a Use spend button. */
+.roll-card-uses {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+    font-size: 0.85rem;
+}
+.roll-card-uses-label { color: var(--ink-dim); }
 /* Full spell text in a cast card — collapsible, scrolls if long so the log stays usable. */
 .roll-card-desc {
     margin-top: 0.35rem;
@@ -5848,3 +5857,175 @@ body.density-compact .tab-pane h3 { margin-top: 0.5rem; margin-bottom: 0.3rem; }
     text-decoration: underline;
     cursor: pointer;
 }
+/* ============================================================ rules health check (#79) */
+/* A warning, not an alarm: readable weight, no red-alert framing. Hidden at zero findings. */
+.health-btn { font-variant-numeric: tabular-nums; }
+.health-badge {
+    margin-left: 0.35rem;
+    padding: 0 0.2rem;
+    border: none;
+    background: none;
+    color: var(--accent-dark);
+    font-size: 0.85em;
+    line-height: 1;
+    cursor: pointer;
+}
+.health-badge:hover { filter: brightness(1.3); }
+.health-panel { display: flex; flex-direction: column; gap: 0.7rem; }
+.health-empty { margin: 0; color: var(--dim); }
+.health-group > h4 {
+    margin: 0 0 0.35rem;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.health-besteffort { font-weight: normal; }
+.health-finding {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding: 0.5rem 0.6rem;
+    margin-bottom: 0.35rem;
+    border-left: 3px solid var(--accent);
+    background: var(--panel);
+    border-radius: 0 5px 5px 0;
+}
+/* Encumbrance is a heads-up, not a rules break — quieter left rule. */
+.health-finding.is-info { border-left-color: var(--rule); }
+.health-finding-main { flex: 1; min-width: 0; }
+.health-finding-detail {
+    margin: 0.2rem 0 0;
+    font-size: 0.83rem;
+    line-height: 1.45;
+    color: var(--dim);
+}
+.health-finding-ctrl { display: flex; gap: 0.3rem; flex-shrink: 0; }
+.health-restore { align-self: flex-start; }
+.health-off {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.85rem;
+    color: var(--dim);
+}
+/* ============================================================ creature templates (#78) */
+.template-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+}
+.template-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.9rem;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    background: var(--row-bg);
+}
+.template-row.is-applied { background: var(--panel); border-color: var(--accent); }
+.template-row-info { flex: 1; min-width: 0; }
+.template-row-title { display: flex; align-items: center; gap: 0.5rem; }
+.template-row-cr { font-size: 0.75rem; color: var(--dim); }
+.template-row-sum,
+.template-row-size {
+    margin: 0.2rem 0 0;
+    font-size: 0.83rem;
+    line-height: 1.4;
+    color: var(--dim);
+}
+.template-row-size { font-style: italic; }
+.template-row-ctrl { display: flex; gap: 0.35rem; flex-shrink: 0; }
+/* ============================================================ offline PWA (#61) */
+.settings-offline { margin-top: 1.2rem; }
+/* The export nudge is a warning, not an error: readable, not alarming — the standing
+   "warn, never block" stance. It only appears when there is genuinely no copy off-device. */
+.settings-nudge {
+    margin: 0.4rem 0 0.6rem;
+    padding: 0.5rem 0.7rem;
+    border-left: 3px solid var(--accent);
+    background: var(--panel);
+    border-radius: 0 5px 5px 0;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--ink);
+}
+/* Offline: the generate controls stay visible and focusable (the panel explains why they
+   will not fire) but read as unavailable at a glance. */
+body.is-offline #gen-roll,
+body.is-offline #gen-submit,
+body.is-offline #gen-surprise,
+body.is-offline .pa-generate {
+    opacity: 0.55;
+    filter: grayscale(0.5);
+}
+/* ---- Rich-text description editor (#106) ---- */
+.rt-editor { display: flex; flex-direction: column; gap: 0.35rem; }
+.rt-toolbar { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.rt-btn {
+    min-width: 1.9rem;
+    padding: 0.2rem 0.45rem;
+    font-size: 0.85rem;
+    line-height: 1.2;
+    background: var(--panel);
+    color: var(--ink);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    cursor: pointer;
+}
+.rt-btn:hover { border-color: var(--accent); }
+.rt-btn.is-on { background: var(--accent); color: var(--paper); border-color: var(--accent); }
+.rt-btn-raw { margin-left: auto; }
+.rt-surface {
+    min-height: 7rem;
+    max-height: 22rem;
+    overflow-y: auto;
+    padding: 0.5rem 0.65rem;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+.rt-surface:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rt-surface:empty::before {
+    content: attr(data-placeholder);
+    color: var(--dim);
+    pointer-events: none;
+}
+.rt-raw { width: 100%; font-family: ui-monospace, Consolas, monospace; font-size: 0.82rem; }
+
+/* ---- Feature sheet (#107) ---- */
+.feat-edited-chip {
+    margin-left: 0.3rem;
+    font-size: 0.72rem;
+    color: var(--accent);
+    cursor: default;
+}
+.feat-edit-btn { font-size: 0.8rem; }
+.fs-edited-badge { color: var(--accent); font-weight: 600; }
+.fs-revert-btn { margin: 0.25rem 0 0.5rem; }
+/* Fixed-size card: the modal must not resize/re-center when tabs switch or the
+   description grows while typing — panes scroll inside instead. */
+.feature-sheet-card {
+    width: min(46rem, 95vw);
+    height: min(42rem, 92vh);
+    max-height: none;
+}
+.feature-sheet-card .item-sheet-grid { overflow: hidden; min-height: 0; }
+.feature-sheet-card .item-sheet-side { overflow-y: auto; min-height: 0; }
+.feature-sheet-card .item-sheet-content { min-height: 0; }
+.feature-sheet-card .item-sheet-pane { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+/* Only the pane scrolls — no nested scrollbar inside the editor surface. */
+.feature-sheet-card .rt-surface { min-height: 12rem; max-height: none; }
+
+/* ---- Copy/share (#110) ---- */
+.fs-share-btn { display: block; width: 100%; margin-top: 0.35rem; }
+.copy-to-list { display: flex; flex-direction: column; gap: 0.4rem; min-width: 16rem; }
+.copy-to-row { text-align: left; }
+.bundle-import textarea { width: 100%; min-width: 24rem; font-family: ui-monospace, Consolas, monospace; font-size: 0.8rem; }

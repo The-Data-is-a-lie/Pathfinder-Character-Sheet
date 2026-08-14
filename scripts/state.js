@@ -257,6 +257,10 @@ window.SheetState = (function () {
         { id: 'feat', label: 'Feat' },
         { id: 'perm', label: 'Permanent' },
         { id: 'item', label: 'Item' },
+        // #78: creature templates are buff-like toggles, so they get their own bucket rather
+        // than hiding among hand-made buffs. Not a pf1 subtype — pf1 has no such concept — but
+        // an unknown subType falls back to 'temp', so an older character is unaffected.
+        { id: 'template', label: 'Template' },
         { id: 'misc', label: 'Misc' },
     ];
     const BUFF_DURATION_UNITS = [
@@ -313,6 +317,18 @@ window.SheetState = (function () {
             },
             changes: Array.isArray(b.changes) ? cloneChanges(b.changes) : [],
             notes: b.notes != null ? String(b.notes) : '',
+            // Rich HTML description from the feature sheet (#108) — display-only; the
+            // plain `notes` stays the per-roll rider text.
+            description: b.description != null ? String(b.description) : '',
+            // Situational context notes ({text, target}) — surfaced as ⓘ hover tooltips on
+            // the matching skill/attack rows, same pipeline feats and items feed.
+            contextNotes: Array.isArray(b.contextNotes)
+                ? b.contextNotes
+                    .map((n) => (typeof n === 'string'
+                        ? { text: n, target: '' }
+                        : { text: String(n?.text || ''), target: String(n?.target || '') }))
+                    .filter((n) => n.text)
+                : [],
             // Size-setting buffs (Enlarge Person → 'large'); '' = no size effect.
             setSize: typeof b.setSize === 'string' ? b.setSize : '',
             // #16: 'always' = standing ledger changes; 'perRoll' = a Custom-group toggle
@@ -344,11 +360,59 @@ window.SheetState = (function () {
      * first touch. One owner for the shape — the Buffs-tab controls and the marquee
      * class-feature spend/tick paths all read this same object.
      */
+    // Class level lookup mirroring evalSimpleFormula's strict @classes resolver: a class
+    // the character does not have is 0, never the whole level.
+    function classLevelOf(data, cls) {
+        if (!cls) return 0;
+        const want = String(cls).toLowerCase();
+        if (Array.isArray(data?.classes)) {
+            const hit = data.classes.find((c) => [c?.name, c?.display]
+                .some((n) => String(n || '').toLowerCase().trim() === want));
+            return Number(hit?.level) || 0;
+        }
+        return Number(window.SheetClassInfo?.classLevelFor?.(data, cls)) || 0;
+    }
+    /** The MARQUEE_FEATURES entry whose uses pool `name` refers to — only when the
+     *  character actually has the owning class (a fighter's "Rage" note must not
+     *  sprout a rage pool). Paren-stripped, so a backend "Rage (Ex)" row matches. */
+    function marqueeUsesFor(data, name) {
+        const norm = (s) => String(s || '').split(' (')[0].trim().toLowerCase();
+        const t = (window.SheetData?.MARQUEE_FEATURES || [])
+            .find((x) => x.uses && norm(x.uses.name || x.name) === norm(name));
+        return t && classLevelOf(data, t.cls) > 0 ? t : null;
+    }
+    /** True when `name` already tracks uses, or is a marquee pool this character owns. */
+    function hasFeaturePool(data, name) {
+        const e = data?._sheet?.featureUses?.[name];
+        if (e && (e.max || e.chargeSource)) return true;
+        return !!marqueeUsesFor(data, name);
+    }
     function featureUses(data, name) {
         const st = sheetState(data);
         st.featureUses ??= {};
-        if (!st.featureUses[name]) st.featureUses[name] = { value: 0, max: 0 };
-        return st.featureUses[name];
+        const entry = (st.featureUses[name] ??= { value: 0, max: 0 });
+        // #100: marquee pools (Rage rounds, Smite uses) seed from their formula on first
+        // touch anywhere — the Features tab included — not only via the Combat toggle.
+        if (!entry.max && !entry.chargeSource) {
+            const t = marqueeUsesFor(data, name);
+            if (t) {
+                const canonical = t.uses.name || t.name;
+                if (canonical === name) {
+                    const ev = window.SheetDetails?.evalSimpleFormula?.(t.uses.max, data);
+                    if (ev?.ok && ev.value > 0) {
+                        entry.max = ev.value;
+                        entry.value = ev.value;
+                    }
+                } else {
+                    // Alias row ("Rage (Ex)") — seed the canonical pool and draw from it
+                    // via the existing charge-link, so the Combat toggle and this row
+                    // share one counter instead of forking.
+                    featureUses(data, canonical);
+                    entry.chargeSource = { kind: 'feature', name: canonical };
+                }
+            }
+        }
+        return entry;
     }
 
     // ------------------------------------------------------------ charge-linking (#25)
@@ -579,6 +643,7 @@ window.SheetState = (function () {
             duration: opts.duration || { value: '', units: '' },
             changes,
             notes: opts.notes || '',
+            contextNotes: opts.contextNotes || [],
         });
         list.push(buff);
         quietSave();
@@ -591,6 +656,7 @@ window.SheetState = (function () {
             name: name || entry?.name || 'Buff',
             subType: subType || 'temp',
             changes: cloneChanges(entry?.changes),
+            contextNotes: entry?.contextNotes || [],
             seedDefault: false,
         });
     }
@@ -721,7 +787,8 @@ window.SheetState = (function () {
         setBuffSourceActive, removeBuffSource, restoreRemovedBuffSources, activeStanceSet,
         setStanceActive, activeConditions, setConditionActive, notesForTargets, attachNotesHover,
         featureCustomList, featureCustomEntry, pruneFeatureCustom, ensureBuffs, normalizeBuffEntry,
-        formatBuffDuration, advanceRound, resetRoundCounter, featureUses, ensureActionEconomy,
+        formatBuffDuration, advanceRound, resetRoundCounter, featureUses, hasFeaturePool,
+        ensureActionEconomy,
         chargePoolOptions, resolveChargePool, spendPooledUse,
         createBuff, addBuffFromCatalog, ensureSpellCasts, spendSpellSlot,
         ensureCastingAbility, ensureInitiationStat, ensureInventoryObjects, ensureDefenses,
