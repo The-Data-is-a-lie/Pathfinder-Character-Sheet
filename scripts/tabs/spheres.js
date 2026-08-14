@@ -6,10 +6,159 @@ window.SheetTabSpheres = (function () {
         h, htmlBlock, details, section, kv, nonEmpty, escapeHtml, parseIntLoose,
         highlightInlineRolls, dblclickEditable, bindDragReorder, reorderArray, dndHandle,
     } = window.SheetUI;
-    const { sheetState, quietSave } = window.SheetState;
-    const { sectionCatalogToolbar } = window.SheetModals;
+    const { sheetState, quietSave, refreshDerived } = window.SheetState;
+    const { sectionCatalogToolbar, formatChangeLine } = window.SheetModals;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
+
+    /** The array a talent object lives in ('magic_talent_items' | 'combat_talent_items'). */
+    function talentArrayKey(data, t) {
+        return (data.combat_talent_items || []).includes(t)
+            ? 'combat_talent_items' : 'magic_talent_items';
+    }
+
+    /** Talent Details panel (#109): sphere, magic/combat home, advanced flag, rider. */
+    function buildTalentDetailsPanel(data, t) {
+        const panel = h('div', 'spell-details-panel');
+        const row = (label, ctl) => {
+            const r = h('label', 'item-sheet-stat');
+            r.appendChild(h('span', 'item-sheet-stat-label', label));
+            r.appendChild(ctl);
+            return r;
+        };
+        const sphereIn = h('input', 'item-sheet-text');
+        sphereIn.type = 'text';
+        sphereIn.value = t.sphere || 'Other';
+        sphereIn.placeholder = 'Destruction, Might, …';
+        sphereIn.addEventListener('change', () => {
+            t.sphere = sphereIn.value.trim() || 'Other';
+            quietSave();
+        });
+        const homeSel = h('select', 'item-sheet-select');
+        for (const [val, lab] of [['magic_talent_items', 'Magic talent'],
+            ['combat_talent_items', 'Combat talent']]) {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = lab;
+            if (val === talentArrayKey(data, t)) opt.selected = true;
+            homeSel.appendChild(opt);
+        }
+        homeSel.addEventListener('change', () => {
+            const from = talentArrayKey(data, t);
+            if (homeSel.value === from) return;
+            const src = data[from] || [];
+            const i = src.indexOf(t);
+            if (i >= 0) src.splice(i, 1);
+            (data[homeSel.value] ??= []).push(t);
+            quietSave();
+            refreshDerived();
+        });
+        const advCb = document.createElement('input');
+        advCb.type = 'checkbox';
+        advCb.checked = !!t.advanced;
+        advCb.addEventListener('change', () => {
+            t.advanced = advCb.checked || undefined;
+            quietSave();
+        });
+        const riderIn = h('textarea', 'edit-field');
+        riderIn.rows = 2;
+        riderIn.value = t.rider || '';
+        riderIn.placeholder = 'Rider text printed when the per-roll toggle is checked';
+        riderIn.addEventListener('change', () => {
+            t.rider = riderIn.value;
+            quietSave();
+            refreshDerived();
+        });
+        panel.appendChild(h('h4', 'item-sheet-h', 'Talent'));
+        panel.appendChild(row('Sphere', sphereIn));
+        panel.appendChild(row('Kind', homeSel));
+        panel.appendChild(row('Advanced', advCb));
+        panel.appendChild(h('h4', 'item-sheet-h', 'Rider'));
+        panel.appendChild(riderIn);
+        return panel;
+    }
+
+    /** Talent Changes panel (#109): the object's per-roll modifiers, editable. */
+    function buildTalentChangesPanel(data, t) {
+        const SD = window.SheetDetails;
+        const panel = h('div', 'inv-buffs-editor no-print');
+        panel.appendChild(h('p', 'dbl-edit-hint',
+            'Per-roll modifiers — they appear as this talent’s toggle in the conditional panel.'));
+        const list = h('div', 'inv-buffs-list');
+        function redraw() {
+            list.innerHTML = '';
+            const mods = Array.isArray(t.modifiers) ? t.modifiers : [];
+            if (!mods.length) {
+                list.appendChild(h('p', 'tools-empty', 'No modifiers — add one below.'));
+                return;
+            }
+            mods.forEach((m, idx) => {
+                const rowEl = h('div', 'inv-buffs-row');
+                rowEl.appendChild(h('span', 'inv-buffs-line', formatChangeLine(
+                    { formula: m.formula, target: m.subTarget || m.target, type: m.type }, SD)));
+                const del = h('button', 'inv-btn inv-btn-danger', '×');
+                del.type = 'button';
+                del.addEventListener('click', () => {
+                    t.modifiers.splice(idx, 1);
+                    quietSave();
+                    refreshDerived();
+                    redraw();
+                });
+                rowEl.appendChild(del);
+                list.appendChild(rowEl);
+            });
+        }
+        redraw();
+        panel.appendChild(list);
+        const form = h('div', 'inv-buffs-add');
+        const formulaIn = h('input', 'edit-field');
+        formulaIn.placeholder = 'Formula (e.g. 2 or 1d6)';
+        const targetSel = h('select', 'edit-field');
+        for (const [val, lab] of [['attack', 'Attack'], ['damage', 'Damage']]) {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = lab;
+            targetSel.appendChild(opt);
+        }
+        targetSel.value = 'damage';
+        const addBtn = h('button', 'inv-btn', 'Add modifier');
+        addBtn.type = 'button';
+        addBtn.addEventListener('click', () => {
+            let formula = String(formulaIn.value || '').trim();
+            if (!formula) { formulaIn.focus(); return; }
+            if (/^\+\d+$/.test(formula)) formula = formula.slice(1);
+            (t.modifiers ??= []).push({
+                formula,
+                target: targetSel.value,
+                subTarget: targetSel.value === 'attack' ? 'allAttack' : 'allDamage',
+                type: 'untyped',
+                critical: 'normal',
+            });
+            formulaIn.value = '';
+            quietSave();
+            refreshDerived();
+            redraw();
+        });
+        form.append(formulaIn, targetSel, addBtn);
+        panel.appendChild(form);
+        return panel;
+    }
+
+    function openTalentSheet(data, t) {
+        window.SheetFeatureSheet.openFeatureSheet(data, {
+            kind: 'talent',
+            name: t.name,
+            obj: t,
+            sourceKind: 'talent',
+            typeLabel: 'Sphere Talent',
+            canRegroup: false,
+            showUses: false,
+            panels: {
+                details: buildTalentDetailsPanel(data, t),
+                changes: buildTalentChangesPanel(data, t),
+            },
+        });
+    }
 
     function renderSpheres(data) {
         const talents = [...(data.magic_talent_items || []), ...(data.combat_talent_items || [])];
@@ -48,6 +197,19 @@ window.SheetTabSpheres = (function () {
                     renderSheet(data);
                     setActiveTab('spheres');
                 },
+            },
+            importBundles: data,
+            onBlank: () => {
+                const existing = [...(data.magic_talent_items || []), ...(data.combat_talent_items || [])]
+                    .map((x) => x?.name);
+                const name = window.SheetFeatureSheet.blankName('New Talent', existing);
+                if (!Array.isArray(data.magic_talent_items)) data.magic_talent_items = [];
+                const t = { name, sphere: 'Other', description: '' };
+                data.magic_talent_items.push(t);
+                quietSave();
+                renderSheet(data);
+                setActiveTab('spheres');
+                openTalentSheet(data, t);
             },
         }));
 
@@ -147,7 +309,8 @@ window.SheetTabSpheres = (function () {
                 const sphereItems = ts;
                 ts.forEach((t) => {
                     const label = t.name + (t.advanced ? ' (advanced)' : '');
-                    const cond = window.SheetDetails?.conditionalForTalent(t.name);
+                    const cond = window.SheetDetails?.resolveTalentConditional?.(data, t)
+                        || window.SheetDetails?.conditionalForTalent(t.name);
                     const hasCond = cond && (cond.modifiers?.length || cond.rider);
                     const li = h('li', 'talent-row dnd-item');
                     li.dataset.dndId = t.name;
@@ -175,6 +338,12 @@ window.SheetTabSpheres = (function () {
                         }
                         li.appendChild(d);
                     }
+                    // ✎ opens the talent's feature sheet (#109).
+                    const editBtn = h('button', 'inv-btn feat-edit-btn no-print', '✎');
+                    editBtn.type = 'button';
+                    editBtn.title = 'Edit this talent — description, sphere, rider, modifiers';
+                    editBtn.addEventListener('click', () => openTalentSheet(data, t));
+                    li.appendChild(editBtn);
                     const rm = h('button', 'inv-btn inv-btn-danger no-print', '×');
                     rm.type = 'button';
                     rm.addEventListener('click', () => {

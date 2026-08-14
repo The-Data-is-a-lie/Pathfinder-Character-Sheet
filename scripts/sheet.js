@@ -69,7 +69,7 @@
     // tab internals, which the shell late-binds to them via SheetApp below; here we just pull
     // back the overlays the shell itself opens.
     const {
-        openItemSheet, openClassSheet, openArchetypeSheet, openCatalogPicker, openBuffEditor,
+        openItemSheet, openClassSheet, openArchetypeSheet, openCatalogPicker,
         openPortraitLightbox, openPowModifierEditor, openFeatureBuffMenu, sectionCatalogToolbar,
         formatChangeLine, addBlankInventoryItem, processPortraitFile,
     } = window.SheetModals;
