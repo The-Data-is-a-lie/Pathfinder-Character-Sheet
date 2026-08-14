@@ -5798,3 +5798,59 @@ body.density-compact .tab-pane h3 { margin-top: 0.5rem; margin-bottom: 0.3rem; }
 .cmdk-group { font-size: 0.75rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.03em; }
 .cmdk-empty { padding: 0.75rem; color: var(--dim); text-align: center; }
 .cmdk-foot { font-size: 0.78rem; color: var(--dim); text-align: center; padding-top: 0.1rem; }
+
+/* ============================================================ rules health check (#79) */
+/* A warning, not an alarm: readable weight, no red-alert framing. Hidden at zero findings. */
+.health-btn { font-variant-numeric: tabular-nums; }
+.health-badge {
+    margin-left: 0.35rem;
+    padding: 0 0.2rem;
+    border: none;
+    background: none;
+    color: var(--accent-dark);
+    font-size: 0.85em;
+    line-height: 1;
+    cursor: pointer;
+}
+.health-badge:hover { filter: brightness(1.3); }
+.health-panel { display: flex; flex-direction: column; gap: 0.7rem; }
+.health-empty { margin: 0; color: var(--dim); }
+.health-group > h4 {
+    margin: 0 0 0.35rem;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.health-besteffort { font-weight: normal; }
+.health-finding {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding: 0.5rem 0.6rem;
+    margin-bottom: 0.35rem;
+    border-left: 3px solid var(--accent);
+    background: var(--panel);
+    border-radius: 0 5px 5px 0;
+}
+/* Encumbrance is a heads-up, not a rules break — quieter left rule. */
+.health-finding.is-info { border-left-color: var(--rule); }
+.health-finding-main { flex: 1; min-width: 0; }
+.health-finding-detail {
+    margin: 0.2rem 0 0;
+    font-size: 0.83rem;
+    line-height: 1.45;
+    color: var(--dim);
+}
+.health-finding-ctrl { display: flex; gap: 0.3rem; flex-shrink: 0; }
+.health-restore { align-self: flex-start; }
+.health-off {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.85rem;
+    color: var(--dim);
+}

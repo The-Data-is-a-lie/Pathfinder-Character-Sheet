@@ -194,6 +194,10 @@ window.SheetTabSkills = (function () {
             }[ab];
             attachNotesHover(nameTd, data,
                 ['skills', abBucket, skill.id ? 'skill.' + skill.id : null].filter(Boolean));
+            // #79: ⚠ on a skill carrying more ranks than the character has hit dice. Warn only —
+            // the rank field stays fully editable.
+            const healthMark = window.SheetHealthUI?.rowBadge?.(data, 'skill', rKey);
+            if (healthMark) nameTd.appendChild(healthMark);
 
             const abTd = h('td', 'num skill-ab-cell');
             const abSel = h('select', 'skill-ability-select edit-field');
