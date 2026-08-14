@@ -41,16 +41,25 @@ window.SheetTemplates = (function () {
                 // uses hit dice — the standard CR≈HD reading for an NPC, and stated in the note.
                 chg('@attributes.hd.total + 5', 'spellResist'),
             ],
+            // #112: the resistances and DR are now REAL chips on the Defenses tab, resolved
+            // against the HD band at apply time (re-applying re-reads the table, which is what
+            // the applied row's Refresh button is for). Only what a sheet cannot automate --
+            // darkvision, the once-a-day smite -- stays prose.
+            grantsFor(hd) {
+                const band = drBand(hd);
+                const grants = { resist: energies.map((type) => ({ type, amount: band.resist })) };
+                if (band.dr) grants.dr = [{ amount: band.dr, bypass }];
+                return grants;
+            },
             notes(hd) {   // (data unused: the planar templates read only hit dice)
                 const band = drBand(hd);
                 return [
                     'Darkvision 60 ft.',
-                    `Resist ${energies.join(', ')} ${band.resist}`,
-                    band.dr ? `DR ${band.dr}/${bypass}` : `No DR until 5 HD`,
+                    band.dr ? null : 'No DR until 5 HD',
                     `Spell resistance = CR + 5 (read as hit dice + 5 here — this sheet has no CR field)`,
                     `Smite ${smite} 1/day as a swift action: add your Cha bonus to attack rolls and `
                         + `${hd} damage against ${smite} foes, until it dies or you rest.`,
-                ];
+                ].filter(Boolean);
             },
         };
     }
@@ -177,7 +186,8 @@ window.SheetTemplates = (function () {
         if (!data || !tpl) return null;
         const S = window.SheetState;
         const buffs = S.ensureBuffs(data);
-        const hd = Math.max(1, Number(window.SheetDerive?.totalLevel?.(data)) || 1);
+        // #112: real hit dice now that the chassis exists -- class levels PLUS racial HD.
+        const hd = Math.max(1, Number(window.SheetDerive?.totalHD?.(data)) || 1);
         const notes = tpl.notes(hd, data);
         const setSize = tpl.sizeStep ? nextSize(data, tpl.sizeStep) : '';
         const base = tpl.changes.map((c) => ({ ...c }));
@@ -189,6 +199,10 @@ window.SheetTemplates = (function () {
             // Advanced's Int exception) rather than from a formula the ledger has to re-run.
             changes: tpl.changesFor ? tpl.changesFor(data, base) : base,
             setSize,
+            // #112: DR / resistance chips the buff hands to the Defenses tab. Resolved here
+            // rather than carried as a formula, for the same reason the notes are: the HD band
+            // is a table lookup, and Refresh is what re-reads it after a level-up.
+            grants: tpl.grantsFor ? tpl.grantsFor(hd, data) : {},
             notes: notes.join(' · '),
             autoKey: autoKeyFor(id),
         };

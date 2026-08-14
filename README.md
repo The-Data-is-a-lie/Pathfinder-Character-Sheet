@@ -26,7 +26,10 @@ in your browser and saves locally.
   any warning can be muted.
 - **Creature templates** — turn a stock NPC into its Advanced, Giant, Young, Celestial, Fiendish,
   Entropic or Resolute variant with one click. They apply as toggles you can switch off, and they
-  stack.
+  stack. Buffs can hand real DR and resistance chips to the Defenses tab.
+- **Monsters, not just characters** — give a creature a type and racial hit dice and they stack on
+  top of its class levels, feeding BAB, saves, HP and its skill budget. Zombie and skeleton
+  rebuilds turn a character into undead outright, snapshotting first so you can undo it.
 - **Dice roller with sound** — roll attacks, saves and skills from the sheet or the Tools drawer.
 - **15+ light & dark themes** plus a custom-theme builder (WCAG-checked); deep-link a look with
   `?theme=dusk`.

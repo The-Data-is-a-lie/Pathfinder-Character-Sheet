@@ -87,6 +87,9 @@
     <script src="scripts/domain/skill-math.js" defer></script>
     <script src="scripts/domain/class-info.js" defer></script>
     <script src="scripts/domain/inventory-model.js" defer></script>
+    <!-- #112: the creature chassis (type + racial hit dice). derive.js, formula.js and the
+         templates read it at call time, so its position only has to precede first paint. -->
+    <script src="scripts/domain/creature.js" defer></script>
     <script src="scripts/domain/feature-ledger.js" defer></script>
     <!-- #73/#74: client-side recipes over the existing generate endpoint (no backend
          work), plus their dialogs. Read SheetData/SheetGenerate at call time. -->
@@ -100,6 +103,9 @@
     <!-- #78: the seven PF1 simple creature templates, applied as reversible buffs.
          Reads SheetData/SheetDerive/SheetState at call time only. -->
     <script src="scripts/domain/creature-templates.js" defer></script>
+    <!-- #112 phase 3: zombie / skeleton. Destructive and snapshot-first, unlike the reversible
+         simple templates above. Reads SheetCreature / SheetLibrary at call time. -->
+    <script src="scripts/domain/rebuild-templates.js" defer></script>
     <script src="scripts/domain/rich-text.js" defer></script>
     <script src="scripts/theme.js" defer></script>
     <script src="scripts/shell-ui.js" defer></script>

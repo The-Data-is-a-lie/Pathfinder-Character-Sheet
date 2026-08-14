@@ -61,7 +61,10 @@ window.SheetFormula = (function () {
         // Foundry's "the class that granted this item" shorthand; on a single-class sheet it is the
         // character level, which is what the curated contextNotes assume.
         [/@class\.level\b/gi, (_m, data) => characterLevel(data)],
-        [/@attributes\.hd\.total\b/gi, (_m, data) => characterLevel(data)],
+        // #112: hit dice, not character level -- they differ the moment a creature carries racial
+        // HD, and every rule that says "HD" means this one.
+        [/@attributes\.hd\.total\b/gi,
+            (_m, data) => window.SheetDerive?.totalHD?.(data) ?? characterLevel(data)],
         [/@attributes\.bab\.total\b/gi,
             (_m, data) => window.SheetDerive?.babTotal?.(data) ?? (Number(data?.bab_total) || 0)],
         // Spheres of Power caster level — the payload's sphere_cl (falls back to character

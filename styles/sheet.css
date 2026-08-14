@@ -6029,3 +6029,19 @@ body.is-offline .pa-generate {
 .copy-to-list { display: flex; flex-direction: column; gap: 0.4rem; min-width: 16rem; }
 .copy-to-row { text-align: left; }
 .bundle-import textarea { width: 100%; min-width: 24rem; font-family: ui-monospace, Consolas, monospace; font-size: 0.8rem; }
+/* A buff-granted defence chip (#112): same shape as a typed one, no controls, and a ✦ that
+   says where it came from. Dimmed border because it is not yours to edit here. */
+.def-chip-granted { border-style: dashed; }
+.def-chip-src { margin-left: 0.3rem; color: var(--accent); font-size: 0.8rem; }
+
+/* ============================================================ creature chassis (#112) */
+.creature-controls { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.creature-hd { max-width: 5rem; }
+/* The chassis summary is a statement of consequence — what the racial HD are actually doing —
+   so it sits under the control rather than in a tooltip. */
+.creature-note { margin: 0.15rem 0 0.5rem; font-size: 0.83rem; line-height: 1.45; }
+/* Rebuild templates (#112 phase 3) are fenced off from the reversible ones above: their own
+   heading, a warning, and a danger-toned row, because these rewrite the character. */
+.rebuild-h { margin: 1.1rem 0 0.2rem; border-top: 1px solid var(--rule); padding-top: 0.7rem; }
+.rebuild-warn { margin: 0 0 0.5rem; }
+.template-row.is-rebuild { border-style: dashed; }

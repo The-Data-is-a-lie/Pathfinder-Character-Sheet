@@ -40,6 +40,77 @@ window.SheetTabAttributes = (function () {
         body.appendChild(row);
         return row;
     }
+    /**
+     * #112: creature type + racial hit dice — the monster chassis.
+     *
+     * Empty on every ordinary character, and it says so rather than showing a half-filled form:
+     * a PC is "Humanoid, no racial HD" and none of this changes a single number until a type is
+     * picked. Choosing one fills the racial-HD block from the type table (undead → d8, medium BAB,
+     * good Will), and the count is the only thing most creatures need to touch after that.
+     */
+    function renderCreatureBlock(body, data) {
+        const C = window.SheetCreature;
+        if (!C) return;
+        const creature = C.ensureCreature(data);
+        const types = C.types();
+        const repaint = () => {
+            window.SheetApp.quietSave();
+            renderSheet(data);
+            setActiveTab('attributes');
+        };
+
+        const row = h('div', 'kv creature-row');
+        row.appendChild(h('span', 'k', 'Creature type'));
+        const v = h('span', 'v creature-controls');
+        const typeSel = h('select', 'edit-field');
+        const none = document.createElement('option');
+        none.value = '';
+        none.textContent = '— ordinary character —';
+        typeSel.appendChild(none);
+        for (const t of types) {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = t.label;
+            if (t.id === creature.type) opt.selected = true;
+            typeSel.appendChild(opt);
+        }
+        typeSel.addEventListener('change', () => {
+            creature.type = typeSel.value;
+            // Re-seed the chassis from the new type, keeping however many dice are already set.
+            creature.racialHD = C.chassisFor(typeSel.value, creature.racialHD.count);
+            repaint();
+        });
+        v.appendChild(typeSel);
+
+        const hdIn = h('input', 'edit-field creature-hd');
+        hdIn.type = 'number';
+        hdIn.min = '0';
+        hdIn.max = '60';
+        hdIn.value = String(creature.racialHD.count || 0);
+        hdIn.title = 'Racial hit dice — these stack on top of class levels';
+        hdIn.addEventListener('change', () => {
+            creature.racialHD.count = Math.max(0, parseIntLoose(hdIn.value, 0));
+            repaint();
+        });
+        v.append(h('span', 'dim', ' racial HD '), hdIn);
+        row.appendChild(v);
+        body.appendChild(row);
+
+        const contrib = C.racialContribution(data);
+        if (contrib) {
+            body.appendChild(h('p', 'dim creature-note',
+                `${contrib.count}d${contrib.die} racial HD: BAB +${contrib.bab}, `
+                + `Fort +${contrib.saves.fort} / Ref +${contrib.saves.ref} / Will +${contrib.saves.will}, `
+                + `${contrib.skillRanks} skill ranks. Hit dice total `
+                + `${window.SheetDerive.totalHD(data)} — every rule that says “HD” uses that.`));
+        }
+        const traits = C.typeTraits(data);
+        if (traits.length) {
+            body.appendChild(h('p', 'dim creature-note',
+                'Type traits (not automated): ' + traits.join(' · ')));
+        }
+    }
+
     function tabAttributes(data) {
         const d = computeDerived(data);
         const { sec, body } = section('Attributes', 'attributes-tab');
@@ -48,6 +119,8 @@ window.SheetTabAttributes = (function () {
 
         kvInitiative(body, d);
         // Speed lives on Summary; BAB on Combat; saves on Defenses.
+
+        renderCreatureBlock(body, data);
 
         // Misc info — senses / aura / languages / proficiencies (_sheet.miscInfo)
         const stMisc = sheetState(data);

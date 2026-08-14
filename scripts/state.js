@@ -299,6 +299,38 @@ window.SheetState = (function () {
         }
         return st.buffs;
     }
+    /**
+     * #112: the six defensive chip lists a buff can grant, normalized.
+     *
+     * Shapes mirror `_sheet.defenses` exactly (`ensureDefenses`), so a granted chip and a
+     * hand-typed one render through the same code on the Defenses tab. Amounts are numbers,
+     * types are strings, and anything unrecognized is dropped rather than guessed at.
+     */
+    const GRANT_KEYS = ['dr', 'resist', 'dmgImmune', 'dmgVuln', 'condResist', 'condImmune'];
+    function normalizeGrants(raw) {
+        const src = raw && typeof raw === 'object' ? raw : {};
+        const out = {};
+        for (const key of GRANT_KEYS) {
+            const list = Array.isArray(src[key]) ? src[key] : [];
+            const kept = [];
+            for (const entry of list) {
+                if (!entry || typeof entry !== 'object') continue;
+                if (key === 'dr') {
+                    const amount = Number(entry.amount) || 0;
+                    if (amount) kept.push({ amount, bypass: String(entry.bypass || '—') });
+                } else if (key === 'resist') {
+                    const amount = Number(entry.amount) || 0;
+                    const type = String(entry.type || '').trim();
+                    if (amount && type) kept.push({ type, amount });
+                } else {
+                    const type = String(entry.type || '').trim();
+                    if (type) kept.push({ type });
+                }
+            }
+            if (kept.length) out[key] = kept;
+        }
+        return out;
+    }
     function normalizeBuffEntry(raw) {
         const b = raw && typeof raw === 'object' ? raw : {};
         const sub = String(b.subType || 'temp').toLowerCase();
@@ -331,6 +363,12 @@ window.SheetState = (function () {
                 : [],
             // Size-setting buffs (Enlarge Person → 'large'); '' = no size effect.
             setSize: typeof b.setSize === 'string' ? b.setSize : '',
+            // #112: defensive grants — DR, energy resistance and immunity chips this buff
+            // contributes to the Defenses tab while it is active. Deliberately NOT a
+            // `changes[]` target: every target in that vocabulary is a scalar "add N to a
+            // running total", and "DR 10/adamantine" is not a number. The precedent is
+            // `setSize` right above — a sibling field the consumer reads directly.
+            grants: normalizeGrants(b.grants),
             // #16: 'always' = standing ledger changes; 'perRoll' = a Custom-group toggle
             // in the conditional panel. itemKey optionally scopes a per-roll buff to one
             // weapon (same scoping enhancement qualities use).
@@ -787,6 +825,7 @@ window.SheetState = (function () {
         setBuffSourceActive, removeBuffSource, restoreRemovedBuffSources, activeStanceSet,
         setStanceActive, activeConditions, setConditionActive, notesForTargets, attachNotesHover,
         featureCustomList, featureCustomEntry, pruneFeatureCustom, ensureBuffs, normalizeBuffEntry,
+        normalizeGrants, GRANT_KEYS,
         formatBuffDuration, advanceRound, resetRoundCounter, featureUses, hasFeaturePool,
         ensureActionEconomy,
         chargePoolOptions, resolveChargePool, spendPooledUse,

@@ -67,6 +67,16 @@ window.SheetTabDefenses = (function () {
             'Roll Fort, Ref and Will into the Tools log', table));
         body.appendChild(table);
 
+        // #112: chips an ACTIVE buff grants (a template's planar DR, Stoneskin, Protection from
+        // Energy). They render beside the typed ones and are deliberately NOT editable or
+        // deletable here — you turn the buff off, the same discipline `disabledBuffSources` uses
+        // for always-on feature modifiers.
+        const granted = window.SheetDerive.grantedDefenses(data);
+        const supersededFor = (key, entry) => granted.superseded
+            .filter((s) => (key === 'dr'
+                ? String(s.bypass || '—').toLowerCase() === String(entry.bypass || '—').toLowerCase()
+                : String(s.type || '').toLowerCase() === String(entry.type || '').toLowerCase()));
+
         // --- shared chip-list builder (DR, resistances, immunities, vulnerabilities)
         const chipSection = (title, list, chipParts, selOptions, onAdd, opts = {}) => {
             const head = h('div', 'def-line-head');
@@ -91,7 +101,30 @@ window.SheetTabDefenses = (function () {
                 chip.appendChild(rm);
                 row.appendChild(chip);
             });
-            if (!list.length) row.appendChild(h('span', 'dim', 'None'));
+            // Granted chips, if this section has a grant key: same look, no controls, and the
+            // source buff named in the tooltip so it is obvious what to switch off.
+            const gifts = opts.grantKey ? (granted[opts.grantKey] || []) : [];
+            for (const gift of gifts) {
+                const chip = h('span', 'def-chip def-chip-granted');
+                if (opts.grantKey === 'dr') {
+                    chip.appendChild(h('span', null, String(gift.amount)));
+                    chip.appendChild(h('span', 'def-chip-type', '/' + (gift.bypass || '—')));
+                } else if (opts.grantKey === 'resist') {
+                    chip.appendChild(h('span', 'def-chip-type', titleCase(gift.type || '?') + ' '));
+                    chip.appendChild(h('span', null, String(gift.amount)));
+                } else {
+                    chip.appendChild(h('span', 'def-chip-type', titleCase(gift.type || '?')));
+                }
+                chip.appendChild(h('span', 'def-chip-src', '✦'));
+                const shadowed = supersededFor(opts.grantKey, gift)
+                    .map((s) => `${s.source} (${s.amount ?? ''}${opts.grantKey === 'dr'
+                        ? '/' + (s.bypass || '—') : ''})`);
+                chip.title = `From ${gift.source} — switch the buff off to remove it.`
+                    + (shadowed.length
+                        ? `\nNot stacking (best applies): ${shadowed.join(', ')}` : '');
+                row.appendChild(chip);
+            }
+            if (!list.length && !gifts.length) row.appendChild(h('span', 'dim', 'None'));
             body.appendChild(row);
 
             const form = h('div', 'def-add-row no-print hidden');
@@ -150,7 +183,7 @@ window.SheetTabDefenses = (function () {
             chip.appendChild(h('span', 'def-chip-type', '/' + (entry.bypass || '—')));
         }, DR_BYPASS_TYPES, (amount, type) => {
             defs.dr.push({ amount, bypass: type });
-        });
+        }, { grantKey: 'dr' });
 
         // --- Energy resistances: chips like "Fire 10"
         chipSection('Energy Resistance', defs.resist, (chip, entry) => {
@@ -167,7 +200,7 @@ window.SheetTabDefenses = (function () {
             }));
         }, ENERGY_TYPES, (amount, type) => {
             defs.resist.push({ type, amount });
-        });
+        }, { grantKey: 'resist' });
 
         // --- Healing & toughness: regeneration / fast healing / hardness
         body.appendChild(h('h4', 'def-h', 'Healing & Toughness'));
@@ -212,13 +245,13 @@ window.SheetTabDefenses = (function () {
         };
         const condOptions = PF1_CONDITIONS.map((c) => c.label.toLowerCase());
         chipSection('Damage Immunities', defs.dmgImmune, typeChip, DAMAGE_TYPES,
-            (a, type) => defs.dmgImmune.push({ type }), { noAmount: true });
+            (a, type) => defs.dmgImmune.push({ type }), { noAmount: true, grantKey: 'dmgImmune' });
         chipSection('Damage Vulnerabilities', defs.dmgVuln, typeChip, DAMAGE_TYPES,
-            (a, type) => defs.dmgVuln.push({ type }), { noAmount: true });
+            (a, type) => defs.dmgVuln.push({ type }), { noAmount: true, grantKey: 'dmgVuln' });
         chipSection('Condition Resistances', defs.condResist, typeChip, condOptions,
-            (a, type) => defs.condResist.push({ type }), { noAmount: true });
+            (a, type) => defs.condResist.push({ type }), { noAmount: true, grantKey: 'condResist' });
         chipSection('Condition Immunities', defs.condImmune, typeChip, condOptions,
-            (a, type) => defs.condImmune.push({ type }), { noAmount: true });
+            (a, type) => defs.condImmune.push({ type }), { noAmount: true, grantKey: 'condImmune' });
 
         // --- Spell resistance: base + feat/trait/class/misc boxes + computed total
         body.appendChild(h('h4', 'def-h', 'Spell Resistance'));

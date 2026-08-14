@@ -89,6 +89,10 @@ window.SheetHealth = (function () {
         if (!CI?.skillRankBudget || !SM?.parseSkillRanks) return null;
         const budget = CI.skillRankBudget(data);
         if (!budget || budget.total <= 0) return null;
+        // #112: racial hit dice buy skill ranks too (skills/HD from the creature type), so a
+        // monster with 4 racial HD is not over budget for spending them.
+        const racial = window.SheetCreature?.racialContribution?.(data);
+        if (racial) budget.total += racial.skillRanks;
         const map = SM.parseSkillRanks(data);
         let spent = Object.values(map).reduce((a, v) => a + num(v), 0);
         // Craft/Perform/Profession instances hold their own ranks under their own keys.

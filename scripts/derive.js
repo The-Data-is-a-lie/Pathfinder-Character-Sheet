@@ -171,6 +171,64 @@ window.SheetDerive = (function () {
             || { id: 'medium', label: 'Medium', mod: 0, steps: 0 };
         return { ...s, special: -s.mod };
     }
+    /**
+     * #112: the DR / resistance / immunity chips ACTIVE buffs contribute to the Defenses tab.
+     *
+     * Read directly off `buff.grants`, exactly as `sizeInfo` above reads `buff.setSize` — the
+     * changes ledger is a vocabulary of scalars and cannot carry "DR 10/adamantine".
+     *
+     * PF1 stacking is applied here rather than in the tab, because it is a rule, not a layout:
+     * **DR and energy resistance of the same kind do not stack — the best one applies.** A chip
+     * that loses keeps its place in `superseded` so the Defenses tab can say which buff is being
+     * shadowed instead of silently dropping it.
+     *
+     * Returns `{ dr, resist, dmgImmune, dmgVuln, condResist, condImmune }`, every entry tagged
+     * with `source` (the buff's name) and `buffId`.
+     */
+    function grantedDefenses(data) {
+        const keys = window.SheetState?.GRANT_KEYS
+            || ['dr', 'resist', 'dmgImmune', 'dmgVuln', 'condResist', 'condImmune'];
+        const out = {};
+        for (const key of keys) out[key] = [];
+        const superseded = [];
+        for (const buff of (data?._sheet?.buffs || [])) {
+            if (!buff || buff.active === false || !buff.grants) continue;
+            for (const key of keys) {
+                for (const entry of (buff.grants[key] || [])) {
+                    out[key].push({ ...entry, source: buff.name || 'Buff', buffId: buff.id });
+                }
+            }
+        }
+        // Best-of, per kind: DR by bypass type, resistance by energy type. Immunities are
+        // boolean, so a duplicate is just a duplicate and is deduped by type.
+        const bestBy = (list, keyOf) => {
+            const best = new Map();
+            for (const entry of list) {
+                const k = keyOf(entry);
+                const prior = best.get(k);
+                if (!prior || (Number(entry.amount) || 0) > (Number(prior.amount) || 0)) {
+                    if (prior) superseded.push(prior);
+                    best.set(k, entry);
+                } else {
+                    superseded.push(entry);
+                }
+            }
+            return [...best.values()];
+        };
+        out.dr = bestBy(out.dr, (e) => String(e.bypass || '—').toLowerCase());
+        out.resist = bestBy(out.resist, (e) => String(e.type || '').toLowerCase());
+        for (const key of ['dmgImmune', 'dmgVuln', 'condResist', 'condImmune']) {
+            const seen = new Set();
+            out[key] = out[key].filter((e) => {
+                const k = String(e.type || '').toLowerCase();
+                if (seen.has(k)) return false;
+                seen.add(k);
+                return true;
+            });
+        }
+        out.superseded = superseded;
+        return out;
+    }
     /** Dex-denial / dodge-loss flags from active conditions (CONDITION_CHANGES). */
     function conditionFlags(data) {
         const table = window.SheetData?.CONDITION_CHANGES || {};
@@ -309,7 +367,12 @@ window.SheetDerive = (function () {
 
         const level = Number(data.level) || 0;
         const frac = fractionalBases(data);
-        const bab = frac ? frac.bab : (Number(data.bab_total) || 0);
+        // #112: racial hit dice stack ON TOP of class levels (a gnoll fighter 3 is 2 racial HD +
+        // 3 class levels), so their BAB and base saves are separate parts rather than a different
+        // way of computing the class ones. null for every ordinary character, which is the
+        // overwhelmingly common case and leaves every number below untouched.
+        const racial = window.SheetCreature?.racialContribution?.(data) || null;
+        const bab = (frac ? frac.bab : (Number(data.bab_total) || 0)) + (racial ? racial.bab : 0);
         const strM = abModOf(data, 'str'), dexM = abModOf(data, 'dex'), conM = abModOf(data, 'con');
         const wisM = abModOf(data, 'wis'), intM = abModOf(data, 'int'), chaM = abModOf(data, 'cha');
         const armorAc = toInt(data.armor_ac) ?? 0;
@@ -390,6 +453,7 @@ window.SheetDerive = (function () {
         // ---- Saves ----
         function saveBlock(save, abLabel, abMod) {
             const parts = [];
+            if (racial) parts.push(part(racial.label, racial.saves[save], { kind: 'base' }));
             const base = classBase(save);
             if (base == null) {
                 parts.push(part('Class base (unknown class progression)', 0, {
@@ -550,6 +614,12 @@ window.SheetDerive = (function () {
             hpParts.push(part(
                 `Constitution (${fmt(conM)} × ${level} HD)`,
                 conHp, { kind: 'ability' }));
+            // Racial HD are hit dice too: Con applies to each of them as well.
+            if (racial) {
+                hpParts.push(part(
+                    `Constitution (${fmt(conM)} × ${racial.count} racial HD)`,
+                    conM * racial.count, { kind: 'ability' }));
+            }
         } else {
             hpParts.push(part('Constitution (no level/HD)', 0, { kind: 'ability' }));
         }
@@ -649,6 +719,15 @@ window.SheetDerive = (function () {
         const rest = (Array.isArray(data?.classes) ? data.classes.slice(1) : [])
             .reduce((n, c) => n + (Number(c.level) || 0), 0);
         return primary + rest;
+    }
+    /**
+     * #112: hit dice — class levels PLUS racial hit dice. This is what "HD" means in every PF1
+     * rule that says HD (a template's DR band, `@attributes.hd.total`, a monster's skill budget);
+     * `totalLevel` above stays the answer to "what level is this character", which is a different
+     * question the moment a creature has racial HD.
+     */
+    function totalHD(data) {
+        return totalLevel(data) + (window.SheetCreature?.racialHD?.(data) || 0);
     }
     /**
      * Caster level. `caster_level` is user-entered only (the generator never ships it), so an explicit
@@ -800,6 +879,6 @@ window.SheetDerive = (function () {
         castingAbilityMod, totalLevel, casterLevelValue, spellSaveDC, concentrationBonus,
         acTypeTotals, saveBuckets, srTotal, babIterativesStr, GOOD_SAVES,
         fractionalBases, babTotal,
-        sizeInfo, conditionFlags, encumbrance, carriedWeightLbs, loadReducedSpeed,
+        totalHD, sizeInfo, grantedDefenses, conditionFlags, encumbrance, carriedWeightLbs, loadReducedSpeed,
     };
 })();

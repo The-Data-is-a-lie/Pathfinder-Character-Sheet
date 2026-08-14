@@ -305,7 +305,120 @@ window.SheetModals = (function () {
         });
         form.append(formulaIn, targetSel, typeSel, whenSel, addBtn);
         panel.appendChild(form);
+        panel.appendChild(buildBuffGrantsEditor(buff));
         return panel;
+    }
+
+    /**
+     * #112: the defensive grants editor — DR, energy resistance and immunity chips a buff hands
+     * to the Defenses tab while it is active.
+     *
+     * It lives in the Changes panel because that is where a buff's mechanical effects are, but it
+     * writes `buff.grants`, NOT `buff.changes`: a change is a scalar added to a running total, and
+     * "DR 10/adamantine" is not a number. `SheetDerive.grantedDefenses` reads this the same way
+     * `sizeInfo` reads `setSize`.
+     */
+    const GRANT_SECTIONS = [
+        ['dr', 'Damage reduction', true,
+            ['—', 'adamantine', 'bludgeoning', 'chaotic', 'cold iron', 'epic', 'evil', 'good',
+                'lawful', 'magic', 'piercing', 'silver', 'slashing']],
+        ['resist', 'Energy resistance', true,
+            ['acid', 'cold', 'electricity', 'fire', 'sonic', 'force', 'negative energy',
+                'positive energy']],
+        ['dmgImmune', 'Damage immunity', false,
+            ['acid', 'cold', 'electricity', 'fire', 'sonic', 'force', 'negative energy',
+                'positive energy', 'bludgeoning', 'piercing', 'slashing']],
+    ];
+    function buildBuffGrantsEditor(buff) {
+        const wrap = h('div', 'buff-grants');
+        wrap.appendChild(h('h4', null, 'Grants to Defenses'));
+        wrap.appendChild(h('p', 'dim',
+            'DR / resistance / immunity chips this buff adds to the Defenses tab while it is '
+            + 'active. They are not editable there — this is where they live.'));
+        const list = h('div', 'inv-buffs-list');
+        const redraw = () => {
+            list.innerHTML = '';
+            const grants = buff.grants || {};
+            const rows = [];
+            for (const [key, label] of GRANT_SECTIONS.map((g) => [g[0], g[1]])) {
+                (grants[key] || []).forEach((entry, idx) => {
+                    const text = key === 'dr'
+                        ? `${label}: ${entry.amount}/${entry.bypass || '—'}`
+                        : key === 'resist'
+                            ? `${label}: ${titleCase(entry.type)} ${entry.amount}`
+                            : `${label}: ${titleCase(entry.type)}`;
+                    const row = h('div', 'inv-buffs-row');
+                    row.appendChild(h('span', 'inv-buffs-line', text));
+                    const del = h('button', 'inv-btn inv-btn-danger', '×');
+                    del.type = 'button';
+                    del.addEventListener('click', () => {
+                        buff.grants[key].splice(idx, 1);
+                        if (!buff.grants[key].length) delete buff.grants[key];
+                        quietSave();
+                        redraw();
+                        refreshDerived();
+                    });
+                    row.appendChild(del);
+                    rows.push(row);
+                });
+            }
+            if (!rows.length) {
+                list.appendChild(h('p', 'tools-empty', 'No defensive grants.'));
+            } else {
+                for (const row of rows) list.appendChild(row);
+            }
+        };
+        redraw();
+        wrap.appendChild(list);
+
+        const form = h('div', 'inv-buffs-add');
+        const kindSel = h('select', 'edit-field');
+        for (const [key, label] of GRANT_SECTIONS.map((g) => [g[0], g[1]])) {
+            const opt = document.createElement('option');
+            opt.value = key;
+            opt.textContent = label;
+            kindSel.appendChild(opt);
+        }
+        const amountIn = h('input', 'edit-field');
+        amountIn.type = 'number';
+        amountIn.min = '0';
+        amountIn.placeholder = '10';
+        amountIn.style.maxWidth = '5rem';
+        const typeSel2 = h('select', 'edit-field');
+        const paintTypes = () => {
+            const spec = GRANT_SECTIONS.find((g) => g[0] === kindSel.value);
+            typeSel2.innerHTML = '';
+            for (const t of spec[3]) {
+                const opt = document.createElement('option');
+                opt.value = t;
+                opt.textContent = t;
+                typeSel2.appendChild(opt);
+            }
+            amountIn.classList.toggle('hidden', !spec[2]);
+        };
+        paintTypes();
+        kindSel.addEventListener('change', paintTypes);
+        const addBtn2 = h('button', 'inv-btn', 'Add grant');
+        addBtn2.type = 'button';
+        addBtn2.addEventListener('click', () => {
+            const spec = GRANT_SECTIONS.find((g) => g[0] === kindSel.value);
+            const amount = parseIntLoose(amountIn.value, 0);
+            if (spec[2] && !amount) { amountIn.focus(); return; }
+            const grants = (buff.grants ??= {});
+            const bucket = (grants[kindSel.value] ??= []);
+            bucket.push(kindSel.value === 'dr'
+                ? { amount, bypass: typeSel2.value }
+                : kindSel.value === 'resist'
+                    ? { type: typeSel2.value, amount }
+                    : { type: typeSel2.value });
+            amountIn.value = '';
+            quietSave();
+            redraw();
+            refreshDerived();
+        });
+        form.append(kindSel, amountIn, typeSel2, addBtn2);
+        wrap.appendChild(form);
+        return wrap;
     }
     // ---------------------------------------------------------------- section renderers
     // --- Character portrait ---------------------------------------------------------

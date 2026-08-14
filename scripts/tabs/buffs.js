@@ -26,6 +26,64 @@ window.SheetTabBuffs = (function () {
      * becomes Refresh / Remove: refresh matters because the DR/resistance note is banded by
      * hit dice, so one click after a level-up re-reads the table.
      */
+    /**
+     * #112 phase 3: the rebuild templates, below the simple ones and visibly separated.
+     *
+     * They are in the same dialog because that is where someone goes looking for "turn this into a
+     * zombie", but they are fenced off with their own heading and warning, because unlike every
+     * row above them these rewrite the character. The button reads "Rebuild as…", the confirm
+     * counts what will be destroyed on THIS character, and the toast points at the snapshot.
+     */
+    function appendRebuildSection(body, data, closeDialog) {
+        const R = window.SheetRebuild;
+        if (!R) return;
+        body.appendChild(h('h4', 'rebuild-h', 'Rebuild templates'));
+        body.appendChild(h('p', 'dim rebuild-warn',
+            'These are not toggles. A rebuild replaces the creature: class levels become undead '
+            + 'hit dice, feats and skills are stripped, Intelligence goes. A snapshot is taken '
+            + 'first, and restoring it (Settings → History) is the only way back.'));
+        for (const tpl of R.REBUILDS) {
+            const row = h('div', 'template-row is-rebuild');
+            const info = h('div', 'template-row-info');
+            const title = h('div', 'template-row-title');
+            title.appendChild(h('strong', null, tpl.label));
+            info.appendChild(title);
+            info.appendChild(h('p', 'template-row-sum', tpl.summary));
+            const ctrl = h('div', 'template-row-ctrl');
+            const go = h('button', 'inv-btn inv-btn-danger', 'Rebuild as ' + tpl.label);
+            go.type = 'button';
+            go.addEventListener('click', async () => {
+                const p = R.preview(data, tpl.id);
+                if (!p) return;
+                const lines = [
+                    `Rebuild ${data.character_full_name || 'this character'} as a ${p.label}?`,
+                    '',
+                    `• ${p.classes.join(', ') || 'no class levels'} → ${p.hd} undead d8 hit dice`,
+                    `• ${p.feats} feat(s) removed${p.keepFeats.length ? ` (keeps ${p.keepFeats.join(', ')})` : ''}`,
+                    `• ${p.ranks} skill(s) with ranks cleared`,
+                    '• Intelligence set to 0, spells and class features removed',
+                    '',
+                    'A snapshot is taken first — restore it from Settings → History to undo.',
+                ];
+                // eslint-disable-next-line no-alert -- a destructive rewrite is the one place this
+                // sheet's "warn, never block" stance still wants an explicit yes.
+                if (!window.confirm(lines.join('\n'))) return;
+                const res = await R.apply(data, tpl.id);
+                if (!res.ok) {
+                    window.SheetOverlay?.toast?.('Rebuild failed: ' + res.reason);
+                    return;
+                }
+                closeDialog();
+                renderSheet(data);
+                window.SheetOverlay?.toast?.(
+                    `Rebuilt as a ${tpl.label} (${res.hd} HD). The previous version is in Settings → History.`);
+            });
+            ctrl.appendChild(go);
+            row.append(info, ctrl);
+            body.appendChild(row);
+        }
+    }
+
     function templatesButton(data) {
         const T = window.SheetTemplates;
         const btn = h('button', 'inv-btn', 'Templates');
@@ -86,6 +144,7 @@ window.SheetTabBuffs = (function () {
             const list = h('div', 'template-list');
             body.appendChild(list);
             rebuild();
+            appendRebuildSection(body, data, () => handle.close());
             const done = h('button', null, 'Done');
             done.type = 'button';
             const handle = window.SheetOverlay.open({

@@ -715,6 +715,9 @@
             () => window.SheetRecipesUI?.openEncounter?.());
         document.getElementById('health-btn').addEventListener('click',
             () => window.SheetHealthUI?.openPanel?.(currentData));
+        // #112: the creature-type table backs the Attributes chassis block and every HD rule.
+        // Fetched once; everything works (as an ordinary character) before it lands.
+        window.SheetCreature?.load?.();
         // #61 offline PWA: registers the service worker on window load, tracks online state
         // and updates. Entirely self-contained — nothing below depends on it succeeding.
         window.SheetPWA?.init?.();
