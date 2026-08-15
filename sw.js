@@ -24,7 +24,7 @@
 //   DATA_VERSION  -> bump ONLY when data/*.json is regenerated.
 //                    Keep in sync with DATA_CACHE in scripts/pwa.js, which fills this cache
 //                    from the page side on a first visit.
-const SHELL_VERSION = 'v2';
+const SHELL_VERSION = 'v3';
 const DATA_VERSION = 'v1';
 const SHELL_CACHE = `sheet-shell-${SHELL_VERSION}`;
 const DATA_CACHE = `sheet-data-${DATA_VERSION}`;
