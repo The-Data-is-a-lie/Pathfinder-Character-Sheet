@@ -17,15 +17,64 @@ window.SheetData = (function () {
         'Sahuagin', 'Skinwalker', 'Strix', 'Svirfneblin', 'Sylph', 'Syrinx', 'Tengu', 'Tiefling',
         'Triaxian', 'Triton', 'Undine', 'Vanara', 'Vine Leshy', 'Vishkanya', 'Wayang', 'Wyrwood',
         'Wyvaran', 'Yaddithian'];
-    // Unlike the Foundry module, the web sheet has no compendium constraint, so Stalker and
-    // Zealot are selectable here even while they stay out of the module's class list.
-    const CLASSES = ['Random', 'Alchemist', 'Antipaladin', 'Arcanist', 'Barbarian',
-        'Barbarian (Unchained)', 'Bard', 'Bloodrager', 'Brawler', 'Cavalier', 'Cleric', 'Druid',
-        'Fighter', 'Gunslinger', 'Hunter', 'Inquisitor', 'Investigator', 'Magus', 'Monk',
-        'Monk (Unchained)', 'Ninja', 'Oracle', 'Paladin', 'Ranger', 'Rogue', 'Rogue (Unchained)',
-        'Samurai', 'Shaman', 'Shifter', 'Skald', 'Slayer', 'Sorcerer', 'Summoner',
-        'Summoner (Unchained)', 'Swashbuckler', 'Vigilante', 'Warpriest', 'Witch', 'Wizard',
-        'Warlord', 'Warder', 'Harbinger', 'Mystic', 'Medic', 'Stalker', 'Zealot'];
+    /**
+     * The class roster, by family — a mirror of the Foundry module's own
+     * `scripts/shared/class-roster.js`, which the backend gate
+     * `Backend/scripts/gates/validate_class_roster.py` keeps honest against `class_data.json`.
+     * Same five families, same order, same names, so the two front-ends offer the same characters.
+     *
+     * `token` is a contract with the backend's `data.CLASS_GROUPS`: the generate form may send
+     * `random-<token>` and `util.py::_group_pool` turns it back into a pool of that family alone.
+     * Renaming one here without renaming it there silently degrades into a whole-roster roll.
+     *
+     * The one deliberate divergence: STALKER and ZEALOT. Both are fully defined in the backend but
+     * pf1-pow ships no class Item for either, so the Foundry module cannot resolve them and leaves
+     * them out. This sheet has no compendium constraint, so it lists them.
+     */
+    const CLASS_GROUPS = [
+        {
+            token: 'base',
+            label: 'Paizo base classes',
+            classes: ['Alchemist', 'Antipaladin', 'Arcanist', 'Barbarian', 'Barbarian (Unchained)',
+                'Bard', 'Bloodrager', 'Brawler', 'Cavalier', 'Cleric', 'Druid', 'Fighter',
+                'Gunslinger', 'Hunter', 'Inquisitor', 'Investigator', 'Magus', 'Monk',
+                'Monk (Unchained)', 'Ninja', 'Omdura', 'Oracle', 'Paladin', 'Ranger', 'Rogue',
+                'Rogue (Unchained)', 'Samurai', 'Shaman', 'Shifter', 'Skald', 'Slayer', 'Sorcerer',
+                'Summoner', 'Summoner (Unchained)', 'Swashbuckler', 'Vampire Hunter', 'Vigilante',
+                'Warpriest', 'Witch', 'Wizard'],
+        },
+        {
+            // Initiator classes (pf1-pow). "Medic" is a Metzofitz homebrew initiator from the same
+            // pack; Stalker and Zealot are the two the module cannot list (see above).
+            token: 'pow',
+            label: 'Path of War',
+            classes: ['Harbinger', 'Medic', 'Mystic', 'Stalker', 'Warder', 'Warlord', 'Zealot'],
+        },
+        {
+            // Dreamscarred Press, via the Library of Metzofitz (pf1-psionics). "Psychic Warrior"
+            // slugs to "psychic-warrior" and the backend un-slugs the hyphen back to a space,
+            // exactly as it does for the Unchained variants.
+            token: 'psionic',
+            label: 'Psionics',
+            classes: ['Aegis', 'Cryptic', 'Dread', 'Highlord', 'Marksman', 'Psion',
+                'Psychic Warrior', 'Soulknife', 'Tactician', 'Vitalist', 'Voyager', 'Wilder'],
+        },
+        {
+            token: 'occult',
+            label: 'Occult Adventures',
+            classes: ['Kineticist', 'Medium', 'Mesmerist', 'Occultist', 'Psychic', 'Spiritualist'],
+        },
+        {
+            // An NPC generator that cannot produce a commoner is missing the most common person
+            // in the world.
+            token: 'npc',
+            label: 'NPC classes',
+            classes: ['Adept', 'Aristocrat', 'Commoner', 'Expert', 'Warrior'],
+        },
+    ];
+    // Flat roster, Random first — the shape every existing consumer already expects. DERIVED from
+    // CLASS_GROUPS, so a class added to a family above reaches the whole sheet with no second edit.
+    const CLASSES = ['Random', ...CLASS_GROUPS.flatMap((g) => g.classes)];
     // Beginner grouping for the quick generate form: these float to a "Common" optgroup and
     // everything else falls into "More…". Membership only — RACES/CLASSES above stay the
     // single source of truth, so a new entry there still shows up (just under More).
@@ -420,6 +469,54 @@ window.SheetData = (function () {
         warder: { hd: 10, bab: 'Full', fort: 'Good', ref: 'Poor', will: 'Good', skills: 4, casting: 'None', maneuvers: 'Full initiator (Path of War)', weaponProf: 'Simple, martial', armorProf: 'All armor, shields', classSkills: ['acr', 'clm', 'crf', 'dip', 'int', 'kdu', 'ken', 'khi', 'klo', 'kno', 'per', 'pro', 'rid', 'sen', 'swm'] },
         warlord: { hd: 10, bab: 'Full', fort: 'Poor', ref: 'Good', will: 'Poor', skills: 4, casting: 'None', maneuvers: 'Full initiator (Path of War)', weaponProf: 'Simple, martial', armorProf: 'Light, medium, shields', classSkills: ['acr', 'blf', 'clm', 'crf', 'dip', 'han', 'int', 'khi', 'klo', 'per', 'prf', 'pro', 'rid', 'sen', 'swm'] },
         zealot: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Poor', will: 'Good', skills: 4, casting: 'Psionic-flavored (Path of War: Zealot)', maneuvers: 'Full initiator (Path of War)', weaponProf: 'Simple, martial', armorProf: 'Light, medium, shields', classSkills: ['blf', 'clm', 'crf', 'dip', 'hea', 'int', 'khi', 'klo', 'kre', 'per', 'pro', 'sen', 'spl', 'swm'] },
+        // ---------------------------------------------------------------------------------
+        // The rest of the roster, read off the pf1 class Items rather than written from memory:
+        // `hd`, `bab`, `savingThrows`, `skillsPerLevel`, `classSkills` and the proficiency lists
+        // come from every_class.json (the same class documents the Foundry front-end builds an
+        // actor from). Two overrides, each because the Item is the weaker source:
+        //   * psionic class skills come from the backend's curated psionic_classes.json prose —
+        //     the pf1-psionics Items only flag the module's OWN skills (kps/ahp) and leave the
+        //     base ones unset, so the Item alone would give the psion an empty list;
+        //   * psionic armour proficiency comes from the same prose, because those Items carry no
+        //     armorProf at all and "None" is wrong for an aegis in light armour and a shield.
+        // Every field here is still editable per character in the class popup.
+        omdura: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Poor', will: 'Good', skills: 4, casting: 'Divine (Wis, 4th-level, prepared)', weaponProf: 'Simple', armorProf: 'Light, medium, shields', classSkills: ['apr', 'art', 'blf', 'crf', 'dip', 'hea', 'int', 'kar', 'kno', 'kpl', 'kre', 'lin', 'lor', 'per', 'pro', 'sen', 'spl'] },
+        'vampire hunter': { hd: 8, bab: 'Full', fort: 'Poor', ref: 'Good', will: 'Good', skills: 6, casting: 'Divine (Wis, 4th-level, prepared)', weaponProf: 'Simple, martial', armorProf: 'Light, medium, shields', classSkills: ['art', 'blf', 'clm', 'crf', 'han', 'hea', 'int', 'kar', 'kge', 'klo', 'kre', 'lor', 'per', 'pro', 'rid', 'sen', 'spl', 'ste', 'sur', 'swm'] },
+        // Path of War — already selectable, but they never had a chassis until now.
+        harbinger: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Poor', will: 'Good', skills: 4, casting: 'None', maneuvers: 'Full initiator (Path of War)', weaponProf: 'Simple, martial', armorProf: 'Light, shields', classSkills: ['acr', 'ahp', 'blf', 'clm', 'dip', 'fly', 'hea', 'int', 'kar', 'klo', 'kmt', 'kno', 'kre', 'lin', 'pro', 'sen', 'spl', 'ste', 'sur'] },
+        medic: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Poor', will: 'Good', skills: 4, casting: 'None', maneuvers: 'Full initiator (Path of War)', weaponProf: 'Simple, martial', armorProf: 'Light, medium, shields', classSkills: ['acr', 'apr', 'blf', 'crf', 'dip', 'hea', 'kmt', 'kna', 'kno', 'per', 'pro', 'sen', 'slt'] },
+        mystic: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 4, casting: 'None', maneuvers: 'Full initiator (Path of War)', weaponProf: 'Simple, martial, katana, wakizashi', armorProf: 'Light, shields', classSkills: ['acr', 'ahp', 'crf', 'int', 'kar', 'kdu', 'ken', 'kge', 'khi', 'klo', 'kmt', 'kna', 'kno', 'kpl', 'kre', 'per', 'prf', 'pro', 'sen', 'spl', 'ste', 'umd'] },
+        // Psionics (Dreamscarred Press). `casting` names the manifesting ability and progression;
+        // the power points, powers known and per-day pool live on the Psionics tab, off the
+        // payload's `manifesters` bundle.
+        aegis: { hd: 10, bab: 'Full', fort: 'Good', ref: 'Poor', will: 'Good', skills: 4, casting: 'Psionic powers (Int, 4th-level manifester)', weaponProf: 'Simple, martial', armorProf: 'Light, shields', classSkills: ['acr', 'ahp', 'clm', 'crf', 'fly', 'int', 'ken', 'kps', 'pro', 'spl', 'swm', 'umd'] },
+        cryptic: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Good', will: 'Good', skills: 4, casting: 'Psionic powers (Int, 6th-level manifester)', weaponProf: 'Simple', armorProf: 'Light', classSkills: ['acr', 'ahp', 'apr', 'clm', 'crf', 'dev', 'dis', 'esc', 'kps', 'lin', 'per', 'prf', 'pro', 'sen', 'slt', 'spl', 'ste', 'swm', 'umd'] },
+        dread: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Good', will: 'Good', skills: 6, casting: 'Psionic powers (Cha, 6th-level manifester)', weaponProf: 'Simple', armorProf: 'Light, shields', classSkills: ['acr', 'ahp', 'blf', 'clm', 'crf', 'esc', 'int', 'kps', 'per', 'pro', 'sen', 'spl', 'ste', 'swm'] },
+        highlord: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Poor', will: 'Good', skills: 4, casting: 'Psionic powers (Cha, 6th-level manifester)', weaponProf: 'Simple, martial', armorProf: 'Heavy, shields', classSkills: ['ahp', 'blf', 'crf', 'dip', 'hea', 'int', 'kno', 'kps', 'kre', 'per', 'pro', 'rid', 'sen', 'spl', 'umd'] },
+        marksman: { hd: 10, bab: 'Full', fort: 'Poor', ref: 'Good', will: 'Good', skills: 4, casting: 'Psionic powers (Wis, 4th-level manifester)', weaponProf: 'Simple + light/projectile/thrown martial', armorProf: 'Light, bucklers', classSkills: ['acr', 'ahp', 'clm', 'crf', 'esc', 'int', 'kps', 'per', 'prf', 'pro', 'sen', 'ste', 'sur', 'umd'] },
+        psion: { hd: 6, bab: '1/2', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 2, casting: 'Psionic powers (Int, 9th-level manifester)', weaponProf: 'Club, dagger, crossbows, quarterstaff, shortspear', armorProf: 'None', classSkills: ['acr', 'ahp', 'blf', 'clm', 'crf', 'dev', 'dip', 'dis', 'fly', 'hea', 'int', 'kps', 'per', 'pro', 'sen', 'spl', 'sur', 'swm', 'umd'] },
+        'psychic warrior': { hd: 8, bab: '3/4', fort: 'Good', ref: 'Poor', will: 'Poor', skills: 4, casting: 'Psionic powers (Wis, 6th-level manifester)', weaponProf: 'Simple, martial', armorProf: 'Light, medium, shields', classSkills: ['acr', 'ahp', 'clm', 'crf', 'kps', 'per', 'pro', 'rid', 'spl', 'swm'] },
+        soulknife: { hd: 10, bab: 'Full', fort: 'Poor', ref: 'Good', will: 'Good', skills: 4, casting: 'Mind blade (no power points)', weaponProf: 'Simple + mind blade', armorProf: 'Light, medium, shields', classSkills: ['acr', 'ahp', 'clm', 'crf', 'int', 'kps', 'per', 'pro', 'ste', 'swm'] },
+        tactician: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 4, casting: 'Psionic powers (Int, 9th-level manifester)', weaponProf: 'Simple, martial', armorProf: 'Light, medium, shields', classSkills: ['ahp', 'blf', 'clm', 'crf', 'dip', 'int', 'ken', 'khi', 'kps', 'lin', 'per', 'prf', 'pro', 'rid', 'sen', 'spl', 'swm', 'umd'] },
+        vitalist: { hd: 6, bab: '1/2', fort: 'Good', ref: 'Poor', will: 'Good', skills: 2, casting: 'Psionic powers (Wis, 9th-level manifester)', weaponProf: 'Simple', armorProf: 'Light', classSkills: ['ahp', 'blf', 'crf', 'dip', 'hea', 'int', 'khi', 'klo', 'kps', 'lin', 'per', 'prf', 'pro', 'sen', 'spl', 'sur'] },
+        voyager: { hd: 6, bab: '3/4', fort: 'Poor', ref: 'Good', will: 'Good', skills: 6, casting: 'Psionic powers (Int, 6th-level manifester)', weaponProf: 'Simple', armorProf: 'Light', classSkills: ['acr', 'ahp', 'blf', 'clm', 'crf', 'dev', 'esc', 'kge', 'khi', 'kpl', 'kps', 'per', 'pro', 'sen', 'slt', 'spl', 'ste', 'sur', 'umd'] },
+        wilder: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 4, casting: 'Psionic powers (Cha, 9th-level manifester)', weaponProf: 'Simple', armorProf: 'Light', classSkills: ['acr', 'ahp', 'blf', 'clm', 'crf', 'dip', 'esc', 'int', 'kps', 'per', 'pro', 'sen', 'spl', 'swm', 'umd'] },
+        // Occult Adventures. The kineticist is deliberately "None": burn is a Constitution-priced
+        // resource, and its class Item carries no casting block at all.
+        kineticist: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Good', will: 'Poor', skills: 4, casting: 'None (kinetic blasts, burn)', weaponProf: 'Simple', armorProf: 'Light', classSkills: ['acr', 'art', 'crf', 'hea', 'int', 'lor', 'per', 'pro', 'ste', 'umd'] },
+        medium: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 4, casting: 'Psychic (Cha, 4th-level, spontaneous)', weaponProf: 'Simple', armorProf: 'Light, medium', classSkills: ['art', 'blf', 'crf', 'dip', 'fly', 'hea', 'int', 'kar', 'kpl', 'kre', 'lin', 'lor', 'per', 'prf', 'pro', 'sen', 'spl', 'umd'] },
+        mesmerist: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Good', will: 'Good', skills: 6, casting: 'Psychic (Cha, 6th-level, spontaneous)', weaponProf: 'Simple + hand crossbow, sap, sword cane, whip', armorProf: 'Light', classSkills: ['apr', 'art', 'blf', 'crf', 'dip', 'dis', 'esc', 'int', 'kar', 'kdu', 'khi', 'klo', 'kno', 'kre', 'lin', 'lor', 'per', 'prf', 'pro', 'sen', 'slt', 'spl', 'ste', 'umd'] },
+        occultist: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Poor', will: 'Good', skills: 4, casting: 'Psychic (Int, 6th-level, spontaneous)', weaponProf: 'Simple, martial', armorProf: 'Light, medium, shields', classSkills: ['apr', 'art', 'crf', 'dev', 'dip', 'dis', 'fly', 'kar', 'ken', 'khi', 'kpl', 'kre', 'lin', 'lor', 'per', 'pro', 'sen', 'slt', 'spl', 'umd'] },
+        psychic: { hd: 6, bab: '1/2', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 2, casting: 'Psychic (Int, 9th-level, spontaneous)', weaponProf: 'Simple', armorProf: 'None', classSkills: ['art', 'blf', 'crf', 'dip', 'fly', 'int', 'kar', 'kdu', 'ken', 'kge', 'khi', 'klo', 'kna', 'kno', 'kpl', 'kre', 'lin', 'lor', 'per', 'pro', 'sen', 'spl'] },
+        spiritualist: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Poor', will: 'Good', skills: 4, casting: 'Psychic (Wis, 6th-level, spontaneous)', weaponProf: 'Simple + kukri, sap, scythe', armorProf: 'Light', classSkills: ['art', 'blf', 'crf', 'fly', 'hea', 'int', 'kar', 'kdu', 'ken', 'kge', 'khi', 'klo', 'kna', 'kno', 'kpl', 'kre', 'lin', 'lor', 'pro', 'sen', 'spl', 'umd'] },
+        // NPC classes.
+        adept: { hd: 6, bab: '1/2', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 2, casting: 'Divine (Wis, 6th-level, prepared)', weaponProf: 'Simple', armorProf: 'None', classSkills: ['art', 'crf', 'han', 'hea', 'kar', 'kdu', 'ken', 'kge', 'khi', 'klo', 'kna', 'kno', 'kpl', 'kre', 'lor', 'pro', 'spl', 'sur'] },
+        aristocrat: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 4, casting: 'None', weaponProf: 'Simple, martial', armorProf: 'All armor, shields', classSkills: ['apr', 'art', 'blf', 'crf', 'dip', 'dis', 'han', 'int', 'kar', 'kdu', 'ken', 'kge', 'khi', 'klo', 'kna', 'kno', 'kpl', 'kre', 'lin', 'lor', 'per', 'prf', 'pro', 'rid', 'sen', 'sur', 'swm'] },
+        commoner: { hd: 6, bab: '1/2', fort: 'Poor', ref: 'Poor', will: 'Poor', skills: 2, casting: 'None', weaponProf: 'One simple weapon', armorProf: 'None', classSkills: ['art', 'clm', 'crf', 'han', 'lor', 'per', 'pro', 'rid', 'swm'] },
+        // The expert picks ANY ten skills as class skills at 1st level, so there is no fixed list
+        // to ship — the class popup's checkbox grid is where that choice gets made.
+        expert: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 6, casting: 'None', weaponProf: 'Simple', armorProf: 'Light', classSkills: [] },
+        warrior: { hd: 10, bab: 'Full', fort: 'Good', ref: 'Poor', will: 'Poor', skills: 2, casting: 'None', weaponProf: 'Simple, martial', armorProf: 'All armor, shields', classSkills: ['art', 'clm', 'crf', 'han', 'int', 'lor', 'pro', 'rid', 'swm'] },
     };
     CLASS_STATS['barbarian (unchained)'] = CLASS_STATS.barbarian;
     CLASS_STATS['rogue (unchained)'] = CLASS_STATS.rogue;
@@ -538,6 +635,10 @@ window.SheetData = (function () {
         { name: 'Appraise', ab: 'int', id: 'apr' },
         // Unchained background-skills variant only (#21) — rows render when the toggle is on.
         { name: 'Artistry', ab: 'int', id: 'art', variant: 'backgroundSkills' },
+        // Subsystem skills. NOT variant rules the user switches on: they belong to a rules module
+        // (pf1-psionics, pf1-pow) and show when the character is actually in that subsystem —
+        // see subsystemSkillOn() in tabs/skills.js. Ranks typed in survive either way.
+        { name: 'Autohypnosis', ab: 'wis', id: 'ahp', subsystem: 'psionics' },
         { name: 'Bluff', ab: 'cha', id: 'blf' },
         { name: 'Climb', ab: 'str', id: 'clm', acp: true },
         { name: 'Craft', ab: 'int', id: 'crf' },
@@ -555,9 +656,11 @@ window.SheetData = (function () {
         { name: 'Knowledge (Geography)', ab: 'int', id: 'kge' },
         { name: 'Knowledge (History)', ab: 'int', id: 'khi' },
         { name: 'Knowledge (Local)', ab: 'int', id: 'klo' },
+        { name: 'Knowledge (Martial)', ab: 'int', id: 'kmt', subsystem: 'pow' },
         { name: 'Knowledge (Nature)', ab: 'int', id: 'kna' },
         { name: 'Knowledge (Nobility)', ab: 'int', id: 'kno' },
         { name: 'Knowledge (Planes)', ab: 'int', id: 'kpl' },
+        { name: 'Knowledge (Psionics)', ab: 'int', id: 'kps', subsystem: 'psionics' },
         { name: 'Knowledge (Religion)', ab: 'int', id: 'kre' },
         { name: 'Linguistics', ab: 'int', id: 'lin' },
         { name: 'Lore', ab: 'int', id: 'lor', variant: 'backgroundSkills' },
@@ -604,7 +707,7 @@ window.SheetData = (function () {
     ];
 
     return {
-        REGIONS, RACES, CLASSES, CORE_RACES, CORE_CLASSES, DEITIES,
+        REGIONS, RACES, CLASSES, CLASS_GROUPS, CORE_RACES, CORE_CLASSES, DEITIES,
         PF1_CONDITIONS, CONDITION_CHANGES, COMBAT_TOGGLES, TWO_HANDED_WEAPONS,
         MARQUEE_FEATURES, SPELL_BUFFS, SIZES, SMALL_RACES, stepDice,
         CLASS_STATS, DEFAULT_CLASS_INFO, ALL_SKILLS, BACKGROUND_SKILL_IDS, FEAT_GROUPS,
