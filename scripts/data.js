@@ -462,6 +462,10 @@ window.SheetData = (function () {
         slayer: { hd: 10, bab: 'Full', fort: 'Good', ref: 'Good', will: 'Poor', skills: 6, casting: 'None', weaponProf: 'Simple, martial', armorProf: 'Light, medium, shields', classSkills: ['acr', 'blf', 'clm', 'crf', 'dis', 'han', 'hea', 'int', 'kdu', 'kge', 'klo', 'per', 'pro', 'rid', 'sen', 'ste', 'sur', 'swm'] },
         sorcerer: { hd: 6, bab: '1/2', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 2, casting: 'Arcane (Cha, 9th-level, spontaneous)', weaponProf: 'Simple', armorProf: 'None', classSkills: ['apr', 'blf', 'crf', 'fly', 'int', 'kar', 'pro', 'spl', 'umd'] },
         summoner: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 2, casting: 'Arcane (Cha, 6th-level, spontaneous)', weaponProf: 'Simple', armorProf: 'Light', classSkills: ['crf', 'fly', 'han', 'kar', 'kdu', 'ken', 'kge', 'khi', 'klo', 'kna', 'kno', 'kpl', 'kre', 'lin', 'pro', 'rid', 'spl', 'umd'] },
+        // Swashbuckler and Vigilante were on the roster from the start but never had a chassis;
+        // read off their class Items like the rest. The buckler is the swashbuckler's only shield.
+        swashbuckler: { hd: 10, bab: 'Full', fort: 'Poor', ref: 'Good', will: 'Poor', skills: 4, casting: 'None', weaponProf: 'Simple, martial', armorProf: 'Light, bucklers', classSkills: ['acr', 'art', 'blf', 'clm', 'crf', 'dip', 'esc', 'int', 'klo', 'kno', 'lor', 'per', 'prf', 'pro', 'rid', 'sen', 'slt', 'swm'] },
+        vigilante: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Good', will: 'Good', skills: 6, casting: 'None', weaponProf: 'Simple, martial', armorProf: 'Light, medium, shields', classSkills: ['acr', 'apr', 'art', 'blf', 'clm', 'crf', 'dev', 'dip', 'dis', 'esc', 'int', 'kdu', 'ken', 'klo', 'kno', 'lor', 'per', 'prf', 'pro', 'rid', 'sen', 'slt', 'ste', 'sur', 'swm', 'umd'] },
         warpriest: { hd: 8, bab: '3/4', fort: 'Good', ref: 'Poor', will: 'Good', skills: 2, casting: 'Divine (Wis, 6th-level, prepared)', weaponProf: 'Simple, martial + deity favored', armorProf: 'All armor, shields', classSkills: ['clm', 'crf', 'dip', 'han', 'hea', 'int', 'ken', 'kre', 'pro', 'rid', 'sen', 'spl', 'sur', 'swm'] },
         witch: { hd: 6, bab: '1/2', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 2, casting: 'Arcane (Int, 9th-level, prepared)', weaponProf: 'Simple', armorProf: 'None', classSkills: ['crf', 'fly', 'hea', 'int', 'kar', 'khi', 'kna', 'kpl', 'pro', 'spl', 'umd'] },
         wizard: { hd: 6, bab: '1/2', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 2, casting: 'Arcane (Int, 9th-level, prepared)', weaponProf: 'Wizard list', armorProf: 'None', classSkills: ['apr', 'crf', 'fly', 'kar', 'kdu', 'ken', 'kge', 'khi', 'klo', 'kna', 'kno', 'kpl', 'kre', 'lin', 'pro', 'spl'] },
@@ -518,8 +522,11 @@ window.SheetData = (function () {
         expert: { hd: 8, bab: '3/4', fort: 'Poor', ref: 'Poor', will: 'Good', skills: 6, casting: 'None', weaponProf: 'Simple', armorProf: 'Light', classSkills: [] },
         warrior: { hd: 10, bab: 'Full', fort: 'Good', ref: 'Poor', will: 'Poor', skills: 2, casting: 'None', weaponProf: 'Simple, martial', armorProf: 'All armor, shields', classSkills: ['art', 'clm', 'crf', 'han', 'int', 'lor', 'pro', 'rid', 'swm'] },
     };
+    // The three Unchained rewrites keep their originals' chassis -- the class Items agree field for
+    // field, so an alias is the honest encoding rather than a copied literal that could drift.
     CLASS_STATS['barbarian (unchained)'] = CLASS_STATS.barbarian;
     CLASS_STATS['rogue (unchained)'] = CLASS_STATS.rogue;
+    CLASS_STATS['summoner (unchained)'] = CLASS_STATS.summoner;
     const DEFAULT_CLASS_INFO = {
         hd: null, bab: '—', fort: '—', ref: '—', will: '—', skills: null,
         casting: '—', maneuvers: '—', fcb: '+1 HP or +1 skill point',
