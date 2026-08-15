@@ -3712,6 +3712,86 @@ button:disabled { opacity: 0.55; cursor: wait; }
 }
 .catalog-custom-row .edit-field { flex: 1 1 12rem; }
 
+/* --- Buffs: the effect-first finder (openBuffFinder) ------------------------------------- */
+/* A definite width, not `min(…, 100%)`: the frameless overlay card is `width: auto`, so a
+   percentage has nothing to resolve against and the card collapses to its content — which for a
+   tile grid means two columns instead of three. */
+.buff-finder-card { width: 40rem; max-width: 92vw; }
+.buff-finder-stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+}
+.buff-finder-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+    gap: 0.45rem;
+    padding: 0.25rem 0.85rem 0.6rem;
+}
+.buff-finder-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+    text-align: left;
+    font: inherit;
+    padding: 0.55rem 0.6rem;
+    background: var(--row-bg);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    cursor: pointer;
+}
+.buff-finder-tile:hover:not(:disabled),
+.buff-finder-tile:focus-visible {
+    border-color: var(--accent);
+    background: var(--row-hover);
+    outline: none;
+}
+.buff-finder-tile.is-empty { opacity: 0.45; cursor: default; border-left-color: var(--rule); }
+.buff-finder-icon { font-size: 1.15rem; line-height: 1.2; }
+.buff-finder-label { font-weight: 600; color: var(--accent-dark); }
+.buff-finder-hint { font-size: 0.72rem; color: var(--dim); }
+.buff-finder-count { font-size: 0.72rem; color: var(--dim); margin-top: 0.15rem; }
+.buff-finder-escape {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.5rem 0.85rem 0.7rem;
+    border-top: 1px solid var(--menu-divider);
+}
+.catalog-link-btn {
+    font: inherit;
+    font-size: 0.82rem;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--accent-dark);
+    text-decoration: underline;
+    cursor: pointer;
+}
+.catalog-link-btn:hover, .catalog-link-btn:focus-visible { color: var(--accent); outline: none; }
+.buff-finder-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.85rem 0.5rem;
+}
+.buff-finder-bar .catalog-search-input { flex: 1; }
+.buff-finder-result .catalog-result-name { display: flex; align-items: center; gap: 0.35rem; }
+/* Curated pf1 formulas can run to a paragraph (the monk's AC bonus is one expression); show the
+   shape of the effect, not the whole thing — the buff editor is where you read it in full. */
+.buff-finder-result .catalog-result-sub {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
 .section-catalog-bar {
     display: flex;
     flex-wrap: wrap;
