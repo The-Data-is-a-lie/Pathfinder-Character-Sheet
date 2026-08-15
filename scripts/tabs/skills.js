@@ -19,6 +19,28 @@ window.SheetTabSkills = (function () {
         skillBonusEntry, setSkillBonus, skillUserBonus, skillMiscBonus, skillRankKey, ranksEditor,
     } = window.SheetSkillMath;
 
+    /**
+     * Subsystem skills (Autohypnosis, Knowledge (psionics), Knowledge (martial)) belong to
+     * pf1-psionics / pf1-pow, not to core PF1 — so they are gated, but NOT the way Artistry and
+     * Lore are. A variant rule is a table decision someone opts into; a psion simply HAS
+     * Autohypnosis. The row shows when the character is in the subsystem — by class family, by
+     * generated content, or because ranks are already recorded — and stays hidden for everyone
+     * else, so a fighter's skill list doesn't grow three rows it can never use.
+     */
+    function subsystemSkillOn(data, sub, rankKey) {
+        if (Number(data.skill_ranks?.[rankKey]) > 0) return true;
+        if (sub === 'psionics' && (data.manifesters || []).length) return true;
+        if (sub === 'pow' && ((data.maneuvers_known_list || []).length
+            || (data.stances_chosen || []).length)) return true;
+        const token = sub === 'psionics' ? 'psionic' : 'pow';
+        const family = (window.SheetData.CLASS_GROUPS || []).find((g) => g.token === token);
+        if (!family) return false;
+        const names = new Set(family.classes.map((c) => c.toLowerCase()));
+        const classes = window.SheetState.ensureClassList?.(data) || [];
+        return [...classes, { name: data.c_class }, { name: data.c_class_2 }]
+            .some((c) => names.has(String(c?.name || c?.display || '').toLowerCase().trim()));
+    }
+
     function renderSkills(data) {
         const rankMap = ensureSkillRanksObject(data);
         const { sec, body } = section('Skills');
@@ -157,6 +179,8 @@ window.SheetTabSkills = (function () {
             // Variant-gated rows (Artistry / Lore) render only while their rule is on;
             // ranks typed into them survive a toggle-off in skill_ranks, just unlisted.
             if (skill.variant && !window.SheetState.variantRuleOn?.(data, skill.variant)) continue;
+            if (skill.subsystem
+                && !subsystemSkillOn(data, skill.subsystem, skillRankKey(skill.name))) continue;
             const displayName = skill.name === 'Craft' ? craftLabel
                 : skill.name === 'Profession' && nonEmpty(data.profession_ranks)
                     ? null // handled in profession block with detail
