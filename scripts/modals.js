@@ -878,6 +878,164 @@ window.SheetModals = (function () {
         runSearch();
         setTimeout(() => input.focus(), 30);
     }
+    /**
+     * The Buffs tab's browse: pick WHAT you want changed, then search inside that.
+     *
+     * Two steps on purpose. Step one is a grid of effect categories (SheetBuffEffects.CATEGORIES),
+     * each badged with how many catalog entries actually land there — a number that is derived from
+     * the entries' own `changes[].target`s, so it never disagrees with what the next screen lists.
+     * Step two is the old flat search, except scoped to that category and with the matching changes
+     * printed under each name, so "+2 deflection → AC" is visible before you commit to the buff.
+     *
+     * The empty query in step two lists the whole (small) category rather than demanding a name.
+     * That is the entire point: you get here without knowing what you are looking for.
+     *
+     * Entries with no mechanical changes are in NO category — they would be dead weight in every
+     * list — so the name search stays reachable from the grid via `opts.picker`.
+     */
+    const KIND_TAGS = {
+        feats: 'feat', items: 'item', traits: 'trait', classFeatures: 'class feature',
+        weapons: 'weapon', spells: 'spell',
+    };
+    let buffFinderHandle = null;
+    function openBuffFinder(opts) {
+        const FX = window.SheetBuffEffects;
+        if (!FX) { openCatalogPicker(opts.picker); return; }
+        const kinds = opts.kinds || ['feats', 'items'];
+        buffFinderHandle?.close();
+        let handle = null;
+        const close = () => handle?.close();
+
+        const card = h('div', 'catalog-picker-card buff-finder-card');
+        card.id = 'buff-finder';
+        const head = h('div', 'catalog-picker-head');
+        const title = h('h3', null, opts.title || 'Add a buff');
+        head.appendChild(title);
+        const closeBtn = h('button', 'catalog-picker-close', '×');
+        closeBtn.type = 'button';
+        closeBtn.title = 'Close';
+        closeBtn.addEventListener('click', close);
+        head.appendChild(closeBtn);
+        card.appendChild(head);
+        const lead = h('p', 'catalog-picker-lead dim', '');
+        card.appendChild(lead);
+        const stage = h('div', 'buff-finder-stage');
+        card.appendChild(stage);
+
+        const pick = (name, entry, kind) => {
+            close();
+            opts.onPick?.({ name, entry, kind });
+        };
+
+        function showGrid() {
+            title.textContent = opts.title || 'Add a buff';
+            lead.textContent = 'What should this buff change? Pick an effect to search inside it.';
+            stage.innerHTML = '';
+            const counts = FX.counts(kinds);
+            const grid = h('div', 'buff-finder-grid');
+            for (const cat of FX.CATEGORIES) {
+                const n = counts[cat.id] || 0;
+                const tile = h('button', 'buff-finder-tile' + (n ? '' : ' is-empty'));
+                tile.type = 'button';
+                tile.disabled = !n;
+                tile.appendChild(h('span', 'buff-finder-icon', cat.icon));
+                tile.appendChild(h('span', 'buff-finder-label', cat.label));
+                tile.appendChild(h('span', 'buff-finder-hint', cat.hint));
+                tile.appendChild(h('span', 'buff-finder-count', n ? String(n) : 'none'));
+                tile.addEventListener('click', () => showCategory(cat));
+                grid.appendChild(tile);
+            }
+            stage.appendChild(grid);
+
+            const escape = h('div', 'buff-finder-escape');
+            const byName = h('button', 'catalog-link-btn', 'Search everything by name instead →');
+            byName.type = 'button';
+            byName.title = 'The full catalog, including entries with no numbers of their own';
+            byName.addEventListener('click', () => {
+                close();
+                openCatalogPicker(opts.picker);
+            });
+            escape.appendChild(byName);
+            if (opts.onCustom) {
+                const custom = h('button', 'catalog-link-btn', 'Write my own buff →');
+                custom.type = 'button';
+                custom.addEventListener('click', () => {
+                    const name = String(window.prompt('Name this buff:', '') || '').trim();
+                    if (!name) return;
+                    close();
+                    opts.onCustom(name);
+                });
+                escape.appendChild(custom);
+            }
+            stage.appendChild(escape);
+        }
+
+        function showCategory(cat) {
+            title.textContent = `${cat.icon} ${cat.label}`;
+            lead.textContent = `Everything in the catalog that changes ${cat.label.toLowerCase()}.`;
+            stage.innerHTML = '';
+
+            const bar = h('div', 'buff-finder-bar');
+            const back = h('button', 'inv-btn', '← All effects');
+            back.type = 'button';
+            back.addEventListener('click', showGrid);
+            const input = h('input', 'edit-field catalog-search-input');
+            input.type = 'search';
+            input.placeholder = `Filter ${cat.label.toLowerCase()}…`;
+            input.autocomplete = 'off';
+            bar.append(back, input);
+            stage.appendChild(bar);
+
+            const results = h('div', 'catalog-results buff-finder-results');
+            results.setAttribute('role', 'listbox');
+            stage.appendChild(results);
+
+            const runSearch = () => {
+                results.innerHTML = '';
+                const { rows, total } = FX.search(cat.id, input.value, { kinds });
+                if (!rows.length) {
+                    results.appendChild(h('p', 'catalog-empty dim',
+                        'Nothing here matches. Try a different effect, or the name search.'));
+                    return;
+                }
+                for (const row of rows) {
+                    const btn = h('button', 'catalog-result buff-finder-result');
+                    btn.type = 'button';
+                    btn.setAttribute('role', 'option');
+                    const top = h('span', 'catalog-result-name', row.name);
+                    top.appendChild(h('span', 'feat-tag buff-kind-tag', KIND_TAGS[row.kind] || row.kind));
+                    btn.appendChild(top);
+                    // The changes that put this entry in THIS category — not all of them, so a
+                    // belt of giant strength under "Ability scores" doesn't also recite its AC.
+                    const lines = FX.changesFor(row, cat.id)
+                        .map((c) => formatChangeLine(c, window.SheetDetails));
+                    if (lines.length) {
+                        btn.appendChild(h('span', 'catalog-result-sub', lines.join(' · ')));
+                    }
+                    btn.addEventListener('click', () => pick(row.name, row.entry, row.kind));
+                    results.appendChild(btn);
+                }
+                if (total > rows.length) {
+                    results.appendChild(h('p', 'catalog-empty dim',
+                        `Showing ${rows.length} of ${total} — type to narrow it down.`));
+                }
+            };
+            let timer = null;
+            input.addEventListener('input', () => {
+                clearTimeout(timer);
+                timer = setTimeout(runSearch, 120);
+            });
+            runSearch();
+            setTimeout(() => input.focus(), 30);
+        }
+
+        showGrid();
+        handle = openFrameless(card, {
+            label: opts.title || 'Add a buff',
+            onClose: () => { if (buffFinderHandle === handle) buffFinderHandle = null; },
+        });
+        buffFinderHandle = handle;
+    }
     function sectionCatalogToolbar(opts) {
         const bar = h('div', 'section-catalog-bar no-print');
         const browse = h('button', 'inv-btn inv-btn-primary catalog-browse-btn', opts.browseLabel || 'Browse catalog');
@@ -2003,7 +2161,7 @@ window.SheetModals = (function () {
     }
 
     return {
-        openItemSheet, openClassSheet, openArchetypeSheet, openCatalogPicker,
+        openItemSheet, openClassSheet, openArchetypeSheet, openCatalogPicker, openBuffFinder,
         buildBuffDetailsPanel, buildBuffChangesPanel,
         openPortraitLightbox, openPowModifierEditor, openFeatureBuffMenu, buildItemBuffsPanel,
         buildFeatureChangesPanel, buildPowModifierPanel, openFrameless,

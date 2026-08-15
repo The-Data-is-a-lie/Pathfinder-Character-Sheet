@@ -1613,6 +1613,24 @@ window.SheetDetails = (function () {
         return Object.keys(maps).concat(['talents', 'classes']);
     }
 
+    /**
+     * Walk every entry of one catalog kind. `searchCatalog` answers "what matches this string";
+     * this answers "what is in here at all", which is what an index over a property other than
+     * the name (SheetBuffEffects, over changes[].target) needs.
+     *
+     * A key can hold an array (same name, several sources); every one is visited. Entries are
+     * handed out by reference — callers must not mutate them.
+     */
+    function eachCatalogEntry(kind, fn) {
+        const m = maps[kind];
+        if (!m?.byKey || typeof fn !== 'function') return;
+        for (const [key, entry] of Object.entries(m.byKey)) {
+            for (const e of (Array.isArray(entry) ? entry : [entry])) {
+                if (e) fn(key, e);
+            }
+        }
+    }
+
     return {
         ready, lookup, lookupClassFeature, lookupWeapon, lookupItem,
         lookupManeuverConditional, resolvePowConditional, setPowOverride, clearPowOverride,
@@ -1624,6 +1642,6 @@ window.SheetDetails = (function () {
         collectRollConditionals, normalizeInventoryEntry, powNorm,
         parseEnhancements, lookupEnhancement, collectEnhancements, coreGearItemKey,
         targetLabel, typeLabel, evalSimpleFormula, changesForTargets,
-        searchCatalog, catalogKinds, classFeaturesAtLevel,
+        searchCatalog, catalogKinds, eachCatalogEntry, classFeaturesAtLevel,
     };
 })();

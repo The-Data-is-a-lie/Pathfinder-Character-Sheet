@@ -12,7 +12,8 @@ window.SheetTabBuffs = (function () {
         BUFF_SUBTYPES, addBuffFromCatalog, formatBuffDuration, restoreRemovedBuffSources,
     } = window.SheetState;
     const {
-        formatChangeLine, openCatalogPicker, buildBuffDetailsPanel, buildBuffChangesPanel,
+        formatChangeLine, openCatalogPicker, openBuffFinder, buildBuffDetailsPanel,
+        buildBuffChangesPanel,
     } = window.SheetModals;
     const { PF1_CONDITIONS } = window.SheetData;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
@@ -413,20 +414,35 @@ window.SheetTabBuffs = (function () {
             browseBtn.type = 'button';
             browseBtn.title = 'Add from catalog into ' + sec.label;
             browseBtn.addEventListener('click', () => {
-                openCatalogPicker({
+                const take = (hit) => {
+                    addBuffFromCatalog(data, hit.name, hit.entry, sec.id);
+                    renderSheet(data);
+                    setActiveTab('buffs');
+                };
+                const own = (name) => {
+                    createBuff(data, { name, subType: sec.id });
+                    renderSheet(data);
+                    setActiveTab('buffs');
+                };
+                // Effect-first (What should this change? → search inside that), with the old flat
+                // name search kept one click away inside it as `picker` — some buffs have no
+                // numeric changes at all and so appear in no effect category.
+                // Traits and class features join feats and items here: addBuffFromCatalog reads
+                // nothing but `changes` / `contextNotes`, so every catalog with those is fair game,
+                // and the two extra ones are where most of the casting-side numbers live.
+                const KINDS = ['feats', 'items', 'traits', 'classFeatures'];
+                openBuffFinder({
                     title: 'Add ' + sec.label.toLowerCase() + ' buff',
-                    kinds: ['feats', 'items'],
-                    allowCustom: true,
-                    customPlaceholder: 'Custom buff name',
-                    onPick: (hit) => {
-                        addBuffFromCatalog(data, hit.name, hit.entry, sec.id);
-                        renderSheet(data);
-                        setActiveTab('buffs');
-                    },
-                    onCustom: (name) => {
-                        createBuff(data, { name, subType: sec.id });
-                        renderSheet(data);
-                        setActiveTab('buffs');
+                    kinds: KINDS,
+                    onPick: take,
+                    onCustom: own,
+                    picker: {
+                        title: 'Add ' + sec.label.toLowerCase() + ' buff',
+                        kinds: KINDS,
+                        allowCustom: true,
+                        customPlaceholder: 'Custom buff name',
+                        onPick: take,
+                        onCustom: own,
                     },
                 });
             });

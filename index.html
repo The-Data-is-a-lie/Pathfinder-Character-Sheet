@@ -106,6 +106,10 @@
     <!-- #112 phase 3: zombie / skeleton. Destructive and snapshot-first, unlike the reversible
          simple templates above. Reads SheetCreature / SheetLibrary at call time. -->
     <script src="scripts/domain/rebuild-templates.js" defer></script>
+    <!-- The Buffs browse taxonomy: indexes the feat/item catalogs by what their changes TARGET,
+         so the picker can ask "what should this change?" first. Reads SheetDetails at call
+         time (the index is built lazily on first open, not at load). -->
+    <script src="scripts/domain/buff-effects.js" defer></script>
     <script src="scripts/domain/rich-text.js" defer></script>
     <script src="scripts/theme.js" defer></script>
     <script src="scripts/shell-ui.js" defer></script>

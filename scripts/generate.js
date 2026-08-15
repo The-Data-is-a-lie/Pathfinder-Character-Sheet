@@ -48,6 +48,42 @@ window.SheetGenerate = (function () {
             sel.appendChild(more);
         }
     }
+    /**
+     * The class select: a "Common" shortcut group, then one optgroup per class family, each led by
+     * its own random entry.
+     *
+     * The per-family random sends `random-<token>` — a contract with the backend's
+     * `util.py::_group_pool`, which turns it back into a pool of that family alone (the same value
+     * the Foundry dropdown sends). A backend that didn't know the token would fall back to a
+     * whole-roster roll, so this degrades into "a random character" rather than an error.
+     *
+     * Core classes appear TWICE on purpose — once in Common as a beginner shortcut, once in their
+     * family so "Paizo base classes" is actually the whole list. A select shows the first option
+     * matching the current value, so the duplicate is invisible in use.
+     */
+    function fillFamilySelect(sel, groups, core, valueFn) {
+        const opt = (value, text) => {
+            const node = document.createElement('option');
+            node.value = value;
+            node.textContent = text;
+            return node;
+        };
+        const top = document.createElement('optgroup');
+        top.label = 'Common';
+        top.appendChild(opt('random', 'Surprise me (Random)'));
+        for (const g of groups) {
+            for (const c of g.classes) if (core.has(c)) top.appendChild(opt(valueFn(c), c));
+        }
+        sel.appendChild(top);
+
+        for (const g of groups) {
+            const grp = document.createElement('optgroup');
+            grp.label = `${g.label} (${g.classes.length})`;
+            grp.appendChild(opt(`random-${g.token}`, `🎲 Random ${g.label.toLowerCase()}`));
+            for (const c of g.classes) grp.appendChild(opt(valueFn(c), c));
+            sel.appendChild(grp);
+        }
+    }
     // /update_character_data unpacks the payload POSITIONALLY (spheres_of_power, professions
     // and trainers are popped by name), so this key order must stay exactly in sync with the
     // Foundry module's button.js, with use_backstory_api + backstory_focus appended as the
@@ -255,7 +291,7 @@ window.SheetGenerate = (function () {
     }
 
     return {
-        fillSelect, fillGroupedSelect, buildPayload, quickLevelSelect, fillQuickLevel,
+        fillSelect, fillGroupedSelect, fillFamilySelect, buildPayload, quickLevelSelect, fillQuickLevel,
         applyQuickLevel, syncQuickLevel, applyGenPreset, surpriseMe, generate, generateCustom,
         loadJsonText,
     };
