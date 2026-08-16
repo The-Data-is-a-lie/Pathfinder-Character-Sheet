@@ -1266,6 +1266,23 @@ body.overlay-open { overflow: hidden; }
     visibility: visible;
     transform: translate(-50%, 0);
 }
+/* The toast itself stays click-through so it never blocks the sheet underneath; the action
+   button opts back in, which a descendant of pointer-events:none is allowed to do. */
+.sheet-toast-action {
+    pointer-events: auto;
+    margin-left: 0.7rem;
+    padding: 0.15rem 0.6rem;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+.sheet-toast-action:hover { background: rgba(255, 255, 255, 0.16); }
+.sheet-toast-action:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.buffs-trash-row { margin: 0.5rem 0 0.2rem; }
 @media (max-width: 899px) {
     body.rail-open .sheet-toast { bottom: calc(var(--rail-h) * 1.35 + 0.75rem); }
 }
@@ -2641,6 +2658,7 @@ button:disabled { opacity: 0.55; cursor: wait; }
 .buffs-row {
     display: grid;
     grid-template-columns:
+        1.1rem                      /* grip — zone 1 of the uniform row contract */
         minmax(8rem, 1.4fr)
         minmax(4.5rem, 0.7fr)
         3.2rem
@@ -2649,6 +2667,9 @@ button:disabled { opacity: 0.55; cursor: wait; }
     gap: 0.35rem 0.5rem;
     align-items: center;
 }
+/* Always-on source rows have no storage order, so they carry no grip — the column is held
+   open by a spacer instead, keeping every row's remaining zones on the same vertical lines. */
+.dnd-spacer { display: block; }
 .buffs-col-legend {
     font-size: 0.72rem;
     font-variant: small-caps;

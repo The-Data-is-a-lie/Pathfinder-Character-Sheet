@@ -4,7 +4,10 @@
 // consumed by the Features tab via SheetApp -- the shell destructure re-points its delegate here.
 window.SheetTabBuffs = (function () {
     'use strict';
-    const { h, section, details, fmt, mod, parseIntLoose, dblclickEditable, cloneChanges } = window.SheetUI;
+    const {
+        h, section, details, fmt, mod, parseIntLoose, dblclickEditable, cloneChanges,
+        dndHandle, bindDragList,
+    } = window.SheetUI;
     const { effectiveLedger, groupChangesBySource } = window.SheetDerive;
     const {
         quietSave, createBuff, sheetState, activeConditions, setConditionActive, notesForTargets,
@@ -18,6 +21,12 @@ window.SheetTabBuffs = (function () {
     const { PF1_CONDITIONS } = window.SheetData;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
+    const LC = () => window.SheetListContract;
+    const toast = (text, opts) => window.SheetOverlay?.toast(text, opts);
+    // Always-on sources render as rows in Permanent but are not entries in _sheet.buffs, so
+    // they are excluded from the drag selector outright: they have no storage order to change
+    // and counting them would offset every index the engine reports.
+    const BUFF_ROW_SEL = '.buffs-row:not(.buffs-row-derived)';
 
     /**
      * #78 "Templates" picker — the seven PF1 simple templates as reversible toggles.
@@ -318,6 +327,7 @@ window.SheetTabBuffs = (function () {
         const SD = window.SheetDetails;
         const active = isBuffSourceActive(data, g.source, g.sourceKind);
         const row = h('div', 'buffs-row buffs-row-derived' + (active ? '' : ' buff-off'));
+        row.appendChild(h('span', 'dnd-spacer no-print'));
         const nameCell = h('div', 'buffs-col-name');
         const nameLine = h('span', 'buff-source-name', g.source || '?');
         nameCell.appendChild(nameLine);
@@ -389,7 +399,8 @@ window.SheetTabBuffs = (function () {
 
         // Column legend
         const legend = h('div', 'buffs-col-legend no-print');
-        legend.innerHTML = '<span class="buffs-col-name">Name</span>'
+        legend.innerHTML = '<span></span>'
+            + '<span class="buffs-col-name">Name</span>'
             + '<span class="buffs-col-dur">Duration</span>'
             + '<span class="buffs-col-lv">Level</span>'
             + '<span class="buffs-col-active">Active</span>'
@@ -463,6 +474,8 @@ window.SheetTabBuffs = (function () {
             } else {
                 for (const buff of items) {
                     const row = h('div', 'buffs-row' + (buff.active === false ? ' buff-off' : ''));
+                    row.dataset.buffId = buff.id;
+                    row.appendChild(dndHandle('Reorder, or drag into another category'));
                     const nameCell = h('div', 'buffs-col-name');
                     nameCell.appendChild(h('span', 'buff-source-name', buff.name));
                     if (buff.activation === 'perRoll') {
@@ -541,16 +554,30 @@ window.SheetTabBuffs = (function () {
                     });
                     const rm = h('button', 'inv-btn inv-btn-danger', '×');
                     rm.type = 'button';
-                    rm.title = 'Delete buff';
+                    rm.title = 'Remove buff (recoverable)';
                     rm.addEventListener('click', () => {
-                        if (!confirm(`Delete buff “${buff.name}”?`)) return;
+                        // Soft delete: the buff moves to the trash whole, so the changes
+                        // ledger simply stops seeing it and an accidental × costs one click
+                        // rather than re-authoring the buff. Replaces a confirm() dialog.
                         const arr = ensureBuffs(data);
                         let i = arr.indexOf(buff);
                         if (i < 0) i = arr.findIndex((x) => x?.id === buff.id);
-                        if (i >= 0) arr.splice(i, 1);
+                        if (i < 0) return;
+                        const at = i;
+                        if (!LC().trash(arr, ensureBuffTrash(data), arr[i])) return;
                         quietSave();
                         renderSheet(data);
                         setActiveTab('buffs');
+                        toast(`Removed “${buff.name}”`, {
+                            action: {
+                                onClick: () => {
+                                    LC().untrash(ensureBuffs(data), ensureBuffTrash(data), buff, at);
+                                    quietSave();
+                                    renderSheet(data);
+                                    setActiveTab('buffs');
+                                },
+                            },
+                        });
                     });
                     ctrl.append(editBtn, dupBtn, rm);
                     row.appendChild(ctrl);
@@ -559,19 +586,99 @@ window.SheetTabBuffs = (function () {
             }
             for (const g of derived) list.appendChild(renderPassiveSourceRow(data, g));
             sectionEl.appendChild(list);
-            if (sec.id === 'perm' && (passive.removed || []).length) {
-                const restore = h('button', 'inv-btn no-print',
-                    'Restore removed sources (' + passive.removed.length + ')');
-                restore.type = 'button';
-                restore.title = 'Bring back: ' + passive.removed.map((g) => g.source).join(', ');
-                restore.addEventListener('click', () => {
-                    restoreRemovedBuffSources(data);
-                    setActiveTab('buffs');
-                });
-                sectionEl.appendChild(restore);
-            }
+
+            // Every section is a drop target for every other: a buff's subType is a free-form
+            // tag, so re-filing one is an edit its own detail sheet already offers. That makes
+            // Buffs the safe end of the drag rule and the right place to prove it.
+            bindDragList({
+                container: list,
+                itemSelector: BUFF_ROW_SEL,
+                group: 'buffs',
+                sectionId: sec.id,
+                // A buff's subType is a free-form tag its own detail sheet can already set,
+                // so every category accepts every buff — the permissive end of the rule.
+                canAccept: () => true,
+                onDrop: (m) => moveBuff(data, m),
+            });
+
             body.appendChild(sectionEl);
         }
+
+        renderTrashRow(body, data, passive);
+    }
+
+    /** Soft-deleted buffs, kept whole so nothing downstream needs a new guard. */
+    function ensureBuffTrash(data) {
+        const st = sheetState(data);
+        if (!Array.isArray(st.buffTrash)) st.buffTrash = [];
+        return st.buffTrash;
+    }
+
+    // Apply a drag: reorder inside a category, or re-file into another one. `insertAt` counts
+    // the destination's rows with the dragged row already excluded, which is exactly what
+    // moveGrouped expects, so both cases go down one path.
+    function moveBuff(data, m) {
+        const arr = ensureBuffs(data);
+        const movingId = m.row?.dataset.buffId;
+        const buff = arr.find((b) => b?.id === movingId);
+        if (!buff) return;
+
+        const fromLabel = labelFor(buff.subType);
+        const prevSub = buff.subType;
+        const prevIndex = arr.indexOf(buff);
+        const ok = LC().moveGrouped(arr, buff, m.toSection, m.toIndex, {
+            sectionOf: (b) => b.subType,
+            setSection: (b, s) => { b.subType = s; },
+        });
+        if (!ok) return;
+        quietSave();
+        renderSheet(data);
+        setActiveTab('buffs');
+
+        if (m.toSection !== prevSub) {
+            toast(`“${buff.name}” moved to ${labelFor(m.toSection)}`, {
+                action: {
+                    onClick: () => {
+                        const live = ensureBuffs(data);
+                        const b = live.find((x) => x?.id === movingId);
+                        if (!b) return;
+                        b.subType = prevSub;
+                        const i = live.indexOf(b);
+                        if (i >= 0) { live.splice(i, 1); live.splice(prevIndex, 0, b); }
+                        quietSave();
+                        renderSheet(data);
+                        setActiveTab('buffs');
+                        toast(`“${b.name}” back in ${fromLabel}`);
+                    },
+                },
+            });
+        }
+    }
+
+    const labelFor = (id) => BUFF_SUBTYPES.find((s) => s.id === id)?.label || id;
+
+    // One restore row for both soft-delete models on this tab — trashed buffs and removed
+    // always-on sources — rather than the old sources-only button buried in Permanent.
+    function renderTrashRow(body, data, passive) {
+        const trashed = ensureBuffTrash(data);
+        const removedSrc = passive.removed || [];
+        if (!trashed.length && !removedSrc.length) return;
+        const wrap = h('div', 'buffs-trash-row no-print');
+        const n = trashed.length + removedSrc.length;
+        const btn = h('button', 'inv-btn', `Restore removed (${n})`);
+        btn.type = 'button';
+        btn.title = 'Bring back: '
+            + [...trashed.map((b) => b?.name || '?'), ...removedSrc.map((g) => g.source)].join(', ');
+        btn.addEventListener('click', () => {
+            LC().untrashAll(ensureBuffs(data), ensureBuffTrash(data));
+            quietSave();
+            // restoreRemovedBuffSources already saves and re-renders.
+            if (removedSrc.length) restoreRemovedBuffSources(data);
+            else renderSheet(data);
+            setActiveTab('buffs');
+        });
+        wrap.appendChild(btn);
+        body.appendChild(wrap);
     }
     // Foundry-like Buffs tab: Conditions → Buff sections (Permanent holds always-on sources)
     // ------------------------------------------------------------ buff presets (#83)

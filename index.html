@@ -113,6 +113,10 @@
          so the picker can ask "what should this change?" first. Reads SheetDetails at call
          time (the index is built lazily on first open, not at load). -->
     <script src="scripts/domain/buff-effects.js" defer></script>
+    <!-- The uniform list contract: how a grouped list reorders, when a cross-section drop is
+         an allowed edit rather than a lie about the data, and the soft-delete model shared by
+         every list tab. Pure — no DOM, no globals beyond its own namespace. -->
+    <script src="scripts/domain/list-contract.js" defer></script>
     <script src="scripts/domain/rich-text.js" defer></script>
     <script src="scripts/theme.js" defer></script>
     <script src="scripts/shell-ui.js" defer></script>
