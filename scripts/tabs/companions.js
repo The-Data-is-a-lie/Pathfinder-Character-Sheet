@@ -89,6 +89,17 @@ window.SheetTabCompanions = (function () {
      * kept for the opposite reason: it names something the generator COULD NOT do.
      * `size_change` renders as a sentence and never as a modifier -- its values are already inside
      * ac / attacks[].atk / cmb / cmd / skills, so re-applying it double-counts.
+     *
+     * UNFINISHED -- AN EIDOLON'S EVOLUTIONS ARE NOT SHOWN HERE.
+     * The backend builds a chained summoner's eidolon rather than picking one (spec section 8,
+     * "Eidolon (v1.1)"), and three keys carrying WHAT IT WAS BUILT FROM are read by nothing below:
+     *   entry.evolutions       ordered [{name, key, cost, choice, benefit}] -- what it bought
+     *   entry.free_evolutions  {key: [choice, ...]} -- what the base form gave it for nothing
+     *   entry.ep               {pool, spent, diverted} -- the budget, and what Aspect took
+     * `stats.unapplied` IS rendered (the loop below), so the holdbacks already show -- which makes
+     * the gap easy to miss: the sheet reads as complete while the choices themselves are absent.
+     * The Foundry module grew an Evolutions band for exactly this; the web-sheet half is still open
+     * on companion-sheets ticket 05.
      */
     function composeNotes(entry, s) {
         const lines = [];
