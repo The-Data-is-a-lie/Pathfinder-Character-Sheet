@@ -751,9 +751,23 @@ window.SheetTabFeatures = (function () {
         // with each selected option as an indented sub-row (expandable when it has text).
         for (const [bucket, choices] of cfBuckets) {
             const { label, singular } = classChoiceLabels(bucket);
+            // Mythic buckets stamp class_feature_levels with a TIER, not a character level
+            // (backend: mythic.py's _record_choice_level calls). The generator already tells us
+            // which buckets those are via class_feature_owners, which this sheet has always been
+            // sent and never read. Without this a tier-5 ability on a level-12 character reads
+            // "· level 5" — plausible enough to be believed, which is what makes it worth fixing.
+            // The Foundry module solved the same problem the same way; see its class-features.js
+            // mythic band, which puts "Gained at mythic tier N" in the description rather than
+            // borrowing the "(Rage Power 4)" level convention.
+            const isMythic = String(data.class_feature_owners?.[bucket] ?? '')
+                .toLowerCase() === 'mythic';
+            // The tradition's boons/qualities/flaws are all granted at once; their stamp is a
+            // bookkeeping 1, not a tier anyone gained anything at. The module omits it too.
+            const stampIsMeaningful = !/^mythic tradition$/i.test(String(bucket));
             const groupLi = h('li', 'feat-choice-group');
             groupLi.appendChild(h('span', 'feat-choice-group-name', label));
-            groupLi.appendChild(h('span', 'feat-tag feat-choice-chip', 'Class Choice'));
+            groupLi.appendChild(h('span', 'feat-tag feat-choice-chip',
+                isMythic ? 'Mythic' : 'Class Choice'));
             ul.appendChild(groupLi);
             const bucketLevels = data.class_feature_levels?.[bucket] || {};
             for (const [choiceName, desc] of Object.entries(choices)) {
@@ -767,10 +781,12 @@ window.SheetTabFeatures = (function () {
                 } else {
                     li.appendChild(h('span', 'feat-subitem-name', choiceName));
                 }
-                // Level the option was picked at (exported by the generator, when present).
+                // Level the option was picked at (exported by the generator, when present) —
+                // or the mythic tier it was gained at, which is a different axis entirely.
                 const lvl = Number(bucketLevels[choiceName]);
-                if (Number.isFinite(lvl) && lvl > 0) {
-                    li.appendChild(h('span', 'feat-subitem-level', '· level ' + lvl));
+                if (Number.isFinite(lvl) && lvl > 0 && (stampIsMeaningful || !isMythic)) {
+                    li.appendChild(h('span', 'feat-subitem-level',
+                        (isMythic ? '· tier ' : '· level ') + lvl));
                 }
                 ul.appendChild(li);
             }
