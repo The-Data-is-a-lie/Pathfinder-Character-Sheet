@@ -766,8 +766,20 @@ window.SheetTabFeatures = (function () {
             const stampIsMeaningful = !/^mythic tradition$/i.test(String(bucket));
             const groupLi = h('li', 'feat-choice-group');
             groupLi.appendChild(h('span', 'feat-choice-group-name', label));
+            // The tier itself had no readout anywhere on this sheet: `mythic.tier` and
+            // `mythic.path_display` are sent on every mythic payload and were never read, so the
+            // tier was only ever IMPLIED by the highest "· tier N" stamp below. That misleads in
+            // both directions — a tier-8 character whose highest pick came at tier 6 reads as 6,
+            // and Amazing Initiative's own text says "equal to your mythic tier" without ever
+            // naming it. Fall back to the bare chip when either field is absent (a pre-§14
+            // payload, or a bucket owned by mythic on a character with no `mythic` block).
+            const mythicTier = Number(data.mythic?.tier);
+            const mythicPath = String(data.mythic?.path_display ?? '').trim();
+            const mythicChip = (Number.isFinite(mythicTier) && mythicTier > 0)
+                ? (mythicPath ? `Mythic ${mythicTier} (${mythicPath})` : `Mythic ${mythicTier}`)
+                : 'Mythic';
             groupLi.appendChild(h('span', 'feat-tag feat-choice-chip',
-                isMythic ? 'Mythic' : 'Class Choice'));
+                isMythic ? mythicChip : 'Class Choice'));
             ul.appendChild(groupLi);
             const bucketLevels = data.class_feature_levels?.[bucket] || {};
             for (const [choiceName, desc] of Object.entries(choices)) {
