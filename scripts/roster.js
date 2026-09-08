@@ -71,6 +71,10 @@ window.SheetRoster = (function () {
         if (!record) return;
         localStorage.setItem(window.SheetApp.CURRENT_KEY, record.id);
         renderSheet(record.data);
+        // renderSheet now holds the scroll position across a repaint, which is right for an
+        // edit and wrong for a different character — you want the top of the new sheet, not
+        // wherever you happened to be on the last one.
+        window.scrollTo(0, 0);
         await refreshRoster(record.id);
     }
     async function deleteCurrent() {

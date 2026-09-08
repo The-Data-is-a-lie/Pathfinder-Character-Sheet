@@ -479,26 +479,48 @@ window.SheetUI = (function () {
 
     const DRAG_START = 5;      // px of movement before a press on the grip becomes a drag
     const EDGE = 56;           // distance from a viewport edge that starts auto-scrolling
-    const EDGE_SPEED = 16;     // px per frame at the very edge, eased toward 0 at EDGE
+    // Per SECOND, not per frame. It used to be 16px/frame, which is ~960px/s on a 60Hz panel
+    // and ~2300px/s on a 144Hz one — the same gesture flung the page at wildly different
+    // speeds depending on the monitor, and on a fast one it read as the page bolting.
+    const EDGE_SPEED = 500;
+    const EDGE_MAX_DT = 0.05;  // s — a hitched frame must not teleport the page
     let drag = null;           // the one in-flight drag, if any
     let edgeRAF = null;
+    let edgeLast = 0;          // rAF timestamp of the previous edge-scroll frame
 
     // HTML5 drag-and-drop auto-scrolled the page for free; pointer drags do not, and these
     // lists run long (a level-20 character has ~70 feats), so without this a row simply
     // cannot be dragged past the fold.
-    function edgeScroll() {
-        if (!drag || !drag.started) { edgeRAF = null; return; }
+    function edgeScroll(now) {
+        if (!drag || !drag.started) { edgeRAF = null; edgeLast = 0; return; }
+        const dt = edgeLast ? Math.min((now - edgeLast) / 1000, EDGE_MAX_DT) : 0;
+        edgeLast = now;
         const y = drag.lastY;
         let dy = 0;
-        if (y < EDGE) dy = -EDGE_SPEED * (1 - y / EDGE);
+        if (y < EDGE) dy = -EDGE_SPEED * (1 - y / EDGE) * dt;
         else if (y > window.innerHeight - EDGE) {
-            dy = EDGE_SPEED * (1 - (window.innerHeight - y) / EDGE);
+            dy = EDGE_SPEED * (1 - (window.innerHeight - y) / EDGE) * dt;
         }
         if (dy) {
             window.scrollBy(0, dy);
             paintTarget(dropTargetAt(drag.lastX, drag.lastY));
         }
         edgeRAF = requestAnimationFrame(edgeScroll);
+    }
+
+    /**
+     * Run `mutate` (which is expected to change layout) and scroll by however much `row`
+     * moved, so the row ends up back under the pointer. Reading the rect either side forces
+     * the two layouts we need; the try/catch is for a row detached mid-gesture.
+     */
+    function anchorRow(row, mutate) {
+        let before = 0;
+        try { before = row.getBoundingClientRect().top; } catch { mutate(); return; }
+        mutate();
+        try {
+            const after = row.getBoundingClientRect().top;
+            if (after !== before) window.scrollBy(0, after - before);
+        } catch { /* row went away — nothing to anchor to */ }
     }
 
     function listOf(el, group) {
@@ -571,10 +593,13 @@ window.SheetUI = (function () {
         const target = commit ? dropTargetAt(x, y) : null;
         drag = null;
         if (edgeRAF) { cancelAnimationFrame(edgeRAF); edgeRAF = null; }
+        edgeLast = 0;
 
         clearMarks();
         d.row.classList.remove('is-dragging');
-        document.body.classList.remove('dnd-dragging');
+        // The mirror of the reveal in onDragMove: dropping collapses every empty-group strip
+        // again, so without this the page snaps back up by the height it grew at drag start.
+        anchorRow(d.row, () => document.body.classList.remove('dnd-dragging'));
         document.removeEventListener('selectstart', blockSelect);
         window.removeEventListener('pointermove', onDragMove);
         window.removeEventListener('pointerup', onDragUp);
@@ -613,10 +638,17 @@ window.SheetUI = (function () {
                 && Math.abs(e.clientX - drag.startX) < DRAG_START) return;
             drag.started = true;
             drag.row.classList.add('is-dragging');
-            document.body.classList.add('dnd-dragging');
+            // `dnd-dragging` reveals the empty-group drop strips (see the .is-empty rules in
+            // sheet.css). On a character with several empty feat groups that injects a few
+            // hundred px of layout, much of it ABOVE the row being dragged, so the row —
+            // and the whole page with it — lurches down under a stationary finger. Measure
+            // the row across the class change and give the scroll position back what the
+            // reveal took, which pins the row where the pointer grabbed it.
+            anchorRow(drag.row, () => document.body.classList.add('dnd-dragging'));
             document.addEventListener('selectstart', blockSelect);
             window.getSelection?.()?.removeAllRanges?.();
             try { drag.handle.setPointerCapture(drag.pointerId); } catch { /* */ }
+            edgeLast = 0;
             if (!edgeRAF) edgeRAF = requestAnimationFrame(edgeScroll);
         }
         e.preventDefault();
