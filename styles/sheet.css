@@ -2206,6 +2206,56 @@ button:disabled { opacity: 0.55; cursor: wait; }
 .filter-pill .pill-count { opacity: 0.75; margin-left: 0.3rem; font-size: 0.7rem; }
 .feature-group.hidden { display: none; }
 
+/* Group divider heading: label centred in a rule that runs to both edges. The rules are the
+   h3's own ::before / ::after so the label can be any length without measuring it. */
+.feature-group-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 1rem 0 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+}
+.feature-group-head::before,
+.feature-group-head::after {
+    content: '';
+    flex: 1 1 auto;
+    height: 1px;
+    background: var(--rule);
+    opacity: 0.55;
+}
+.feature-group-name { flex: 0 0 auto; }
+.feature-group-cadence {
+    flex: 0 0 auto;
+    font-weight: 400;
+    font-size: 0.78rem;
+    opacity: 0.7;
+}
+
+/* An empty group still renders — it is the drop target that lets a drag file the character's
+   first Sphere Feat or Flaw. Hidden at rest, revealed only while a drag is in flight.
+
+   `is-empty` is deliberately a different class from `hidden`: the filter pills toggle `hidden`
+   on every [data-fgroup] and REMOVE it when no pill is active, which would otherwise reveal
+   every empty group the moment a pill was cleared. A group that is filtered out stays hidden
+   mid-drag too, which is why `hidden` still wins below. */
+.feature-group.is-empty { display: none; }
+body.dnd-dragging .feature-group.is-empty:not(.hidden) { display: block; }
+body.dnd-dragging .feature-group.is-empty .feat-list-header { display: none; }
+body.dnd-dragging .feature-group.is-empty .feature-group-head {
+    margin: 0.5rem 0 0;
+    opacity: 0.75;
+}
+body.dnd-dragging .feature-group.is-empty .feat-list {
+    min-height: 2.2rem;
+    margin: 0.25rem 0 0.5rem;
+    border: 1px dashed var(--accent);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
 /* Shared column grid for header + item rows */
 .feat-grid {
     display: grid;

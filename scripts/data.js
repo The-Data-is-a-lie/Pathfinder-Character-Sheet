@@ -616,7 +616,10 @@ window.SheetData = (function () {
         { title: 'Story Feat', listKey: 'story_feats', prefix: 'Story Feat',
             customLevels: [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100],
             taxKey: 'story_feat_tax_dict' },
-        { title: 'Feat', listKey: 'feats', prefix: 'Feat', start: 1, step: 2,
+        // `title` drives the section header, the filter pill and the feature sheet's move
+        // dropdown; `prefix` drives the row titles. Kept apart deliberately: the header says
+        // "Advancement Feats (1, 3, 5, 7, …)" once, while every row stays short at "(Feat 1)".
+        { title: 'Advancement Feat', listKey: 'feats', prefix: 'Feat', start: 1, step: 2,
             taxKey: 'feats_feat_tax_dict' },
         { title: 'Class Bonus Feat', listKey: 'teamwork_feats', labelsKey: 'teamwork_feat_labels',
             prefix: 'Class Bonus Feat', start: 3, step: 3 },

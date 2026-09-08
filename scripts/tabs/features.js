@@ -7,8 +7,9 @@ window.SheetTabFeatures = (function () {
     'use strict';
     const {
         h, foundry, nonEmpty, details, titleCase, section, escapeHtml, kv,
-        bindDragReorder, reorderArray, dndHandle,
+        bindDragList, reorderArray, dndHandle,
     } = window.SheetUI;
+    const toast = (text, opts) => window.SheetOverlay?.toast(text, opts);
     const { totalLevel } = window.SheetDerive;
     const { quietSave, isBuffSourceActive, ensureClassList } = window.SheetState;
     const { sectionCatalogToolbar, formatChangeLine, openFeatureBuffMenu } = window.SheetModals;
@@ -227,14 +228,135 @@ window.SheetTabFeatures = (function () {
     function featureGroupSlug(ns, label) {
         return ns + '-' + String(label).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     }
-    /** Wrapper div a filter pill can hide; carries the group heading. */
-    function featureGroup(body, slug, headerTitle) {
-        const wrap = h('div', 'feature-group');
+    /**
+     * Wrapper div a filter pill can hide; carries the group's divider heading.
+     *
+     * `opts.cadence` is the level-rhythm suffix ("(1, 3, 5, 7, …)"); `opts.empty` marks a group
+     * with no members. Empty groups still render, because they are the drop targets that let a
+     * drag re-file a row into a category the character has nothing in yet. CSS hides them at
+     * rest and reveals them as drop strips for the duration of a drag.
+     *
+     * `is-empty` is deliberately NOT the `hidden` class the filter pills use: applyFilters
+     * REMOVES `hidden` from every [data-fgroup] when no pill is active, which would reveal every
+     * empty group the moment a pill was cleared. Two classes, two independent rules.
+     */
+    function featureGroup(body, slug, headerTitle, opts) {
+        const { cadence = '', empty = false } = opts || {};
+        const wrap = h('div', 'feature-group' + (empty ? ' is-empty' : ''));
         wrap.dataset.fgroup = slug;
-        if (headerTitle) wrap.appendChild(h('h3', null, headerTitle));
+        if (headerTitle) {
+            const head = h('h3', 'feature-group-head');
+            head.appendChild(h('span', 'feature-group-name', headerTitle));
+            if (cadence) head.appendChild(h('span', 'feature-group-cadence', cadence));
+            wrap.appendChild(head);
+        }
         body.appendChild(wrap);
         return wrap;
     }
+    /** The four trait lists, in render order: heading, backing array, row type chip. */
+    const TRAIT_GROUPS = [
+        ['Traits', 'selected_traits', 'Trait'],
+        ['Background', 'background_traits', 'Background'],
+        ['Sphere Traits', 'sphere_traits', 'Sphere'],
+        ['Flaws', 'flaw', 'Flaw'],
+    ];
+
+    /**
+     * The levels a feat group fills at, as a header suffix — read off FEAT_GROUPS rather than
+     * curated, so a new group entry gets one for free.
+     *
+     * Groups that fire at EVERY level (step 1: Flavor, Flaw, Trainer, Profession, Bloodline,
+     * Sphere) get nothing — "(1, 2, 3, 4, …)" is noise, not information. customLevels are a
+     * complete list within play range, so they print in full with no ellipsis; a start/step run
+     * is open-ended and shows four terms then "…".
+     */
+    const CADENCE_TERMS = 4;
+    const MAX_LEVEL = 20;
+    function groupCadence(g) {
+        if (Array.isArray(g.customLevels) && g.customLevels.length) {
+            const inPlay = g.customLevels.filter((n) => Number(n) <= MAX_LEVEL);
+            return inPlay.length ? '(' + inPlay.join(', ') + ')' : '';
+        }
+        const step = g.step ?? 1;
+        if (step <= 1) return '';
+        const start = g.start ?? 1;
+        const terms = [];
+        for (let i = 0; i < CADENCE_TERMS; i += 1) terms.push(start + i * step);
+        return '(' + terms.join(', ') + ', …)';
+    }
+
+    /** Heading for a backing array, for the toast a cross-group drop fires. */
+    function groupLabelFor(listKey) {
+        const g = FEAT_GROUPS.find((x) => x.listKey === listKey);
+        if (g) return pluralizeFeatSection(g.title);
+        const t = TRAIT_GROUPS.find((x) => x[1] === listKey);
+        return t ? t[0] : listKey;
+    }
+
+    /**
+     * Cross-group drop: re-file the row into another list at the position it was dropped.
+     *
+     * The move itself goes through the feature sheet's own moveToGroup, which is what makes a
+     * dialog-free drag defensible — it re-tags the per-character override, the custom-changes
+     * sourceKind and the disabled/removed source keys, so nothing detaches from the row on the
+     * way across. Re-implementing that here would be the bug.
+     */
+    function refileFeature(data, m, kind) {
+        const name = m.row?.dataset.dndId;
+        const from = m.fromSection;
+        const to = m.toSection;
+        if (!name || !from || !to) return;
+        // Captured before the move, so Undo restores the position as well as the category.
+        const backIndex = (data[from] || []).indexOf(name);
+        const moved = window.SheetFeatureSheet?.moveToGroup?.(
+            data, { kind, name, listKey: from }, { kind, listKey: to }, m.toIndex);
+        if (!moved) {
+            toast('This entry can’t be moved.');
+            return;
+        }
+        quietSave();
+        toast(`“${name}” moved to ${groupLabelFor(to)}`, {
+            action: {
+                onClick: () => {
+                    window.SheetFeatureSheet?.moveToGroup?.(
+                        data, { kind, name, listKey: to }, { kind, listKey: from }, backIndex);
+                    quietSave();
+                    renderSheet(data);
+                    setActiveTab('features');
+                    toast(`“${name}” back in ${groupLabelFor(from)}`);
+                },
+            },
+        });
+    }
+
+    /**
+     * Drag binding for one Features-tab group.
+     *
+     * `group` is what confines the gesture to a single card: every feat group shares one, every
+     * trait group another, so a feat can never be dropped into Flaws-the-trait-list. Moving a
+     * row across cards stays the ✎ dialog's job, where the target is picked deliberately from a
+     * list rather than by a drag that has to travel past ~70 rows to get there.
+     */
+    function bindFeatureDrag(ul, data, group, listKey, kind) {
+        bindDragList({
+            container: ul,
+            itemSelector: '.feat-item',
+            group,
+            sectionId: listKey,
+            canAccept: () => true,
+            onDrop: (m) => {
+                if (m.fromSection === m.toSection) {
+                    reorderArray(data[listKey], m.fromIndex, m.toIndex);
+                    quietSave();
+                } else {
+                    refileFeature(data, m, kind);
+                }
+                renderSheet(data);
+                setActiveTab('features');
+            },
+        });
+    }
+
     function removeFromArrayField(data, key, name) {
         const arr = data[key];
         if (!Array.isArray(arr)) return false;
@@ -253,6 +375,16 @@ window.SheetTabFeatures = (function () {
         quietSave();
         return true;
     }
+    /**
+     * Backing array for a list key. Not every backend field is an array — teamwork_feats
+     * arrives as an integer on some payloads — and an empty group now RENDERS rather than being
+     * filtered out upstream, so a bare `|| []` (which an integer slips straight past) is no
+     * longer enough.
+     */
+    function arrField(data, key) {
+        return Array.isArray(data[key]) ? data[key] : [];
+    }
+
     /** Pill list for the features toolbar — mirrors the groups the renderers emit. */
     function featuresFilterEntries(data) {
         const entries = [];
@@ -264,14 +396,11 @@ window.SheetTabFeatures = (function () {
             else entries.push({ slug, label, count });
         };
         for (const g of FEAT_GROUPS) {
-            push('feats', pluralizeFeatSection(g.title), (data[g.listKey] || []).length);
+            push('feats', pluralizeFeatSection(g.title), arrField(data, g.listKey).length);
         }
-        push('traits', 'Traits', (data.selected_traits || []).length);
-        push('traits', 'Background', (data.background_traits || []).length);
-        push('traits', 'Sphere Traits', (data.sphere_traits || []).length);
-        push('traits', 'Flaws', (data.flaw || []).length);
-        push('class', 'Class Features',
-            (data.class_ability || []).length + (data.profession_ability_items || []).length);
+        for (const [title, key] of TRAIT_GROUPS) push('traits', title, arrField(data, key).length);
+        push('class', 'Class Features', arrField(data, 'class_ability').length);
+        push('class', 'Profession Abilities', arrField(data, 'profession_ability_items').length);
         return entries;
     }
     /**
@@ -294,7 +423,11 @@ window.SheetTabFeatures = (function () {
             const q = search.value.toLowerCase().trim();
             const active = new Set([...pillRow.querySelectorAll('.filter-pill.is-active')]
                 .map((p) => p.dataset.fgroup));
-            pane.querySelectorAll('[data-fgroup]').forEach((grp) => {
+            // `.feature-group[data-fgroup]`, not a bare `[data-fgroup]`: the pill BUTTONS carry
+            // the same attribute, so the bare selector hid every other pill the moment one went
+            // active (a global `.hidden {display:none}` backs it) — leaving no way to select a
+            // second group, and no way back except the one pill still on screen.
+            pane.querySelectorAll('.feature-group[data-fgroup]').forEach((grp) => {
                 grp.classList.toggle('hidden', active.size > 0 && !active.has(grp.dataset.fgroup));
             });
             pane.querySelectorAll('.feat-item').forEach((el) => {
@@ -324,14 +457,14 @@ window.SheetTabFeatures = (function () {
     }
     /** pf1 features footer: feat counts vs the odd-level budget (info boxes). */
     function renderFeatCounts(data) {
-        const owned = (data.feats || []).length;
+        const owned = arrField(data, 'feats').length;
         // PF1 feats at 1, 3, 5, … — off TOTAL level, not `level` (the primary class's level), which
         // told a level-20 multiclass character it was owed 4 feats and flagged the rest as "Excess".
         const byLevel = Math.ceil(totalLevel(data) / 2);
         let bonus = 0;
         for (const g of FEAT_GROUPS) {
             if (g.listKey === 'feats') continue;
-            bonus += (data[g.listKey] || []).length;
+            bonus += arrField(data, g.listKey).length;
         }
         const box = (label, value, cls) => {
             const b = h('div', 'feat-count-box' + (cls ? ' ' + cls : ''));
@@ -341,7 +474,9 @@ window.SheetTabFeatures = (function () {
         };
         const wrap = h('div', 'feat-counts');
         const joined = h('div', 'feat-count-joined');
-        joined.append(box('Feats', owned), box('By level', byLevel),
+        // "Advancement", not "Feats": this box counts data.feats alone and is the one compared
+        // against By level for the Missing/Excess badge. The Bonus box beside it is feats too.
+        joined.append(box('Advancement', owned), box('By level', byLevel),
             box('Bonus', bonus), box('Total', owned + bonus));
         wrap.appendChild(joined);
         if (byLevel > 0 && owned !== byLevel) {
@@ -355,14 +490,15 @@ window.SheetTabFeatures = (function () {
     function renderFeats(data) {
         refreshFeatureLedger(data);
         const descs = data.homebrew_feat_desc_dict || {};
-        const groups = FEAT_GROUPS
-            .map((g) => ({
-                ...g,
-                list: data[g.listKey],
-                labels: g.labelsKey ? data[g.labelsKey] : null,
-                taxDict: g.taxKey ? (data[g.taxKey] || null) : null,
-            }))
-            .filter((g) => nonEmpty(g.list));
+        // Every group is built, empty ones included: they are the drop targets that let a drag
+        // re-file a feat into a category this character has nothing in yet. CSS keeps them out
+        // of sight until a drag is actually in flight.
+        const groups = FEAT_GROUPS.map((g) => ({
+            ...g,
+            list: arrField(data, g.listKey),
+            labels: g.labelsKey ? data[g.labelsKey] : null,
+            taxDict: g.taxKey ? (data[g.taxKey] || null) : null,
+        }));
         const { sec, body } = section('Feats');
         body.appendChild(h('p', 'dbl-edit-hint no-print',
             'Add feats to the bottom of the list. Drag ⋮⋮ to reorder. Set uses with max / −.'));
@@ -394,7 +530,9 @@ window.SheetTabFeatures = (function () {
                     { kind: 'feat', name, listKey: 'feats', sourceKind: 'feat' });
             },
         }));
-        if (!groups.length) {
+        // With nothing at all on the character there is nothing to drag either, so the empty
+        // drop strips would be ten labels and no purpose.
+        if (!groups.some((g) => g.list.length)) {
             body.appendChild(h('p', 'tools-empty', 'No feats yet — browse the catalog to add some.'));
             body.appendChild(renderFeatCounts(data));
             return sec;
@@ -402,14 +540,17 @@ window.SheetTabFeatures = (function () {
         // One list per source array so drag-reorder maps cleanly (like Foundry sections)
         for (const g of groups) {
             const label = pluralizeFeatSection(g.title);
-            const wrap = featureGroup(body, featureGroupSlug('feats', label), label);
+            const wrap = featureGroup(body, featureGroupSlug('feats', label), label, {
+                cadence: groupCadence(g),
+                empty: !g.list.length,
+            });
             const ul = h('ul', 'plain-list feat-list dnd-list');
             wrap.appendChild(ul);
             ul.appendChild(featureListHeader());
             const descSource = g.listKey === 'profession_feats'
                 ? { ...descs, ...(data.profession_feat_desc || {}) } : descs;
             const listKey = g.listKey;
-            const list = data[listKey] || [];
+            const list = g.list;
             list.forEach((f, i) => {
                 const tax = featTaxChain(f, g.taxDict);
                 const tags = featTags(data, f);
@@ -436,12 +577,7 @@ window.SheetTabFeatures = (function () {
                     },
                 }));
             });
-            bindDragReorder(ul, '.feat-item', (from, to) => {
-                reorderArray(data[listKey], from, to);
-                quietSave();
-                renderSheet(data);
-                setActiveTab('features');
-            });
+            bindFeatureDrag(ul, data, 'features-feats', listKey, 'feat');
         }
         body.appendChild(renderFeatCounts(data));
         return sec;
@@ -453,18 +589,6 @@ window.SheetTabFeatures = (function () {
     }
     function renderTraits(data) {
         refreshFeatureLedger(data);
-        const keyMap = {
-            Traits: 'selected_traits',
-            Background: 'background_traits',
-            'Sphere Traits': 'sphere_traits',
-            Flaws: 'flaw',
-        };
-        const groups = [
-            ['Traits', data.selected_traits, 'selected_traits'],
-            ['Background', data.background_traits, 'background_traits'],
-            ['Sphere Traits', data.sphere_traits, 'sphere_traits'],
-            ['Flaws', data.flaw, 'flaw'],
-        ];
         const backendDesc = {};
         for (const t of data.selected_traits_desc || []) {
             if (t?.name && t.description) backendDesc[t.name] = t.description;
@@ -499,17 +623,15 @@ window.SheetTabFeatures = (function () {
                     { kind: 'trait', name, listKey: 'selected_traits', sourceKind: 'trait' });
             },
         }));
-        const typeLabels = {
-            Traits: 'Trait',
-            Background: 'Background',
-            'Sphere Traits': 'Sphere',
-            Flaws: 'Flaw',
-        };
-        let any = false;
-        for (const [title, list, fieldKey] of groups) {
-            if (!nonEmpty(list)) continue;
-            any = true;
-            const wrap = featureGroup(body, featureGroupSlug('traits', title), title);
+        // Same as the feat groups: empty trait lists are still built, as the drop targets that
+        // let a drag file the character's first Flaw or Sphere Trait.
+        const built = TRAIT_GROUPS.map(([title, key, chip]) => (
+            { title, key, chip, list: arrField(data, key) }));
+        const any = built.some((g) => g.list.length);
+        for (const { title, key: fieldKey, chip, list } of built) {
+            if (!any) break;
+            const wrap = featureGroup(body, featureGroupSlug('traits', title), title,
+                { empty: !list.length });
             const ul = h('ul', 'plain-list feat-list dnd-list');
             wrap.appendChild(ul);
             ul.appendChild(featureListHeader());
@@ -522,11 +644,11 @@ window.SheetTabFeatures = (function () {
                     name: t,
                     title: t,
                     descHtml: desc,
-                    typeLabel: typeLabels[title] || 'Trait',
+                    typeLabel: chip,
                     data,
                     sourceKind: 'trait',
                     showUses: false,
-                    chatKind: typeLabels[title] || 'Trait',
+                    chatKind: chip,
                     sheetRef: {
                         kind: 'trait',
                         listKey: fieldKey,
@@ -541,12 +663,7 @@ window.SheetTabFeatures = (function () {
                     },
                 }));
             });
-            bindDragReorder(ul, '.feat-item', (from, to) => {
-                reorderArray(data[fieldKey], from, to);
-                quietSave();
-                renderSheet(data);
-                setActiveTab('features');
-            });
+            bindFeatureDrag(ul, data, 'features-traits', fieldKey, 'trait');
         }
         if (!any) body.appendChild(h('p', 'tools-empty', 'No traits yet.'));
         return sec;
@@ -607,25 +724,28 @@ window.SheetTabFeatures = (function () {
     }
     function renderClassFeatures(data) {
         refreshFeatureLedger(data);
-        const list = data.class_ability;
         const classes = ensureClassList(data);
-        const items = [];
-        if (nonEmpty(list)) {
-            for (const entry of list) {
-                // entries look like "arcane school_wizard" -> name + owning class
-                const cut = String(entry).lastIndexOf('_');
-                const name = cut > 0 ? entry.slice(0, cut) : entry;
-                const cls = cut > 0 ? titleCase(String(entry).slice(cut + 1)) : '';
-                const ov = window.SheetDetails?.getFeatureOverride?.(data, 'classFeat', name);
-                const desc = ov?.description
-                    ?? (window.SheetDetails?.lookupClassFeature(name, classes)?.description
-                        || data.class_ability_desc?.[name] || data.class_features?.[name]?.description);
-                items.push([titleCase(name), desc, cls, name]);
-            }
-        }
-        for (const pa of data.profession_ability_items || []) {
-            items.push([pa.name, pa.description, 'Profession']);
-        }
+        // Two arrays, two sections. They used to share one list, which is why reordering was
+        // dead here: the old binding only attached when class_ability.length happened to equal
+        // the combined row count, so any character with a profession ability (the shipped demo
+        // included) lost drag for the whole card. They are also genuinely different shapes —
+        // class_ability holds "name_class" strings, profession_ability_items holds objects with
+        // their own changes/uses — and moveToGroup refuses to move the latter, so keeping them
+        // in separate dnd groups makes a cross-drop impossible by construction rather than by
+        // a guard that has to be remembered.
+        const classItems = arrField(data, 'class_ability').map((entry) => {
+            // entries look like "arcane school_wizard" -> name + owning class
+            const cut = String(entry).lastIndexOf('_');
+            const name = cut > 0 ? entry.slice(0, cut) : entry;
+            const cls = cut > 0 ? titleCase(String(entry).slice(cut + 1)) : '';
+            const ov = window.SheetDetails?.getFeatureOverride?.(data, 'classFeat', name);
+            const desc = ov?.description
+                ?? (window.SheetDetails?.lookupClassFeature(name, classes)?.description
+                    || data.class_ability_desc?.[name] || data.class_features?.[name]?.description);
+            return [titleCase(name), desc, cls, name];
+        });
+        const professionItems = arrField(data, 'profession_ability_items')
+            .map((pa) => [pa.name, pa.description, 'Profession']);
         const { sec, body } = section('Class Features & Abilities');
         body.appendChild(h('p', 'dbl-edit-hint no-print',
             'Browse class features or add custom. Set max uses; Rest restores them.'));
@@ -687,18 +807,17 @@ window.SheetTabFeatures = (function () {
         const cfBuckets = Object.entries(data.class_features || {})
             .filter(([, choices]) => choices && typeof choices === 'object'
                 && !Array.isArray(choices) && Object.keys(choices).length);
-        if (!items.length && !cfBuckets.length) {
+        if (!classItems.length && !professionItems.length && !cfBuckets.length) {
             body.appendChild(h('p', 'tools-empty', 'No class features yet — browse the catalog.'));
             return sec;
         }
-        const wrap = featureGroup(body, featureGroupSlug('class', 'Class Features'), null);
+        const rawList = arrField(data, 'class_ability');
+        const classWrap = featureGroup(body, featureGroupSlug('class', 'Class Features'),
+            'Class Features');
         const ul = h('ul', 'plain-list feat-list dnd-list');
-        wrap.appendChild(ul);
+        classWrap.appendChild(ul);
         ul.appendChild(featureListHeader());
-        // Map display name back to raw class_ability entry for delete
-        const rawList = data.class_ability || [];
-        // Build order: class_ability first, then profession abilities as non-reorder with class list
-        for (const [name, desc, cls] of items) {
+        for (const [name, desc, cls] of classItems) {
             ul.appendChild(featureRow({
                 name,
                 title: name,
@@ -720,30 +839,74 @@ window.SheetTabFeatures = (function () {
                         const n = cut > 0 ? String(raw).slice(0, cut) : String(raw);
                         return titleCase(n) === nm || n.toLowerCase() === nm.toLowerCase();
                     });
-                    if (idx >= 0) {
-                        rawList.splice(idx, 1);
-                    } else {
-                        // Profession abilities live in their own array
-                        const pro = data.profession_ability_items;
-                        const pIdx = Array.isArray(pro)
-                            ? pro.findIndex((pa) => String(pa?.name).toLowerCase() === nm.toLowerCase())
-                            : -1;
-                        if (pIdx < 0) return;
-                        pro.splice(pIdx, 1);
-                    }
+                    if (idx < 0) return;
+                    rawList.splice(idx, 1);
                     quietSave();
                     renderSheet(data);
                     setActiveTab('features');
                 },
             }));
         }
-        // Reorder only class_ability entries (profession items sit at end; skip if mixed)
-        if (nonEmpty(rawList) && rawList.length === items.length) {
-            bindDragReorder(ul, '.feat-item', (from, to) => {
-                reorderArray(data.class_ability, from, to);
+        // No `group`: nothing else on the tab can accept a class feature, and a class feature
+        // cannot accept anything. Reorder only, which is all moveToGroup would allow anyway.
+        bindDragList({
+            container: ul,
+            itemSelector: '.feat-item',
+            sectionId: 'class_ability',
+            onDrop: ({ fromIndex, toIndex }) => {
+                reorderArray(data.class_ability, fromIndex, toIndex);
                 quietSave();
                 renderSheet(data);
                 setActiveTab('features');
+            },
+        });
+
+        if (professionItems.length) {
+            const proWrap = featureGroup(body,
+                featureGroupSlug('class', 'Profession Abilities'), 'Profession Abilities');
+            const proUl = h('ul', 'plain-list feat-list dnd-list');
+            proWrap.appendChild(proUl);
+            proUl.appendChild(featureListHeader());
+            for (const [name, desc, cls] of professionItems) {
+                proUl.appendChild(featureRow({
+                    name,
+                    title: name,
+                    descHtml: desc,
+                    typeLabel: cls,
+                    data,
+                    sourceKind: 'classFeat',
+                    chatKind: 'Class Feature',
+                    // Same ref these rows already carried when both lists shared one loop. The
+                    // sheet's move dropdown still refuses them (moveToGroup returns false for a
+                    // profession ability), which is the behaviour the split now mirrors in drag.
+                    sheetRef: {
+                        kind: 'classFeat',
+                        sourceKind: 'classFeat',
+                        classes,
+                        fallbackDesc: '',
+                    },
+                    onRemove: (nm) => {
+                        const pro = arrField(data, 'profession_ability_items');
+                        const pIdx = pro.findIndex(
+                            (pa) => String(pa?.name).toLowerCase() === nm.toLowerCase());
+                        if (pIdx < 0) return;
+                        pro.splice(pIdx, 1);
+                        quietSave();
+                        renderSheet(data);
+                        setActiveTab('features');
+                    },
+                }));
+            }
+            bindDragList({
+                container: proUl,
+                itemSelector: '.feat-item',
+                sectionId: 'profession_ability_items',
+                onDrop: ({ fromIndex, toIndex }) => {
+                    reorderArray(data.profession_ability_items, fromIndex, toIndex);
+                    quietSave();
+                    renderSheet(data);
+                    setActiveTab('features');
+                },
             });
         }
 
