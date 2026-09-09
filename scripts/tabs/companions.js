@@ -6,7 +6,7 @@
 // Companion rolls land in the SHARED roll log, prefixed with the companion's name.
 window.SheetTabCompanions = (function () {
     'use strict';
-    const { h, fmt, section, dblclickEditable, parseIntLoose } = window.SheetUI;
+    const { h, fmt, section, dblclickEditable, parseIntLoose, details, escapeHtml } = window.SheetUI;
     const { sheetState, quietSave } = window.SheetState;
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
@@ -90,16 +90,11 @@ window.SheetTabCompanions = (function () {
      * `size_change` renders as a sentence and never as a modifier -- its values are already inside
      * ac / attacks[].atk / cmb / cmd / skills, so re-applying it double-counts.
      *
-     * UNFINISHED -- AN EIDOLON'S EVOLUTIONS ARE NOT SHOWN HERE.
-     * The backend builds a chained summoner's eidolon rather than picking one (spec section 8,
-     * "Eidolon (v1.1)"), and three keys carrying WHAT IT WAS BUILT FROM are read by nothing below:
-     *   entry.evolutions       ordered [{name, key, cost, choice, benefit}] -- what it bought
-     *   entry.free_evolutions  {key: [choice, ...]} -- what the base form gave it for nothing
-     *   entry.ep               {pool, spent, diverted} -- the budget, and what Aspect took
-     * `stats.unapplied` IS rendered (the loop below), so the holdbacks already show -- which makes
-     * the gap easy to miss: the sheet reads as complete while the choices themselves are absent.
-     * The Foundry module grew an Evolutions band for exactly this; the web-sheet half is still open
-     * on companion-sheets ticket 05.
+     * An eidolon's evolutions are NOT notes: they are the creature's build, and they render as
+     * their own section (`evolutionsOf` / the Evolutions block in renderCompanionBlock), the way
+     * the Foundry module gives them an Evolutions band. `stats.unapplied` stays here because it
+     * says something different -- not what was bought, but which purchases the generator could
+     * not turn into a number.
      */
     function composeNotes(entry, s) {
         const lines = [];
@@ -122,6 +117,8 @@ window.SheetTabCompanions = (function () {
                 + ' (already applied above)');
         }
         for (const u of (Array.isArray(s.unapplied) ? s.unapplied : [])) lines.push('⚠ Not applied: ' + u);
+        // A degraded entry that still carries stats says so on its own card as well.
+        if (entry.holdback) lines.push('⚠ Not modelled: ' + String(entry.holdback).trim());
         return lines.join('\n');
     }
 
@@ -159,7 +156,81 @@ window.SheetTabCompanions = (function () {
             cmd: Number(s.cmd) || 10,
             skills,
             notes: composeNotes(entry, s),
+            evolutions: evolutionsOf(entry),
         };
+    }
+
+    /**
+     * The eidolon's build, carried on the row as payload-owned text (companion-sheets ticket 05,
+     * web half): what it bought, what the base form gave it for nothing, and the budget. Every
+     * other creature returns null and renders no section. Kept on the row rather than re-read
+     * from `bonded_creatures` so a row survives export/import and a later payload edit alike.
+     */
+    function evolutionsOf(entry) {
+        if (!Array.isArray(entry?.evolutions) && !entry?.ep) return null;
+        const list = (Array.isArray(entry.evolutions) ? entry.evolutions : [])
+            .filter((e) => e && (e.name || e.key))
+            .map((e) => ({
+                name: String(e.name || titleCase(String(e.key || '').replace(/_/g, ' '))),
+                choice: e.choice == null ? '' : String(e.choice),
+                cost: Number(e.cost) || 0,
+                benefit: String(e.benefit || ''),
+            }));
+        const free = [];
+        for (const [key, choices] of Object.entries(entry.free_evolutions || {})) {
+            const label = titleCase(String(key).replace(/_/g, ' '));
+            const picks = (Array.isArray(choices) ? choices : [choices]).filter((c) => c != null);
+            free.push(picks.length ? `${label} (${picks.join(', ')})` : label);
+        }
+        const ep = entry.ep && typeof entry.ep === 'object'
+            ? { pool: Number(entry.ep.pool) || 0, spent: Number(entry.ep.spent) || 0,
+                diverted: Number(entry.ep.diverted) || 0 }
+            : null;
+        return {
+            list, free, ep,
+            baseForm: String(entry.base_form || ''),
+            baseSize: String(entry.base_size || ''),
+            size: String(entry.size || ''),
+        };
+    }
+
+    /** The Evolutions section of an eidolon's card. Payload-owned: nothing here edits. */
+    function renderEvolutions(ev) {
+        const wrap = h('div', 'companion-evolutions');
+        const head = h('div', 'companion-evolutions-head');
+        head.appendChild(h('span', 'companion-vital-label', 'Evolutions'));
+        const bits = [];
+        if (ev.baseForm) {
+            bits.push(titleCase(ev.baseForm) + ' base form'
+                + (ev.baseSize && ev.size && ev.baseSize !== ev.size
+                    ? ` (${titleCase(ev.baseSize)} → ${titleCase(ev.size)})` : ''));
+        }
+        if (ev.ep) {
+            bits.push(`${ev.ep.pool} EP: ${ev.ep.spent} spent`
+                + (ev.ep.diverted ? `, ${ev.ep.diverted} diverted to Aspect (on the summoner's Features)` : ''));
+        }
+        if (bits.length) head.appendChild(h('span', 'dim', ' · ' + bits.join(' · ')));
+        wrap.appendChild(head);
+        if (ev.free.length) {
+            wrap.appendChild(h('p', 'dim companion-evolutions-free',
+                'Base form (free): ' + ev.free.join(', ')));
+        }
+        const ul = h('ul', 'plain-list companion-evolution-list');
+        for (const e of ev.list) {
+            const li = h('li', 'companion-evolution');
+            const title = e.name + (e.choice ? ` (${e.choice})` : '');
+            const cost = h('span', 'feat-tag companion-evolution-cost', `${e.cost} EP`);
+            if (e.benefit) {
+                const det = details(title, '<p>' + escapeHtml(e.benefit) + '</p>', 'companion-evolution-details');
+                det.querySelector('summary').appendChild(cost);
+                li.appendChild(det);
+            } else {
+                li.append(h('span', null, title), cost);
+            }
+            ul.appendChild(li);
+        }
+        if (ev.list.length) wrap.appendChild(ul);
+        return wrap;
     }
 
     /**
@@ -311,6 +382,10 @@ window.SheetTabCompanions = (function () {
         }
 
         // attack lines
+        if (comp.evolutions && (comp.evolutions.list?.length || comp.evolutions.free?.length)) {
+            box.appendChild(renderEvolutions(comp.evolutions));
+        }
+
         const atkList = h('div', 'companion-attacks');
         comp.attacks.forEach((line, li) => {
             const row = h('div', 'companion-attack-row');
@@ -386,6 +461,16 @@ window.SheetTabCompanions = (function () {
         const absences = (Array.isArray(data.bonded_creatures) ? data.bonded_creatures : [])
             .filter((e) => e && !isRow(e));
         for (const e of absences) {
+            // The unchained eidolon ships a base form, a pf-content body and a `holdback`
+            // sentence, and NO stats -- deliberately (companions ticket 07). Say that, rather
+            // than filing a creature the character does have under "no eidolon".
+            if (e.holdback) {
+                body.appendChild(h('p', 'companion-absence companion-holdback dim',
+                    `${titleCase(e.grantor)} — ${typeLabel(e.type)}`
+                    + (e.name ? ` “${e.name}”` : '') + (e.species ? ` (${e.species})` : '')
+                    + ` is not modelled: ${String(e.holdback).trim().replace(/\.?$/, '.')}`));
+                continue;
+            }
             const phrase = ABSENCE_PHRASE[e.outcome];
             body.appendChild(h('p', 'companion-absence dim',
                 `${titleCase(e.grantor)} — no ${typeLabel(e.type)}: ${phrase ? phrase(e) : e.outcome}.`));

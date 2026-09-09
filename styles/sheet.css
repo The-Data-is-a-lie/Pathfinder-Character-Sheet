@@ -5040,6 +5040,14 @@ body.tools-resizing .tools-drawer { transition: none; }
 }
 .companion-roll { font-size: 0.78rem; padding: 0 0.4rem; }
 .companion-notes { width: 100%; margin-top: 0.3rem; }
+/* An eidolon's build (companion-sheets 05): what it bought, what the base form gave it, the budget. */
+.companion-evolutions { margin: 0.4rem 0; padding: 0.3rem 0.5rem; border-left: 3px solid var(--accent); }
+.companion-evolutions-head { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: baseline; }
+.companion-evolutions-free { margin: 0.15rem 0 0.3rem; font-size: 0.85rem; }
+.companion-evolution { display: flex; align-items: baseline; gap: 0.4rem; padding: 0.1rem 0; }
+.companion-evolution-details { flex: 1; }
+.companion-evolution-cost { margin-left: 0.4rem; font-size: 0.68rem; vertical-align: middle; }
+.companion-holdback { font-style: normal; }
 .companion-add-row { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.5rem; }
 
 /* Level-up wizard */
