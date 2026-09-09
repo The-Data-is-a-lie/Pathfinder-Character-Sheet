@@ -295,6 +295,7 @@
             <button type="button" class="gen-preset" data-preset="high">High-powered</button>
             <button type="button" class="gen-preset" data-preset="multiclass">Multiclass</button>
             <button type="button" class="gen-preset" data-preset="spheres">Spheres</button>
+            <button type="button" class="gen-preset" data-preset="optimized">Optimized</button>
         </div>
         <div class="form-grid">
             <label title="Which naming culture the character's name is drawn from">Region
@@ -388,6 +389,35 @@
                     <option value="y">Yes</option>
                     <option value="n">No</option>
                 </select>
+            </label>
+            <label title="Mythic Adventures: give the character a mythic tier and path (path abilities, mythic feats, the surge pool). Off is a normal character; Random rolls a tier that leans low; a number is exactly that tier">Mythic
+                <select name="mythic">
+                    <option value="">Off</option>
+                    <option value="y">Random tier</option>
+                    <option value="1">Tier 1</option>
+                    <option value="2">Tier 2</option>
+                    <option value="3">Tier 3</option>
+                    <option value="4">Tier 4</option>
+                    <option value="5">Tier 5</option>
+                    <option value="6">Tier 6</option>
+                    <option value="7">Tier 7</option>
+                    <option value="8">Tier 8</option>
+                    <option value="9">Tier 9</option>
+                    <option value="10">Tier 10</option>
+                </select>
+            </label>
+            <label title="Homebrew: the character's inherent luck. Random rolls it (about one in thirteen sells luck); Buy forces a positive score bought with skill ranks or HP; Sell forces a negative score paid out in HP, ranks, ability points or feats">Luck
+                <select name="luck_direction">
+                    <option value="">Random</option>
+                    <option value="buy">Buy (positive)</option>
+                    <option value="sell">Sell (negative)</option>
+                </select>
+            </label>
+            <label class="gen-check" title="Every choice the form leaves open is made well instead of randomly: the backend picks the character's power role from its class and builds toward it. Off is the ordinary random character">
+                <input type="checkbox" name="optimize"> Optimized build
+            </label>
+            <label class="gen-check gen-check-sub" title="With Optimized build: also use the table's house-rule kickers (Strength of a Warrior, the defensive-sphere package, sword-and-board two-weapon defense…). Does nothing on its own">
+                <input type="checkbox" name="house_rules" disabled> House-rule kickers
             </label>
             <label title="Yes writes the backstory with a language model. No uses the built-in templates, which is faster and always available">Backstory API
                 <select name="use_backstory_api">

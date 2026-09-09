@@ -6293,3 +6293,8 @@ body.is-offline .pa-generate {
 /* The backend's decision ledger under the Mythic band: a small table of picks and arithmetic. */
 .mythic-ledger table { border-collapse: collapse; font-size: 0.83rem; }
 .mythic-ledger td, .mythic-ledger th { padding: 0.1rem 0.5rem; border-bottom: 1px solid var(--rule); text-align: left; }
+
+/* Generate → More options: the two checkbox rows (optimized build, its house-rule sub-option). */
+.gen-advanced .gen-check { display: flex; align-items: center; gap: 0.4rem; }
+.gen-advanced .gen-check-sub { padding-left: 1.4rem; }
+.gen-advanced .gen-check input[type="checkbox"]:disabled + * , .gen-advanced .gen-check:has(input:disabled) { opacity: 0.6; }

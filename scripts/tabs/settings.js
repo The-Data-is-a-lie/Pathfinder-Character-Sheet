@@ -359,6 +359,10 @@ window.SheetTabSettings = (function () {
         });
         urlRow.append(urlInput, setBtn, resetBtn);
         body.appendChild(urlRow);
+        body.appendChild(h('p', 'settings-note dim',
+            'The Mythic, Luck and Optimized build options under Generate → More options need a '
+            + 'backend from August 2026 or later (the hosted one qualifies). An older backend '
+            + 'ignores them.'));
 
         body.appendChild(h('h3', null, 'Character Folder'));
         const folderStatus = h('p', 'dim');

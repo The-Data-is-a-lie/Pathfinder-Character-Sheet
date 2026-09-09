@@ -119,7 +119,33 @@ window.SheetGenerate = (function () {
             // earlier and an un-deployed backend would shift its unpack and generate garbage.
             professions: f('professions'),
             trainers: f('trainers'),
+            // The three named inputs below are popped by NAME server-side (`optimize`,
+            // `house_rules`, `mythic`, `luck_direction` in app.py) and appended ONLY when set, so an
+            // ordinary roll posts exactly the payload it always did -- byte-identical against the
+            // goldens, and safe against a backend that predates them.
+            ...namedExtras(form),
         };
+    }
+    /**
+     * Mythic / optimized / luck: real options, not the Foundry module's dev toggles. Absent means
+     * "as before"; the backend treats absent as never-mythic, random mode, and a normal luck roll.
+     *   mythic         'y' (a rolled tier that leans low) or an int 1-10 (exactly that tier)
+     *   optimize       true; house_rules true rides only alongside it (meaningless alone)
+     *   luck_direction 'buy' | 'sell'
+     */
+    function namedExtras(form) {
+        const el = (name) => form.elements[name];
+        const out = {};
+        const my = String(el('mythic')?.value || '').trim();
+        if (my === 'y') out.mythic = 'y';
+        else if (/^([1-9]|10)$/.test(my)) out.mythic = Number(my);
+        if (el('optimize')?.checked) {
+            out.optimize = true;
+            if (el('house_rules')?.checked) out.house_rules = true;
+        }
+        const luck = String(el('luck_direction')?.value || '').trim();
+        if (luck === 'buy' || luck === 'sell') out.luck_direction = luck;
+        return out;
     }
     // ------------------------------------------------------------ quick generate form
     // The quick block drives the same named controls the advanced grid always used. Level is
@@ -183,7 +209,9 @@ window.SheetGenerate = (function () {
             label: 'Standard',
             fields: { bab: 'random', caster_level: 'random', multiclass: 'n',
                 inherents: 'n', spheres_of_power: 'n', modded_char_sheet: 'n',
-                homebrew_feat_amount: 'n' },
+                homebrew_feat_amount: 'n',
+                // Standard also means not mythic, ordinary luck and a random build.
+                mythic: '', luck_direction: '', optimize: false },
         },
         high: {
             label: 'High-powered',
@@ -197,6 +225,10 @@ window.SheetGenerate = (function () {
             label: 'Spheres',
             fields: { spheres_of_power: 'y', modded_char_sheet: 'y' },
         },
+        optimized: {
+            label: 'Optimized',
+            fields: { optimize: true, house_rules: true },
+        },
     };
     function applyGenPreset(form, id) {
         const preset = GEN_PRESETS[id];
@@ -207,6 +239,11 @@ window.SheetGenerate = (function () {
         for (const [name, value] of Object.entries(preset.fields)) {
             const el = form.elements[name];
             if (!el || el.disabled) continue;
+            if (el.type === 'checkbox') {
+                el.checked = !!value;
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+                continue;
+            }
             // Only assign a value that exists as a real option, so a stale preset can't wedge
             // a select onto a nonexistent entry.
             if (el.tagName === 'SELECT' && !Array.from(el.options).some((o) => o.value === value)) continue;
@@ -292,7 +329,7 @@ window.SheetGenerate = (function () {
 
     return {
         fillSelect, fillGroupedSelect, fillFamilySelect, buildPayload, quickLevelSelect, fillQuickLevel,
-        applyQuickLevel, syncQuickLevel, applyGenPreset, surpriseMe, generate, generateCustom,
+        applyQuickLevel, syncQuickLevel, applyGenPreset, surpriseMe, generate, generateCustom, namedExtras,
         loadJsonText,
     };
 })();
