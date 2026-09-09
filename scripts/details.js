@@ -1096,6 +1096,33 @@ window.SheetDetails = (function () {
             }
         }
 
+        // Mythic chassis (tickets repo feature/mythic 06). The path's numbers ship as plain
+        // integers on the `mythic` block: `bonus_hp` (the backend also folds it into Total_HP,
+        // which this sheet only reads when total_rolled_hp is missing -- and then subtracts the
+        // ledger's mhp sum, so this entry is counted once either way), Amazing Initiative, and the
+        // ability bumps, which arrive "like level_up_stats": attributable, never in the base score.
+        // One source, so the HP / initiative / ability tooltips all name the same thing.
+        const my = data.mythic;
+        if (my && typeof my === 'object' && Number(my.tier) > 0) {
+            const changes = [];
+            if (Number(my.bonus_hp)) {
+                changes.push({ formula: String(Number(my.bonus_hp)), target: 'mhp', type: 'untyped' });
+            }
+            if (Number(my.amazing_initiative_bonus)) {
+                changes.push({ formula: String(Number(my.amazing_initiative_bonus)), target: 'init',
+                    type: 'untyped' });
+            }
+            for (const [ab, n] of Object.entries(my.ability_bumps || {})) {
+                const key = String(ab).toLowerCase();
+                if (!Number(n) || !/^(str|dex|con|int|wis|cha)$/.test(key)) continue;
+                changes.push({ formula: String(Number(n)), target: key, type: 'untyped' });
+            }
+            if (changes.length) {
+                const path = String(my.path_display || my.path || 'path').trim();
+                pushEntry(ledger, `Mythic ${path} (tier ${my.tier})`, 'mythic', { changes });
+            }
+        }
+
         const classes = [data.c_class, data.c_class_2];
         const seenClassFeats = new Set();
         for (const raw of data.class_ability || []) {
