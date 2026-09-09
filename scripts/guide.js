@@ -53,6 +53,7 @@ window.SheetGuide = (function () {
             title: 'Fighting',
             terms: [
                 ['Initiative', 'who goes first in a fight'],
+                ['Luck', 'a house rule: luck you bought with hit points or skill ranks, spent as E-Kats'],
                 ['Speed', 'how far you can move in one turn, in feet'],
                 ['BAB', 'how good you are at hitting things'],
                 ['Melee', 'hitting someone standing right next to you'],

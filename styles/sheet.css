@@ -6248,3 +6248,32 @@ body.is-offline .pa-generate {
     border-radius: 4px;
     padding: 0 0.3rem;
 }
+
+/* ============================================================ inherent luck (house rule) */
+/* One strip on Attributes, shown only for a character the generator gave a `luck` block. The
+   boxes borrow the summary stat-box look so the eye reads them as numbers, not settings. */
+.luck-strip { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: stretch; }
+.luck-box {
+    min-width: 4.2rem;
+    padding: 0.3rem 0.45rem;
+    background: var(--row-bg);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    text-align: center;
+}
+.luck-box-label {
+    font-size: 0.68rem;
+    font-family: system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--dim);
+}
+.luck-box-val { font-weight: bold; font-size: 1.05rem; font-variant-numeric: tabular-nums; color: var(--accent-dark); }
+.luck-box-val .dbl-edit { display: inline-block; min-width: 1.5rem; }
+.luck-box.is-negative .luck-box-val { color: var(--danger, #a33); }
+.luck-note { margin: 0.15rem 0 0.5rem; font-size: 0.83rem; line-height: 1.45; }
+/* Features tab: the Luck group's audit table ("show the working"). */
+.luck-audit { border-collapse: collapse; font-size: 0.83rem; margin: 0.3rem 0 0.5rem; }
+.luck-audit th, .luck-audit td { padding: 0.15rem 0.5rem; border-bottom: 1px solid var(--rule); text-align: right; }
+.luck-audit th:first-child, .luck-audit td:first-child { text-align: left; }
+.luck-ekat-line { margin: 0.2rem 0 0.4rem; font-size: 0.85rem; }

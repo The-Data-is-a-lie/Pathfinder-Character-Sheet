@@ -111,6 +111,97 @@ window.SheetTabAttributes = (function () {
         }
     }
 
+    /**
+     * Inherent luck (house rule; tickets repo feature/inherent-luck). One strip, shown only for a
+     * character the generator gave a `luck` block -- an old payload or a hand-made character has
+     * no luck, which is not the same thing as 0 luck. The score is editable and the sheet's edit
+     * wins (`_sheet.luck.score`); every luck-trait bonus in the ledger is a live formula over it,
+     * so a GM adjusting luck mid-campaign moves the saves and AC with it. The E-Kat reserve and
+     * hero points are play-state and edit in place too. The derivation is the tooltip on the
+     * score, so the number is auditable rather than taken on faith.
+     */
+    function renderLuckBlock(body, data) {
+        const luck = data?.luck;
+        if (!luck || typeof luck !== 'object') return;
+        const st = sheetState(data);
+        st.luck ??= {};
+        const SD = window.SheetDetails;
+        const score = SD?.luckScoreOf?.(data) ?? 0;
+        // floor toward -inf: the backend's luck_mod rounding (-13 -> -3, not -2).
+        const mod = Math.floor(score / 5);
+        const repaint = () => {
+            quietSave();
+            renderSheet(data);
+            setActiveTab('attributes');
+        };
+        const signed = (n) => (Number(n) > 0 ? '+' : '') + String(Number(n) || 0);
+
+        const row = h('div', 'kv luck-row');
+        row.appendChild(window.SheetUI.kLabel ? window.SheetUI.kLabel('Luck') : h('span', 'k', 'Luck'));
+        const strip = h('span', 'v luck-strip');
+        const box = (label, node, title) => {
+            const b = h('div', 'luck-box');
+            if (title) b.title = title;
+            b.appendChild(h('div', 'luck-box-label', label));
+            const val = h('div', 'luck-box-val');
+            if (node instanceof Node) val.appendChild(node);
+            else val.textContent = String(node);
+            b.appendChild(val);
+            return b;
+        };
+        // Score and mod carry a sign (a luck score is a signed quantity); counts do not.
+        const editableNum = (bag, key, onChange, opts = {}) => dblclickEditable(bag, key, {
+            format: (x) => (opts.plain ? String(Number(x) || 0) : signed(x)),
+            parse: (t) => parseIntLoose(t, 0),
+            onChange: (x) => onChange(Number(x) || 0),
+        });
+
+        const derivation = (Array.isArray(luck.derivation) ? luck.derivation : []).join(' · ');
+        const edited = st.luck.score != null && Number(st.luck.score) !== Number(luck.score);
+        const scoreBox = box('Score', editableNum({ s: score }, 's', (n) => {
+            if (n === Number(luck.score)) delete st.luck.score;
+            else st.luck.score = n;
+            repaint();
+        }), (derivation || 'Luck score') + (edited ? ` — edited here (generated ${signed(luck.score)})` : ''));
+        if (score < 0) scoreBox.classList.add('is-negative');
+        strip.appendChild(scoreBox);
+        strip.appendChild(box('Mod', signed(mod), 'Luck score ÷ 5, rounded down — Twist Fate uses per day'));
+        if (luck.type) strip.appendChild(box('Type', String(luck.type), 'Default, Proximity or Dimorphic'));
+
+        const reserve = st.luck.eKatReserve ?? luck.e_kat_reserve;
+        const cap = Number(luck.e_kat_store_cap) || 0;
+        strip.appendChild(box('E-Kats', editableNum({ r: Number(reserve) || 0 }, 'r', (n) => {
+            if (n === Number(luck.e_kat_reserve)) delete st.luck.eKatReserve;
+            else st.luck.eKatReserve = n;
+            repaint();
+        }, { plain: true }), 'E-Kat reserve — tokens to spend at the table'
+            + (cap ? ` (store cap ${cap})` : '')
+            + (luck.e_kat_earned != null ? `; ${luck.e_kat_earned} earned by the build` : '')));
+
+        const heroBag = { hp: Number(data.hero_points) || 0 };
+        strip.appendChild(box('Hero pts', editableNum(heroBag, 'hp', (n) => {
+            data.hero_points = n;
+            repaint();
+        }, { plain: true }), '10 E-Kats buy one hero point; a non-temporary hero point sells back for five'));
+
+        if (Number(luck.dr_pool)) {
+            strip.appendChild(box('DR pool', String(luck.dr_pool), 'Luck spent as a daily damage-reduction pool'));
+        }
+        if (Number(luck.twist_fate_per_day) || String(luck.type) === 'Dimorphic') {
+            strip.appendChild(box('Twist Fate', (Number(luck.twist_fate_per_day) || 0) + '/day',
+                'Dimorphic: 1d100 + up to 77 from the Vault, ≤ 50 is the bad end'));
+        }
+        // The Vault is Dimorphic's mechanic; the backend exports `vault_cap` for every type so the
+        // sheets read one shape, which is not a reason to show an empty vault on everyone.
+        if (Number(luck.vault) || String(luck.type) === 'Dimorphic') {
+            strip.appendChild(box('Vault', `${Number(luck.vault) || 0} / ${Number(luck.vault_cap) || 0}`,
+                'Vaulted Interest banks a point whenever a luck roll lands below 0'));
+        }
+        row.appendChild(strip);
+        body.appendChild(row);
+        if (derivation) body.appendChild(h('p', 'dim luck-note', derivation));
+    }
+
     function tabAttributes(data) {
         const d = computeDerived(data);
         const { sec, body } = section('Attributes', 'attributes-tab');
@@ -121,6 +212,7 @@ window.SheetTabAttributes = (function () {
         // Speed lives on Summary; BAB on Combat; saves on Defenses.
 
         renderCreatureBlock(body, data);
+        renderLuckBlock(body, data);
 
         // Misc info — senses / aura / languages / proficiencies (_sheet.miscInfo)
         const stMisc = sheetState(data);
