@@ -666,7 +666,96 @@ window.SheetTabFeatures = (function () {
             bindFeatureDrag(ul, data, 'features-traits', fieldKey, 'trait');
         }
         if (!any) body.appendChild(h('p', 'tools-empty', 'No traits yet.'));
+        renderLuckGroup(body, data);
         return sec;
+    }
+
+    /**
+     * Inherent luck (house rule) on the Features tab, mirroring the Foundry module's Luck items:
+     * the luck traits the character bought (rules text from `trait_benefits`), the feats a luck
+     * SALE paid for -- "(−5 Luck) Still Spell", the module's own label -- and the sale's audit:
+     * each pool's budget before, what luck took, what the sale paid back, and the number the
+     * sheet finally shows, so the arithmetic reconciles in front of the reader or visibly does
+     * not. E-Kat feats are ordinary rows in the feats list above (they travel in `feats`, with
+     * their text in `homebrew_feat_desc_dict`), so they get a one-line roll-call here rather
+     * than a second row each. Payload-owned lists: no drag, no remove.
+     */
+    const AUDIT_ROWS = [
+        ['hp', 'Hit points'], ['skill_ranks', 'Skill ranks'],
+        ['attribute_points', 'Ability points'], ['feats', 'Feats'],
+    ];
+    function renderLuckGroup(body, data) {
+        const luck = data?.luck;
+        if (!luck || typeof luck !== 'object') return;
+        const traits = Array.isArray(luck.traits) ? luck.traits : [];
+        const negFeats = Array.isArray(luck.negative_feats) ? luck.negative_feats : [];
+        const ekats = Array.isArray(luck.feats) ? luck.feats : [];
+        const audit = (luck.audit && typeof luck.audit === 'object') ? luck.audit : null;
+        const anyAudit = !!audit && Object.values(audit)
+            .some((r) => Number(r?.received) || Number(r?.spent));
+        if (!traits.length && !negFeats.length && !ekats.length && !anyAudit) return;
+
+        const score = window.SheetDetails?.luckScoreOf?.(data) ?? 0;
+        const cadence = (luck.type ? String(luck.type) + ' · ' : '') + 'score '
+            + (score > 0 ? '+' : '') + score;
+        const wrap = featureGroup(body, featureGroupSlug('traits', 'Luck'), 'Luck', { cadence });
+        const ul = h('ul', 'plain-list feat-list');
+        wrap.appendChild(ul);
+        if (traits.length || negFeats.length) ul.appendChild(featureListHeader());
+        const benefits = luck.trait_benefits || {};
+        for (const t of traits) {
+            const text = benefits[t];
+            ul.appendChild(featureRow({
+                name: t,
+                title: t,
+                descHtml: text ? '<p>' + escapeHtml(text) + '</p>' : '',
+                typeLabel: 'Luck Trait',
+                data,
+                sourceKind: 'luck',
+                showUses: false,
+                chatKind: 'Luck Trait',
+            }));
+        }
+        for (const nf of negFeats) {
+            const name = String(nf?.name || '');
+            if (!name) continue;
+            const desc = foundry('feats', name)?.description
+                || data.homebrew_feat_desc_dict?.[name] || '';
+            ul.appendChild(featureRow({
+                name,
+                title: `(${nf.cumulative} Luck) ${name}`,
+                descHtml: desc,
+                typeLabel: 'Negative Luck',
+                data,
+                sourceKind: 'feat',
+                showUses: false,
+                chatKind: 'Feat',
+            }));
+        }
+        if (ekats.length) {
+            wrap.appendChild(h('p', 'dim luck-ekat-line',
+                `E-Kat feats (+1 luck each, listed with the feats above): ${ekats.join(', ')}`));
+        }
+        if (anyAudit) {
+            const table = h('table', 'luck-audit');
+            const head = h('tr');
+            for (const th of ['Pool', 'Before', 'Luck took', 'Sale paid', 'After', 'Luck cost', 'On sheet']) {
+                head.appendChild(h('th', null, th));
+            }
+            table.appendChild(head);
+            for (const [key, label] of AUDIT_ROWS) {
+                const r = audit[key];
+                if (!r) continue;
+                const tr = h('tr');
+                const cells = [label, r.before, r.spent, r.received, r.after, r.luck_cost, r.final];
+                for (const c of cells) tr.appendChild(h('td', null, c == null ? '—' : String(c)));
+                table.appendChild(tr);
+            }
+            const sold = Object.values(audit).some((r) => Number(r?.received));
+            const det = details(sold ? 'How the sale was worked out' : 'How the luck was worked out', '', 'feat-details');
+            det.appendChild(table);
+            wrap.appendChild(det);
+        }
     }
     // Foundry-style class choices live in the exported `class_features` dict, shaped
     // { bucketName: { choiceName: description } } — e.g. { hexes: { "Evil Eye": … } }.

@@ -163,6 +163,18 @@ window.SheetClassInfo = (function () {
             total += levelSum;
             parts.push(`Human +1 × ${levelSum}`);
         }
+        // Ledger `bonusSkillRanks` (a luck sale's skill-point payout arrives this way): the budget
+        // is what the character may spend, so what the sale bought belongs in it.
+        const SD = window.SheetDetails;
+        const ledger = window.SheetDerive?.effectiveLedger?.(data);
+        if (SD && ledger) {
+            for (const ch of SD.changesForTargets(ledger, ['bonusSkillRanks'])) {
+                const ev = SD.evalSimpleFormula(ch.formula, data);
+                if (!ev.ok || !ev.value) continue;
+                total += ev.value;
+                parts.push(`${ch.source} ${ev.value > 0 ? '+' : ''}${ev.value}`);
+            }
+        }
         return { total, parts, levelSum };
     }
 

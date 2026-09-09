@@ -1079,6 +1079,23 @@ window.SheetDetails = (function () {
             }
         }
 
+        // Inherent luck (house rule; tickets repo feature/inherent-luck). The backend no longer
+        // applies a luck sale's payout to the HP / rank / ability budgets itself -- it DELIVERS it
+        // as pf1 changes on `luck.payout_changes` (targets mhp, bonusSkillRanks, str..cha) so the
+        // sheet can show where the numbers came from. Without this pass a character that sold
+        // luck for hit points simply does not have them. `trait_changes` carries the mechanics of
+        // the luck traits it bought (Hardened Mind -> Will, Tough Skin -> natural armor, ...) with
+        // LIVE formulas over @resources.personalLuck.value, so an edited score moves them all.
+        const luck = data.luck;
+        if (luck && typeof luck === 'object') {
+            if (Array.isArray(luck.payout_changes) && luck.payout_changes.length) {
+                pushEntry(ledger, 'Negative luck payout', 'luck', { changes: luck.payout_changes });
+            }
+            for (const [name, entry] of Object.entries(luck.trait_changes || {})) {
+                if (name && entry) pushEntry(ledger, name, 'luck', entry);
+            }
+        }
+
         const classes = [data.c_class, data.c_class_2];
         const seenClassFeats = new Set();
         for (const raw of data.class_ability || []) {
@@ -1380,6 +1397,7 @@ window.SheetDetails = (function () {
         swm: 'Swim', umd: 'Use Magic Device',
     };
     const TARGET_LABELS = {
+        bonusSkillRanks: 'Bonus skill ranks',
         str: 'Strength', dex: 'Dexterity', con: 'Constitution', int: 'Intelligence',
         wis: 'Wisdom', cha: 'Charisma', ac: 'AC', aac: 'Armor AC', sac: 'Shield AC',
         nac: 'Natural Armor', ffac: 'Flat-Footed AC', tac: 'Touch AC', attack: 'Attack Rolls',
@@ -1402,6 +1420,18 @@ window.SheetDetails = (function () {
         luck: 'luck', morale: 'morale', profane: 'profane', racial: 'racial', sacred: 'sacred',
         size: 'size', trait: 'trait', penalty: 'penalty',
     };
+
+    /**
+     * The character's effective luck score: the sheet's own edit wins over the generated value,
+     * and a character with no luck block has none (null), which is not the same as 0.
+     */
+    function luckScoreOf(data) {
+        const edited = data?._sheet?.luck?.score;
+        const v = (edited !== undefined && edited !== null && edited !== '') ? edited : data?.luck?.score;
+        if (v === undefined || v === null || v === '') return null;
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+    }
 
     function targetLabel(target) {
         if (!target) return '?';
@@ -1457,6 +1487,8 @@ window.SheetDetails = (function () {
         // Path of War: initiator level and initiation-stat modifier (stance/maneuver scaling)
         const initLevel = Number(data?.initiator_level) || 0;
         s = s.replace(/@pow\.initLevel/gi, String(initLevel));
+        // pf1's resource token for the Personal Luck pool (luck trait_changes use it).
+        s = s.replace(/@resources\.personalLuck\.value/gi, String(luckScoreOf(data) ?? 0));
         const initKey = String(data?.initiation_stat || '').toLowerCase();
         const initMod = (initKey && data?.[initKey] != null)
             ? Math.floor((Number(data[initKey]) - 10) / 2) : 0;
@@ -1632,6 +1664,7 @@ window.SheetDetails = (function () {
     }
 
     return {
+        luckScoreOf,
         ready, lookup, lookupClassFeature, lookupWeapon, lookupItem,
         lookupManeuverConditional, resolvePowConditional, setPowOverride, clearPowOverride,
         stanceChangesFromModifiers, lookupStanceBenefit, resolveStanceEntry,

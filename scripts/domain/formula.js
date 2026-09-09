@@ -76,6 +76,10 @@ window.SheetFormula = (function () {
         // CMB total, through the same derive block the Combat tab shows.
         [/@attributes\.cmb\.total\b/gi, (_m, data) =>
             Number(window.SheetDerive?.computeDerived?.(data)?.blocks?.cmb?.total) ?? null],
+        // The Personal Luck pool (house rule): luck trait mechanics are written against pf1's
+        // resource token. Resolves to the sheet's edited score, else the generated one.
+        [/@resources\.personalLuck\.value\b/gi, (_m, data) =>
+            window.SheetDetails?.luckScoreOf?.(data) ?? null],
         [/@cl\b/gi, (_m, data, ctx) => ctx.cl ?? null],
         [/@sl\b/gi, (_m, data, ctx) => ctx.sl ?? null],
         [/@ablMod\b/gi, (_m, data, ctx) => ctx.ablMod ?? null],
