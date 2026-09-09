@@ -807,9 +807,15 @@
             const savedForm = JSON.parse(localStorage.getItem(FORM_KEY) || 'null');
             if (savedForm) {
                 for (const [k, v] of Object.entries(savedForm)) {
+                    const el = form.elements[k];
+                    if (!el) continue;
+                    // The saved form IS the last payload, so a checkbox arrives as `true`, never
+                    // as a value; house_rules is restored even though it starts disabled, and
+                    // the optimize wiring below re-enables it.
+                    if (el.type === 'checkbox') { el.checked = v === true; continue; }
                     // Disabled controls keep their default; a stale saved value may no longer
                     // be a valid option.
-                    if (form.elements[k] && !form.elements[k].disabled) form.elements[k].value = v;
+                    if (!el.disabled) el.value = v == null ? '' : String(v);
                 }
             }
         } catch (err) {
@@ -818,6 +824,18 @@
         }
 
         syncQuickLevel(form);
+        // House-rule kickers only mean something on an optimized build; the box follows the
+        // Optimized one so it cannot be ticked into a request that ignores it.
+        const optimizeBox = form.elements.optimize;
+        const houseBox = form.elements.house_rules;
+        if (optimizeBox && houseBox) {
+            const follow = () => {
+                houseBox.disabled = !optimizeBox.checked;
+                if (!optimizeBox.checked) houseBox.checked = false;
+            };
+            optimizeBox.addEventListener('change', follow);
+            follow();
+        }
         quickLevelSelect(form)?.addEventListener('change', () => applyQuickLevel(form));
         for (const name of ['highestLevel', 'lowestLevel']) {
             form.elements[name].addEventListener('change', () => syncQuickLevel(form));
