@@ -6133,3 +6133,26 @@ body.is-offline .pa-generate {
 /* The size/loss note under each button is the whole point of this dialog: what a link costs is
    stated at copy time, not discovered by the person who receives it. */
 .share-note { margin: 0.15rem 0 0; font-size: 0.82rem; line-height: 1.45; }
+
+/* ============================================================ treasure (#81) */
+.loot-result { display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.6rem; }
+.loot-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.4rem;
+    border-radius: 5px;
+}
+.loot-row:hover { background: var(--row-bg); }
+.loot-row-name { flex: 1; min-width: 0; }
+.loot-row-price { font-variant-numeric: tabular-nums; color: var(--dim); }
+/* The magic/gem tag is a label, not a button — same weight as a feat's type chip. */
+.loot-row-tag {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--dim);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 0 0.3rem;
+}

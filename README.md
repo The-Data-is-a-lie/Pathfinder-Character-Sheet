@@ -24,6 +24,9 @@ in your browser and saves locally.
 - **Share a character** — send one character as a JSON file, or as a self-contained link when it
   is small enough to survive being pasted. The dialog tells you which you get, and what a link
   leaves out, before you copy it.
+- **Treasure by CR** — roll one encounter's worth of coins, gems and items against Paizo's
+  per-encounter value table, then drop it into any character in your library, including one you do
+  not have open. Pick and choose what goes in.
 - **Rules health check** — a ⚠ badge flags over-spent skill ranks, unmet feat prerequisites and
   encumbrance surprises. It only ever warns: nothing is blocked, nothing is auto-corrected, and
   any warning can be muted.
