@@ -219,6 +219,7 @@ window.SheetOverlay = (function () {
     // NOT built on open() above: a toast must never take focus, trap Tab, dim the page or
     // block scrolling. One reused node, so rapid re-firing replaces rather than stacks.
     const TOAST_MS = 2400;
+    const TOAST_ACTION_MS = 7000;   // long enough to notice an Undo, read it, and reach it
     let toastTimer = null;
 
     function toastNode() {
@@ -235,17 +236,36 @@ window.SheetOverlay = (function () {
 
     /**
      * @param {string} text  message; keep it short and concrete
-     * @param {{ms?: number}} [opts]
+     * @param {{ms?: number, action?: {label?: string, onClick: Function}}} [opts]
+     *
+     * `action` renders one inline button — the Undo behind every move and soft delete in the
+     * list contract. It is what lets a drag re-tag an item with no confirm dialog in the way:
+     * the reassurance arrives after the fact and costs one click to reverse, which is the
+     * warn-never-block trade this sheet already makes elsewhere. An action also holds the
+     * toast open longer, since an Undo that expires before it can be read is decoration.
      */
     function toast(text, opts) {
         const node = toastNode();
         node.textContent = String(text ?? '');
+        const act = opts?.action;
+        if (act) {
+            const btn = el('button', 'sheet-toast-action');
+            btn.type = 'button';
+            btn.textContent = act.label || 'Undo';
+            btn.addEventListener('click', () => {
+                clearTimeout(toastTimer);
+                node.classList.remove('is-on');
+                act.onClick?.();
+            });
+            node.appendChild(btn);
+        }
         // Restart the entry animation even when the node is already showing.
         node.classList.remove('is-on');
         void node.offsetWidth;
         node.classList.add('is-on');
         clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => node.classList.remove('is-on'), opts?.ms ?? TOAST_MS);
+        toastTimer = setTimeout(() => node.classList.remove('is-on'),
+            opts?.ms ?? (act ? TOAST_ACTION_MS : TOAST_MS));
     }
 
     return { open, closeTop, isOpen, toast, get count() { return stack.length; } };

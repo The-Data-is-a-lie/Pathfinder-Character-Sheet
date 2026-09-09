@@ -462,57 +462,274 @@ window.SheetUI = (function () {
         return kv(body, label, dblclickEditable(data, key, opts));
     }
 
-    // ---- generic drag-to-reorder ----
+    // ---- generic drag-to-reorder (pointer-based: mouse, touch and pen) ----
+    //
+    // This replaces an HTML5 `dataTransfer` implementation that never fired on touch, which
+    // meant every reorderable list on the sheet was silently desktop-only — not a defensible
+    // state for a sheet whose stated audience is a classroom on tablets. Pointer events cover
+    // mouse, touch and pen through one path, and the hold-then-drag threshold is the same one
+    // edgepanel.js uses so a tap on the grip can't become an accidental move.
+    //
+    // Scrolling is preserved by scoping `touch-action: none` to the grip alone (see the
+    // .dnd-handle rule in sheet.css) — dragging the row body still scrolls the page normally.
+    //
+    // Lists opt into exchanging rows by sharing a `group`; `canAccept` has the final say. That
+    // is the seam where "a drop is a shortcut for an edit you could already make in the detail
+    // sheet" gets enforced, so a refused drop springs back instead of corrupting data.
+
+    const DRAG_START = 5;      // px of movement before a press on the grip becomes a drag
+    const EDGE = 56;           // distance from a viewport edge that starts auto-scrolling
+    // Per SECOND, not per frame. It used to be 16px/frame, which is ~960px/s on a 60Hz panel
+    // and ~2300px/s on a 144Hz one — the same gesture flung the page at wildly different
+    // speeds depending on the monitor, and on a fast one it read as the page bolting.
+    const EDGE_SPEED = 500;
+    const EDGE_MAX_DT = 0.05;  // s — a hitched frame must not teleport the page
+    let drag = null;           // the one in-flight drag, if any
+    let edgeRAF = null;
+    let edgeLast = 0;          // rAF timestamp of the previous edge-scroll frame
+
+    // HTML5 drag-and-drop auto-scrolled the page for free; pointer drags do not, and these
+    // lists run long (a level-20 character has ~70 feats), so without this a row simply
+    // cannot be dragged past the fold.
+    function edgeScroll(now) {
+        if (!drag || !drag.started) { edgeRAF = null; edgeLast = 0; return; }
+        const dt = edgeLast ? Math.min((now - edgeLast) / 1000, EDGE_MAX_DT) : 0;
+        edgeLast = now;
+        const y = drag.lastY;
+        let dy = 0;
+        if (y < EDGE) dy = -EDGE_SPEED * (1 - y / EDGE) * dt;
+        else if (y > window.innerHeight - EDGE) {
+            dy = EDGE_SPEED * (1 - (window.innerHeight - y) / EDGE) * dt;
+        }
+        if (dy) {
+            window.scrollBy(0, dy);
+            paintTarget(dropTargetAt(drag.lastX, drag.lastY));
+        }
+        edgeRAF = requestAnimationFrame(edgeScroll);
+    }
+
+    /**
+     * Run `mutate` (which is expected to change layout) and scroll by however much `row`
+     * moved, so the row ends up back under the pointer. Reading the rect either side forces
+     * the two layouts we need; the try/catch is for a row detached mid-gesture.
+     */
+    function anchorRow(row, mutate) {
+        let before = 0;
+        try { before = row.getBoundingClientRect().top; } catch { mutate(); return; }
+        mutate();
+        try {
+            const after = row.getBoundingClientRect().top;
+            if (after !== before) window.scrollBy(0, after - before);
+        } catch { /* row went away — nothing to anchor to */ }
+    }
+
+    function listOf(el, group) {
+        if (!el) return null;
+        return group
+            ? el.closest('[data-dnd-group="' + group + '"]')
+            : el.closest('[data-dnd-list="1"]');
+    }
+
+    // Callers pass either a bare selector ('.feat-item') or an already-scoped one
+    // (':scope > .inv-item', which inventory uses to keep contained child items out of the
+    // drag). Normalize to the bare form: `:scope` is invalid inside closest(), and doubling
+    // the prefix would throw on querySelectorAll.
+    function bareSelector(sel) {
+        return String(sel).replace(/^\s*:scope\s*>\s*/, '');
+    }
+
+    function rowsIn(list, rowSel) {
+        // Direct children only, so a nested list's rows are never claimed by its parent
+        // (inventory containers hold their contents inside the row they belong to).
+        return [...list.querySelectorAll(':scope > ' + rowSel)];
+    }
+
+    function clearMarks() {
+        document.querySelectorAll('.dnd-indicator').forEach((n) => n.remove());
+        document.querySelectorAll('.dnd-refuse').forEach((n) => n.classList.remove('dnd-refuse'));
+    }
+
+    // Where would a release right now put the row? Returns null when the pointer is over no
+    // eligible list, or over one that refuses this row.
+    function dropTargetAt(x, y) {
+        if (!drag) return null;
+        // elementFromPoint is viewport-relative and returns null outside it, so a pointer
+        // dragged past an edge would otherwise lose its target mid-gesture.
+        const cx = Math.max(0, Math.min(window.innerWidth - 1, x));
+        const cy = Math.max(0, Math.min(window.innerHeight - 1, y));
+        const under = document.elementFromPoint(cx, cy);
+        const list = listOf(under, drag.group);
+        if (!list) return null;
+        if (list !== drag.list && !drag.canAccept(list, drag.row)) return { list, refused: true };
+
+        const rows = rowsIn(list, drag.rowSel).filter((r) => r !== drag.row);
+        const over = under.closest(drag.rowSel);
+        let insertAt = rows.length;
+        if (over && rows.includes(over)) {
+            const box = over.getBoundingClientRect();
+            const after = cy > box.top + box.height / 2;
+            insertAt = rows.indexOf(over) + (after ? 1 : 0);
+        }
+        return { list, insertAt, refused: false };
+    }
+
+    function paintTarget(t) {
+        clearMarks();
+        if (!t || !drag) return;
+        if (t.refused) { t.list.classList.add('dnd-refuse'); return; }
+        // Resolve the anchor node *after* clearMarks, never before: the previous frame's
+        // indicator is often exactly the node sitting at this position, and inserting
+        // before a node that clearMarks has just detached throws.
+        const rows = rowsIn(t.list, drag.rowSel).filter((r) => r !== drag.row);
+        const line = h('div', 'dnd-indicator');
+        const anchor = rows[t.insertAt] || null;
+        if (anchor) t.list.insertBefore(line, anchor);
+        else t.list.appendChild(line);
+    }
+
+    function endDrag(commit, x, y) {
+        if (!drag) return;
+        const d = drag;
+        const target = commit ? dropTargetAt(x, y) : null;
+        drag = null;
+        if (edgeRAF) { cancelAnimationFrame(edgeRAF); edgeRAF = null; }
+        edgeLast = 0;
+
+        clearMarks();
+        d.row.classList.remove('is-dragging');
+        // The mirror of the reveal in onDragMove: dropping collapses every empty-group strip
+        // again, so without this the page snaps back up by the height it grew at drag start.
+        anchorRow(d.row, () => document.body.classList.remove('dnd-dragging'));
+        document.removeEventListener('selectstart', blockSelect);
+        window.removeEventListener('pointermove', onDragMove);
+        window.removeEventListener('pointerup', onDragUp);
+        window.removeEventListener('pointercancel', onDragCancel);
+        try { d.handle.releasePointerCapture(d.pointerId); } catch { /* */ }
+
+        if (!target || target.refused) return;         // springs back
+        const sameList = target.list === d.list;
+        const fromIndex = d.fromIndex;
+        // dropTargetAt measures the insertion point against the list *without* the dragged
+        // row, which is precisely the array reorderArray sees after its splice-out. So this
+        // needs no adjustment in either direction — and callers keep the (from, to)
+        // convention they already pass straight into reorderArray.
+        const toIndex = target.insertAt;
+        if (sameList && toIndex === fromIndex) return;
+
+        d.onDrop({
+            row: d.row,
+            sameList,
+            fromIndex,
+            toIndex,
+            fromSection: d.list.dataset.dndSection ?? null,
+            toSection: target.list.dataset.dndSection ?? null,
+            fromList: d.list,
+            toList: target.list,
+        });
+    }
+
+    const blockSelect = (e) => e.preventDefault();
+    const onDragMove = (e) => {
+        if (!drag) return;
+        drag.lastX = e.clientX;
+        drag.lastY = e.clientY;
+        if (!drag.started) {
+            if (Math.abs(e.clientY - drag.startY) < DRAG_START
+                && Math.abs(e.clientX - drag.startX) < DRAG_START) return;
+            drag.started = true;
+            drag.row.classList.add('is-dragging');
+            // `dnd-dragging` reveals the empty-group drop strips (see the .is-empty rules in
+            // sheet.css). On a character with several empty feat groups that injects a few
+            // hundred px of layout, much of it ABOVE the row being dragged, so the row —
+            // and the whole page with it — lurches down under a stationary finger. Measure
+            // the row across the class change and give the scroll position back what the
+            // reveal took, which pins the row where the pointer grabbed it.
+            anchorRow(drag.row, () => document.body.classList.add('dnd-dragging'));
+            document.addEventListener('selectstart', blockSelect);
+            window.getSelection?.()?.removeAllRanges?.();
+            try { drag.handle.setPointerCapture(drag.pointerId); } catch { /* */ }
+            edgeLast = 0;
+            if (!edgeRAF) edgeRAF = requestAnimationFrame(edgeScroll);
+        }
+        e.preventDefault();
+        paintTarget(dropTargetAt(e.clientX, e.clientY));
+    };
+    const onDragUp = (e) => endDrag(drag?.started === true, e.clientX, e.clientY);
+    const onDragCancel = () => endDrag(false, 0, 0);
+
+    /**
+     * @param {object} opts
+     * @param {HTMLElement} opts.container      the element holding the rows
+     * @param {string} opts.itemSelector        selector matching one row
+     * @param {string} [opts.group]             lists sharing a group can exchange rows
+     * @param {string} [opts.sectionId]         reported back as from/toSection
+     * @param {(list: HTMLElement, row: HTMLElement) => boolean} [opts.canAccept]
+     * @param {(move: object) => void} opts.onDrop
+     */
+    function bindDragList(opts) {
+        const {
+            container, itemSelector, group = null, sectionId = null,
+            canAccept = () => false, onDrop,
+        } = opts;
+        if (!container || container.dataset.dndBound === '1') return;
+        const rowSel = bareSelector(itemSelector);
+        container.dataset.dndBound = '1';
+        container.dataset.dndList = '1';
+        if (group) container.dataset.dndGroup = group;
+        if (sectionId != null) container.dataset.dndSection = sectionId;
+
+        // Delegated, so rows rebuilt by the next renderSheet are covered with no rebinding.
+        container.addEventListener('pointerdown', (e) => {
+            if (drag || (e.button != null && e.button > 0)) return;
+            const handle = e.target.closest('.dnd-handle');
+            if (!handle || !container.contains(handle)) return;
+            const row = handle.closest(rowSel);
+            if (!row || row.parentElement !== container) return;
+            drag = {
+                row, handle, container, rowSel, group, onDrop, canAccept,
+                list: container,
+                fromIndex: rowsIn(container, rowSel).indexOf(row),
+                pointerId: e.pointerId,
+                startX: e.clientX, startY: e.clientY,
+                started: false,
+            };
+            window.addEventListener('pointermove', onDragMove);
+            window.addEventListener('pointerup', onDragUp);
+            window.addEventListener('pointercancel', onDragCancel);
+        });
+
+        // Keyboard equivalent of the drag: the grip is focusable and arrows move the row
+        // within its list. Moving a row to a *different* section by keyboard goes through the
+        // row's detail sheet, which is the same edit the drop performs.
+        container.addEventListener('keydown', (e) => {
+            if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+            const handle = e.target.closest?.('.dnd-handle');
+            if (!handle || !container.contains(handle)) return;
+            const row = handle.closest(rowSel);
+            if (!row || row.parentElement !== container) return;
+            const rows = rowsIn(container, rowSel);
+            const from = rows.indexOf(row);
+            const to = from + (e.key === 'ArrowUp' ? -1 : 1);
+            if (from < 0 || to < 0 || to >= rows.length) return;
+            e.preventDefault();
+            onDrop({
+                row, sameList: true, fromIndex: from, toIndex: to,
+                fromSection: sectionId, toSection: sectionId,
+                fromList: container, toList: container,
+                viaKeyboard: true,
+            });
+        });
+    }
+
+    // Back-compat wrapper: the original three-argument form, now pointer-driven. Reorder-only,
+    // no cross-list moves, `to` in the same reorderArray convention callers already pass on.
     function bindDragReorder(container, itemSelector, onReorder) {
-        if (!container || container.dataset.dragBound === '1') return;
-        container.dataset.dragBound = '1';
-        let dragEl = null;
-
-        container.querySelectorAll(itemSelector).forEach((el) => {
-            el.classList.add('dnd-item');
-            const handle = el.querySelector('.dnd-handle') || el;
-            handle.setAttribute('draggable', 'true');
-
-            const start = (e) => {
-                dragEl = el;
-                el.classList.add('is-dragging');
-                try {
-                    e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/plain', el.dataset.dndId || 'x');
-                } catch { /* */ }
-            };
-            const end = () => {
-                el.classList.remove('is-dragging');
-                container.querySelectorAll('.dnd-over').forEach((n) => n.classList.remove('dnd-over'));
-                dragEl = null;
-            };
-            // Listen on handle (the draggable node) and on the row as fallback
-            handle.addEventListener('dragstart', start);
-            handle.addEventListener('dragend', end);
-            el.addEventListener('dragstart', (e) => {
-                if (e.target === handle || handle.contains(e.target)) start(e);
-            });
-            el.addEventListener('dragend', end);
-
-            el.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                if (!dragEl || dragEl === el) return;
-                el.classList.add('dnd-over');
-                try { e.dataTransfer.dropEffect = 'move'; } catch { /* */ }
-            });
-            el.addEventListener('dragleave', (e) => {
-                if (!el.contains(e.relatedTarget)) el.classList.remove('dnd-over');
-            });
-            el.addEventListener('drop', (e) => {
-                e.preventDefault();
-                el.classList.remove('dnd-over');
-                if (!dragEl || dragEl === el) return;
-                const items = [...container.querySelectorAll(itemSelector)];
-                const from = items.indexOf(dragEl);
-                const to = items.indexOf(el);
-                if (from < 0 || to < 0 || from === to) return;
-                onReorder(from, to);
-            });
+        return bindDragList({
+            container,
+            itemSelector,
+            onDrop: ({ fromIndex, toIndex }) => {
+                if (fromIndex !== toIndex) onReorder(fromIndex, toIndex);
+            },
         });
     }
 
@@ -524,10 +741,12 @@ window.SheetUI = (function () {
         return arr;
     }
 
-    function dndHandle() {
+    function dndHandle(label) {
         const el = h('span', 'dnd-handle no-print', '⋮⋮');
-        el.title = 'Drag to reorder';
-        el.setAttribute('draggable', 'true');
+        el.title = label || 'Drag to reorder (or focus and press ↑ / ↓)';
+        el.setAttribute('role', 'button');
+        el.setAttribute('tabindex', '0');
+        el.setAttribute('aria-label', label || 'Reorder — press up or down arrow to move');
         return el;
     }
 
@@ -558,6 +777,6 @@ window.SheetUI = (function () {
         titleCase, mod, toInt, nonEmpty, escapeHtml, parseIntLoose, fmtWeight, fmtPrice,
         foundry, highlightInlineRolls,
         editableField, kvEdit, dblclickEditable, kvDbl,
-        bindDragReorder, reorderArray, dndHandle, cloneChanges,
+        bindDragReorder, bindDragList, reorderArray, dndHandle, cloneChanges,
     };
 })();

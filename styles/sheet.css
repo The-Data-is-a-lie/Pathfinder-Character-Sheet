@@ -1266,6 +1266,23 @@ body.overlay-open { overflow: hidden; }
     visibility: visible;
     transform: translate(-50%, 0);
 }
+/* The toast itself stays click-through so it never blocks the sheet underneath; the action
+   button opts back in, which a descendant of pointer-events:none is allowed to do. */
+.sheet-toast-action {
+    pointer-events: auto;
+    margin-left: 0.7rem;
+    padding: 0.15rem 0.6rem;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+.sheet-toast-action:hover { background: rgba(255, 255, 255, 0.16); }
+.sheet-toast-action:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.buffs-trash-row { margin: 0.5rem 0 0.2rem; }
 @media (max-width: 899px) {
     body.rail-open .sheet-toast { bottom: calc(var(--rail-h) * 1.35 + 0.75rem); }
 }
@@ -2189,6 +2206,56 @@ button:disabled { opacity: 0.55; cursor: wait; }
 .filter-pill .pill-count { opacity: 0.75; margin-left: 0.3rem; font-size: 0.7rem; }
 .feature-group.hidden { display: none; }
 
+/* Group divider heading: label centred in a rule that runs to both edges. The rules are the
+   h3's own ::before / ::after so the label can be any length without measuring it. */
+.feature-group-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 1rem 0 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+}
+.feature-group-head::before,
+.feature-group-head::after {
+    content: '';
+    flex: 1 1 auto;
+    height: 1px;
+    background: var(--rule);
+    opacity: 0.55;
+}
+.feature-group-name { flex: 0 0 auto; }
+.feature-group-cadence {
+    flex: 0 0 auto;
+    font-weight: 400;
+    font-size: 0.78rem;
+    opacity: 0.7;
+}
+
+/* An empty group still renders — it is the drop target that lets a drag file the character's
+   first Sphere Feat or Flaw. Hidden at rest, revealed only while a drag is in flight.
+
+   `is-empty` is deliberately a different class from `hidden`: the filter pills toggle `hidden`
+   on every [data-fgroup] and REMOVE it when no pill is active, which would otherwise reveal
+   every empty group the moment a pill was cleared. A group that is filtered out stays hidden
+   mid-drag too, which is why `hidden` still wins below. */
+.feature-group.is-empty { display: none; }
+body.dnd-dragging .feature-group.is-empty:not(.hidden) { display: block; }
+body.dnd-dragging .feature-group.is-empty .feat-list-header { display: none; }
+body.dnd-dragging .feature-group.is-empty .feature-group-head {
+    margin: 0.5rem 0 0;
+    opacity: 0.75;
+}
+body.dnd-dragging .feature-group.is-empty .feat-list {
+    min-height: 2.2rem;
+    margin: 0.25rem 0 0.5rem;
+    border: 1px dashed var(--accent);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
 /* Shared column grid for header + item rows */
 .feat-grid {
     display: grid;
@@ -2641,6 +2708,7 @@ button:disabled { opacity: 0.55; cursor: wait; }
 .buffs-row {
     display: grid;
     grid-template-columns:
+        1.1rem                      /* grip — zone 1 of the uniform row contract */
         minmax(8rem, 1.4fr)
         minmax(4.5rem, 0.7fr)
         3.2rem
@@ -2649,6 +2717,9 @@ button:disabled { opacity: 0.55; cursor: wait; }
     gap: 0.35rem 0.5rem;
     align-items: center;
 }
+/* Always-on source rows have no storage order, so they carry no grip — the column is held
+   open by a spacer instead, keeping every row's remaining zones on the same vertical lines. */
+.dnd-spacer { display: block; }
 .buffs-col-legend {
     font-size: 0.72rem;
     font-variant: small-caps;
@@ -3339,7 +3410,7 @@ button:disabled { opacity: 0.55; cursor: wait; }
         auto !important;
 }
 
-/* Drag-and-drop (Foundry-like item rows) */
+/* Drag-and-drop (Foundry-like item rows) — pointer-driven, see bindDragList in ui.js */
 .dnd-handle {
     cursor: grab;
     user-select: none;
@@ -3350,15 +3421,36 @@ button:disabled { opacity: 0.55; cursor: wait; }
     flex: 0 0 auto;
     line-height: 1;
     opacity: 0.75;
+    /* Scoped to the grip alone: dragging here never scrolls, while a touch-drag anywhere
+       else on the row still pans the page. Without this the browser claims the gesture and
+       reordering is impossible on a tablet. */
+    touch-action: none;
 }
 .dnd-handle:hover { color: var(--accent-dark); opacity: 1; }
 .dnd-handle:active { cursor: grabbing; }
-.dnd-item.is-dragging {
+.dnd-handle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    border-radius: 3px;
+    opacity: 1;
+}
+.is-dragging {
     opacity: 0.45;
     outline: 1px dashed var(--accent);
 }
-.dnd-item.dnd-over {
-    box-shadow: inset 0 2px 0 0 var(--accent);
+body.dnd-dragging, body.dnd-dragging .dnd-handle { cursor: grabbing; }
+/* Insertion line: shows exactly where a release will land the row. */
+.dnd-indicator {
+    height: 0;
+    margin: -1px 0;
+    border-top: 2px solid var(--accent);
+    border-radius: 2px;
+    pointer-events: none;
+}
+/* A list refusing this row — the drop would be an edit its detail sheet cannot make. */
+.dnd-refuse {
+    outline: 1px dashed var(--danger, #b3261e);
+    outline-offset: 2px;
 }
 .feat-cell-name .dnd-handle { margin-right: 0.15rem; align-self: center; }
 /* Chosen class-choice sub-rows (hexes, rage powers, talents…) under a class feature. */

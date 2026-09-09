@@ -498,7 +498,35 @@
         pane.scrollTop = keepScroll;
     }
 
+    /**
+     * Hold the page's scroll position across a full re-render.
+     *
+     * `renderSheet` empties #sheet and rebuilds every pane, and the document — not the pane —
+     * is the scroller (nothing on .tab-pane sets overflow, so the pane.scrollTop dance in
+     * setActiveTab is a no-op for this). Any layout read taken while the tree is half-built
+     * clamps scrollY against a document that is momentarily a few hundred px tall, and the
+     * position is gone. Every repaint had this: a drag-drop, an inline edit, a checkbox.
+     *
+     * Restored twice — synchronously, and again next frame once late layout (portrait image,
+     * wrapped tables) has settled and the document is back to full height.
+     */
+    function holdScroll() {
+        const y = window.scrollY;
+        if (!y) return () => {};
+        const apply = () => {
+            const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+            window.scrollTo(0, Math.min(y, max));
+        };
+        return () => { apply(); requestAnimationFrame(apply); };
+    }
+
     function renderSheet(data) {
+        const restoreScroll = holdScroll();
+        renderSheetBody(data);
+        restoreScroll();
+    }
+
+    function renderSheetBody(data) {
         // Any render of something other than the sample retires the sample banner (Generate,
         // Load JSON, picking from the roster). Re-rendering the sample itself keeps it.
         if (demoData && data !== demoData) clearDemoBanner();

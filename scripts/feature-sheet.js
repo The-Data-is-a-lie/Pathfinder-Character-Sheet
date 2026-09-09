@@ -64,8 +64,13 @@ window.SheetFeatureSheet = (function () {
      * Feat numbering is positional, so leaving a list renumbers it for free. A kind
      * change re-tags the override, the custom-changes entry, and the disabled-source
      * sets so nothing detaches.
+     *
+     * `insertAt` is where in the target list to land. Omitted (this dialog's own move
+     * dropdown) it appends, as it always has; the Features-tab drag passes the index the row
+     * was actually dropped at, since a drop that ignored where you aimed it would be a worse
+     * gesture than the dialog it is meant to shortcut.
      */
-    function moveToGroup(data, ref, target) {
+    function moveToGroup(data, ref, target, insertAt) {
         const SD = window.SheetDetails;
         const name = ref.name;
         // Remove from the current home.
@@ -80,12 +85,21 @@ window.SheetFeatureSheet = (function () {
             if (idx < 0) return false;
             arr.splice(idx, 1);
         }
-        // Land in the new one.
+        // Land in the new one. `??=` is not enough to normalize the destination: some backend
+        // payloads send an empty feat bucket as the integer 0 rather than [], and 0 is neither
+        // null nor undefined, so it would survive and .push would throw.
+        const landIn = (key, value) => {
+            if (!Array.isArray(data[key])) data[key] = [];
+            const arr = data[key];
+            const i = Number.isInteger(insertAt) && insertAt >= 0 && insertAt <= arr.length
+                ? insertAt : arr.length;
+            arr.splice(i, 0, value);
+        };
         if (target.kind === 'classFeat') {
             const cls = String(data.c_class || 'class').toLowerCase().replace(/\s+/g, '');
-            (data.class_ability ??= []).push(name + '_' + cls);
+            landIn('class_ability', name + '_' + cls);
         } else {
-            (data[target.listKey] ??= []).push(name);
+            landIn(target.listKey, name);
         }
         if (target.kind !== ref.kind) {
             // Override entry: its key embeds the kind.
@@ -556,7 +570,7 @@ window.SheetFeatureSheet = (function () {
     }
 
     return {
-        openFeatureSheet, blankName, groupTargets,
+        openFeatureSheet, blankName, groupTargets, moveToGroup,
         buildFeatureBundle, applyFeatureBundle, openBundleImport, openCopyToCharacter,
     };
 })();
