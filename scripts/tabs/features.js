@@ -803,6 +803,25 @@ window.SheetTabFeatures = (function () {
         psychic_discipline: { label: 'Psychic Discipline', singular: 'Discipline' },
         phrenic_amplifications: { label: 'Phrenic Amplifications', singular: 'Amplification' },
         emotional_focus: { label: 'Phantom Emotional Focus', singular: 'Emotional Focus' },
+        // The fifteen buckets the module's CLASS_FEATURE_BUCKETS knew and this table did not
+        // (class-choices ticket 04, build slice 3). They already rendered -- unknown keys fall
+        // back to a prettified label -- so this is naming only: the same title and singular the
+        // module prints, so a pick reads the same on both sheets.
+        social_talents: { label: 'Social Talents', singular: 'Social Talent' },
+        armor_training: { label: 'Armor Training', singular: 'Armor Training' },
+        weapon_training: { label: 'Weapon Training', singular: 'Weapon Training' },
+        mercy: { label: 'Mercies', singular: 'Mercy' },
+        cruelty: { label: 'Cruelties', singular: 'Cruelty' },
+        ki_powers: { label: 'Ki Powers', singular: 'Ki Power' },
+        customizations: { label: 'Astral Suit Customizations', singular: 'Customization' },
+        insights: { label: 'Cryptic Insights', singular: 'Insight' },
+        terrors: { label: 'Terrors', singular: 'Terror' },
+        decrees: { label: 'Decrees', singular: 'Decree' },
+        strategies: { label: 'Strategies', singular: 'Strategy' },
+        blade_skills: { label: 'Blade Skills', singular: 'Blade Skill' },
+        warrior_path: { label: 'Warrior Path', singular: 'Warrior Path' },
+        vitalist_method: { label: 'Vitalist Method', singular: 'Method' },
+        combat_style: { label: 'Combat Style', singular: 'Combat Style' },
     };
     function classChoiceLabels(bucket) {
         const known = CLASS_CHOICE_BUCKETS[String(bucket).toLowerCase()];
