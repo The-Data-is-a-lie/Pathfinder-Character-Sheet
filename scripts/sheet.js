@@ -28,7 +28,12 @@
     // Static data tables, lifted into scripts/data.js (window.SheetData). The boot wires the
     // gen form from these option lists; the class/condition tables are consumed directly by the
     // summary/defenses/buffs tab modules.
-    const { REGIONS, RACES, CLASSES, CORE_RACES, CORE_CLASSES, DEITIES } = window.SheetData;
+    // The flat CLASSES list is deliberately NOT pulled in here any more: the gen form builds its
+    // class select from CLASS_GROUPS, and the three consumers that still want the flat roster
+    // (levelup.js, create.js, recipes-ui.js) read window.SheetData.CLASSES directly.
+    const {
+        REGIONS, RACES, CLASS_GROUPS, CORE_RACES, CORE_CLASSES, DEITIES,
+    } = window.SheetData;
 
     // Derived-stat math, lifted into scripts/derive.js (window.SheetDerive). Pulled back into
     // this scope so the many existing call sites (computeDerived, part, saveBuckets, …) stay
@@ -87,7 +92,7 @@
     // Generation form, lifted into scripts/generate.js (window.SheetGenerate). backendUrl /
     // togglePanel / FORM_KEY stay shell-owned and are reached via SheetApp.
     const {
-        fillSelect, fillGroupedSelect, buildPayload, quickLevelSelect, fillQuickLevel,
+        fillSelect, fillGroupedSelect, fillFamilySelect, buildPayload, quickLevelSelect, fillQuickLevel,
         applyQuickLevel, syncQuickLevel, applyGenPreset, surpriseMe, generate, loadJsonText,
     } = window.SheetGenerate;
 
@@ -749,7 +754,9 @@
         // the list instead of being buried alphabetically among 50 and 46 entries.
         fillGroupedSelect(form.elements.race, RACES, CORE_RACES, 'More races',
             (r) => r.toLowerCase().replace(/\s/g, '-'));
-        fillGroupedSelect(form.elements.class, CLASSES, CORE_CLASSES, 'More classes',
+        // Classes group by family (Paizo base / Path of War / Psionics / Occult / NPC), each with
+        // its own random roll — 70 entries in one alphabetical run was unusable.
+        fillFamilySelect(form.elements.class, CLASS_GROUPS, CORE_CLASSES,
             (c) => c.toLowerCase().replace(/\s/g, '-'));
         fillSelect(form.elements.deity, DEITIES);
         fillQuickLevel(form);
