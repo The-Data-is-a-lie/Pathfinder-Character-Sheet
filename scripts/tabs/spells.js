@@ -369,9 +369,48 @@ window.SheetTabSpells = (function () {
     // One expandable entry per spell: description plus a compact meta line (school /
     // action / save+DC / damage / range / duration). Reads resolveSpell (#108) so
     // per-character mechanics/description edits render and roll.
+    /**
+     * Mythic spell modes (tickets repo feature/mythic 05/06): `mythic.spell_annotations` is keyed
+     * by spells the character already knows -- an annotation, never a pick -- with `mythic_text`
+     * and sometimes `augmented`. Matched case-insensitively on the trimmed name because the
+     * backend keys by spells.csv's spelling and the list keys by the roster's.
+     */
+    function mythicAnnotationFor(data, name) {
+        const ann = data?.mythic?.spell_annotations;
+        if (!ann || typeof ann !== 'object') return null;
+        const want = String(name || '').trim().toLowerCase();
+        if (!want) return null;
+        for (const [k, v] of Object.entries(ann)) {
+            if (String(k).trim().toLowerCase() === want && v && typeof v === 'object') return v;
+        }
+        return null;
+    }
+    function mythicAnnotationHtml(ann) {
+        if (!ann) return '';
+        let out = '';
+        if (ann.mythic_text) {
+            out += `<p class="spell-mythic"><strong>Mythic:</strong> ${escapeHtml(ann.mythic_text)}</p>`;
+        }
+        if (ann.augmented) {
+            out += `<p class="spell-mythic"><strong>Augmented:</strong> ${escapeHtml(ann.augmented)}</p>`;
+        }
+        return out;
+    }
+    function withMythicChip(node, ann) {
+        if (!ann) return node;
+        const chip = h('span', 'feat-tag spell-mythic-chip', 'Mythic');
+        chip.title = 'This spell has a mythic version — open the entry for what changes';
+        (node.tagName === 'DETAILS' ? node.querySelector('summary') : node).appendChild(chip);
+        return node;
+    }
+
     function spellItem(data, name, dc) {
         const sd = window.SheetDetails?.resolveSpell?.(data, name) || foundry('spells', name);
-        if (!sd?.description && !sd?.actions?.length) return h('span', 'spell-name', name);
+        const ann = mythicAnnotationFor(data, name);
+        if (!sd?.description && !sd?.actions?.length) {
+            if (!ann) return h('span', 'spell-name', name);
+            return withMythicChip(details(name, mythicAnnotationHtml(ann), 'spell-details'), ann);
+        }
         const act = sd?.actions?.[0] || {};
         const dmgParts = (act.damage?.parts || [])
             .map((p) => {
@@ -401,7 +440,7 @@ window.SheetTabSpells = (function () {
         const desc = sd?.description
             ? enrichSpellHtml(sd.description)
             : '<p class="dim">No description on file.</p>';
-        return details(name, metaHtml + desc, 'spell-details');
+        return withMythicChip(details(name, metaHtml + mythicAnnotationHtml(ann) + desc, 'spell-details'), ann);
     }
 
     /**
