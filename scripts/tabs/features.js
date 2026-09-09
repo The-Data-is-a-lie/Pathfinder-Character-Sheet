@@ -460,7 +460,11 @@ window.SheetTabFeatures = (function () {
         const owned = arrField(data, 'feats').length;
         // PF1 feats at 1, 3, 5, … — off TOTAL level, not `level` (the primary class's level), which
         // told a level-20 multiclass character it was owed 4 feats and flagged the rest as "Excess".
-        const byLevel = Math.ceil(totalLevel(data) / 2);
+        // Mythic feats arrive in `feats` ("Cleave (Mythic)") and are owed by the tier, not the
+        // level -- the Foundry module raises the pf1 feat allowance by the same count. Without
+        // this a tier-3 character reads as two feats in Excess.
+        const mythicFeats = Array.isArray(data.mythic?.mythic_feats) ? data.mythic.mythic_feats.length : 0;
+        const byLevel = Math.ceil(totalLevel(data) / 2) + mythicFeats;
         let bonus = 0;
         for (const g of FEAT_GROUPS) {
             if (g.listKey === 'feats') continue;
@@ -476,7 +480,11 @@ window.SheetTabFeatures = (function () {
         const joined = h('div', 'feat-count-joined');
         // "Advancement", not "Feats": this box counts data.feats alone and is the one compared
         // against By level for the Missing/Excess badge. The Bonus box beside it is feats too.
-        joined.append(box('Advancement', owned), box('By level', byLevel),
+        const byLevelBox = box('By level', byLevel);
+        if (mythicFeats) {
+            byLevelBox.title = `${Math.ceil(totalLevel(data) / 2)} by character level + ${mythicFeats} mythic`;
+        }
+        joined.append(box('Advancement', owned), byLevelBox,
             box('Bonus', bonus), box('Total', owned + bonus));
         wrap.appendChild(joined);
         if (byLevel > 0 && owned !== byLevel) {
@@ -1001,6 +1009,7 @@ window.SheetTabFeatures = (function () {
 
         // Foundry-style chosen class options: one parent group per class_features bucket
         // with each selected option as an indented sub-row (expandable when it has text).
+        let mythicLedgerShown = false;
         for (const [bucket, choices] of cfBuckets) {
             const { label, singular } = classChoiceLabels(bucket);
             // Mythic buckets stamp class_feature_levels with a TIER, not a character level
@@ -1033,6 +1042,18 @@ window.SheetTabFeatures = (function () {
             groupLi.appendChild(h('span', 'feat-tag feat-choice-chip',
                 isMythic ? mythicChip : 'Class Choice'));
             ul.appendChild(groupLi);
+            // The backend's decision ledger -- which picks were made under the tier and the
+            // drawbacks-for-boons arithmetic -- pre-rendered as HTML so both renderers show the
+            // same working. Once, on the first mythic bucket; the Foundry module puts it on the
+            // path's class item, which this sheet has no equivalent of.
+            if (isMythic && !mythicLedgerShown && typeof data.mythic?.ledger_html === 'string'
+                && data.mythic.ledger_html.trim()) {
+                mythicLedgerShown = true;
+                const li = h('li', 'feat-subitem');
+                li.appendChild(details('Mythic ledger — how the path was built',
+                    data.mythic.ledger_html, 'feat-subitem-details mythic-ledger'));
+                ul.appendChild(li);
+            }
             const bucketLevels = data.class_feature_levels?.[bucket] || {};
             for (const [choiceName, desc] of Object.entries(choices)) {
                 const li = h('li', 'feat-subitem');

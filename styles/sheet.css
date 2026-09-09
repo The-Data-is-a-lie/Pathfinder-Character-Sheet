@@ -6277,3 +6277,11 @@ body.is-offline .pa-generate {
 .luck-audit th, .luck-audit td { padding: 0.15rem 0.5rem; border-bottom: 1px solid var(--rule); text-align: right; }
 .luck-audit th:first-child, .luck-audit td:first-child { text-align: left; }
 .luck-ekat-line { margin: 0.2rem 0 0.4rem; font-size: 0.85rem; }
+
+/* ============================================================ mythic (tickets repo feature/mythic) */
+/* A known spell with a mythic mode: one chip on the row, the mode's text at the top of the entry. */
+.spell-mythic-chip { margin-left: 0.35rem; font-size: 0.68rem; vertical-align: middle; }
+.spell-mythic { border-left: 3px solid var(--accent); padding-left: 0.5rem; margin: 0.3rem 0; }
+/* The backend's decision ledger under the Mythic band: a small table of picks and arithmetic. */
+.mythic-ledger table { border-collapse: collapse; font-size: 0.83rem; }
+.mythic-ledger td, .mythic-ledger th { padding: 0.1rem 0.5rem; border-bottom: 1px solid var(--rule); text-align: left; }
