@@ -908,8 +908,14 @@ window.SheetRoll = (function () {
             return { value: n, note: '' };
         };
 
+        // #22: weapon-dice multiplier from a mounted charge — additive with the crit multiplier
+        // per PF1 (×2 crit + ×2 lance = ×3), applied by rollDamage to the weapon dice only.
+        let diceMult = 1;
         for (const cond of scopedList(opts.itemKey)) {
             if (cond.rider) riders.push({ source: cond.source, text: cond.rider });
+            if (kind === 'damage' && cond.mountedCharge) {
+                diceMult = Math.max(diceMult, mountedChargeMult(opts.weaponName, opts.ranged));
+            }
             for (const m of cond.modifiers || []) {
                 const tgt = m.subTarget || m.target || '';
                 const isAtk = isAttackTarget(tgt) || (m.target === 'attack');
@@ -971,7 +977,21 @@ window.SheetRoll = (function () {
                 }
             }
         }
-        return { flat, bits, diceParts, riders };
+        return { flat, bits, diceParts, riders, diceMult };
+    }
+
+    /**
+     * Mounted charge (#22): a lance deals double damage from a charging mount; Spirited Charge
+     * makes that triple and doubles every other melee weapon. Ranged weapons never multiply.
+     * Detected off the weapon's base name — "Lance", "Lance [+1, keen]" and the compendium's
+     * "lance" all match; a homebrew "Lancet" does not.
+     */
+    function mountedChargeMult(weaponName, ranged) {
+        if (ranged) return 1;
+        const lance = /\blance\b/i.test(String(weaponName || ''));
+        const spirited = !!(currentData && hasFeat(currentData, 'Spirited Charge'));
+        if (lance) return spirited ? 3 : 2;
+        return spirited ? 2 : 1;
     }
 
     function rollConditionalDice(diceParts) {
@@ -2175,8 +2195,11 @@ window.SheetRoll = (function () {
         const w = ctx.wStats;
         const cond = evaluateConditionals('damage',
             { isCrit: isCrit || critMult > 1, itemKey: ctx.itemKey,
-                ranged: ctx.ranged, grip: grip || weaponGrip(ctx) });
+                ranged: ctx.ranged, grip: grip || weaponGrip(ctx), weaponName: ctx.wName });
         const condDice = rollConditionalDice(cond.diceParts);
+        // Weapon-dice multiplier: crit and mounted-charge multipliers ADD per PF1 (×2 + ×2 = ×3).
+        const chargeMult = cond.diceMult || 1;
+        const wMult = critMult + (chargeMult - 1);
 
         if (!w?.dice && !w?.parts?.length) {
             if (!cond.flat && !condDice.total) {
@@ -2196,7 +2219,7 @@ window.SheetRoll = (function () {
                 const parsed = parseFormula(p.dice);
                 if (!parsed.ok) continue;
                 const r = rollTerms(parsed.terms);
-                const sub = r.total * critMult;
+                const sub = r.total * wMult;
                 diceTotal += sub;
                 const energyType = (p.types || []).map((x) => String(x).toLowerCase())
                     .find((x) => ENERGY_TYPE_SET.has(x));
@@ -2209,7 +2232,7 @@ window.SheetRoll = (function () {
                 }
                 const rolls = r.parts.filter((x) => x.kind === 'dice').flatMap((x) => x.rolls);
                 const shown = rolls.length ? '[' + rolls.join(', ') + ']' : p.dice;
-                const mult = critMult > 1 ? `×${critMult}` : '';
+                const mult = wMult > 1 ? `×${wMult}` : '';
                 const types = (p.types || []).join(', ');
                 parts.push({
                     label: (p.dice || 'weapon') + mult + (types ? ' ' + types : ''),
@@ -2235,6 +2258,10 @@ window.SheetRoll = (function () {
             else typed.phys += p.total;
         }
 
+        if (chargeMult > 1) {
+            parts.push({ label: 'Mounted charge', detail: `weapon dice ×${chargeMult}`
+                + (critMult > 1 ? ` (+ crit ×${critMult} = ×${wMult})` : '') });
+        }
         if (abMod) parts.push({ label: (w.damageAbility || 'str').toUpperCase(), value: abMod });
         if (ctx.enh) parts.push({ label: 'Enhancement', value: ctx.enh });
         for (const b of ctx.dmgChanges.bits) parts.push({ label: b.source, value: b.value });

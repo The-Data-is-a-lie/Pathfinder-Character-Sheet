@@ -281,6 +281,19 @@ window.SheetTabCompanions = (function () {
         comp.cmb ??= 0;
         comp.cmd ??= 10;
         comp.skills ??= [];
+        // #22: what the master's shared buffs add to this creature right now. Folded in HERE,
+        // at display and roll time — the stored numbers above stay the creature's own, so the
+        // editors keep editing the base and unticking the buff undoes everything at once.
+        const CS = window.SheetCompanionShare;
+        const shared = CS?.sharedBonuses?.(data) || null;
+        const plus = (field) => (shared ? Number(shared[field]) || 0 : 0);
+        const badge = (field) => {
+            const n = plus(field);
+            if (!n) return null;
+            const b = h('span', 'companion-shared', fmt(n));
+            b.title = 'Shared buffs: ' + CS.describe(shared, field);
+            return b;
+        };
         const box = h('div', 'companion-block');
         const head = h('div', 'companion-head');
         const nameBag = { v: comp.name };
@@ -289,6 +302,11 @@ window.SheetTabCompanions = (function () {
             parse: (s) => String(s),
             onChange: (v) => { comp.name = String(v || '').trim() || comp.name; quietSave(); },
         }));
+        if (CS?.mountOf?.(data)?.id === comp.id) {
+            const ridden = h('span', 'feat-tag companion-ridden', '🐎 ridden');
+            ridden.title = 'The master is mounted on this creature (Buffs tab → Mounted chip)';
+            head.appendChild(ridden);
+        }
         const typeSel = h('select', 'edit-field companion-type');
         for (const t of COMPANION_TYPES) {
             const opt = document.createElement('option');
@@ -317,15 +335,19 @@ window.SheetTabCompanions = (function () {
 
         // vitals strip: HP / AC / saves / speed — all editable, saves rollable
         const vitals = h('div', 'companion-vitals');
-        const vital = (label, node, rollBonus, rollLabel) => {
+        // `field` names the shared-bonus bucket: the badge shows it, the roll adds it.
+        const vital = (label, node, rollBonus, rollLabel, field) => {
             const cell = h('span', 'companion-vital');
             cell.appendChild(h('span', 'companion-vital-label', label));
             cell.appendChild(node);
+            const sb = field ? badge(field) : null;
+            if (sb) cell.appendChild(sb);
             if (rollBonus != null) {
                 const b = h('button', 'inv-btn companion-roll', '🎲');
                 b.type = 'button';
                 b.title = 'Roll ' + rollLabel;
-                b.addEventListener('click', () => logRoll(comp.name, rollLabel, rollBonus()));
+                b.addEventListener('click', () => logRoll(comp.name, rollLabel,
+                    (Number(rollBonus()) || 0) + (field ? plus(field) : 0)));
                 cell.appendChild(b);
             }
             vitals.appendChild(cell);
@@ -333,14 +355,14 @@ window.SheetTabCompanions = (function () {
         const hpPair = h('span', 'companion-hp');
         hpPair.append(editNum(comp.hp, 'current'), ' / ', editNum(comp.hp, 'max'));
         vital('HP', hpPair);
-        vital('AC', editNum(comp, 'ac'));
-        vital('Touch', editNum(comp, 'touch'));
-        vital('FF', editNum(comp, 'ff'));
-        vital('Fort', editNum(comp.saves, 'fort'), () => comp.saves.fort, 'Fortitude save');
-        vital('Ref', editNum(comp.saves, 'ref'), () => comp.saves.ref, 'Reflex save');
-        vital('Will', editNum(comp.saves, 'will'), () => comp.saves.will, 'Will save');
-        vital('CMB', editNum(comp, 'cmb'), () => comp.cmb, 'combat manoeuvre');
-        vital('CMD', editNum(comp, 'cmd'));
+        vital('AC', editNum(comp, 'ac'), null, null, 'ac');
+        vital('Touch', editNum(comp, 'touch'), null, null, 'touch');
+        vital('FF', editNum(comp, 'ff'), null, null, 'ff');
+        vital('Fort', editNum(comp.saves, 'fort'), () => comp.saves.fort, 'Fortitude save', 'fort');
+        vital('Ref', editNum(comp.saves, 'ref'), () => comp.saves.ref, 'Reflex save', 'ref');
+        vital('Will', editNum(comp.saves, 'will'), () => comp.saves.will, 'Will save', 'will');
+        vital('CMB', editNum(comp, 'cmb'), () => comp.cmb, 'combat manoeuvre', 'cmb');
+        vital('CMD', editNum(comp, 'cmd'), null, null, 'cmd');
         // Speed is FREE TEXT, not a number: the backend ships prose ('10 ft. , fly 80 ft. (average)')
         // and the second number is the one a bird companion's player actually needs. Rows saved
         // before this carry speed: 40, which stringifies unchanged.
@@ -397,6 +419,8 @@ window.SheetTabCompanions = (function () {
             }));
             const atkWrap = h('span');
             atkWrap.append('atk ', editNum(line, 'atk'));
+            const atkBadge = badge('attack');
+            if (atkBadge) atkWrap.appendChild(atkBadge);
             row.appendChild(atkWrap);
             const dmgBag = { v: line.dmg };
             const dmgWrap = h('span');
@@ -405,13 +429,25 @@ window.SheetTabCompanions = (function () {
                 parse: (s) => String(s),
                 onChange: (v) => { line.dmg = String(v || '').trim() || line.dmg; quietSave(); },
             }));
+            const dmgBadge = badge('damage');
+            if (dmgBadge) dmgWrap.appendChild(dmgBadge);
             row.appendChild(dmgWrap);
             const atkBtn = h('button', 'inv-btn companion-roll', 'Attack');
             atkBtn.type = 'button';
-            atkBtn.addEventListener('click', () => logRoll(comp.name, line.name + ' attack', line.atk));
+            atkBtn.addEventListener('click', () => logRoll(comp.name, line.name + ' attack',
+                (Number(line.atk) || 0) + plus('attack')));
             const dmgBtn = h('button', 'inv-btn companion-roll', 'Damage');
             dmgBtn.type = 'button';
-            dmgBtn.addEventListener('click', () => logDamage(comp.name, line.dmg));
+            dmgBtn.addEventListener('click', () => {
+                // A prose line ('—') has nothing to roll; leave it to the log's own error.
+                const extra = plus('damage');
+                const f = String(line.dmg || '').trim();
+                // Generated lines carry a '/×2' crit suffix after the dice; the bonus goes before it.
+                const [core, ...rest] = f.split('/');
+                logDamage(comp.name, extra && /\d/.test(core)
+                    ? core + fmt(extra) + (rest.length ? '/' + rest.join('/') : '')
+                    : f);
+            });
             const rm = h('button', 'inv-btn inv-btn-danger', '×');
             rm.type = 'button';
             rm.addEventListener('click', () => {
@@ -451,6 +487,28 @@ window.SheetTabCompanions = (function () {
         if (!list.length) {
             body.appendChild(h('p', 'tools-empty',
                 'No companions yet — add one below. (Familiars seed half the master’s HP.)'));
+        }
+        // #22: one line naming the shared buffs in force, and what they could not carry over.
+        const CS = window.SheetCompanionShare;
+        const sharedList = CS?.sharedBuffs?.(data) || [];
+        if (list.length && sharedList.length) {
+            const bonuses = CS.sharedBonuses(data);
+            const FIELD_LABEL = { attack: 'attack', damage: 'damage', ac: 'AC', touch: 'touch AC',
+                ff: 'flat-footed AC', fort: 'Fort', ref: 'Ref', will: 'Will', cmb: 'CMB', cmd: 'CMD' };
+            const got = CS.FIELDS.filter((f) => bonuses[f])
+                .map((f) => `${fmt(bonuses[f])} ${FIELD_LABEL[f] || f}`);
+            const line = h('p', 'dim companion-shared-summary');
+            line.textContent = 'Shared from ' + (data.character_full_name || 'the master') + ': '
+                + sharedList.map((b) => b.name).join(', ')
+                + (got.length ? ` → ${got.join(', ')} on every companion.` : '.');
+            if (bonuses.ignored.length) {
+                const skipped = [...new Set(bonuses.ignored.map((x) =>
+                    `${window.SheetDetails?.targetLabel?.(x.target) || x.target || '?'} (${x.source})`))];
+                line.appendChild(h('span', 'companion-shared-skipped',
+                    ' Not carried over — a companion block stores totals, not a build: '
+                    + skipped.join(', ') + '.'));
+            }
+            body.appendChild(line);
         }
         list.forEach((comp, i) => body.appendChild(renderCompanionBlock(data, comp, i)));
 

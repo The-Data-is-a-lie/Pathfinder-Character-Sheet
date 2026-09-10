@@ -6298,3 +6298,27 @@ body.is-offline .pa-generate {
 .gen-advanced .gen-check { display: flex; align-items: center; gap: 0.4rem; }
 .gen-advanced .gen-check-sub { padding-left: 1.4rem; }
 .gen-advanced .gen-check input[type="checkbox"]:disabled + * , .gen-advanced .gen-check:has(input:disabled) { opacity: 0.6; }
+
+/* ---- #22 companion-adjacent play: shared buffs + mounted ------------------------------ */
+/* The shared-bonus badge sits after the editable base number: the base stays the creature's
+   own (and stays editable), the badge is what the master's buffs add right now. */
+.companion-shared {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent-dark);
+    margin-left: 0.15rem;
+    cursor: help;
+}
+.companion-ridden { font-weight: 600; }
+.companion-shared-summary { margin: 0.2rem 0 0.4rem; font-size: 0.85rem; }
+.companion-shared-skipped { font-style: italic; }
+.mounted-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: -0.35rem 0 0.75rem;
+}
+.mounted-chip:disabled { opacity: 0.55; cursor: not-allowed; }
+.mounted-select { font-size: 0.8rem; }
+.speed-mount-note { white-space: nowrap; }

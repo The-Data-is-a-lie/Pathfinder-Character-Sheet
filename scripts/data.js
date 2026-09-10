@@ -202,6 +202,22 @@ window.SheetData = (function () {
             acChanges: [{ formula: '-2', target: 'ac', type: 'penalty' }],
         },
         {
+            // #22: listed only while `_sheet.mounted` names a companion (collectRollConditionals
+            // honours `requires`). `mountedCharge` is read by rollDamage: a lance's weapon dice
+            // double (triple with Spirited Charge, which also doubles any other melee weapon).
+            id: 'combat:mounted-charge', name: 'Mounted charge',
+            label: 'Mounted charge: +2 melee attack, −2 AC until your next turn; a lance deals double damage',
+            requires: 'mounted',
+            autoExpire: 'round',
+            mountedCharge: true,
+            rider: 'Mounted charge: the mount charges and you strike at the end of its move. '
+                + 'A lance deals double damage from a charging mount (triple with Spirited Charge, '
+                + 'which also doubles any other melee weapon). Ride DC 15 as an immediate action '
+                + 'to negate a hit on the mount.',
+            modifiers: [{ formula: '2', target: 'mattack', type: 'untyped' }],
+            acChanges: [{ formula: '-2', target: 'ac', type: 'penalty' }],
+        },
+        {
             id: 'combat:haste', name: 'Haste',
             label: 'Haste: +1 attack, +1 dodge AC & Reflex; extra attack on a full attack',
             rider: 'Haste: one extra attack at your highest bonus when making a full attack.',

@@ -119,6 +119,16 @@ window.SheetModals = (function () {
         activSel.addEventListener('change', syncWeaponSel);
         syncWeaponSel();
 
+        // #22: share with companions — the companion cards fold this buff's attack / damage /
+        // AC / save / CMB / CMD changes in while it is active (evaluated against the master).
+        const shareCb = document.createElement('input');
+        shareCb.type = 'checkbox';
+        shareCb.className = 'buff-share-companions';
+        shareCb.checked = buff.shareWithCompanions === true;
+        shareCb.title = 'Also apply this buff\'s attack, damage, AC, save, CMB and CMD changes '
+            + 'to every companion card (Inspire Courage, Prayer, Haste on the whole party). '
+            + 'Formulas read the master\'s stats.';
+
         addField('Category', subSel);
         addField('Caster level', levelIn);
         addField('Duration', durVal);
@@ -126,6 +136,7 @@ window.SheetModals = (function () {
         addField('Sets size', sizeSel);
         addField('Activation', activSel);
         addField('Weapon scope', weaponSel);
+        addField('Share with companions', shareCb);
         panel.appendChild(meta);
 
         const notesIn = h('textarea', 'edit-field buff-editor-notes');
@@ -146,10 +157,11 @@ window.SheetModals = (function () {
             buff.notes = notesIn.value || '';
             buff.activation = activSel.value === 'perRoll' ? 'perRoll' : 'always';
             buff.itemKey = buff.activation === 'perRoll' ? (weaponSel.value || '') : '';
+            buff.shareWithCompanions = shareCb.checked;
             quietSave();
             refreshDerived();
         };
-        for (const ctl of [subSel, levelIn, durVal, durUnit, sizeSel, activSel, weaponSel, notesIn]) {
+        for (const ctl of [subSel, levelIn, durVal, durUnit, sizeSel, activSel, weaponSel, shareCb, notesIn]) {
             ctl.addEventListener('change', commitMeta);
         }
 
