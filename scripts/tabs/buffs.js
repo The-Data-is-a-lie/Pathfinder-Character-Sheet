@@ -306,14 +306,73 @@ window.SheetTabBuffs = (function () {
             grid.appendChild(btn);
         }
         body.appendChild(grid);
+        renderMountedRow(body, data);
         const activeList = PF1_CONDITIONS.filter((c) => active.has(c.id));
-        if (activeList.length) {
-            body.appendChild(h('p', 'conditions-active-summary',
-                'Active: ' + activeList.map((c) => {
-                    const d = st.conditionDurations[c.id];
-                    return c.label + (d ? ` (${d})` : '');
-                }).join(', ')));
+        const mount = window.SheetCompanionShare?.mountOf?.(data);
+        if (activeList.length || mount) {
+            const bits = activeList.map((c) => {
+                const d = st.conditionDurations[c.id];
+                return c.label + (d ? ` (${d})` : '');
+            });
+            if (mount) bits.push(`Mounted on ${mount.name}`);
+            body.appendChild(h('p', 'conditions-active-summary', 'Active: ' + bits.join(', ')));
         }
+    }
+
+    /**
+     * #22: the Mounted chip. A state, not a condition — it lives in `_sheet.mounted` (the
+     * companion's id) rather than the conditions list, because it carries no penalties of its
+     * own: Summary shows the mount's speed, the conditional panel gains "Mounted charge", and
+     * the Ride / cover rules stay prose in the chip's tooltip, per the conditions precedent.
+     * One companion → the chip mounts it directly; several → a picker appears beside it.
+     */
+    function renderMountedRow(body, data) {
+        const CS = window.SheetCompanionShare;
+        if (!CS) return;
+        const st = sheetState(data);
+        const mounts = CS.rideable(data);
+        const mount = CS.mountOf(data);
+        // A mount that was deleted on the Companions tab leaves a dangling id — drop it.
+        if (st.mounted && !mount) { st.mounted = ''; quietSave(); }
+        const row = h('div', 'mounted-row no-print');
+        const chip = h('button', 'condition-chip mounted-chip' + (mount ? ' is-active' : ''),
+            mount ? `🐎 Mounted on ${mount.name}` : '🐎 Mounted');
+        chip.type = 'button';
+        chip.setAttribute('aria-pressed', mount ? 'true' : 'false');
+        chip.disabled = !mounts.length;
+        chip.title = CS.MOUNTED_RULES + (mounts.length
+            ? (mount ? ' — click to dismount' : ' — click to mount up')
+            : ' — add a companion on the Companions tab first');
+        chip.addEventListener('click', () => {
+            st.mounted = mount ? '' : (mounts[0]?.id || '');
+            quietSave();
+            renderSheet(data);
+            setActiveTab('buffs');
+        });
+        row.appendChild(chip);
+        if (mounts.length > 1) {
+            const sel = h('select', 'edit-field mounted-select');
+            sel.title = 'Which companion you are riding';
+            const none = document.createElement('option');
+            none.value = '';
+            none.textContent = '— on foot —';
+            sel.appendChild(none);
+            for (const c of mounts) {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = `${c.name} (${c.type})`;
+                if (mount && mount.id === c.id) opt.selected = true;
+                sel.appendChild(opt);
+            }
+            sel.addEventListener('change', () => {
+                st.mounted = sel.value || '';
+                quietSave();
+                renderSheet(data);
+                setActiveTab('buffs');
+            });
+            row.appendChild(sel);
+        }
+        body.appendChild(row);
     }
     const PASSIVE_KIND_TAGS = {
         feat: 'Feat', trait: 'Trait', classFeat: 'Class', item: 'Item', talent: 'Talent',
@@ -482,6 +541,12 @@ window.SheetTabBuffs = (function () {
                         const tag = h('span', 'feat-tag buff-kind-tag', 'per-roll');
                         tag.title = 'Rolls only: toggle it in the conditional panel '
                             + '(Custom group) before an attack';
+                        nameCell.appendChild(tag);
+                    }
+                    if (buff.shareWithCompanions) {
+                        const tag = h('span', 'feat-tag buff-kind-tag buff-shared-tag', 'shared');
+                        tag.title = 'Also applied to every companion card while active '
+                            + '(Edit → Share with companions)';
                         nameCell.appendChild(tag);
                     }
                     const bits = (buff.changes || []).map((c) => formatChangeLine(c, SD)).join('; ');

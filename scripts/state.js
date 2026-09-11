@@ -377,6 +377,10 @@ window.SheetState = (function () {
             // #45: set on buffs auto-created by a spell cast ('spell:<name lowercased>').
             // Recasting matches on it and refreshes instead of stacking a duplicate.
             autoKey: typeof b.autoKey === 'string' ? b.autoKey : '',
+            // #22: also applied to every companion card (attack/damage/AC/saves/CMB/CMD),
+            // folded in at display time by SheetCompanionShare — the stored companion block
+            // is never mutated, so unticking restores it instantly.
+            shareWithCompanions: b.shareWithCompanions === true,
         };
     }
     /**

@@ -328,6 +328,17 @@ window.SheetTabSummary = (function () {
                     node.appendChild(mark);
                 }
             }
+            // #22: riding — the mount moves, so the mount's speed is the one that matters.
+            // Shown beside the character's own, never written over it (dismount restores nothing
+            // because nothing changed).
+            const mount = key === 'land' ? window.SheetCompanionShare?.mountOf?.(data) : null;
+            if (mount) {
+                const sp = String(mount.speed ?? '').trim();
+                const shown = /^\d+$/.test(sp) ? sp + ' ft' : (sp || '?');
+                const mark = h('span', 'speed-load-note speed-mount-note', ` 🐎 ${shown}`);
+                mark.title = `Mounted on ${mount.name}: you move at the mount's speed (${shown}).`;
+                node.appendChild(mark);
+            }
             if (key === 'fly') {
                 const sel = h('select', 'edit-field fly-maneuver-select');
                 for (const m of ['—', 'clumsy', 'poor', 'average', 'good', 'perfect']) {

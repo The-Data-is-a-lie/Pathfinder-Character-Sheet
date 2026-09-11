@@ -777,6 +777,12 @@ window.SheetDetails = (function () {
      * Unified per-roll toggles for this character (Foundry attack-dialog conditionals).
      * Returns [{ id, label, sourceKind, defaultOn, modifiers, rider, source }].
      */
+    /** `requires: 'mounted'` — the only gate a combat toggle has (#22). */
+    function combatToggleAvailable(t, data) {
+        if (t?.requires === 'mounted') return !!window.SheetCompanionShare?.isMounted?.(data);
+        return true;
+    }
+
     function collectRollConditionals(data) {
         if (!data) return [];
         const out = [];
@@ -793,6 +799,9 @@ window.SheetDetails = (function () {
         // roll card, it doesn't gatekeep. The checked ones also dual-write their standing
         // `acChanges` into collectChanges' ledger (sourceKind 'combat').
         for (const t of window.SheetData?.COMBAT_TOGGLES || []) {
+            // #22: a toggle that only makes sense in a state the sheet tracks (Mounted charge
+            // while riding) is hidden — not disabled — outside it.
+            if (!combatToggleAvailable(t, data)) continue;
             push({
                 id: t.id,
                 label: t.label || t.name,
@@ -801,6 +810,7 @@ window.SheetDetails = (function () {
                 defaultOn: false,
                 modifiers: t.modifiers || [],
                 rider: t.rider || '',
+                mountedCharge: !!t.mountedCharge,
             });
         }
 
@@ -1277,6 +1287,8 @@ window.SheetDetails = (function () {
         const togglePrefs = data._sheet?.conditionalPrefs || {};
         for (const t of window.SheetData?.COMBAT_TOGGLES || []) {
             if (!togglePrefs[t.id] || !t.acChanges?.length) continue;
+            // Dismounting with Mounted charge still ticked must drop its −2 AC too.
+            if (!combatToggleAvailable(t, data)) continue;
             pushEntry(ledger, t.name, 'combat', { changes: t.acChanges });
         }
 
