@@ -127,6 +127,32 @@ window.SheetDetails = (function () {
         return hit ?? null;
     }
 
+    // #139: the level a spell is learned at for one class, from the compendium's `learnedAt`
+    // ({ wizard: 3, sorcerer: 3, … }, keyed by pf1 class tag). The book's class is whatever the
+    // spellbook calls itself ("Wizard", "Summoner (Unchained)", "Wizard — evoker"), so it is
+    // reduced to letters and matched exactly first, then by the longest tag it contains.
+    // Returns { level, classKey } or null: no such spell, no learnedAt (custom, most psionic
+    // powers), or the class is not on the spell's list (domain / bloodline / patron picks).
+    const SPELL_CLASS_ALIASES = {
+        unchainedsummoner: 'summonerUnchained', summonerunchained: 'summonerUnchained',
+    };
+    function spellLevelFor(name, bookClass) {
+        const la = lookup('spells', name)?.learnedAt;
+        if (!la || typeof la !== 'object') return null;
+        const want = String(bookClass || '').toLowerCase().replace(/[^a-z]/g, '');
+        if (!want) return null;
+        const keys = Object.keys(la);
+        const norm = (k) => k.toLowerCase().replace(/[^a-z]/g, '');
+        let key = keys.find((k) => norm(k) === want)
+            ?? keys.find((k) => k === SPELL_CLASS_ALIASES[want]);
+        if (key === undefined) {
+            key = keys.filter((k) => want.includes(norm(k)))
+                .sort((a, b) => b.length - a.length)[0];
+        }
+        const level = key === undefined ? NaN : Number(la[key]);
+        return Number.isInteger(level) && level >= 0 && level <= 9 ? { level, classKey: key } : null;
+    }
+
     // Class features are stored as arrays (same feature name across several classes), and
     // parenthetical variants ("Bonus Feats (Ftr)" / "(Wiz)" / ...) are separate keys — gather
     // every candidate, then prefer the entry owned by one of the character's classes.
@@ -1714,6 +1740,6 @@ window.SheetDetails = (function () {
         collectRollConditionals, normalizeInventoryEntry, powNorm,
         parseEnhancements, lookupEnhancement, collectEnhancements, coreGearItemKey,
         targetLabel, typeLabel, evalSimpleFormula, changesForTargets,
-        searchCatalog, catalogKinds, eachCatalogEntry, classFeaturesAtLevel,
+        searchCatalog, catalogKinds, eachCatalogEntry, classFeaturesAtLevel, spellLevelFor,
     };
 })();

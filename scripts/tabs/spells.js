@@ -19,6 +19,7 @@ window.SheetTabSpells = (function () {
     } = window.SheetState;
     const { sectionCatalogToolbar } = window.SheetModals;
     const { spellSlotShapeOf, standardSpellSlots, abilityBonusSlots } = window.SheetData;
+    const toast = (text, opts) => window.SheetOverlay?.toast(text, opts);
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
 
@@ -793,9 +794,12 @@ window.SheetTabSpells = (function () {
         wrap.appendChild(h('p', 'dim',
             `Basic save DC = 10 + spell level + ${bk.castAb.toUpperCase()} (${fmt(bk.castMod)}) — listed on each level box.`));
 
-        // Add spell from catalog to a chosen level
+        // Add spell from catalog. #139: a catalog spell files under the level it is learned at
+        // for this book's class (learnedAt); the dropdown is only the level for custom / blank
+        // spells, and the fallback when the class is not on the spell's list.
+        const bookClass = bk.legacy ? String(data.c_class || '') : String(bk.name || '');
         const levelSel = h('select', 'edit-field');
-        levelSel.title = 'Spell level for new spells';
+        levelSel.title = 'Spell level for custom spells, and for catalog spells not on this class’s list';
         for (let lv = 0; lv <= 9; lv++) {
             const opt = document.createElement('option');
             opt.value = String(lv);
@@ -820,7 +824,21 @@ window.SheetTabSpells = (function () {
                 kinds: ['spells'],
                 allowCustom: true,
                 customPlaceholder: 'Custom spell name',
-                onPick: (hit) => addSpellAt(parseInt(levelSel.value, 10) || 0, hit.name),
+                subtitle: (hit) => {
+                    const school = SPELL_SCHOOLS[hit.subtitle] || hit.subtitle || '';
+                    const at = window.SheetDetails?.spellLevelFor?.(hit.name, bookClass);
+                    const lv = at ? `${titleCase(bookClass)} ${at.level}` : '';
+                    return [school, lv].filter(Boolean).join(' · ');
+                },
+                onPick: (hit) => {
+                    const at = window.SheetDetails?.spellLevelFor?.(hit.name, bookClass);
+                    const lv = at ? at.level : (parseInt(levelSel.value, 10) || 0);
+                    addSpellAt(lv, hit.name);
+                    if (!at) {
+                        toast(`${hit.name} isn’t on the ${titleCase(bookClass) || 'book’s'} list, `
+                            + `so it went under level ${lv} (the level picker).`);
+                    }
+                },
                 onCustom: (name) => addSpellAt(parseInt(levelSel.value, 10) || 0, name),
             },
             importBundles: data,
