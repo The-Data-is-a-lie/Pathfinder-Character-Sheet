@@ -1,0 +1,1012 @@
+{
+ "class features": {
+  "armor_training": {
+   "armor specialization (ex)": {
+    "description": "the fighter selects one specific type of armor with which he is proficient, such as chain shirts or scale mail. While wearing the selected type of armor, the fighter adds one-quarter of his fighter level to the armors armor bonus, up to a maximum bonus of +3 for light armor, +4 for medium armor, or +5 for heavy armor. This increase to the armor bonus doesnt increase the benefit that the fighter gains from feats, class abilities, or other effects that are determined by his armors base armor bonus, including other advanced armor training options. A fighter can choose this option multiple times. Each time he chooses it, he applies its benefit to a different type of armor. "
+   }
+  },
+  "Mythic": {
+   "Hierophant, Mythic Tier 3": {
+    "benefit": "Mythic path Hierophant, tier 3. Power pool 9/day, surge 1d6, +3 on initiative checks, +12 bonus HP, +2 STR from the even-tier increases. One path ability per tier; mythic feats at tiers 1/3/5/7/9.",
+    "choices": "<p><strong>Tier 1 -- Path feature.</strong> Divine Surge: Beast's Fury</p><p><strong>Tier 1 -- Path ability.</strong> Display of Wisdom</p><p><strong>Tier 1 -- Mythic flaw.</strong> Cursed</p><p><strong>Tier 1 -- Mythic boon.</strong> Beloved</p><p><strong>Tier 1 -- Mythic quality.</strong> Challenged Duelist</p><p><strong>Tier 1 -- Mythic feat.</strong> Cleave (Mythic)</p><p><strong>Tier 2 -- Path ability.</strong> Voice of the Spire (Su) [Mordant Spire]</p><p><strong>Tier 3 -- Path ability.</strong> Flexible Counterspell</p><p><strong>Tier 3 -- Mythic feat.</strong> Mythic Crafter</p><p><strong>Even-tier ability increases.</strong> +2 STR</p>",
+    "tradition": "<p><strong>Tradition -- the trade.</strong> 1 drawback taken, buying 1 boon.</p><p><strong>Drawbacks:</strong> Cursed</p><p><strong>Boons:</strong> Beloved</p><p><strong>Quality:</strong> Challenged Duelist</p>",
+    "universal abilities": "<p><strong>Tier 1 — Hard to Kill.</strong> Whenever you are below 0 hit points, you automatically stabilize; you die at negative Constitution x 2 instead of negative Constitution.</p><p><strong>Tier 1 — Mythic Power.</strong> Current pool: 9/day. A pool of mythic power fueling surge and many mythic abilities: 3 + 2 per tier uses per day (plus any tradition bonus).</p><p><strong>Tier 1 — Surge.</strong> Current surge die: 1d6. Expend one use of mythic power to add the surge die to a d20 roll you just made, possibly turning failure into success. The die grows with tier (1d6 / 1d8 at 4th / 1d10 at 7th / 1d12 at 10th).</p><p><strong>Tier 2 — Amazing Initiative.</strong> A bonus on initiative checks equal to your mythic tier. Also, as a free action on your turn, expend one use of mythic power to take an additional standard action this turn (not usable to cast a second spell in a round).</p><p><strong>Tier 3 — Recuperation.</strong> Restored to full hit points after 8 hours of rest. Also, expend one use of mythic power and rest 1 hour to regain half your maximum hit points and all class abilities normally regained by resting 8 hours.</p>"
+   }
+  },
+  "Mythic Path": {
+   "Divine Surge: Beast's Fury": {
+    "benefit": "As a swift action, you can expend one use of mythic power to imbue your animal companion, cohort, eidolon, familiar, or bonded mount with some of your mythic power. As an immediate action, that creature can move up to its speed and make an attack with one of its natural weapons. When making this attack, the creature rolls twice and takes the higher result. Any damage dealt by this attack bypasses all damage reduction. A creature affected by this ability can take these actions in addition to any other actions it takes during its turn."
+   }
+  },
+  "Mythic Path Abilities": {
+   "Display of Wisdom": {
+    "benefit": "As a free action, you can expend one use of mythic power to attempt a feat of Wisdom, gaining a +20 circumstance bonus on one Wisdom-based skill check or Wisdom ability check."
+   },
+   "Voice of the Spire (Su) [Mordant Spire]": {
+    "benefit": "A voice only you can hear warns you of peril. If you're unaware at the start of a surprise round, you can expend one use of mythic power to act in that surprise round. When acting in a surprise round, you can expend two uses of mythic power to take both a standard and a move action (or a full-round action) in the surprise round. This ability doesn't prevent you from being flat-footed before you have acted."
+   },
+   "Flexible Counterspell": {
+    "benefit": "Your mythic power enhances your ability to counter spells. As an immediate action, you can expend one use of mythic power to attempt to counter a spell. Upon using this ability, you must identify the spell with a Spellcraft check (DC 15 + the spell's level). If you correctly identify the spell, you can expend a spell or spell slot of a level equal to or higher than the spell being cast to counter the spell."
+   }
+  },
+  "Mythic Tradition": {
+   "Drawback: Cursed": {
+    "benefit": "You gain the negative effects of an oracle curse you do not already have, but not the positive effects, as an oracle of your total character level. The overcome curse path ability does not negate this curse, nor do any similar effects."
+   },
+   "Boon: Beloved": {
+    "benefit": "A specific group of creatures thematically appropriate to your mythic origin or patron recognize you as blessed and always have a starting attitude of helpful towards you. This is not extensive enough to cover an entire species, but could affect an entire organization, church, city, or similarly specific group. If you have the Rejected mythic drawback, it does not apply to this group."
+   },
+   "Quality: Challenged Duelist": {
+    "benefit": "You must accept any challenge to a duel (see Ultimate Combat), regardless of the circumstances, unless doing so is impossible or you are at less than half of your maximum hit points. (For example, a foe cannot challenge you to a duel on a floor of lava unless you can survive walking on lava.) When participating in a duel, your mythic powers enforce the rules on both combatants, usually by rendering you impervious to all outside influences but also forcing all combatants to abide by both the word and the spirit of the agreed-upon rules until the duel ends. This protection from outside forces extends to covering the negotiation of the rules of the duel, if any. In addition, once per day when a foe rejects your challenge to a duel, you may regain two uses of mythic power."
+   }
+  },
+  "Skill Unlock: Spellcraft": {
+   "5 Ranks": "Identifying magic items takes 1 full round, and the time to learn a spell from a spellbook is halved.",
+   "10 Ranks": "You can identify magic items without using detect magic, though the DC is increased by 10.",
+   "15 Ranks": "Identifying magic items is a standard action, and learning a spell takes 1 minute per spell level.",
+   "20 Ranks": "When attempting a caster level check, you can attempt a Spellcraft check at -20 against the same DC; success grants a +2 circumstance bonus."
+  }
+ },
+ "class feature levels": {
+  "armor_training": {
+   "armor specialization (ex)": 7
+  },
+  "Mythic Path": {
+   "Divine Surge: Beast's Fury": 1
+  },
+  "Mythic Path Abilities": {
+   "Display of Wisdom": 1,
+   "Voice of the Spire (Su) [Mordant Spire]": 2,
+   "Flexible Counterspell": 3
+  },
+  "Mythic Tradition": {
+   "Drawback: Cursed": 1,
+   "Boon: Beloved": 1,
+   "Quality: Challenged Duelist": 1
+  }
+ },
+ "class feature owners": {
+  "armor_training": "fighter",
+  "Mythic Path": "mythic",
+  "Mythic Path Abilities": "mythic",
+  "Mythic Tradition": "mythic",
+  "Mythic": "mythic"
+ },
+ "region": "Ieso",
+ "chosen_race": "Hobgoblin",
+ "land_speed": 30,
+ "character_full_name": "Snagula Tuskgor",
+ "c_class": "fighter",
+ "c_class_display": "Fighter",
+ "c_class_2": "",
+ "alignment": "Lawful Neutral",
+ "age_number": 25,
+ "height_number": "5'0\"",
+ "weight_number": 182,
+ "dex": 14,
+ "str": 19,
+ "con": 17,
+ "int": 14,
+ "wis": 6,
+ "cha": 11,
+ "inherents": {
+  "str": 8,
+  "dex": 0,
+  "con": 0,
+  "int": 0,
+  "wis": 0,
+  "cha": 0
+ },
+ "level_up_stats": {
+  "str": 0,
+  "dex": 1,
+  "con": 1,
+  "int": 0,
+  "wis": 0,
+  "cha": 0
+ },
+ "racial_stats": {
+  "str": 0,
+  "dex": 2,
+  "con": 2,
+  "int": 0,
+  "wis": 0,
+  "cha": 0
+ },
+ "flaw": [],
+ "Total_HP": 124,
+ "sheet_health": 80,
+ "bab_total": 8,
+ "armor_ac": "9",
+ "shield_ac": 0,
+ "armor_name": "Stoneplate",
+ "armor_spell_failure": "35%",
+ "armor_weight": "75 lbs.",
+ "armor_armor_check_penalty": "-6",
+ "armor_max_dex_bonus": "1",
+ "shield_name": " ",
+ "shield_spell_failure": " ",
+ "shield_weight": " ",
+ "shield_armor_check_penalty": " ",
+ "shield_max_dex_bonus": " ",
+ "spell_list_choose_from": [],
+ "day_list": [],
+ "known_list": [],
+ "spells_prepared_per_level": [],
+ "martial_disciplines": [],
+ "initiator_level": 0,
+ "maneuvers_known_list": [],
+ "maneuvers_readied_list": [],
+ "maneuvers_choose_from": [],
+ "maneuvers_readied_names": [],
+ "stances_chosen": [],
+ "mt_feats": [],
+ "initiation_stat": "int",
+ "manifesters": [],
+ "magic_talent_items": [],
+ "combat_talent_items": [],
+ "sphere_feats": [],
+ "sphere_feat_tax": {},
+ "sphere_mana_pool": 0,
+ "spheres_chosen": [],
+ "sphere_counts": {},
+ "casting_tradition": {
+  "casting_ability_modifier": "Intelligence",
+  "drawbacks": [
+   "Somatic Casting",
+   "Verbal Casting",
+   "Skilled Casting",
+   "Addictive Casting",
+   "Draining Casting"
+  ],
+  "boons": [
+   "Easy Focus",
+   "Empowered Abilities",
+   "Overcharge"
+  ],
+  "drawbacks_detail": [
+   {
+    "name": "Somatic Casting",
+    "description": "Your magic requires elaborate gestures; you need a free hand and suffer arcane-style spell failure in armor heavier than light. May be taken twice (no armor or shield at all without failure).",
+    "counts_as": 1
+   },
+   {
+    "name": "Verbal Casting",
+    "description": "You must speak in a loud, clear voice to cast; your magic fails in areas of magical silence or when you cannot speak clearly, and casting breaks stealth.",
+    "counts_as": 1
+   },
+   {
+    "name": "Skilled Casting",
+    "description": "Your magic is channeled through an activity tied to a specific Craft, Perform, or Profession skill; you must succeed on a skill check (DC 15 + the ability's caster level) for any sphere ability to take effect.",
+    "counts_as": 1
+   },
+   {
+    "name": "Addictive Casting",
+    "description": "Your magic is addictive; each time you spend spell points you must make an escalating Fortitude save or risk gaining/intensifying an addiction, taking escalating penalties until you cast again.",
+    "counts_as": 2
+   },
+   {
+    "name": "Draining Casting",
+    "description": "Each time you spend a spell point you take a small amount of nonlethal damage (scaling with caster level) that can only be removed by rest, not by healing or DR.",
+    "counts_as": 1
+   }
+  ],
+  "boons_detail": [
+   {
+    "name": "Easy Focus",
+    "description": "(Counters Focus Casting) You no longer need to make a check to cast without your focus item, or you ignore part of the Focus Casting penalty; maintaining a sphere ability that needs a standard action to concentrate on requires only a move action."
+   },
+   {
+    "name": "Empowered Abilities",
+    "description": "Your sphere abilities are more potent; for example, while your current spell points are at half your total or less you gain +1 caster level, rising to +2 at 0 spell points."
+   },
+   {
+    "name": "Overcharge",
+    "description": "You can push your magic harder, taking +2 caster level on a sphere ability but becoming fatigued (then exhausted, then unconscious) afterward."
+   }
+  ],
+  "bonus_spell_points": 0
+ },
+ "sphere_drawbacks": [
+  "Somatic Casting",
+  "Verbal Casting",
+  "Skilled Casting",
+  "Addictive Casting",
+  "Draining Casting"
+ ],
+ "sphere_boons": [
+  "Easy Focus",
+  "Empowered Abilities",
+  "Overcharge"
+ ],
+ "sphere_traits": [
+  "Somatic Casting",
+  "Verbal Casting",
+  "Skilled Casting",
+  "Addictive Casting",
+  "Draining Casting",
+  "Easy Focus",
+  "Empowered Abilities",
+  "Overcharge"
+ ],
+ "deity_name": "Erecura",
+ "skill_ranks": {
+  "appraise": 14,
+  "intimidate": 3,
+  "knowledge religion": 9,
+  "spellcraft": 1,
+  "knowledge dungeoneering": 4,
+  "acrobatics": 7,
+  "knowledge planes": 3,
+  "swim": 2,
+  "fly": 3,
+  "bluff": 3,
+  "knowledge engineering": 3,
+  "stealth": 1,
+  "climb": 0,
+  "craft": 0,
+  "diplomacy": 0,
+  "disable device": 0,
+  "disguise": 0,
+  "escape artist": 0,
+  "handle animal": 3,
+  "heal": 0,
+  "knowledge arcana": 0,
+  "knowledge geography": 0,
+  "knowledge history": 0,
+  "knowledge local": 0,
+  "knowledge nature": 0,
+  "knowledge nobility": 0,
+  "linguistics": 1,
+  "perception": 0,
+  "profession": 0,
+  "ride": 0,
+  "sense motive": 0,
+  "sleight of hand": 0,
+  "survival": 0,
+  "use magic device": 0,
+  "perform": 7
+ },
+ "weapon_enhancement_chosen_list": [],
+ "armor_enhancement_chosen_list": [],
+ "shield_enhancement_chosen_list": [],
+ "weapon_enhancement_bonus": 2,
+ "armor_enhancement_bonus": 1,
+ "shield_enhancement_bonus": 0,
+ "selected_traits": [
+  "The Flexing Arm",
+  "Savage Breaker",
+  "Weapon Style",
+  "Devotee of the Green",
+  "Dungeon Dweller",
+  "Domineering",
+  "Memorable",
+  "Iron Mind"
+ ],
+ "equipment_list": [
+  "Anaconda's Coils",
+  "Imperious Headband",
+  "Glorious Tabard, Lesser"
+ ],
+ "level": 8,
+ "archetype1": null,
+ "hair_color": [
+  "White"
+ ],
+ "hair_type": [
+  "Flowing"
+ ],
+ "eye_color": [
+  "Brown"
+ ],
+ "appearance": [
+  "Happy"
+ ],
+ "language_text": [
+  "Common",
+  "Goblin",
+  "Orc",
+  "Giant",
+  "Infernal"
+ ],
+ "feats": [
+  "Shapeshifter Foil",
+  "Broken Wing Gambit",
+  "Storm-Lashed",
+  "Coordinated Defense",
+  "Totem Spirit",
+  "Arcane Weaponry (combat)",
+  "Cleave (Mythic)",
+  "Mythic Crafter"
+ ],
+ "teamwork_feats": 0,
+ "teamwork_feat_labels": [],
+ "story_feats": [
+  "Lesser Spirits (invoker)",
+  "Stealthy"
+ ],
+ "flaw_feats": [],
+ "class_feats": [
+  "Fast Crawl",
+  "Field Repair",
+  "Stone Read",
+  "Flanking Specialist (combat)",
+  "Stealth Synergy"
+ ],
+ "class_feat_labels": [
+  "Fighter 1",
+  "Fighter 2",
+  "Fighter 4",
+  "Fighter 6",
+  "Fighter 8"
+ ],
+ "flavor_feats": [
+  "Undermine"
+ ],
+ "bloodline_feats": [],
+ "bloodline_feat_labels": [],
+ "trainer_feats": [
+  "Master Alchemist",
+  "Cleave",
+  "Surprise Follow-Through",
+  "Martial Training I",
+  "Shield Wall"
+ ],
+ "trainer_feat_labels": [
+  "(Trainer 1)",
+  "(Trainer 1)",
+  "(Trainer 2)",
+  "(Trainer 2)",
+  "(Trainer 2)"
+ ],
+ "trainer_feat_tax_dict": {
+  "Cleave": [
+   "cleaving finish",
+   "great cleave",
+   "improved cleaving finish",
+   "surprise follow-through"
+  ],
+  "Surprise Follow-Through": [
+   "improved surprise follow-through"
+  ],
+  "Martial Training I": [
+   "martial training ii"
+  ]
+ },
+ "trainer_calibers": [
+  2,
+  3
+ ],
+ "profession_feats": [],
+ "profession_feat_desc": {},
+ "profession_ranks": [
+  {
+   "name": "Beast Stalker",
+   "skill_label": "Profession (Beast Stalker)",
+   "ranks": 3,
+   "cap": 10,
+   "associate_skills": [
+    "Sense Motive"
+   ],
+   "ability_theme": "wayfarer",
+   "ability_tier": "average",
+   "rank15_abilities": [],
+   "rank5_abilities": []
+  },
+  {
+   "name": "Relic Hunter",
+   "skill_label": "Profession (Relic Hunter)",
+   "ranks": 10,
+   "cap": 10,
+   "associate_skills": [
+    "Appraise",
+    "Sleight of Hand",
+    "Diplomacy",
+    "Knowledge (local)"
+   ],
+   "ability_theme": "wayfarer",
+   "ability_tier": "average",
+   "rank15_abilities": [],
+   "rank5_abilities": [
+    {
+     "name": "Lockpick's Touch (Ex)",
+     "desc": "<p>You have coaxed open more strongboxes than you can count. You gain a +2 competence bonus on Disable Device checks and on Sleight of Hand checks, the deft hands of a seasoned treasure-hunter.</p>",
+     "changes": [
+      {
+       "formula": "2",
+       "target": "skill.dev",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    },
+    {
+     "name": "Nimble Delver (Ex)",
+     "desc": "<p>Tight crawls and treacherous footing hold no fear for you. You gain a +2 competence bonus on Acrobatics checks and on Climb checks made underground or amid ruins.</p>",
+     "changes": [
+      {
+       "formula": "2",
+       "target": "skill.acr",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    }
+   ]
+  }
+ ],
+ "profession_pool": 13,
+ "profession_ability_items": [
+  {
+   "name": "Profession Rank 5: (Relic Hunter)",
+   "description": "<p><em>Profession (Relic Hunter) - rank 10/10. Associate skills (ranks 1/4/7/10): Appraise, Sleight of Hand, Diplomacy, Knowledge (local).</em></p><hr><p><strong>Lockpick's Touch (Ex)</strong></p><p>You have coaxed open more strongboxes than you can count. You gain a +2 competence bonus on Disable Device checks and on Sleight of Hand checks, the deft hands of a seasoned treasure-hunter.</p><hr><p><strong>Nimble Delver (Ex)</strong></p><p>Tight crawls and treacherous footing hold no fear for you. You gain a +2 competence bonus on Acrobatics checks and on Climb checks made underground or amid ruins.</p>",
+   "changes": [
+    {
+     "formula": "2",
+     "target": "skill.dev",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "2",
+     "target": "skill.acr",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": [],
+   "uses": null
+  }
+ ],
+ "skill_unlock": {
+  "skill": "Spellcraft",
+  "base_skill": "spellcraft",
+  "ranks": 1,
+  "unlock": {
+   "5": "Identifying magic items takes 1 full round, and the time to learn a spell from a spellbook is halved.",
+   "10": "You can identify magic items without using detect magic, though the DC is increased by 10.",
+   "15": "Identifying magic items is a standard action, and learning a spell takes 1 minute per spell level.",
+   "20": "When attempting a caster level check, you can attempt a Spellcraft check at -20 against the same DC; success grants a +2 circumstance bonus."
+  },
+  "unlock_html": "<h2>Spellcraft</h2><p><strong>5 Ranks</strong>: Identifying magic items takes 1 full round, and the time to learn a spell from a spellbook is halved.</p><p><strong>10 Ranks</strong>: You can identify magic items without using detect magic, though the DC is increased by 10.</p><p><strong>15 Ranks</strong>: Identifying magic items is a standard action, and learning a spell takes 1 minute per spell level.</p><p><strong>20 Ranks</strong>: When attempting a caster level check, you can attempt a Spellcraft check at -20 against the same DC; success grants a +2 circumstance bonus.</p>"
+ },
+ "gold": 100,
+ "platnium": 10,
+ "animal_companion": null,
+ "bonded_creatures": [],
+ "full_domain": [],
+ "school": "N/A",
+ "opposing_school": "N/A",
+ "bloodline": "N/A",
+ "background_traits": [
+  "Favored Child",
+  "Animal Friend",
+  "Fiery Glare",
+  "A Sure Thing"
+ ],
+ "professions": [
+  "Beast Stalker",
+  "Relic Hunter"
+ ],
+ "craft_type": "Hornworking",
+ "mannerisms": [
+  "Tucks hair behind ears",
+  "Twitches"
+ ],
+ "personality_traits": [
+  "Self-aware",
+  "Objective",
+  "Serene",
+  "Giving"
+ ],
+ "hero_points": 2,
+ "gender": "Female",
+ "class_ability_desc": {
+  "bonus feats": "At 1st level, and at every even level thereafter, a fighter gains a bonus feat in addition to those gained from normal advancement (meaning that the fighter gains a feat at every level). These bonus feats must be selected from those listed as combat feats, sometimes also called \"fighter bonus feats.\"Upon reaching 4th level, and every four levels thereafter (8th, 12th, and so on), a fighter can choose to learn a new bonus feat in place of a bonus feat he has already learned. In effect, the fighter loses the bonus feat in exchange for the new one. The old feat cannot be one that was used as a prerequisite for another feat, prestige class, or other ability. A fighter can only change one feat at any given level and must choose whether or not to swap the feat at the time he gains a new bonus feat for the level.",
+  "bravery": "Starting at 2nd level, a fighter gains a +1 bonus on Will saves against fear. This bonus increases by +1 for every four levels beyond 2nd.",
+  "armor training": "Starting at 3rd level, a fighter learns to be more maneuverable while wearing armor. Whenever he is wearing armor, he reduces the armor check penalty by 1 (to a minimum of 0) and increases the maximum Dexterity bonus allowed by his armor by 1. Every four levels thereafter (7th, 11th, and 15th), these bonuses increase by +1 each time, to a maximum -4 reduction of the armor check penalty and a +4 increase of the maximum Dexterity bonus allowed. In addition, a fighter can also move at his normal speed while wearing medium armor. At 7th level, a fighter can move at his normal speed while wearing heavy armor.",
+  "weapon training": "Starting at 5th level, a fighter can select one group of weapons, as noted below. Whenever he attacks with a weapon from this group, he gains a +1 bonus on attack and damage rolls. Every four levels thereafter (9th, 13th, and 17th), a fighter becomes further trained in another group of weapons. He gains a +1 bonus on attack and damage rolls when using a weapon from this group. In addition, the bonuses granted by previous weapon groups increase by +1 each. For example, when a fighter reaches 9th level, he receives a +1 bonus on attack and damage rolls with one weapon group and a +2 bonus on attack and damage rolls with the weapon group selected at 5th level. Bonuses granted from overlapping groups do not stack. Take the highest bonus granted for a weapon if it resides in two or more groups. A fighter also adds this bonus to any combat maneuver checks made with weapons from this group. This bonus also applies to the fighter's Combat Maneuver Defense when defending against disarm and sunder attempts made against weapons from this group. Weapon groups are defined as follows (GMs may add other weapons to these groups, or add entirely new groups): Note from Nethys : A consolidated list of fighter weapon groups is provided here",
+  "armor mastery": "At 19th level, a fighter gains DR 5/- whenever he is wearing armor or using a shield.",
+  "weapon mastery": "At 20th level, a fighter chooses one weapon, such as the longsword, greataxe, or longbow. Any attacks made with that weapon automatically confirm all critical threats and have their damage multiplier increased by 1 (×2 becomes ×3, for example). In addition, he cannot be disarmed while wielding a weapon of this type. Alternate Capstones"
+ },
+ "class_ability": [
+  "bonus feats_fighter",
+  "bravery_fighter",
+  "armor training_fighter",
+  "weapon training_fighter",
+  "armor mastery_fighter",
+  "weapon mastery_fighter"
+ ],
+ "class_features": {
+  "armor_training": {
+   "armor specialization (ex)": {
+    "description": "the fighter selects one specific type of armor with which he is proficient, such as chain shirts or scale mail. While wearing the selected type of armor, the fighter adds one-quarter of his fighter level to the armors armor bonus, up to a maximum bonus of +3 for light armor, +4 for medium armor, or +5 for heavy armor. This increase to the armor bonus doesnt increase the benefit that the fighter gains from feats, class abilities, or other effects that are determined by his armors base armor bonus, including other advanced armor training options. A fighter can choose this option multiple times. Each time he chooses it, he applies its benefit to a different type of armor. "
+   }
+  },
+  "Mythic": {
+   "Hierophant, Mythic Tier 3": {
+    "benefit": "Mythic path Hierophant, tier 3. Power pool 9/day, surge 1d6, +3 on initiative checks, +12 bonus HP, +2 STR from the even-tier increases. One path ability per tier; mythic feats at tiers 1/3/5/7/9.",
+    "choices": "<p><strong>Tier 1 -- Path feature.</strong> Divine Surge: Beast's Fury</p><p><strong>Tier 1 -- Path ability.</strong> Display of Wisdom</p><p><strong>Tier 1 -- Mythic flaw.</strong> Cursed</p><p><strong>Tier 1 -- Mythic boon.</strong> Beloved</p><p><strong>Tier 1 -- Mythic quality.</strong> Challenged Duelist</p><p><strong>Tier 1 -- Mythic feat.</strong> Cleave (Mythic)</p><p><strong>Tier 2 -- Path ability.</strong> Voice of the Spire (Su) [Mordant Spire]</p><p><strong>Tier 3 -- Path ability.</strong> Flexible Counterspell</p><p><strong>Tier 3 -- Mythic feat.</strong> Mythic Crafter</p><p><strong>Even-tier ability increases.</strong> +2 STR</p>",
+    "tradition": "<p><strong>Tradition -- the trade.</strong> 1 drawback taken, buying 1 boon.</p><p><strong>Drawbacks:</strong> Cursed</p><p><strong>Boons:</strong> Beloved</p><p><strong>Quality:</strong> Challenged Duelist</p>",
+    "universal abilities": "<p><strong>Tier 1 — Hard to Kill.</strong> Whenever you are below 0 hit points, you automatically stabilize; you die at negative Constitution x 2 instead of negative Constitution.</p><p><strong>Tier 1 — Mythic Power.</strong> Current pool: 9/day. A pool of mythic power fueling surge and many mythic abilities: 3 + 2 per tier uses per day (plus any tradition bonus).</p><p><strong>Tier 1 — Surge.</strong> Current surge die: 1d6. Expend one use of mythic power to add the surge die to a d20 roll you just made, possibly turning failure into success. The die grows with tier (1d6 / 1d8 at 4th / 1d10 at 7th / 1d12 at 10th).</p><p><strong>Tier 2 — Amazing Initiative.</strong> A bonus on initiative checks equal to your mythic tier. Also, as a free action on your turn, expend one use of mythic power to take an additional standard action this turn (not usable to cast a second spell in a round).</p><p><strong>Tier 3 — Recuperation.</strong> Restored to full hit points after 8 hours of rest. Also, expend one use of mythic power and rest 1 hour to regain half your maximum hit points and all class abilities normally regained by resting 8 hours.</p>"
+   }
+  },
+  "Mythic Path": {
+   "Divine Surge: Beast's Fury": {
+    "benefit": "As a swift action, you can expend one use of mythic power to imbue your animal companion, cohort, eidolon, familiar, or bonded mount with some of your mythic power. As an immediate action, that creature can move up to its speed and make an attack with one of its natural weapons. When making this attack, the creature rolls twice and takes the higher result. Any damage dealt by this attack bypasses all damage reduction. A creature affected by this ability can take these actions in addition to any other actions it takes during its turn."
+   }
+  },
+  "Mythic Path Abilities": {
+   "Display of Wisdom": {
+    "benefit": "As a free action, you can expend one use of mythic power to attempt a feat of Wisdom, gaining a +20 circumstance bonus on one Wisdom-based skill check or Wisdom ability check."
+   },
+   "Voice of the Spire (Su) [Mordant Spire]": {
+    "benefit": "A voice only you can hear warns you of peril. If you're unaware at the start of a surprise round, you can expend one use of mythic power to act in that surprise round. When acting in a surprise round, you can expend two uses of mythic power to take both a standard and a move action (or a full-round action) in the surprise round. This ability doesn't prevent you from being flat-footed before you have acted."
+   },
+   "Flexible Counterspell": {
+    "benefit": "Your mythic power enhances your ability to counter spells. As an immediate action, you can expend one use of mythic power to attempt to counter a spell. Upon using this ability, you must identify the spell with a Spellcraft check (DC 15 + the spell's level). If you correctly identify the spell, you can expend a spell or spell slot of a level equal to or higher than the spell being cast to counter the spell."
+   }
+  },
+  "Mythic Tradition": {
+   "Drawback: Cursed": {
+    "benefit": "You gain the negative effects of an oracle curse you do not already have, but not the positive effects, as an oracle of your total character level. The overcome curse path ability does not negate this curse, nor do any similar effects."
+   },
+   "Boon: Beloved": {
+    "benefit": "A specific group of creatures thematically appropriate to your mythic origin or patron recognize you as blessed and always have a starting attitude of helpful towards you. This is not extensive enough to cover an entire species, but could affect an entire organization, church, city, or similarly specific group. If you have the Rejected mythic drawback, it does not apply to this group."
+   },
+   "Quality: Challenged Duelist": {
+    "benefit": "You must accept any challenge to a duel (see Ultimate Combat), regardless of the circumstances, unless doing so is impossible or you are at less than half of your maximum hit points. (For example, a foe cannot challenge you to a duel on a floor of lava unless you can survive walking on lava.) When participating in a duel, your mythic powers enforce the rules on both combatants, usually by rendering you impervious to all outside influences but also forcing all combatants to abide by both the word and the spirit of the agreed-upon rules until the duel ends. This protection from outside forces extends to covering the negotiation of the rules of the duel, if any. In addition, once per day when a foe rejects your challenge to a duel, you may regain two uses of mythic power."
+   }
+  },
+  "Skill Unlock: Spellcraft": {
+   "5 Ranks": "Identifying magic items takes 1 full round, and the time to learn a spell from a spellbook is halved.",
+   "10 Ranks": "You can identify magic items without using detect magic, though the DC is increased by 10.",
+   "15 Ranks": "Identifying magic items is a standard action, and learning a spell takes 1 minute per spell level.",
+   "20 Ranks": "When attempting a caster level check, you can attempt a Spellcraft check at -20 against the same DC; success grants a +2 circumstance bonus."
+  }
+ },
+ "class_feature_levels": {
+  "armor_training": {
+   "armor specialization (ex)": 7
+  },
+  "Mythic Path": {
+   "Divine Surge: Beast's Fury": 1
+  },
+  "Mythic Path Abilities": {
+   "Display of Wisdom": 1,
+   "Voice of the Spire (Su) [Mordant Spire]": 2,
+   "Flexible Counterspell": 3
+  },
+  "Mythic Tradition": {
+   "Drawback: Cursed": 1,
+   "Boon: Beloved": 1,
+   "Quality: Challenged Duelist": 1
+  }
+ },
+ "archetype_info": "{\n    \"Relic Master\": {\n        \"source\": \"Weapon Master's Handbook pg. 27 Commonly trained in the well-funded temples of Osirion or Qadira, the relic master is skilled in magic item mastery.\",\n        \"class skills\": \"  The relic master receives Knowledge (arcana) and Use Magic Device as class skills, but doesn't receive Handle Animal or Ride as class skills. This alters the fighter's class skills.\",\n        \"improved item mastery (su)\": \"  At 3rd level, once per day, a relic master can use a item mastery feat she knows with a magic item that doesn't have an appropriate spell in its construction requirements. The magic item must meet all other requirements of the item mastery feat. Alternatively, if she is using a magic item with an appropriate spell in its construction requirements, she can use an item mastery feat without it counting against the feat's total uses per day. She can use this ability one additional time per day at 7th, 11th, and 15th levels. This ability replaces armor training.\",\n        \"relic channeler (su)\": \"  At 5th level, a relic master can increase the potency of a magic item she wields by investing it with a bit of her vitality as a swift action. If the item is armor, a shield, or a weapon, its enhancement bonus increases by 1 to a maximum of +5. If the magic item creates a spell or has a save DC, its effective caster level increases by 1. A relic master can use this ability for a number of minutes per day equal to 1 + her Constitution modifier (minimum 1 minute). This duration doesn't need to be consecutive, but it must be used in 1-minute increments. This ability replaces weapon training.\",\n        \"improvised item mastery (su)\": \"  At 19th level as a full-round action, the relic master can select one item mastery feat whose prerequisites she meets but that she doesn't already have. She gains access to this feat, though she can't use it as a prerequisite for other feats or options. If she selects a different item mastery feat, she loses access to her previous use of improvised item mastery and any magic effect created with it ends immediately. Any daily uses of a selected improvised item mastery feat count against all improvised mastery feats selected in the same day. This ability replaces armor mastery.\"\n    }\n}",
+ "parents": "dead mother, loving father, raised in a poor household",
+ "older_brothers": " you have 0 older brothers",
+ "younger_brothers": " you have 0 younger brothers",
+ "older_sisters": " you have 0 older sisters",
+ "younger_sisters": " you have 0 younger sisters",
+ "weapon_name": "Light pick",
+ "specialty_schools": [
+  "illusion",
+  "abjuration"
+ ],
+ "counter_schools": [
+  "evocation",
+  "divination"
+ ],
+ "chosen_spell_descriptor": [
+  "language-dependent",
+  "evil"
+ ],
+ "counter_spell_descriptor": [
+  "earth",
+  "air"
+ ],
+ "total_rolled_hp": 70,
+ "mini_alignment": "ln",
+ "casting_level_str_foundry": "None",
+ "main_stat": "str",
+ "story_feat_tax_dict": {},
+ "flaw_feat_tax_dict": {},
+ "flavor_feat_tax_dict": {},
+ "class_feat_tax_dict": {},
+ "feats_feat_tax_dict": {},
+ "feat_budget": {
+  "story": 2,
+  "flaw": 0,
+  "flavor": 1,
+  "class": 5,
+  "normal": 6,
+  "teamwork": 0,
+  "bloodline": 0,
+  "trainer": 5,
+  "profession": 0
+ },
+ "mod_char_sheet_var": false,
+ "backstory": "",
+ "formatted_bio": "Snagula Tuskgor\n- Alignment: Lawful Neutral\n- Deity: Erecura\n- Race: Hobgoblin\n- Class: Level 8 Fighter\n- Archetype: Man-at-Arms\n- Tactics: Fights the way it drilled: hold the line, strike the enemy in front of you, keep your shield up and your footing. No tricks, no gimmick -- just a professional doing soldier's work.\n- Stat Focus: Str\n- Homeland: Ieso\n\nVocation\n- Profession: Beast Stalker (rank 3)\n- Profession: Relic Hunter (rank 10)\n- Known for: Hornworking\n- Training: An average trainer who taught them Master Alchemist, Cleave\n- Training: An excellent trainer who taught them Surprise Follow-Through, Martial Training I, Shield Wall\n\nFamily\n- Dead Mother\n- Loving Father\n- Raised In A Poor Household\n- No Siblings\n\nPersonality\n- Personality: Self-aware, Objective, Serene, Giving\n- Mannerisms: Tucks hair behind ears, Twitches\n\nAppearance\n- Hair: Flowing White\n- Eyes: Brown\n- Build: Happy",
+ "classes": [
+  {
+   "name": "fighter",
+   "display": "Fighter",
+   "level": 8,
+   "archetype": {
+    "Relic Master": {
+     "source": "Weapon Master's Handbook pg. 27 Commonly trained in the well-funded temples of Osirion or Qadira, the relic master is skilled in magic item mastery.",
+     "class skills": "  The relic master receives Knowledge (arcana) and Use Magic Device as class skills, but doesn't receive Handle Animal or Ride as class skills. This alters the fighter's class skills.",
+     "improved item mastery (su)": "  At 3rd level, once per day, a relic master can use a item mastery feat she knows with a magic item that doesn't have an appropriate spell in its construction requirements. The magic item must meet all other requirements of the item mastery feat. Alternatively, if she is using a magic item with an appropriate spell in its construction requirements, she can use an item mastery feat without it counting against the feat's total uses per day. She can use this ability one additional time per day at 7th, 11th, and 15th levels. This ability replaces armor training.",
+     "relic channeler (su)": "  At 5th level, a relic master can increase the potency of a magic item she wields by investing it with a bit of her vitality as a swift action. If the item is armor, a shield, or a weapon, its enhancement bonus increases by 1 to a maximum of +5. If the magic item creates a spell or has a save DC, its effective caster level increases by 1. A relic master can use this ability for a number of minutes per day equal to 1 + her Constitution modifier (minimum 1 minute). This duration doesn't need to be consecutive, but it must be used in 1-minute increments. This ability replaces weapon training.",
+     "improvised item mastery (su)": "  At 19th level as a full-round action, the relic master can select one item mastery feat whose prerequisites she meets but that she doesn't already have. She gains access to this feat, though she can't use it as a prerequisite for other feats or options. If she selects a different item mastery feat, she loses access to her previous use of improvised item mastery and any magic effect created with it ends immediately. Any daily uses of a selected improvised item mastery feat count against all improvised mastery feats selected in the same day. This ability replaces armor mastery."
+    }
+   }
+  }
+ ],
+ "total_level": 8,
+ "save_bases": {
+  "fort": 6,
+  "ref": 2,
+  "will": 2
+ },
+ "spellbooks": [],
+ "class_feature_owners": {
+  "armor_training": "fighter",
+  "Mythic Path": "mythic",
+  "Mythic Path Abilities": "mythic",
+  "Mythic Tradition": "mythic",
+  "Mythic": "mythic"
+ },
+ "build_archetype": "Man-at-Arms",
+ "build_tactics": "Fights the way it drilled: hold the line, strike the enemy in front of you, keep your shield up and your footing. No tricks, no gimmick -- just a professional doing soldier's work.",
+ "generation_seed": 1099742475,
+ "spell_list_choose_from_dict": [],
+ "equip_descrip": {
+  "belts": {
+   "item_name": "Anaconda's Coils",
+   "description": " this snakeskin belt's buckle is shaped\r like a serpent's head. The wearer\r gains a +2 enhancement bonus to\r strength and a +2 competence bonus\r on grapple combat maneuver checks. \r treat the enhancement bonus to strength as temporary ability\r bonus for the first 24 hours the belt is worn. In addition, the\r belt grants the wearer the constrict ability (bestiary 298) for\r 1d6 points of damage plus the wearer's strength modifier. "
+  },
+  "headband": {
+   "item_name": "Imperious Headband",
+   "description": " adorned with stylized bronze feathers, these headbands are prized by treacherous nobles who fear an assassin's dagger in the back. While worn, an imperious headband grants its wearer a +4 deflection bonus to his ac against any attack made by a hireling, a slave, a servant, or any other sentient creature in his employ. In addition, such creatures must succeed at a dc 13 will save or treat their master as if he were affected by a sanctuary spell. If such creatures are subject to magical compulsion to attack the wearer, they must roll all attack rolls and checks to overcome spell resistance against the wearer twice and take the lower result. "
+  },
+  "body": {
+   "item_name": "Glorious Tabard, Lesser",
+   "description": " this sleeveless white tabard, worn over armor or other clothing, prominently bears the symbol of the glorious reclamation and can be used as a divine focus by members of the glorious reclamation who are followers of iomedae. Once per day, the wearer of a lesser glorious tabard can activate the tabard to gain a +2 sacred bonus to her ac and on saving throws for 10 minutes. Both bonuses apply only against attacks made or effects created by outsiders with the evil subtype or creatures with an evil aura. A greater glorious tabard bears the symbol of the glorious reclamation in gold. It has all the powers of a lesser glorious tabard but can be used twice per day. In addition, whenever a greater glorious tabard is activated, all longswords within 20 feet shed light as per a torch and ignore the dr of evil creatures (except dr/epic) for 3 rounds. When a greater glorious tabard is used as a divine focus to cast a spell, the wearer does not need any material components that cost more than 5. A glorious tabard functions only for wearers who are both members of the glorious reclamation and followers of iomedae. "
+  }
+ },
+ "maneuvers_desc_dict": {},
+ "powers_desc_dict": {},
+ "homebrew_feat_desc_dict": {
+  "Cleave (Mythic)": "Whenever you use Cleave or Great Cleave, one of your attacks can be made against a foe that is within your reach, but not adjacent to the foe you attacked. You can expend one use of mythic power when you use Cleave or Great Cleave to continue making attacks against foes within your reach, regardless of their position, as long as you continue to hit each foe. You can't use this ability to attack a foe more than once per round.",
+  "Mythic Crafter": "You can create any mythic magic item for which you have the appropriate item creation feat. In addition, you gain a +5 bonus on skill checks when creating non-mythic magic items.",
+  "Shapeshifter Foil": "Your command of shapeshifting magic can disrupt similar effects in others",
+  "Broken Wing Gambit": "You feign weakness, making yourself a tempting and distracting target",
+  "Storm-Lashed": "A life spent enduring gales and storms has hardened your body to the elements",
+  "Coordinated Defense": "You are adept at working with allies to avoid being tripped, grappled, and subjected to other maneuvers",
+  "Totem Spirit": "You are mystically tied to your tribe's sacred totem",
+  "Arcane Weaponry (combat)": "You force additional power from your magical weapons. increase the dc of any weapon special properties that require a saving throw by +1. this bonus increases by +1 upon reaching a base attack bonus of +8 and for every four base attack bonus gained thereafter. this cannot cause the dc of any effect to exceed 10 + your base attack bonus. this only applies to weapons you are wielding (and applies for up to 1 round after leaving your grip or being fired, in the case of thrown weapons or ammunition, respectively).",
+  "Lesser Spirits (invoker)": "The following eighteen lesser spirits are those most commonly contacted by invokers, though others may exist. While an invoker can bond with any lesser spirit, he may only invoke one whose listed type matches the dominion or oath of his spirit companion (or both). Lesser spirits are not listed alphabetically; instead, they are organized below in a table showing their dominion and oath, below. The DC to save against primal powers or invocations is equal to 10 + 1/2 the invokers level + his Charisma modifier, unless otherwise noted.",
+  "Stealthy": "You are good at avoiding unwanted attention and slipping out of bonds",
+  "Undermine": "You and your allies take advantage of shifting terrain to unbalance enemies",
+  "Fast Crawl": "You are skilled at moving while prone",
+  "Field Repair": "You can repair your broken weapon or armor to serviceability even without the benefits of artisan tools",
+  "Stone Read": "Even the faint movement and vibrations of stone can alert you to trouble",
+  "Flanking Specialist (combat)": "You are more adept at flanking with allies. you count as occupying both your current space and any space adjacent to you for the purpose of flanking an opponent (including allowing your allies to flank as if you were in any of those spaces). the space must be open; you cannot use this ability to flank from a space that contains an object, creature, or barrier.",
+  "Stealth Synergy": "Working closely with an ally, you are able to move like twin shadows",
+  "Master Alchemist": "Your mastery of alchemy is nearly supernatural",
+  "Cleave": "You can strike two adjacent foes with a single swing",
+  "Surprise Follow-Through": "When striking one opponent, you catch its ally off guard",
+  "Martial Training I": "Youve learned the basics in a martial discipline Special If you ever gain levels in a martial adept class or possess them previously, these maneuvers continue to use their own initiator level and recovery method, independent of your martial adept level Those wishing to add new maneuvers from a discipline that is already available to their class should instead select the Advanced Study feat instead",
+  "Shield Wall": "You form a unified defense with those around you"
+ },
+ "feat_changes_dict": {
+  "Storm-Lashed": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "text": "+2 on all saving throws against electrical effects.",
+     "target": "allSavingThrows"
+    }
+   ]
+  },
+  "Coordinated Defense": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "text": "While adjacent to an ally who also has this feat: +2 competence bonus to CMD (+4 if the creature attempting the maneuver is larger than both you and your ally).",
+     "target": "cmd"
+    }
+   ]
+  },
+  "Stone Read": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "text": "+2 on Perception checks while in a primarily underground or mountainous environment (+4 with 10+ ranks in Knowledge (dungeoneering)).",
+     "target": "skills"
+    }
+   ]
+  }
+ },
+ "feat_conditionals_dict": {},
+ "spell_changes_dict": {},
+ "spell_riders_dict": {},
+ "selected_traits_desc": [
+  {
+   "name": "The Flexing Arm",
+   "description": "You can use Strength instead of Dexterity as your base ability for Escape Artist skill checks."
+  },
+  {
+   "name": "Savage Breaker",
+   "description": "You gain a +2 trait bonus on combat maneuver checks made to sunder simple or primitive armor and weapons, or any other equipment the GM deems “barbarian-made.”"
+  },
+  {
+   "name": "Weapon Style",
+   "description": "You gain proficiency in a monk weapon."
+  },
+  {
+   "name": "Devotee of the Green",
+   "description": "You gain a +1 trait bonus on Knowledge (geography) and Knowledge (nature) checks, and one of these skills (your choice) is always a class skill for you."
+  },
+  {
+   "name": "Dungeon Dweller",
+   "description": "You start with one additional language chosen from the following list: Aklo, Dark Folk, Draconic, Goblin, Necril, Orc, or Undercommon. In addition, whenever you must attempt a Survival check to avoid getting lost in a dungeon, you may roll the check twice and take the better result."
+  },
+  {
+   "name": "Domineering",
+   "description": "Choose one 1st-level enchantment spell you are capable of casting. The DC of that spell increases by 1."
+  },
+  {
+   "name": "Memorable",
+   "description": "When you modify a creature's attitude with Diplomacy or Intimidate, the attitude change lasts 1-1/2 times longer than it otherwise would. Your spells or effects with the fear or mind-affecting descriptors that impose a penalty or bonus with a duration of at least 2 rounds, lasts 1 additional round."
+  },
+  {
+   "name": "Iron Mind",
+   "description": "You gain a +2 trait bonus on saving throws against spells and effects that would reduce your Intelligence score or cause you to forget something."
+  }
+ ],
+ "item_changes_dict": {
+  "Anaconda's Coils": {
+   "changes": [
+    {
+     "formula": "2",
+     "operator": "add",
+     "priority": 0,
+     "target": "str",
+     "type": "enh"
+    },
+    {
+     "formula": "2",
+     "operator": "add",
+     "priority": 0,
+     "target": "cmb",
+     "type": "competence"
+    }
+   ],
+   "contextNotes": [
+    {
+     "target": "strChecks",
+     "text": "Treat the enhancement bonus to strength as temporary ability bonus for the first [[24]] hours the belt is worn. In addition, the belt grants the wearer the constrict ability (bestiary 298) for [[1d6]] points of damage plus the wearer's strength modifier."
+    }
+   ]
+  },
+  "Imperious Headband": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "ac",
+     "text": "An imperious headband grants its wearer a +[[4]] deflection bonus to his ac against any attack made by a hireling, a slave, a servant, or any other sentient creature in his employ."
+    },
+    {
+     "target": "allSavingThrows",
+     "text": "In addition, such creatures must succeed at a dc [[13]] will save or treat their master as if he were affected by a sanctuary spell. If such creatures are subject to magical compulsion to attack the wearer, they must roll all attack rolls and checks to overcome spell resistance against the wearer twice and take the lower result."
+    }
+   ]
+  },
+  "Glorious Tabard, Lesser": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "ac",
+     "text": "Once per day, the wearer of a lesser glorious tabard can activate the tabard to gain a +[[2]] sacred bonus to her ac and on saving throws for [[10]] minutes. In addition, whenever a greater glorious tabard is activated, all longswords within [[20]] feet shed light as per a torch and ignore the dr of evil creatures (except dr/epic) for [[3]] rounds. When a greater glorious tabard is used as a divine focus to cast a spell, the wearer does not need any material components that cost more than 5."
+    }
+   ]
+  }
+ },
+ "enhancement_effects_dict": {},
+ "flaw_effects_dict": {},
+ "class_feature_changes_dict": {},
+ "class_feature_conditionals_dict": {},
+ "skill_rank_budget": 64,
+ "normal_feat_amount": 6,
+ "luck": {
+  "type": "Default",
+  "score": 0,
+  "values": {
+   "negative": 0,
+   "default": 0,
+   "proximity": 0
+  },
+  "mod": 0,
+  "cap": 25,
+  "floor": -50,
+  "e_kat_earned": 0,
+  "e_kat_reserve": 0,
+  "e_kat_store_cap": 99,
+  "traits": [],
+  "trait_benefits": {},
+  "trait_changes": {},
+  "vault": 0,
+  "vault_cap": 77,
+  "dr_pool": 0,
+  "twist_fate_per_day": 0,
+  "feats": [],
+  "luck_feats": [],
+  "derivation": [
+   "= 0"
+  ],
+  "negative_feats": [],
+  "audit": {
+   "attribute_points": {
+    "before": 2,
+    "spent": 0,
+    "received": 0,
+    "after": 2,
+    "final": 2,
+    "luck_cost": 0
+   },
+   "hp": {
+    "before": 112,
+    "spent": 0,
+    "received": 0,
+    "after": 112,
+    "final": 112,
+    "luck_cost": 0
+   },
+   "skill_ranks": {
+    "before": 48,
+    "spent": 0,
+    "received": 0,
+    "after": 48,
+    "final": 64,
+    "luck_cost": 0
+   },
+   "feats": {
+    "before": 0,
+    "spent": 0,
+    "received": 0,
+    "after": 0,
+    "final": 0,
+    "luck_cost": 0
+   }
+  },
+  "payout_changes": [],
+  "attribute_bumps": {},
+  "stake": null
+ },
+ "mythic": {
+  "tier": 3,
+  "path": "hierophant",
+  "path_display": "Hierophant",
+  "power_pool": 9,
+  "surge_die": "1d6",
+  "amazing_initiative_bonus": 3,
+  "bonus_hp": 12,
+  "ability_bumps": {
+   "str": 2
+  },
+  "base_abilities": [
+   {
+    "name": "Hard to Kill",
+    "tier": 1,
+    "description": "Whenever you are below 0 hit points, you automatically stabilize; you die at negative Constitution x 2 instead of negative Constitution."
+   },
+   {
+    "name": "Mythic Power",
+    "tier": 1,
+    "description": "A pool of mythic power fueling surge and many mythic abilities: 3 + 2 per tier uses per day (plus any tradition bonus)."
+   },
+   {
+    "name": "Surge",
+    "tier": 1,
+    "description": "Expend one use of mythic power to add the surge die to a d20 roll you just made, possibly turning failure into success. The die grows with tier (1d6 / 1d8 at 4th / 1d10 at 7th / 1d12 at 10th)."
+   },
+   {
+    "name": "Amazing Initiative",
+    "tier": 2,
+    "description": "A bonus on initiative checks equal to your mythic tier. Also, as a free action on your turn, expend one use of mythic power to take an additional standard action this turn (not usable to cast a second spell in a round)."
+   },
+   {
+    "name": "Recuperation",
+    "tier": 3,
+    "description": "Restored to full hit points after 8 hours of rest. Also, expend one use of mythic power and rest 1 hour to regain half your maximum hit points and all class abilities normally regained by resting 8 hours."
+   }
+  ],
+  "tier1_feature": {
+   "feature": "Divine Surge",
+   "name": "Beast's Fury",
+   "type": "Su",
+   "description": "As a swift action, you can expend one use of mythic power to imbue your animal companion, cohort, eidolon, familiar, or bonded mount with some of your mythic power. As an immediate action, that creature can move up to its speed and make an attack with one of its natural weapons. When making this attack, the creature rolls twice and takes the higher result. Any damage dealt by this attack bypasses all damage reduction. A creature affected by this ability can take these actions in addition to any other actions it takes during its turn."
+  },
+  "path_abilities": [
+   {
+    "name": "Display of Wisdom",
+    "tier": 1,
+    "type": "Su",
+    "source": "Mythic Adventures pg. 50",
+    "description": "As a free action, you can expend one use of mythic power to attempt a feat of Wisdom, gaining a +20 circumstance bonus on one Wisdom-based skill check or Wisdom ability check.",
+    "universal": true
+   },
+   {
+    "name": "Voice of the Spire (Su) [Mordant Spire]",
+    "tier": 2,
+    "type": "",
+    "source": "Mythic Realms pg. 13",
+    "description": "A voice only you can hear warns you of peril. If you're unaware at the start of a surprise round, you can expend one use of mythic power to act in that surprise round. When acting in a surprise round, you can expend two uses of mythic power to take both a standard and a move action (or a full-round action) in the surprise round. This ability doesn't prevent you from being flat-footed before you have acted.",
+    "universal": true
+   },
+   {
+    "name": "Flexible Counterspell",
+    "tier": 3,
+    "type": "Su",
+    "source": "Mythic Adventures pg. 34",
+    "description": "Your mythic power enhances your ability to counter spells. As an immediate action, you can expend one use of mythic power to attempt to counter a spell. Upon using this ability, you must identify the spell with a Spellcraft check (DC 15 + the spell's level). If you correctly identify the spell, you can expend a spell or spell slot of a level equal to or higher than the spell being cast to counter the spell.",
+    "universal": false
+   }
+  ],
+  "tradition": {
+   "drawbacks": [
+    {
+     "name": "Cursed",
+     "description": "You gain the negative effects of an oracle curse you do not already have, but not the positive effects, as an oracle of your total character level. The overcome curse path ability does not negate this curse, nor do any similar effects."
+    }
+   ],
+   "boons": [
+    {
+     "name": "Beloved",
+     "description": "A specific group of creatures thematically appropriate to your mythic origin or patron recognize you as blessed and always have a starting attitude of helpful towards you. This is not extensive enough to cover an entire species, but could affect an entire organization, church, city, or similarly specific group. If you have the Rejected mythic drawback, it does not apply to this group."
+    }
+   ],
+   "extra_mythic_power": 0,
+   "quality": {
+    "name": "Challenged Duelist",
+    "description": "You must accept any challenge to a duel (see Ultimate Combat), regardless of the circumstances, unless doing so is impossible or you are at less than half of your maximum hit points. (For example, a foe cannot challenge you to a duel on a floor of lava unless you can survive walking on lava.) When participating in a duel, your mythic powers enforce the rules on both combatants, usually by rendering you impervious to all outside influences but also forcing all combatants to abide by both the word and the spirit of the agreed-upon rules until the duel ends. This protection from outside forces extends to covering the negotiation of the rules of the duel, if any. In addition, once per day when a foe rejects your challenge to a duel, you may regain two uses of mythic power."
+   }
+  },
+  "mythic_feats": [
+   {
+    "name": "Cleave (Mythic)",
+    "base_name": "Cleave",
+    "tier": 1,
+    "description": "Whenever you use Cleave or Great Cleave, one of your attacks can be made against a foe that is within your reach, but not adjacent to the foe you attacked. You can expend one use of mythic power when you use Cleave or Great Cleave to continue making attacks against foes within your reach, regardless of their position, as long as you continue to hit each foe. You can't use this ability to attack a foe more than once per round."
+   },
+   {
+    "name": "Mythic Crafter",
+    "base_name": "Mythic Crafter",
+    "tier": 3,
+    "description": "You can create any mythic magic item for which you have the appropriate item creation feat. In addition, you gain a +5 bonus on skill checks when creating non-mythic magic items."
+   }
+  ],
+  "ledger_html": "<p><strong>Tier 1 -- Path feature.</strong> Divine Surge: Beast's Fury</p><p><strong>Tier 1 -- Path ability.</strong> Display of Wisdom</p><p><strong>Tier 1 -- Mythic flaw.</strong> Cursed</p><p><strong>Tier 1 -- Mythic boon.</strong> Beloved</p><p><strong>Tier 1 -- Mythic quality.</strong> Challenged Duelist</p><p><strong>Tier 1 -- Mythic feat.</strong> Cleave (Mythic)</p><p><strong>Tier 2 -- Path ability.</strong> Voice of the Spire (Su) [Mordant Spire]</p><p><strong>Tier 3 -- Path ability.</strong> Flexible Counterspell</p><p><strong>Tier 3 -- Mythic feat.</strong> Mythic Crafter</p><p><strong>Even-tier ability increases.</strong> +2 STR</p><p><strong>Tradition -- the trade.</strong> 1 drawback taken, buying 1 boon.</p><p><strong>Drawbacks:</strong> Cursed</p><p><strong>Boons:</strong> Beloved</p><p><strong>Quality:</strong> Challenged Duelist</p>",
+  "spell_annotations": {}
+ },
+ "enhancement_desc_dict": {},
+ "buff_gaps": [],
+ "weapon_size": "Medium",
+ "weapon_size_steps": 0,
+ "weapon_size_source": null,
+ "weapon_size_attack_penalty": 0,
+ "generator_version": "2026-07-15 racial-stats",
+ "license_url": "https://pathfinder-char-creator-web-public-use.onrender.com/license"
+}

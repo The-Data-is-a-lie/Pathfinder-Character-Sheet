@@ -1,0 +1,1132 @@
+{
+ "class features": {
+  "E-Kat Exchange": {
+   "Reserve": {
+    "Your reserve": "10 E-Kat(s) carried into play, of 10 earned at creation (0 spent on Luck Traits at 25 each). Storage cap 99."
+   },
+   "Feats Taken": {
+    "Feat: Double Down": "[+1 Luck] Double permanent E-Kat acquisition.",
+    "Feat: Middle Finger": "[+1 Luck] Gain 1 E-Kat anytime the GM has a hostile NPC utilize a Hero Point."
+   },
+   "Feats Not Taken (reference)": {
+    "Feat: Stream of Luck": "[+1 Luck] Gain one E-Kat per session (character played), two if you have Double Down.",
+    "Feat: Sweet Dreams": "[+1 Luck] Gain one E-Kat per in-game long rest, two if you have Double Down. (Applies once to timeskips longer than a day.)",
+    "Feat: Lucky Boy": "[+1 Luck] E-Kat (roll based) bonuses are doubled.",
+    "Feat: Very Lucky Boy": "[+1 Luck] E-Kat (roll based) bonuses are increased to triple.",
+    "Feat: Ass Pull": "[+4 Luck] Gain 4 E-Kats per session that expire upon the session's end, and a +4 Luck.",
+    "Feat: It Just Works": "[+4 Luck] Gain one free Hero Point per session that expires upon the session's end, +4 Luck.",
+    "Feat: Right of Deferment": "[+1 Luck] You may wait to apply E-Kats after a roll for no penalty.",
+    "Feat: Luck God": "[+4 Luck] All E-Kat costs (excluding the 99 tier and purchasing new Luck Traits) are cut in half; you gain a +2 bonus to all saves, attacks, ability checks, skill checks, AC, and Caster Level Checks. You gain a +4 Luck, and once per day can force a reroll in your favor."
+   },
+   "Actions": {
+    "Active modifiers": "Permanent E-Kat acquisition is doubled (Double Down).",
+    "2 E-Kats: bonus": "Gain a +1 on ANY roll; +2 if declared before the roll.",
+    "2 E-Kats: penalty": "Inflict a -1 on ANY roll; -2 if declared before the roll.",
+    "5 E-Kats: stabilize": "Stabilize ANYONE within five feet, provided they are not already beyond stabilization.",
+    "10 E-Kats: hero point": "Use as a Hero Point (you can store it if you have room).",
+    "Hero point for 5 E-Kats": "1 non-temporary Hero Point can be exchanged for 5 E-Kats (not multiplied by Lucky Boy).",
+    "20 E-Kats: borrow a feat or spell": "Gain the ability to use a feat or mythic spell you qualify for, excluding the mythic requirement. Feats last one minute; spells last for the duration of the spell.",
+    "25 E-Kats: Luck Trait": "25 permanent E-Kats can be used to purchase a Luck Trait.",
+    "99 E-Kats: Destined Template": "Gain the \"Destined\" Template (only once per player). This action locks your slot into a future campaign and ties it to this character.",
+    "99 E-Kats: survive anything": "You may exchange 99 E-Kats to survive anything."
+   }
+  },
+  "rogue_talents": {
+   "assault leader": {
+    "benefit": "once per day, when the rogue misses with an attack on a flanked opponent, she can designate a single ally who is also flanking the target that her attack missed. that ally can make a single melee attack against the opponent as an immediate action."
+   },
+   "sniper20s eye": {
+    "benefit": "a rogue with this talent can apply her sneak attack damage on ranged attacks targeting foes within 30 feet that benefit from concealment. foes with total concealment are still immune."
+   },
+   "underhanded": {
+    "benefit": "a rogue with this talent gains a +4 circumstance bonus on all sleight of hand checks made to conceal a weapon. furthermore, if she makes a sneak attack during the surprise round using a concealed weapon that her opponent didnt know about, she does not have to roll sneak attack damage, and the sneak attack deals maximum damage. a rogue can only use the underhanded talent a number of times per day equal to her charisma modifier (minimum 0). "
+   }
+  },
+  "Skill Unlock: Knowledge (dungeoneering)": {
+   "5 Ranks": "You gain one additional piece of useful information for every 5 ranks you possess in that Knowledge skill.",
+   "10 Ranks": "After identifying a creature you gain a +1 competence bonus (increasing per 5 ranks) on attack rolls, opposed checks, skill checks, and caster level checks against creatures of that kind for 1 minute.",
+   "15 Ranks": "You can reroll a failed Knowledge check at a -10 penalty, and the competence bonus also applies to saving throws against that creature type's special abilities.",
+   "20 Ranks": "You can roll twice and take the better result on Knowledge checks."
+  }
+ },
+ "class feature levels": {
+  "rogue_talents": {
+   "underhanded": 2,
+   "assault leader": 4,
+   "sniper20s eye": 6
+  }
+ },
+ "class feature owners": {
+  "rogue_talents": "rogue"
+ },
+ "region": "Feyador",
+ "chosen_race": "Kitsune",
+ "land_speed": 30,
+ "character_full_name": "Fabienne Chretien",
+ "c_class": "rogue",
+ "c_class_display": "Rogue",
+ "c_class_2": "",
+ "alignment": "Lawful Evil",
+ "age_number": 33,
+ "height_number": "5'7\"",
+ "weight_number": 118,
+ "dex": 23,
+ "str": 7,
+ "con": 13,
+ "int": 18,
+ "wis": 9,
+ "cha": 14,
+ "inherents": {
+  "str": 0,
+  "dex": 1,
+  "con": 0,
+  "int": 0,
+  "wis": 0,
+  "cha": 7
+ },
+ "level_up_stats": {
+  "str": 0,
+  "dex": 0,
+  "con": 0,
+  "int": 0,
+  "wis": 0,
+  "cha": 0
+ },
+ "racial_stats": {
+  "str": -2,
+  "dex": 2,
+  "con": 0,
+  "int": 0,
+  "wis": 0,
+  "cha": 2
+ },
+ "flaw": [],
+ "Total_HP": 60,
+ "sheet_health": 48,
+ "bab_total": 4,
+ "armor_ac": "2",
+ "shield_ac": 0,
+ "armor_name": "Leather",
+ "armor_spell_failure": "10%",
+ "armor_weight": "15 lbs.",
+ "armor_armor_check_penalty": "0",
+ "armor_max_dex_bonus": "6",
+ "shield_name": " ",
+ "shield_spell_failure": " ",
+ "shield_weight": " ",
+ "shield_armor_check_penalty": " ",
+ "shield_max_dex_bonus": " ",
+ "spell_list_choose_from": [],
+ "day_list": [],
+ "known_list": [],
+ "spells_prepared_per_level": [],
+ "martial_disciplines": [
+  "Solar Wind",
+  "Scarlet Throne"
+ ],
+ "initiator_level": 3,
+ "maneuvers_known_list": [
+  4,
+  4
+ ],
+ "maneuvers_readied_list": [
+  0,
+  4
+ ],
+ "maneuvers_choose_from": [
+  [
+   "Curving Ray Shot",
+   "Steady Hand",
+   "Red Zephyrs Strike",
+   "Princes Attitude"
+  ],
+  [
+   "Solar Lance",
+   "Solar Flare",
+   "Rising Zenith Strike",
+   "Regal Blade"
+  ]
+ ],
+ "maneuvers_readied_names": [
+  [],
+  [
+   "Solar Flare",
+   "Solar Lance",
+   "Regal Blade",
+   "Rising Zenith Strike"
+  ]
+ ],
+ "stances_chosen": [
+  "Phantom Sun Stance",
+  "Circular Stance"
+ ],
+ "mt_feats": [
+  "Martial Training I (Solar Wind)",
+  "Martial Training I (Scarlet Throne)"
+ ],
+ "initiation_stat": "cha",
+ "manifesters": [],
+ "magic_talent_items": [],
+ "combat_talent_items": [],
+ "sphere_feats": [],
+ "sphere_feat_tax": {},
+ "sphere_mana_pool": 0,
+ "spheres_chosen": [],
+ "sphere_counts": {},
+ "casting_tradition": {
+  "casting_ability_modifier": "Charisma",
+  "drawbacks": [
+   "Focus Casting",
+   "Somatic Casting",
+   "Painful Magic"
+  ],
+  "boons": [
+   "Empowered Abilities"
+  ],
+  "drawbacks_detail": [
+   {
+    "name": "Focus Casting",
+    "description": "You must wield or wear a specific item (wand, staff, holy symbol, ring, etc.) to cast; without it you must make a concentration check (DC 20 + 1/2 caster level) or the ability fails.",
+    "counts_as": 1
+   },
+   {
+    "name": "Somatic Casting",
+    "description": "Your magic requires elaborate gestures; you need a free hand and suffer arcane-style spell failure in armor heavier than light. May be taken twice (no armor or shield at all without failure).",
+    "counts_as": 1
+   },
+   {
+    "name": "Painful Magic",
+    "description": "Spending a spell point forces a Fortitude save (DC 10 + 1/2 caster level) or you become sickened (then nauseated, then stunned on repeated failures).",
+    "counts_as": 1
+   }
+  ],
+  "boons_detail": [
+   {
+    "name": "Empowered Abilities",
+    "description": "Your sphere abilities are more potent; for example, while your current spell points are at half your total or less you gain +1 caster level, rising to +2 at 0 spell points."
+   }
+  ],
+  "bonus_spell_points": 1
+ },
+ "sphere_drawbacks": [
+  "Focus Casting",
+  "Somatic Casting",
+  "Painful Magic"
+ ],
+ "sphere_boons": [
+  "Empowered Abilities"
+ ],
+ "sphere_traits": [
+  "Focus Casting",
+  "Somatic Casting",
+  "Painful Magic",
+  "Empowered Abilities"
+ ],
+ "deity_name": "Tanagaar",
+ "skill_ranks": {
+  "knowledge local": 2,
+  "knowledge history": 7,
+  "craft": 4,
+  "acrobatics": 4,
+  "perception": 3,
+  "intimidate": 5,
+  "knowledge planes": 6,
+  "ride": 3,
+  "fly": 5,
+  "escape artist": 7,
+  "disguise": 2,
+  "handle animal": 5,
+  "knowledge geography": 2,
+  "knowledge dungeoneering": 2,
+  "stealth": 3,
+  "swim": 3,
+  "knowledge religion": 4,
+  "survival": 3,
+  "use magic device": 1,
+  "knowledge nobility": 3,
+  "appraise": 0,
+  "bluff": 0,
+  "diplomacy": 0,
+  "disable device": 0,
+  "heal": 0,
+  "linguistics": 2,
+  "profession": 0,
+  "sense motive": 0,
+  "sleight of hand": 1,
+  "spellcraft": 0,
+  "knowledge engineering": 3
+ },
+ "weapon_enhancement_chosen_list": [],
+ "armor_enhancement_chosen_list": [],
+ "shield_enhancement_chosen_list": [],
+ "weapon_enhancement_bonus": 1,
+ "armor_enhancement_bonus": 1,
+ "shield_enhancement_bonus": 0,
+ "selected_traits": [
+  "Two-World Magic",
+  "Bloodthirsty",
+  "Captain's Blade",
+  "Garbage Picker",
+  "Arcane Student",
+  "Perfectionist's Brew",
+  "Bastard",
+  "Inured to Death"
+ ],
+ "equipment_list": [
+  "Tunic of Careful Casting",
+  "Slippers of Spider Climbing",
+  "Ring of Inurement",
+  "Belt of Tumbling",
+  "Glorious Tabard, Lesser"
+ ],
+ "level": 6,
+ "archetype1": null,
+ "hair_color": [
+  "Blond"
+ ],
+ "hair_type": [
+  "Curly"
+ ],
+ "eye_color": [
+  "Hazel"
+ ],
+ "appearance": [
+  "Shaved head"
+ ],
+ "language_text": [
+  "Common",
+  "Sylvan",
+  "Elven",
+  "Tengu",
+  "Gnome",
+  "Aklo",
+  "Celestial"
+ ],
+ "feats": [
+  "Improved Shield Bash",
+  "Blade of Terror",
+  "Double Down",
+  "Middle Finger",
+  "Multi Talented"
+ ],
+ "teamwork_feats": 0,
+ "teamwork_feat_labels": [],
+ "story_feats": [
+  "Ambuscading Grapple",
+  "Martial Weapon Proficiency"
+ ],
+ "flaw_feats": [],
+ "class_feats": [],
+ "class_feat_labels": [],
+ "flavor_feats": [
+  "Flash of Insight"
+ ],
+ "bloodline_feats": [],
+ "bloodline_feat_labels": [],
+ "trainer_feats": [
+  "Martial Training I (Solar Wind)",
+  "Martial Training I (Scarlet Throne)"
+ ],
+ "trainer_feat_labels": [
+  "(Trainer 1 - Path of War)",
+  "(Trainer 1 - Path of War)"
+ ],
+ "trainer_feat_tax_dict": {
+  "Martial Training I (Solar Wind)": [
+   "Martial Training II (Solar Wind)"
+  ],
+  "Martial Training I (Scarlet Throne)": [
+   "Martial Training II (Scarlet Throne)"
+  ]
+ },
+ "trainer_calibers": [],
+ "profession_feats": [
+  "Multi Talented"
+ ],
+ "profession_feat_desc": {
+  "Multi Talented": "Your profession rank cap increases by 10."
+ },
+ "profession_ranks": [
+  {
+   "name": "Pickpocket",
+   "skill_label": "Profession (Pickpocket)",
+   "ranks": 10,
+   "cap": 10,
+   "associate_skills": [
+    "Handle Animal",
+    "Diplomacy",
+    "Profession",
+    "Sense Motive"
+   ],
+   "ability_theme": "skill",
+   "ability_tier": "bad",
+   "rank15_abilities": [],
+   "rank5_abilities": [
+    {
+     "name": "Light Fingers (Ex)",
+     "desc": "<p>A lifetime of palming coins and lifting purses makes petty theft second nature. The Rogue gains a <strong>+2</strong> circumstance bonus on Sleight of Hand checks.</p>",
+     "changes": [
+      {
+       "formula": "2",
+       "target": "skill.slt",
+       "type": "circumstance",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    },
+    {
+     "name": "Shifty Eyes (Ex)",
+     "desc": "<p>Always watching for marks and witnesses, the Rogue notices the small things others miss. They gain a <strong>+2</strong> competence bonus on Perception checks.</p>",
+     "changes": [
+      {
+       "formula": "2",
+       "target": "skill.per",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    }
+   ]
+  },
+  {
+   "name": "Maestro of the Reel",
+   "skill_label": "Profession (Maestro of the Reel)",
+   "ranks": 6,
+   "cap": 10,
+   "associate_skills": [
+    "Sense Motive",
+    "Handle Animal"
+   ],
+   "ability_theme": "performance",
+   "ability_tier": "good",
+   "rank15_abilities": [],
+   "rank5_abilities": [
+    {
+     "name": "Inspiring Refrain (Su)",
+     "desc": "<p>When you raise your voice in song, your companions take heart. While you perform, allies who can hear you gain a <strong>+1 morale bonus</strong> on attack rolls.</p>",
+     "changes": [],
+     "contextNotes": [
+      {
+       "text": "+1 morale on attacks while you perform for them",
+       "target": "attack"
+      }
+     ],
+     "uses": null
+    },
+    {
+     "name": "Fascinating Flourish (Sp)",
+     "desc": "<p>With a hypnotic gesture and a lilting tune you can rivet a creature's attention. A number of times per day equal to 3 + your Charisma modifier, as a standard action you can target one creature within 30 feet that can see and hear you; unless it succeeds on a Will save (DC 10 + half your character level + your Charisma modifier) it is fascinated for as long as you continue a Perform action, up to 1 round per character level.</p>",
+     "changes": [],
+     "contextNotes": [],
+     "uses": {
+      "per": "day",
+      "maxFormula": "3 + @abilities.cha.mod",
+      "value": null
+     }
+    },
+    {
+     "name": "Local Celebrity (Ex)",
+     "desc": "<p>Your name is known in every alehouse and market square for a day's ride. You gain a <strong>+3 competence bonus</strong> on Diplomacy checks to gather information or sway those who recognize your reputation.</p>",
+     "changes": [
+      {
+       "formula": "3",
+       "target": "skill.dip",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    }
+   ]
+  },
+  {
+   "name": "Combat Engineer",
+   "skill_label": "Profession (Combat Engineer)",
+   "ranks": 5,
+   "cap": 10,
+   "associate_skills": [
+    "Perception",
+    "Knowledge (local)"
+   ],
+   "ability_theme": "craft",
+   "ability_tier": "good",
+   "rank15_abilities": [],
+   "rank5_abilities": [
+    {
+     "name": "Quality Goods (Ex)",
+     "desc": "<p>Your wares command a premium. You earn your full Profession check result in gold pieces per week, and you gain a +2 bonus on Appraise checks.</p>",
+     "changes": [
+      {
+       "formula": "2",
+       "target": "skill.apr",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    },
+    {
+     "name": "Whetstone Master (Ex)",
+     "desc": "<p>You spend 1 minute tending a weapon or suit of armor; for the next 24 hours its wielder gains a +1 competence bonus on weapon damage rolls (weapon) or a +1 competence bonus to AC against the first attack each round (armor). You can maintain a number of pieces of gear this way equal to your ranks in the relevant Craft skill at one time.</p>",
+     "changes": [],
+     "contextNotes": [
+      {
+       "text": "Allies wielding gear you tended for 1 minute gain +1 competence to damage (weapon) or AC (armor) for 24 hours.",
+       "target": "damage"
+      }
+     ],
+     "uses": null
+    },
+    {
+     "name": "Field Repair (Ex)",
+     "desc": "<p>You gain a +4 competence bonus on Craft checks and can repair damaged gear or improvise tools in 1d4 minutes rather than hours. Once per day you can spend 1 minute to restore a broken item to full working order.</p>",
+     "changes": [
+      {
+       "formula": "4",
+       "target": "skill.crf",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": {
+      "per": "day",
+      "maxFormula": "1",
+      "value": null
+     }
+    }
+   ]
+  }
+ ],
+ "profession_pool": 21,
+ "profession_ability_items": [
+  {
+   "name": "Profession Rank 5: (Pickpocket)",
+   "description": "<p><em>Profession (Pickpocket) - rank 10/10. Associate skills (ranks 1/4/7/10): Handle Animal, Diplomacy, Profession, Sense Motive.</em></p><hr><p><strong>Light Fingers (Ex)</strong></p><p>A lifetime of palming coins and lifting purses makes petty theft second nature. The Rogue gains a <strong>+2</strong> circumstance bonus on Sleight of Hand checks.</p><hr><p><strong>Shifty Eyes (Ex)</strong></p><p>Always watching for marks and witnesses, the Rogue notices the small things others miss. They gain a <strong>+2</strong> competence bonus on Perception checks.</p>",
+   "changes": [
+    {
+     "formula": "2",
+     "target": "skill.slt",
+     "type": "circumstance",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "2",
+     "target": "skill.per",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": [],
+   "uses": null
+  },
+  {
+   "name": "Profession Rank 5: (Maestro of the Reel)",
+   "description": "<p><em>Profession (Maestro of the Reel) - rank 6/10. Associate skills (ranks 1/4/7/10): Sense Motive, Handle Animal.</em></p><hr><p><strong>Inspiring Refrain (Su)</strong></p><p>When you raise your voice in song, your companions take heart. While you perform, allies who can hear you gain a <strong>+1 morale bonus</strong> on attack rolls.</p><hr><p><strong>Fascinating Flourish (Sp)</strong></p><p>With a hypnotic gesture and a lilting tune you can rivet a creature's attention. A number of times per day equal to 3 + your Charisma modifier, as a standard action you can target one creature within 30 feet that can see and hear you; unless it succeeds on a Will save (DC 10 + half your character level + your Charisma modifier) it is fascinated for as long as you continue a Perform action, up to 1 round per character level.</p><hr><p><strong>Local Celebrity (Ex)</strong></p><p>Your name is known in every alehouse and market square for a day's ride. You gain a <strong>+3 competence bonus</strong> on Diplomacy checks to gather information or sway those who recognize your reputation.</p>",
+   "changes": [
+    {
+     "formula": "3",
+     "target": "skill.dip",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": [
+    {
+     "text": "+1 morale on attacks while you perform for them",
+     "target": "attack"
+    }
+   ],
+   "uses": {
+    "per": "day",
+    "maxFormula": "3 + @abilities.cha.mod",
+    "value": null
+   }
+  },
+  {
+   "name": "Profession Rank 5: (Combat Engineer)",
+   "description": "<p><em>Profession (Combat Engineer) - rank 5/10. Associate skills (ranks 1/4/7/10): Perception, Knowledge (local).</em></p><hr><p><strong>Quality Goods (Ex)</strong></p><p>Your wares command a premium. You earn your full Profession check result in gold pieces per week, and you gain a +2 bonus on Appraise checks.</p><hr><p><strong>Whetstone Master (Ex)</strong></p><p>You spend 1 minute tending a weapon or suit of armor; for the next 24 hours its wielder gains a +1 competence bonus on weapon damage rolls (weapon) or a +1 competence bonus to AC against the first attack each round (armor). You can maintain a number of pieces of gear this way equal to your ranks in the relevant Craft skill at one time.</p><hr><p><strong>Field Repair (Ex)</strong></p><p>You gain a +4 competence bonus on Craft checks and can repair damaged gear or improvise tools in 1d4 minutes rather than hours. Once per day you can spend 1 minute to restore a broken item to full working order.</p>",
+   "changes": [
+    {
+     "formula": "2",
+     "target": "skill.apr",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "4",
+     "target": "skill.crf",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": [
+    {
+     "text": "Allies wielding gear you tended for 1 minute gain +1 competence to damage (weapon) or AC (armor) for 24 hours.",
+     "target": "damage"
+    }
+   ],
+   "uses": {
+    "per": "day",
+    "maxFormula": "1",
+    "value": null
+   }
+  }
+ ],
+ "skill_unlock": {
+  "skill": "Knowledge (dungeoneering)",
+  "base_skill": "knowledge",
+  "ranks": 2,
+  "unlock": {
+   "5": "You gain one additional piece of useful information for every 5 ranks you possess in that Knowledge skill.",
+   "10": "After identifying a creature you gain a +1 competence bonus (increasing per 5 ranks) on attack rolls, opposed checks, skill checks, and caster level checks against creatures of that kind for 1 minute.",
+   "15": "You can reroll a failed Knowledge check at a -10 penalty, and the competence bonus also applies to saving throws against that creature type's special abilities.",
+   "20": "You can roll twice and take the better result on Knowledge checks."
+  },
+  "unlock_html": "<h2>Knowledge (dungeoneering)</h2><p><strong>5 Ranks</strong>: You gain one additional piece of useful information for every 5 ranks you possess in that Knowledge skill.</p><p><strong>10 Ranks</strong>: After identifying a creature you gain a +1 competence bonus (increasing per 5 ranks) on attack rolls, opposed checks, skill checks, and caster level checks against creatures of that kind for 1 minute.</p><p><strong>15 Ranks</strong>: You can reroll a failed Knowledge check at a -10 penalty, and the competence bonus also applies to saving throws against that creature type's special abilities.</p><p><strong>20 Ranks</strong>: You can roll twice and take the better result on Knowledge checks.</p>"
+ },
+ "gold": 0,
+ "platnium": 0,
+ "animal_companion": null,
+ "bonded_creatures": [],
+ "full_domain": [],
+ "school": "N/A",
+ "opposing_school": "N/A",
+ "bloodline": "N/A",
+ "background_traits": [
+  "Child of the Streets"
+ ],
+ "professions": [
+  "Pickpocket",
+  "Maestro of the Reel",
+  "Combat Engineer"
+ ],
+ "craft_type": "Clockwork",
+ "mannerisms": [
+  "Kneads fingers",
+  "Hugs oneself"
+ ],
+ "personality_traits": [
+  "Judicious",
+  "Farsighted",
+  "Self-aware",
+  "Nonjudgmental"
+ ],
+ "hero_points": 3,
+ "gender": "Female",
+ "class_ability_desc": {
+  "sneak attack": "If a rogue can catch an opponent when he is unable to defend himself effectively from her attack, she can strike a vital spot for extra damage. The rogue's attack deals extra damage anytime her target would be denied a Dexterity bonus to AC (whether the target actually has a Dexterity bonus or not), or when the rogue flanks her target. This extra damage is 1d6 at 1st level, and increases by 1d6 every two rogue levels thereafter. Should the rogue score a critical hit with a sneak attack, this extra damage is not multiplied. Ranged attacks can count as sneak attacks only if the target is within 30 feet. With a weapon that deals nonlethal damage (like a sap, whip, or an unarmed strike), a rogue can make a sneak attack that deals nonlethal damage instead of lethal damage. She cannot use a weapon that deals lethal damage to deal nonlethal damage in a sneak attack, not even with the usual -4 penalty. The rogue must be able to see the target well enough to pick out a vital spot and must be able to reach such a spot. A rogue cannot sneak attack while striking a creature with concealment.",
+  "trapfinding": "A rogue adds 1/2 her level to Perception skill checks made to locate traps and to Disable Device skill checks (minimum +1). A rogue can use Disable Device to disarm magic traps.",
+  "evasion": "At 2nd level and higher, a rogue can avoid even magical and unusual attacks with great agility. If she makes a successful Reflex saving throw against an attack that normally deals half damage on a successful save, she instead takes no damage. Evasion can be used only if the rogue is wearing light armor or no armor. A helpless rogue does not gain the benefit of evasion.",
+  "rogue talents": "As a rogue gains experience, she learns a number of talents that aid her and confound her foes. Starting at 2nd level, a rogue gains one rogue talent. She gains an additional rogue talent for every 2 levels of rogue attained after 2nd level. A rogue cannot select an individual talent more than once. Note from Nethys : The full list of rogue talents is available here",
+  "trap sense": "At 3rd level, a rogue gains an intuitive sense that alerts her to danger from traps, giving her a +1 bonus on Reflex saves made to avoid traps and a +1 dodge bonus to AC against attacks made by traps. These bonuses rise to +2 when the rogue reaches 6th level, to +3 when she reaches 9th level, to +4 when she reaches 12th level, to +5 at 15th, and to +6 at 18th level. Trap sense bonuses gained from multiple classes stack.",
+  "uncanny dodge": "Starting at 4th level, a rogue can react to danger before her senses would normally allow her to do so. She cannot be caught flat-footed, nor does she lose her Dex bonus to AC if the attacker is invisible. She still loses her Dexterity bonus to AC if immobilized. A rogue with this ability can still lose her Dexterity bonus to AC if an opponent successfully uses the feint action (see Combat) against her. If a rogue already has uncanny dodge from a different class, she automatically gains improved uncanny dodge (see below) instead.",
+  "improved uncanny dodge": "A rogue of 8th level or higher can no longer be flanked. This defense denies another rogue the ability to sneak attack the character by flanking her, unless the attacker has at least four more rogue levels than the target does. If a character already has uncanny dodge (see above) from another class, the levels from the classes that grant uncanny dodge stack to determine the minimum rogue level required to flank the character.",
+  "advanced talents": "At 10th level, and every two levels thereafter, a rogue can choose one of the following advanced talents in place of a rogue talent. Note from Nethys : The full list of rogue talents is available here",
+  "master strike": "Upon reaching 20th level, a rogue becomes incredibly deadly when dealing sneak attack damage. Each time the rogue deals sneak attack damage, she can choose one of the following three effects: the target can be put to sleep for 1d4 hours, paralyzed for 2d6 rounds, or slain. Regardless of the effect chosen, the target receives a Fortitude save to negate the additional effect. The DC of this save is equal to 10 + 1/2 the rogue's level + the rogue's Intelligence modifier. Once a creature has been the target of a master strike, regardless of whether or not the save is made, that creature is immune to that rogue's master strike for 24 hours. Creatures that are immune to sneak attack damage are also immune to this ability. Alternate Capstones"
+ },
+ "class_ability": [
+  "sneak attack_rogue",
+  "trapfinding_rogue",
+  "evasion_rogue",
+  "rogue talents_rogue",
+  "trap sense_rogue",
+  "uncanny dodge_rogue",
+  "improved uncanny dodge_rogue",
+  "advanced talents_rogue",
+  "master strike_rogue"
+ ],
+ "class_features": {
+  "E-Kat Exchange": {
+   "Reserve": {
+    "Your reserve": "10 E-Kat(s) carried into play, of 10 earned at creation (0 spent on Luck Traits at 25 each). Storage cap 99."
+   },
+   "Feats Taken": {
+    "Feat: Double Down": "[+1 Luck] Double permanent E-Kat acquisition.",
+    "Feat: Middle Finger": "[+1 Luck] Gain 1 E-Kat anytime the GM has a hostile NPC utilize a Hero Point."
+   },
+   "Feats Not Taken (reference)": {
+    "Feat: Stream of Luck": "[+1 Luck] Gain one E-Kat per session (character played), two if you have Double Down.",
+    "Feat: Sweet Dreams": "[+1 Luck] Gain one E-Kat per in-game long rest, two if you have Double Down. (Applies once to timeskips longer than a day.)",
+    "Feat: Lucky Boy": "[+1 Luck] E-Kat (roll based) bonuses are doubled.",
+    "Feat: Very Lucky Boy": "[+1 Luck] E-Kat (roll based) bonuses are increased to triple.",
+    "Feat: Ass Pull": "[+4 Luck] Gain 4 E-Kats per session that expire upon the session's end, and a +4 Luck.",
+    "Feat: It Just Works": "[+4 Luck] Gain one free Hero Point per session that expires upon the session's end, +4 Luck.",
+    "Feat: Right of Deferment": "[+1 Luck] You may wait to apply E-Kats after a roll for no penalty.",
+    "Feat: Luck God": "[+4 Luck] All E-Kat costs (excluding the 99 tier and purchasing new Luck Traits) are cut in half; you gain a +2 bonus to all saves, attacks, ability checks, skill checks, AC, and Caster Level Checks. You gain a +4 Luck, and once per day can force a reroll in your favor."
+   },
+   "Actions": {
+    "Active modifiers": "Permanent E-Kat acquisition is doubled (Double Down).",
+    "2 E-Kats: bonus": "Gain a +1 on ANY roll; +2 if declared before the roll.",
+    "2 E-Kats: penalty": "Inflict a -1 on ANY roll; -2 if declared before the roll.",
+    "5 E-Kats: stabilize": "Stabilize ANYONE within five feet, provided they are not already beyond stabilization.",
+    "10 E-Kats: hero point": "Use as a Hero Point (you can store it if you have room).",
+    "Hero point for 5 E-Kats": "1 non-temporary Hero Point can be exchanged for 5 E-Kats (not multiplied by Lucky Boy).",
+    "20 E-Kats: borrow a feat or spell": "Gain the ability to use a feat or mythic spell you qualify for, excluding the mythic requirement. Feats last one minute; spells last for the duration of the spell.",
+    "25 E-Kats: Luck Trait": "25 permanent E-Kats can be used to purchase a Luck Trait.",
+    "99 E-Kats: Destined Template": "Gain the \"Destined\" Template (only once per player). This action locks your slot into a future campaign and ties it to this character.",
+    "99 E-Kats: survive anything": "You may exchange 99 E-Kats to survive anything."
+   }
+  },
+  "rogue_talents": {
+   "assault leader": {
+    "benefit": "once per day, when the rogue misses with an attack on a flanked opponent, she can designate a single ally who is also flanking the target that her attack missed. that ally can make a single melee attack against the opponent as an immediate action."
+   },
+   "sniper20s eye": {
+    "benefit": "a rogue with this talent can apply her sneak attack damage on ranged attacks targeting foes within 30 feet that benefit from concealment. foes with total concealment are still immune."
+   },
+   "underhanded": {
+    "benefit": "a rogue with this talent gains a +4 circumstance bonus on all sleight of hand checks made to conceal a weapon. furthermore, if she makes a sneak attack during the surprise round using a concealed weapon that her opponent didnt know about, she does not have to roll sneak attack damage, and the sneak attack deals maximum damage. a rogue can only use the underhanded talent a number of times per day equal to her charisma modifier (minimum 0). "
+   }
+  },
+  "Skill Unlock: Knowledge (dungeoneering)": {
+   "5 Ranks": "You gain one additional piece of useful information for every 5 ranks you possess in that Knowledge skill.",
+   "10 Ranks": "After identifying a creature you gain a +1 competence bonus (increasing per 5 ranks) on attack rolls, opposed checks, skill checks, and caster level checks against creatures of that kind for 1 minute.",
+   "15 Ranks": "You can reroll a failed Knowledge check at a -10 penalty, and the competence bonus also applies to saving throws against that creature type's special abilities.",
+   "20 Ranks": "You can roll twice and take the better result on Knowledge checks."
+  }
+ },
+ "class_feature_levels": {
+  "rogue_talents": {
+   "underhanded": 2,
+   "assault leader": 4,
+   "sniper20s eye": 6
+  }
+ },
+ "archetype_info": "{\n    \"Toxic Talon\": {\n        \"source\": \"Adventurer's Guide pg. 75 Twilight Talons might pursue many tasks, from relatively passive information gathering to staging massive coups meant to depose tyrants. A toxic talon, however, is trained and deployed for one very specific purpose: to defeat foes with unusual and potent poisons. After adopting a profession to serve as a cover for his activities, a toxic talon spends resources and time combining easy-to-obtain materials into dangerous toxins to aid in the defense of Andoran. A toxic talon can use rare, complex, slow-release poisons to make a death look like it happened naturally, but sometimes the toxic talon will use specific poisons to cast suspicion on other organizations, stirring internal conflict that other Twilight Talons can use to their advantage. The use of poisons in the defense of a good nation is controversial, and other branches of the Eagle Knights generally disavow the existence of toxic talons among their organization. Many influential leaders among the Eagle Knights, particularly in the Steel Falcons, have pushed to have the practices of the toxic talons banned from use, but these efforts have only pushed the toxic talons into further obscurity. Their role is particularly protected by the Twilight Talons, who sometimes go as far as to outright lie to others in the Eagle Knights about the operations of a toxic talon. At other times, a toxic talon may choose to martyr his freedom by publicly accepting blame for a mission that has had unfortunate public repercussions. In such a case, the toxic talon is not abandoned by his kin-instead, he is placed on a fair and public trial whose purpose is as much to appease the masses as it is to determine whether any moral lines were crossed. In cases where such a toxic talon is found guilty, he is generally sentenced to hard labor or prison (in which case he often continues to run missions inside of prisons or other fortifications for the Eagle Knights as best suits his talents) or to exile (in which case his role in serving Andoran shifts to one of clandestine missions in other nations). A toxic talon who martyrs his freedom in this way and is then captured again understands that it's unlikely he'll be afforded the same level of support from the Eagle Knights, and that the organization may well disavow any official knowledge of his actions. To a toxic talon, this is all merely a deeper, more significant level of service to the well-being of the nation of Andoran. By serving as a sort of sineater for the rest of the Twilight Talons (and at times, for the other branches of the Eagle Knights), such selfless characters can ensure that the organization survives scandal and public outcry to carry on their good work. In such cases, while public recognition for their deeds may never manifest, their brothers and sisters never forget the toxic talon's sacrifice.\",\n        \"forceful breath (ex)\": \" A toxic talon is proficient with blowguns instead of hand crossbows. He can use a blowgun without penalty while prone. This alters the rogue's weapon proficiencies.\",\n        \"poison adept (ex)\": \" A toxic talon is trained in the use of poison and cannot accidentally poison himself when applying poison to a projectile weapon. He can apply poison to a projectile as a move action. This counts as the poison use ability for the purposes of qualifying for feats, prestige classes, and other options. This ability replaces trapfinding.\",\n        \"toxin resistance (ex)\": \" A toxic talon's constant exposure to varied poisons grants him increasing resistance to them. At 3rd level, a toxic talon gains a +1 bonus on saving throws against diseases and poisons, and he gains a +1 bonus on Heal checks to treat diseases and poisons. He also gains a +1 bonus on caster level checks (including when he activates a magic item) to treat or remove poisons and diseases, such as when using remove disease or neutralize poison. Finally, he gains a +1 bonus on Perception checks to identify traps that utilize diseases or poisons. These bonuses increase to +2 at 6th level, to +3 at 9th level, to +4 at 12th level, to +5 at 15th level, and to +6 at 18th level. This replaces trap sense.\",\n        \"catalyst (su)\": \" At 4th level, a toxic talon can use secret alchemical techniques to enhance a poison as he applies it to a weapon, increasing the save DC of the poison by 1 (this bonus increases to +2 at 12th level). This increase to the save DC lasts for 1 minute or until the poison is used up, whichever comes first. A toxic talon can use catalyst once per hour. This ability replaces uncanny dodge.\",\n        \"split toxin (su)\": \" At 8th level, when a toxic talon uses catalyst to enhance poison as he applies it, he can envenom two ranged weapons or units of ammunition simultaneously with the same dose. This ability replaces the rogue's improved uncanny dodge.\"\n    }\n}",
+ "parents": "absent mother, dead father, adopted into a wealthy family",
+ "older_brothers": " you have 0 older brothers",
+ "younger_brothers": " you have 0 younger brothers",
+ "older_sisters": " you have 0 older sisters",
+ "younger_sisters": " you have 0 younger sisters",
+ "weapon_name": "Longspear",
+ "specialty_schools": [
+  "necromancy",
+  "divination"
+ ],
+ "counter_schools": [
+  "transmutation",
+  "conjuration"
+ ],
+ "chosen_spell_descriptor": [
+  "fear",
+  "water"
+ ],
+ "counter_spell_descriptor": [
+  "curse",
+  "language-dependent"
+ ],
+ "total_rolled_hp": 40,
+ "mini_alignment": "le",
+ "casting_level_str_foundry": "None",
+ "main_stat": "dex",
+ "story_feat_tax_dict": {},
+ "flaw_feat_tax_dict": {},
+ "flavor_feat_tax_dict": {},
+ "class_feat_tax_dict": {},
+ "feats_feat_tax_dict": {},
+ "feat_budget": {
+  "story": 2,
+  "flaw": 0,
+  "flavor": 1,
+  "class": 0,
+  "normal": 2,
+  "teamwork": 0,
+  "bloodline": 0,
+  "trainer": 2,
+  "profession": 1
+ },
+ "mod_char_sheet_var": false,
+ "backstory": "",
+ "formatted_bio": "Fabienne Chretien\n- Alignment: Lawful Evil\n- Deity: Tanagaar\n- Race: Kitsune\n- Class: Level 6 Rogue\n- Archetype: Trickster\n- Tactics: Fights only on its own terms: opens from hiding or a flank, lands precision damage into a flat-footed target, then repositions before the enemy orients. Denied its setup, it feints, hides, or withdraws until the window reopens.\n- Stat Focus: Dex\n- Disciplines: Solar Wind, Scarlet Throne\n- Homeland: Feyador\n\nVocation\n- Profession: Pickpocket (rank 10)\n- Profession: Maestro of the Reel (rank 6)\n- Profession: Combat Engineer (rank 5)\n- Known for: Clockwork\n- Training: An average (Path of War) trainer who taught them Martial Training I (Solar Wind), Martial Training I (Scarlet Throne)\n\nFamily\n- Absent Mother\n- Dead Father\n- Adopted Into A Wealthy Family\n- No Siblings\n\nPersonality\n- Personality: Judicious, Farsighted, Self-aware, Nonjudgmental\n- Mannerisms: Kneads fingers, Hugs oneself\n\nAppearance\n- Hair: Curly Blond\n- Eyes: Hazel\n- Build: Shaved Head",
+ "classes": [
+  {
+   "name": "rogue",
+   "display": "Rogue",
+   "level": 6,
+   "archetype": {
+    "Toxic Talon": {
+     "source": "Adventurer's Guide pg. 75 Twilight Talons might pursue many tasks, from relatively passive information gathering to staging massive coups meant to depose tyrants. A toxic talon, however, is trained and deployed for one very specific purpose: to defeat foes with unusual and potent poisons. After adopting a profession to serve as a cover for his activities, a toxic talon spends resources and time combining easy-to-obtain materials into dangerous toxins to aid in the defense of Andoran. A toxic talon can use rare, complex, slow-release poisons to make a death look like it happened naturally, but sometimes the toxic talon will use specific poisons to cast suspicion on other organizations, stirring internal conflict that other Twilight Talons can use to their advantage. The use of poisons in the defense of a good nation is controversial, and other branches of the Eagle Knights generally disavow the existence of toxic talons among their organization. Many influential leaders among the Eagle Knights, particularly in the Steel Falcons, have pushed to have the practices of the toxic talons banned from use, but these efforts have only pushed the toxic talons into further obscurity. Their role is particularly protected by the Twilight Talons, who sometimes go as far as to outright lie to others in the Eagle Knights about the operations of a toxic talon. At other times, a toxic talon may choose to martyr his freedom by publicly accepting blame for a mission that has had unfortunate public repercussions. In such a case, the toxic talon is not abandoned by his kin-instead, he is placed on a fair and public trial whose purpose is as much to appease the masses as it is to determine whether any moral lines were crossed. In cases where such a toxic talon is found guilty, he is generally sentenced to hard labor or prison (in which case he often continues to run missions inside of prisons or other fortifications for the Eagle Knights as best suits his talents) or to exile (in which case his role in serving Andoran shifts to one of clandestine missions in other nations). A toxic talon who martyrs his freedom in this way and is then captured again understands that it's unlikely he'll be afforded the same level of support from the Eagle Knights, and that the organization may well disavow any official knowledge of his actions. To a toxic talon, this is all merely a deeper, more significant level of service to the well-being of the nation of Andoran. By serving as a sort of sineater for the rest of the Twilight Talons (and at times, for the other branches of the Eagle Knights), such selfless characters can ensure that the organization survives scandal and public outcry to carry on their good work. In such cases, while public recognition for their deeds may never manifest, their brothers and sisters never forget the toxic talon's sacrifice.",
+     "forceful breath (ex)": " A toxic talon is proficient with blowguns instead of hand crossbows. He can use a blowgun without penalty while prone. This alters the rogue's weapon proficiencies.",
+     "poison adept (ex)": " A toxic talon is trained in the use of poison and cannot accidentally poison himself when applying poison to a projectile weapon. He can apply poison to a projectile as a move action. This counts as the poison use ability for the purposes of qualifying for feats, prestige classes, and other options. This ability replaces trapfinding.",
+     "toxin resistance (ex)": " A toxic talon's constant exposure to varied poisons grants him increasing resistance to them. At 3rd level, a toxic talon gains a +1 bonus on saving throws against diseases and poisons, and he gains a +1 bonus on Heal checks to treat diseases and poisons. He also gains a +1 bonus on caster level checks (including when he activates a magic item) to treat or remove poisons and diseases, such as when using remove disease or neutralize poison. Finally, he gains a +1 bonus on Perception checks to identify traps that utilize diseases or poisons. These bonuses increase to +2 at 6th level, to +3 at 9th level, to +4 at 12th level, to +5 at 15th level, and to +6 at 18th level. This replaces trap sense.",
+     "catalyst (su)": " At 4th level, a toxic talon can use secret alchemical techniques to enhance a poison as he applies it to a weapon, increasing the save DC of the poison by 1 (this bonus increases to +2 at 12th level). This increase to the save DC lasts for 1 minute or until the poison is used up, whichever comes first. A toxic talon can use catalyst once per hour. This ability replaces uncanny dodge.",
+     "split toxin (su)": " At 8th level, when a toxic talon uses catalyst to enhance poison as he applies it, he can envenom two ranged weapons or units of ammunition simultaneously with the same dose. This ability replaces the rogue's improved uncanny dodge."
+    }
+   }
+  }
+ ],
+ "total_level": 6,
+ "save_bases": {
+  "fort": 2,
+  "ref": 5,
+  "will": 2
+ },
+ "spellbooks": [],
+ "class_feature_owners": {
+  "rogue_talents": "rogue"
+ },
+ "build_archetype": "Trickster",
+ "build_tactics": "Fights only on its own terms: opens from hiding or a flank, lands precision damage into a flat-footed target, then repositions before the enemy orients. Denied its setup, it feints, hides, or withdraws until the window reopens.",
+ "generation_seed": 931728500,
+ "spell_list_choose_from_dict": [],
+ "equip_descrip": {
+  "chest": {
+   "item_name": "Tunic of Careful Casting",
+   "description": " this woolen garment is decorated with a pattern of linked chains\r embroidered in silver and black thread. It assists the wearer with\r maintaining focus during spellcasting, granting a +2 bonus on\r concentration checks. "
+  },
+  "feet": {
+   "item_name": "Slippers of Spider Climbing",
+   "description": " when worn, a pair of these\r slippers enables movement on\r vertical surfaces or even upside\r down along ceilings, leaving\r the wearer's hands free. Her\r climb speed is 20 feet. Severely\r slippery surfacesicy, oiled, or greased surfacesmake\r these slippers useless. The slippers can be used for 10\r minutes per day, split up as the wearer chooses (minimum\r 1 minute per use). "
+  },
+  "rings": {
+   "item_name": "Ring of Inurement",
+   "description": "This humble ring is crafted from smooth red and blue porcelain and wrapped with threads of copper. Each morning, the ring's wearer must select either hot or cold, and for the next 24 hours the ring of inurement affords basic protection from the selected condition as if she were using endure elements and superficially alters the wearer's clothing to better accommodate her, growing fur linings and extra layers in frigid environs or lightening fabric in response to high temperatures. The ring protects only the wearer who determined its properties for the day, and its protection immediately ends for the day if it is removed."
+  },
+  "belts": {
+   "item_name": "Belt of Tumbling",
+   "description": " this thin and flexible cotton cord is meant to be wrapped\r several times around wearer's waist. The belt's wearer gains\r a +4 competence bonus on acrobatics checks made to move\r through a threatened square or through an enemy's space. "
+  },
+  "body": {
+   "item_name": "Glorious Tabard, Lesser",
+   "description": " this sleeveless white tabard, worn over armor or other clothing, prominently bears the symbol of the glorious reclamation and can be used as a divine focus by members of the glorious reclamation who are followers of iomedae. Once per day, the wearer of a lesser glorious tabard can activate the tabard to gain a +2 sacred bonus to her ac and on saving throws for 10 minutes. Both bonuses apply only against attacks made or effects created by outsiders with the evil subtype or creatures with an evil aura. A greater glorious tabard bears the symbol of the glorious reclamation in gold. It has all the powers of a lesser glorious tabard but can be used twice per day. In addition, whenever a greater glorious tabard is activated, all longswords within 20 feet shed light as per a torch and ignore the dr of evil creatures (except dr/epic) for 3 rounds. When a greater glorious tabard is used as a divine focus to cast a spell, the wearer does not need any material components that cost more than 5. A glorious tabard functions only for wearers who are both members of the glorious reclamation and followers of iomedae. "
+  }
+ },
+ "maneuvers_desc_dict": {
+  "Curving Ray Shot": {
+   "description": "The disciples keen eyes allow him to fire his weapon around his foes cover. The initiator makes an opposed Perception check against targets Armor Class before making a single ranged attack; if successful then the foes cover is negated.",
+   "type": "strike",
+   "level": 1,
+   "discipline": "Solar Wind",
+   "action": "1 standard action",
+   "range": "Ranged attack",
+   "duration": "Instantaneous"
+  },
+  "Steady Hand": {
+   "description": "The disciples limbs and muscles are strong and wise with the knowledge of weapons in flight. As a swift action, the initiator may increase the range of his ranged attacks by an additional 30-ft. for the first range increment first increment only for one round.",
+   "type": "boost",
+   "level": 1,
+   "discipline": "Solar Wind",
+   "action": "1 swift action",
+   "range": "Personal",
+   "duration": "1 round"
+  },
+  "Solar Lance": {
+   "description": "The disciple focuses his energies into his weapon and lets loose a powerful shot in a gusting wind. The initiator makes a ranged attack against his foe and if successful, the attack inflicts an additional 2d6 points of damage. The force of the wind that accompanies this blow is enough to potentially bull rush an opponent, allowing the initiator to make a free bull rush attempt as part of this attack, using his initiation modifier to calculate his CMB for the attempt with a +2 circumstance bonus. This is a supernatural ability.",
+   "type": "strike",
+   "level": 2,
+   "discipline": "Solar Wind",
+   "action": "1 standard action",
+   "range": "Ranged attack",
+   "duration": "Instantaneous"
+  },
+  "Solar Flare": {
+   "description": "Where the light of the sun touches, so does the burning reach of the Solar Wind disciple, allowing him to curve his weapons around impossible angles. The initiator makes a ranged attack against a target creature, and this attack ignores any cover defense that the creature possesses and inflicts an additional 2d6 points of fire damage. This is a supernatural ability.",
+   "type": "strike",
+   "level": 2,
+   "discipline": "Solar Wind",
+   "action": "1 standard action",
+   "range": "Ranged attack",
+   "duration": "Instantaneous"
+  },
+  "Red Zephyrs Strike": {
+   "description": "With swiftness born of skill, a disciple of the Scarlet Throne learns how to move through the battlefield as lord among warriors. The disciple makes an attack against a foe, and if successful, he may make an immediate 10-ft. movement which does not provoke attacks of opportunity.",
+   "type": "strike",
+   "level": 1,
+   "discipline": "Scarlet Throne",
+   "action": "1 standard action",
+   "range": "Melee attack",
+   "duration": "Instantaneous"
+  },
+  "Princes Attitude": {
+   "description": "The Scarlet Throne disciple knows that he is nobility in the savagery of war, and conducts himself as such when moving through melee. The initiator gains a +4 dodge bonus to his Armor Class when he moves through threatened areas and provokes attacks of opportunity and a +2 competence bonus to Reflex and Will saves until his next turn.",
+   "type": "boost",
+   "level": 1,
+   "discipline": "Scarlet Throne",
+   "action": "1 swift action",
+   "range": "Personal",
+   "duration": "One round"
+  },
+  "Rising Zenith Strike": {
+   "description": "With supreme focus, comes great insight into the workings of a foes defenses. When the moment is right, the disciple releases his attack in a vicious upward swing. The disciple makes a Sense Motive check in place of his normal attack roll he may add any enhancement bonus from his weapon or feats that apply from the use of his weapon to this Sense Motive check as well, and if this Sense Motive check equals or exceeds the targets armor class, the attack deals double damage. If this check does not meet or exceed the targets armor class, then the attack fails and the disciple misses.",
+   "type": "strike",
+   "level": 2,
+   "discipline": "Scarlet Throne",
+   "action": "1 standard action",
+   "range": "Melee attack",
+   "duration": "Instantaneous"
+  },
+  "Regal Blade": {
+   "description": "A disciple of the Scarlet Throne learns that in moments of precise focus, a single stroke of the blade can fell a potent enemy. The disciple may add a +2 insight bonus to his attack roll and +1d8 insight bonus to his damage roll on a single melee attack made during this turn.",
+   "type": "boost",
+   "level": 2,
+   "discipline": "Scarlet Throne",
+   "action": "1 swift action",
+   "range": "Personal",
+   "duration": "Instantaneous"
+  },
+  "Phantom Sun Stance": {
+   "description": "Using the principles of shadow and light, the Solar Wind disciple is capable of making phantom copies of his ammunition for use in combat. While in this stance, the initiator may make semi-real copies of arrows, bolts, bullets, or throwing weapons by willing them into existing as a free action while possessing at least one of the above on his person. Weapons that need reloading, such as crossbows and firearms, are fully reloaded as a move action and if the character possesses the Rapid Reload feat, he may reload as a swift action. Magical properties, alchemical properties, or special materials of the ammunition are not copied, only the base properties of the ammunition as if they were made of mundane steel with no special abilities or properties. Once the ammunition has been used, it disappears immediately after the attack. If the bow, firearm, sling, or cross bow making the attack has magical properties these are bestowed upon the ammunition. Thrown weapons copied by this stance are duplicates of the original, but do not manifest the material portion of the weapon, only its magical enhancements. Once these weapons are used, they fade away immediately after use. This is a supernatural ability.",
+   "type": "stance",
+   "level": 1,
+   "discipline": "Solar Wind",
+   "action": "1 swift action",
+   "range": "Personal",
+   "duration": "Stance"
+  },
+  "Circular Stance": {
+   "description": "Practitioners of Scarlet Throne know that to be a lord amongst warriors, he must walk the path of battle alone, and he understands that often times he may be beset by all sides. By adopting the Circular Stance, the disciple learns to defend himself from the predations of those who would think him outflanked. While in this stance, the initiator is never considered flanked this thwarts sneak attack attempts as well, provided that the rogue or ninjas level does not exceed the disciples initiator level by 4 or more.",
+   "type": "stance",
+   "level": 1,
+   "discipline": "Scarlet Throne",
+   "action": "1 swift action",
+   "range": "Personal",
+   "duration": "Stance"
+  }
+ },
+ "powers_desc_dict": {},
+ "homebrew_feat_desc_dict": {
+  "Martial Training I (Solar Wind)": "Youve learned the basics in a martial discipline. Special If you ever gain levels in a martial adept class or possess them previously, these maneuvers continue to use their own initiator level and recovery method, independent of your martial adept level. Those wishing to add new maneuvers from a discipline that is already available to their class should instead select the Advanced Study feat instead. select a martial discipline. the associated skill for this discipline is now a class skill. your initiation modifier is chosen from intelligence, wisdom, or charisma. your martial initiator level for maneuvers granted by this feat (and subsequent martial training feats) is equal to half your character level + your initiation modifier. you may select any two maneuvers from the 1st level maneuvers from this discipline, and you may ready one of your maneuvers for use. you may recover one maneuver by expending a full round action to recover it.",
+  "Martial Training II (Solar Wind)": "Youve continued to progress your martial studies. you may select two new maneuvers and one stance from your chosen discipline of up to 2nd level, and you may ready an additional maneuver. you must meet the minimum initiator level to select any maneuver.",
+  "Martial Training I (Scarlet Throne)": "Youve learned the basics in a martial discipline. Special If you ever gain levels in a martial adept class or possess them previously, these maneuvers continue to use their own initiator level and recovery method, independent of your martial adept level. Those wishing to add new maneuvers from a discipline that is already available to their class should instead select the Advanced Study feat instead. select a martial discipline. the associated skill for this discipline is now a class skill. your initiation modifier is chosen from intelligence, wisdom, or charisma. your martial initiator level for maneuvers granted by this feat (and subsequent martial training feats) is equal to half your character level + your initiation modifier. you may select any two maneuvers from the 1st level maneuvers from this discipline, and you may ready one of your maneuvers for use. you may recover one maneuver by expending a full round action to recover it.",
+  "Martial Training II (Scarlet Throne)": "Youve continued to progress your martial studies. you may select two new maneuvers and one stance from your chosen discipline of up to 2nd level, and you may ready an additional maneuver. you must meet the minimum initiator level to select any maneuver.",
+  "Multi Talented": "Your profession rank cap increases by 10.",
+  "Improved Shield Bash": "You can protect yourself with your shield, even if you use it to attack",
+  "Blade of Terror": "You have learned to blend the fearsome arts of the dread with your mind blade. you may use your mind blade to deliver your terrors as if you had used your devastating touch, and you may add half your soulknife level (rounded down) to your dread level to determine saving throws for your terrors. additionally, anytime you successfully use a fear effect (either through a terror or a manifested power) you may regain your psychic strike as a free action once per round.",
+  "Double Down": "Double permanent E-Kat acquisition.",
+  "Middle Finger": "Gain 1 E-Kat anytime the GM has a hostile NPC utilize a Hero Point.",
+  "Ambuscading Grapple": "",
+  "Martial Weapon Proficiency": "Choose a type of martial weapon You understand how to use that type of martial weapon in combat",
+  "Flash of Insight": "Discipline Sleeping Goddess (Boost); Level 1 Initiation Action 1 swift action Range 30 ft. Target One or two allies (see text) Duration Instantaneous You turn a sudden burst of inspiration into strength for your allies, sharing your power to give them an edge in battle and help them shrug of their wounds. You can activate this boost after making a successful attack or combat maneuver check. One ally within 30 feet gains another saving throw against a non-instantaneous effect that allows a saving throw affecting them. This saving throw has the same DC as the original save. If your ally succeeds, the effect ends. The ally does not suffer any additional effects for failing the save (such as a poisons damage). You cannot grant an ally more than one additional save against a given effect. Augment You can augment this maneuver in one or more of the following ways"
+ },
+ "feat_changes_dict": {},
+ "feat_conditionals_dict": {},
+ "spell_changes_dict": {},
+ "spell_riders_dict": {},
+ "selected_traits_desc": [
+  {
+   "name": "Two-World Magic",
+   "description": "Select one 0-level spell from a class spell list other than your own. This spell is a 0-level spell on your class spell list (or a 1st-level spell if your class doesn't have 0-level spells). For example, if you are a druid, you could select mage hand and thereafter prepare it as a 0-level druid spell; if you are a sorcerer, you could select know direction as a 0-level sorcerer spell known."
+  },
+  {
+   "name": "Bloodthirsty",
+   "description": "Whenever you make an attack that reduces a foe to 0 hit points or fewer or you confirm a critical hit, your attack deals 1 additional point of damage. The additional damage is a trait bonus, and is multiplied by your weapon's critical hit multiplier."
+  },
+  {
+   "name": "Captain's Blade",
+   "description": "While on board any vessel afloat on water, you gain a +1 trait bonus on Acrobatics and Climb checks. One of these skills (your choice) is always a class skill for you."
+  },
+  {
+   "name": "Garbage Picker",
+   "description": "You gain a +3 trait bonus on Perception checks to search for concealed items."
+  },
+  {
+   "name": "Arcane Student",
+   "description": "You gain a +1 trait bonus on Knowledge (arcana) and Spellcraft checks, and you may make these checks untrained."
+  },
+  {
+   "name": "Perfectionist's Brew",
+   "description": "You gain a +2 trait bonus on all Craft (alchemy) checks and on Spellcraft checks made to brew potions."
+  },
+  {
+   "name": "Bastard",
+   "description": "You take a –1 penalty on all Charisma-based skill checks made when dealing with members of nobility but gain a +1 trait bonus on Will saves as a result of your stubbornness and individuality. (The penalty aspect of this trait is removed if you ever manage to establish yourself as a true noble.)"
+  },
+  {
+   "name": "Inured to Death",
+   "description": "You gain a +2 trait bonus on saving throws against death effects."
+  }
+ ],
+ "item_changes_dict": {
+  "Tunic of Careful Casting": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "concentration",
+     "text": "It assists the wearer with maintaining focus during spellcasting, granting a +[[2]] bonus on concentration checks."
+    }
+   ]
+  },
+  "Slippers of Spider Climbing": {
+   "changes": [],
+   "contextNotes": [],
+   "unplaced": [
+    "Her climb speed is 20 feet. The slippers can be used for 10 minutes per day, split up as the wearer chooses (minimum 1 minute per use)."
+   ]
+  },
+  "Ring of Inurement": {
+   "changes": [],
+   "contextNotes": [],
+   "unplaced": [
+    "Each morning, the ring's wearer must select either hot or cold, and for the next 24 hours the ring of inurement affords basic protection from the selected condition as if she were using endure elements and superficially alters the wearer's clothing to better accommodate her, growing fur linings and extra layers in frigid environs or lightening fabric in response to high temperatures."
+   ]
+  },
+  "Belt of Tumbling": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "skill.acr",
+     "text": "The belt's wearer gains a +[[4]] competence bonus on acrobatics checks made to move through a threatened square or through an enemy's space."
+    }
+   ]
+  },
+  "Glorious Tabard, Lesser": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "ac",
+     "text": "Once per day, the wearer of a lesser glorious tabard can activate the tabard to gain a +[[2]] sacred bonus to her ac and on saving throws for [[10]] minutes. In addition, whenever a greater glorious tabard is activated, all longswords within [[20]] feet shed light as per a torch and ignore the dr of evil creatures (except dr/epic) for [[3]] rounds. When a greater glorious tabard is used as a divine focus to cast a spell, the wearer does not need any material components that cost more than 5."
+    }
+   ]
+  }
+ },
+ "enhancement_effects_dict": {},
+ "flaw_effects_dict": {},
+ "class_feature_changes_dict": {
+  "assault leader": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "attack",
+     "text": "Once per day, when the rogue misses with an attack on a flanked opponent, she can designate a single ally who is also flanking the target that her attack missed. That ally can make a single melee attack against the opponent as an immediate action."
+    }
+   ]
+  }
+ },
+ "class_feature_conditionals_dict": {
+  "sniper20s eye": [
+   {
+    "default": false,
+    "modifiers": [],
+    "name": "Sniper's Eye: Activation: ranged attack against a foe with concealment (not total concealment) within [[30]] feet; Effect: your sneak attack damage applies to this attack",
+    "tier": "A"
+   }
+  ],
+  "underhanded": [
+   {
+    "default": false,
+    "modifiers": [],
+    "name": "Underhanded: Cost: [[1]] use per day per point of Charisma modifier (minimum [[0]]), usable only during the surprise round with a concealed weapon your opponent didn't know about; Effect: your sneak attack damage on this hit is the maximum possible instead of rolled",
+    "tier": "A"
+   }
+  ]
+ },
+ "skill_rank_budget": 80,
+ "normal_feat_amount": 4,
+ "luck": {
+  "type": "Default",
+  "score": 5,
+  "values": {
+   "negative": 0,
+   "default": 5,
+   "proximity": 0
+  },
+  "mod": 1,
+  "cap": 25,
+  "floor": -50,
+  "e_kat_earned": 10,
+  "e_kat_reserve": 10,
+  "e_kat_store_cap": 99,
+  "traits": [],
+  "trait_benefits": {},
+  "trait_changes": {},
+  "vault": 0,
+  "vault_cap": 77,
+  "dr_pool": 5,
+  "twist_fate_per_day": 0,
+  "feats": [
+   "Double Down",
+   "Middle Finger"
+  ],
+  "luck_feats": [],
+  "derivation": [
+   "Bought +3 (10 skill ranks, 1 level-up points)",
+   "+2 from 2 E-Kat feat(s)",
+   "= 5"
+  ],
+  "negative_feats": [],
+  "audit": {
+   "attribute_points": {
+    "before": 1,
+    "spent": 1,
+    "received": 0,
+    "after": 0,
+    "final": 0,
+    "luck_cost": 0
+   },
+   "hp": {
+    "before": 54,
+    "spent": 0,
+    "received": 0,
+    "after": 54,
+    "final": 60,
+    "luck_cost": 0
+   },
+   "skill_ranks": {
+    "before": 78,
+    "spent": 10,
+    "received": 0,
+    "after": 68,
+    "final": 80,
+    "luck_cost": 0
+   },
+   "feats": {
+    "before": 0,
+    "spent": 0,
+    "received": 0,
+    "after": 0,
+    "final": 0,
+    "luck_cost": 0
+   }
+  },
+  "payout_changes": [],
+  "attribute_bumps": {},
+  "stake": {
+   "luck_type": "Default",
+   "direction": "buy",
+   "target": 3,
+   "requested": {
+    "skill_ranks": 10,
+    "hp": 0,
+    "level_up_points": 1
+   },
+   "paid": {
+    "level_up_points": 1,
+    "hp": 0,
+    "skill_ranks": 10
+   },
+   "payout": {},
+   "bonus_feat_slots": 0,
+   "luck_points": {
+    "skill_ranks": 2,
+    "hp": 0,
+    "level_up_points": 1
+   }
+  }
+ },
+ "mythic": null,
+ "enhancement_desc_dict": {},
+ "buff_gaps": [],
+ "weapon_size": "Medium",
+ "weapon_size_steps": 0,
+ "weapon_size_source": null,
+ "weapon_size_attack_penalty": 0,
+ "generator_version": "2026-07-15 racial-stats",
+ "license_url": "https://pathfinder-char-creator-web-public-use.onrender.com/license"
+}

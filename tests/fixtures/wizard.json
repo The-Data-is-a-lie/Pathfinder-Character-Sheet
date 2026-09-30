@@ -1,0 +1,1298 @@
+{
+ "class features": {
+  "transmutation": {
+   "description": "Transmuters use magic to change the world around them.",
+   "Physical Enhancement (Su)": "You gain a +1 enhancement bonus to one physical ability score (Strength, Dexterity, or Constitution). This bonus increases by +1 for every five wizard levels you possess to a maximum of +5 at 20th level. You can change this bonus to a new ability score when you prepare spells. At 20th level, this bonus applies to two physical ability scores of your choice.",
+   "Telekinetic Fist (Sp)": "As a standard action, you can strike with a telekinetic fist, targeting any foe within 30 feet as a ranged touch attack. The telekinetic fist deals 1d4 points of bludgeoning damage + 1 for every two wizard levels you possess. You can use this ability a number of times per day equal to 3 + your Intelligence modifier.",
+   "Change Shape (Sp)": "At 8th level, you can change your shape for a number of rounds per day equal to your wizard level. These rounds do not need to be consecutive. This ability otherwise functions like beast shape II or elemental body I. At 12th level, this ability functions like beast shape III or elemental body II."
+  },
+  "Skill Unlock: Use Magic Device": {
+   "5 Ranks": "You can use the aid another action to assist another creature's Use Magic Device check by succeeding at a check against the item's DC.",
+   "10 Ranks": "Rolling a natural 1 while activating an item only gives you a -10 penalty on Use Magic Device checks with that item for 24 hours (instead of locking you out).",
+   "15 Ranks": "You can emulate two races or two alignments simultaneously.",
+   "20 Ranks": "After rolling a natural 1, you may reroll the check at a -10 penalty to activate the item (you must accept the second result)."
+  }
+ },
+ "class feature levels": {},
+ "class feature owners": {
+  "transmutation": "wizard"
+ },
+ "region": "Esterdragon",
+ "chosen_race": "Goblin",
+ "land_speed": 30,
+ "character_full_name": "Uzoma Yulianto",
+ "c_class": "wizard",
+ "c_class_display": "Wizard",
+ "c_class_2": "",
+ "alignment": "Lawful Evil",
+ "age_number": 16,
+ "height_number": "3'0\"",
+ "weight_number": 31,
+ "dex": 15,
+ "str": 4,
+ "con": 6,
+ "int": 20,
+ "wis": 15,
+ "cha": 11,
+ "inherents": {
+  "str": 2,
+  "dex": 1,
+  "con": 0,
+  "int": 0,
+  "wis": 0,
+  "cha": 0
+ },
+ "level_up_stats": {
+  "str": 0,
+  "dex": 1,
+  "con": 0,
+  "int": 0,
+  "wis": 0,
+  "cha": 0
+ },
+ "racial_stats": {
+  "str": -2,
+  "dex": 4,
+  "con": 0,
+  "int": 0,
+  "wis": 0,
+  "cha": -2
+ },
+ "flaw": [
+  "Alcoholic",
+  "Haunted"
+ ],
+ "Total_HP": 28,
+ "sheet_health": 42,
+ "bab_total": 3,
+ "armor_ac": 0,
+ "shield_ac": 0,
+ "armor_name": 0,
+ "armor_spell_failure": 0,
+ "armor_weight": 0,
+ "armor_armor_check_penalty": 0,
+ "armor_max_dex_bonus": 0,
+ "shield_name": " ",
+ "shield_spell_failure": " ",
+ "shield_weight": " ",
+ "shield_armor_check_penalty": " ",
+ "shield_max_dex_bonus": " ",
+ "spell_list_choose_from": [
+  [
+   "Chameleon Scales",
+   "Jolt",
+   "Mage Hand",
+   "Mending",
+   "Message",
+   "Penumbra",
+   "Root",
+   "Scrivener's Chant"
+  ],
+  [
+   "Body Capacitance",
+   "Bouncy Body",
+   "Gravity Bow",
+   "Magic Weapon",
+   "Mirror Strike",
+   "Unerring Weapon",
+   "Vocal Alteration",
+   "Weaken Powder"
+  ],
+  [
+   "Adhesive Blood",
+   "Aggressive Thundercloud",
+   "Greensight",
+   "Hidden Knowledge",
+   "Pouncing Fury",
+   "Recoil Fire",
+   "Reinforce Armaments, Communal",
+   "Scale Spikes",
+   "Splinter Spell Resistance",
+   "Steal Breath",
+   "Winged Sword"
+  ],
+  [
+   "Blast Barrier",
+   "Erode Defenses",
+   "Ja Noi Aspect",
+   "Resinous Skin",
+   "Sheet Lightning",
+   "Storm Step",
+   "Touch Injection"
+  ],
+  [
+   "Create Holds",
+   "Earth Glide",
+   "Firefall",
+   "Imbue with Flight",
+   "Make Whole, Greater",
+   "Monstrous Physique II",
+   "Resilient Reservoir",
+   "Warp Metal",
+   "Wave Form"
+  ]
+ ],
+ "day_list": [
+  2,
+  6,
+  4,
+  3,
+  2
+ ],
+ "known_list": [
+  8,
+  8,
+  11,
+  7,
+  9
+ ],
+ "spells_prepared_per_level": [
+  2,
+  6,
+  4,
+  3,
+  2
+ ],
+ "martial_disciplines": [],
+ "initiator_level": 0,
+ "maneuvers_known_list": [],
+ "maneuvers_readied_list": [],
+ "maneuvers_choose_from": [],
+ "maneuvers_readied_names": [],
+ "stances_chosen": [],
+ "mt_feats": [],
+ "initiation_stat": "int",
+ "manifesters": [],
+ "magic_talent_items": [],
+ "combat_talent_items": [],
+ "sphere_feats": [],
+ "sphere_feat_tax": {},
+ "sphere_mana_pool": 0,
+ "spheres_chosen": [],
+ "sphere_counts": {},
+ "casting_tradition": {
+  "casting_ability_modifier": "Intelligence",
+  "drawbacks": [
+   "Focus Casting",
+   "Wild Magic",
+   "Extended Casting"
+  ],
+  "boons": [
+   "Fortified Casting",
+   "Overcharge"
+  ],
+  "drawbacks_detail": [
+   {
+    "name": "Focus Casting",
+    "description": "You must wield or wear a specific item (wand, staff, holy symbol, ring, etc.) to cast; without it you must make a concentration check (DC 20 + 1/2 caster level) or the ability fails.",
+    "counts_as": 1
+   },
+   {
+    "name": "Wild Magic",
+    "description": "Whenever you spend a spell point there is a base 10% chance (modified by caster level) to trigger an unexpected wild-magic event, rolled on the rod of wonder table.",
+    "counts_as": 1
+   },
+   {
+    "name": "Extended Casting",
+    "description": "Every sphere ability takes one step longer to activate than normal (swift to move, move to standard, standard to full-round, etc.).",
+    "counts_as": 2
+   }
+  ],
+  "boons_detail": [
+   {
+    "name": "Fortified Casting",
+    "description": "(Pairs with Draining Casting) You shore up your lifeforce against draining magic; you may use Constitution as your casting ability modifier if it is higher than your usual one."
+   },
+   {
+    "name": "Overcharge",
+    "description": "You can push your magic harder, taking +2 caster level on a sphere ability but becoming fatigued (then exhausted, then unconscious) afterward."
+   }
+  ],
+  "bonus_spell_points": 0
+ },
+ "sphere_drawbacks": [
+  "Focus Casting",
+  "Wild Magic",
+  "Extended Casting"
+ ],
+ "sphere_boons": [
+  "Fortified Casting",
+  "Overcharge"
+ ],
+ "sphere_traits": [
+  "Focus Casting",
+  "Wild Magic",
+  "Extended Casting",
+  "Fortified Casting",
+  "Overcharge"
+ ],
+ "deity_name": "Tanagaar",
+ "skill_ranks": {
+  "sense motive": 3,
+  "perception": 5,
+  "knowledge dungeoneering": 10,
+  "use magic device": 2,
+  "stealth": 10,
+  "survival": 3,
+  "disguise": 3,
+  "linguistics": 4,
+  "ride": 6,
+  "knowledge history": 2,
+  "disable device": 8,
+  "intimidate": 8,
+  "fly": 1,
+  "handle animal": 8,
+  "knowledge nobility": 3,
+  "acrobatics": 0,
+  "appraise": 3,
+  "bluff": 0,
+  "climb": 0,
+  "craft": 0,
+  "diplomacy": 0,
+  "escape artist": 0,
+  "heal": 0,
+  "knowledge arcana": 0,
+  "knowledge engineering": 0,
+  "knowledge geography": 3,
+  "knowledge local": 0,
+  "knowledge nature": 0,
+  "knowledge planes": 0,
+  "knowledge religion": 0,
+  "perform": 2,
+  "profession": 0,
+  "sleight of hand": 0,
+  "spellcraft": 0,
+  "swim": 0
+ },
+ "weapon_enhancement_chosen_list": [],
+ "armor_enhancement_chosen_list": [],
+ "shield_enhancement_chosen_list": [],
+ "weapon_enhancement_bonus": 1,
+ "armor_enhancement_bonus": 1,
+ "shield_enhancement_bonus": 0,
+ "selected_traits": [
+  "Demonic Persuasion",
+  "Subjective Truth",
+  "Serpentine Squeeze",
+  "Honest",
+  "Enemy of the Undead",
+  "Teaching Mistake",
+  "Unpredictable",
+  "Worldly"
+ ],
+ "equipment_list": [
+  "Channel-Thieving Belt",
+  "Robe of Components",
+  "Vest of Escape",
+  "Cat Burglar's Boots",
+  "Glowing Glove",
+  "Ossuary Mask",
+  "Catching Cape"
+ ],
+ "level": 7,
+ "archetype1": null,
+ "hair_color": [
+  "Brown"
+ ],
+ "hair_type": [
+  "Bald"
+ ],
+ "eye_color": [
+  "Blue"
+ ],
+ "appearance": [
+  "Sweet"
+ ],
+ "language_text": [
+  "Goblin",
+  "Common",
+  "Halfling",
+  "Draconic",
+  "Orc",
+  "Gnome",
+  "Gnoll",
+  "Dwarven"
+ ],
+ "feats": [
+  "Hero's Fortune",
+  "Tribal Scars",
+  "Undermine",
+  "Meditation Master",
+  "Enduring Mind",
+  "Destructive Dispel"
+ ],
+ "teamwork_feats": 0,
+ "teamwork_feat_labels": [],
+ "story_feats": [
+  "Cosmopolitan",
+  "Craft Magic Arms and Armor"
+ ],
+ "flaw_feats": [
+  "Blighted Critical",
+  "Trapper's Setup"
+ ],
+ "class_feats": [
+  "Craft Rod"
+ ],
+ "class_feat_labels": [
+  "Wizard 5"
+ ],
+ "flavor_feats": [
+  "Butterfly's Sting"
+ ],
+ "bloodline_feats": [],
+ "bloodline_feat_labels": [],
+ "trainer_feats": [
+  "Lingering Shadows",
+  "Duck and Cover",
+  "Minor Spell Expertise",
+  "Wild Talent",
+  "Hard to Fool"
+ ],
+ "trainer_feat_labels": [
+  "(Trainer 1)",
+  "(Trainer 1)",
+  "(Trainer 1)",
+  "(Trainer 2)",
+  "(Trainer 2)"
+ ],
+ "trainer_feat_tax_dict": {
+  "Minor Spell Expertise": [
+   "major spell expertise"
+  ]
+ },
+ "trainer_calibers": [
+  3,
+  2
+ ],
+ "profession_feats": [],
+ "profession_feat_desc": {},
+ "profession_ranks": [
+  {
+   "name": "Wine Merchant",
+   "skill_label": "Profession (Wine Merchant)",
+   "ranks": 8,
+   "cap": 10,
+   "associate_skills": [
+    "Sense Motive",
+    "Craft",
+    "Knowledge (local)"
+   ],
+   "ability_theme": "trade",
+   "ability_tier": "good",
+   "rank15_abilities": [],
+   "rank5_abilities": [
+    {
+     "name": "Ledger Sense (Ex)",
+     "desc": "<p>Endless bookkeeping has sharpened this Wizard's grasp of numbers, weights, and routes. They gain a <strong>+3 competence bonus</strong> on Profession (merchant) checks to run a business or manage cargo.</p>",
+     "changes": [
+      {
+       "formula": "3",
+       "target": "skill.pro",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    },
+    {
+     "name": "Supply Network (Ex)",
+     "desc": "<p>This Wizard keeps a web of suppliers and runners in every town worth visiting. <strong>Once per day</strong> they may call on a contact to procure, within 1d4 hours, any single mundane item worth up to 7 x 100 gp (priced at standard cost) or one specific piece of local information that an ordinary inquiry could not turn up.</p>",
+     "changes": [],
+     "contextNotes": [],
+     "uses": {
+      "per": "day",
+      "maxFormula": "1",
+      "value": null
+     }
+    },
+    {
+     "name": "Smooth Dealer (Ex)",
+     "desc": "<p>Few can resist this Wizard's polished sales pitch. They take a <strong>+3 competence bonus</strong> on Bluff checks made to talk up a deal or downplay a flaw in their wares.</p>",
+     "changes": [
+      {
+       "formula": "3",
+       "target": "skill.blf",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    }
+   ]
+  },
+  {
+   "name": "Medium",
+   "skill_label": "Profession (Medium)",
+   "ranks": 3,
+   "cap": 10,
+   "associate_skills": [
+    "Knowledge (local)"
+   ],
+   "ability_theme": "arcane",
+   "ability_tier": "average",
+   "rank15_abilities": [],
+   "rank5_abilities": []
+  },
+  {
+   "name": "Shadow Diabolist",
+   "skill_label": "Profession (Shadow Diabolist)",
+   "ranks": 1,
+   "cap": 10,
+   "associate_skills": [
+    "Knowledge (local)"
+   ],
+   "ability_theme": "occult",
+   "ability_tier": "average",
+   "rank15_abilities": [],
+   "rank5_abilities": []
+  }
+ ],
+ "profession_pool": 12,
+ "profession_ability_items": [
+  {
+   "name": "Profession Rank 5: (Wine Merchant)",
+   "description": "<p><em>Profession (Wine Merchant) - rank 8/10. Associate skills (ranks 1/4/7/10): Sense Motive, Craft, Knowledge (local).</em></p><hr><p><strong>Ledger Sense (Ex)</strong></p><p>Endless bookkeeping has sharpened this Wizard's grasp of numbers, weights, and routes. They gain a <strong>+3 competence bonus</strong> on Profession (merchant) checks to run a business or manage cargo.</p><hr><p><strong>Supply Network (Ex)</strong></p><p>This Wizard keeps a web of suppliers and runners in every town worth visiting. <strong>Once per day</strong> they may call on a contact to procure, within 1d4 hours, any single mundane item worth up to 7 x 100 gp (priced at standard cost) or one specific piece of local information that an ordinary inquiry could not turn up.</p><hr><p><strong>Smooth Dealer (Ex)</strong></p><p>Few can resist this Wizard's polished sales pitch. They take a <strong>+3 competence bonus</strong> on Bluff checks made to talk up a deal or downplay a flaw in their wares.</p>",
+   "changes": [
+    {
+     "formula": "3",
+     "target": "skill.pro",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "3",
+     "target": "skill.blf",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": [],
+   "uses": {
+    "per": "day",
+    "maxFormula": "1",
+    "value": null
+   }
+  }
+ ],
+ "skill_unlock": {
+  "skill": "Use Magic Device",
+  "base_skill": "use magic device",
+  "ranks": 2,
+  "unlock": {
+   "5": "You can use the aid another action to assist another creature's Use Magic Device check by succeeding at a check against the item's DC.",
+   "10": "Rolling a natural 1 while activating an item only gives you a -10 penalty on Use Magic Device checks with that item for 24 hours (instead of locking you out).",
+   "15": "You can emulate two races or two alignments simultaneously.",
+   "20": "After rolling a natural 1, you may reroll the check at a -10 penalty to activate the item (you must accept the second result)."
+  },
+  "unlock_html": "<h2>Use Magic Device</h2><p><strong>5 Ranks</strong>: You can use the aid another action to assist another creature's Use Magic Device check by succeeding at a check against the item's DC.</p><p><strong>10 Ranks</strong>: Rolling a natural 1 while activating an item only gives you a -10 penalty on Use Magic Device checks with that item for 24 hours (instead of locking you out).</p><p><strong>15 Ranks</strong>: You can emulate two races or two alignments simultaneously.</p><p><strong>20 Ranks</strong>: After rolling a natural 1, you may reroll the check at a -10 penalty to activate the item (you must accept the second result).</p>"
+ },
+ "gold": 0,
+ "platnium": 0,
+ "animal_companion": null,
+ "bonded_creatures": [
+  {
+   "type": "familiar",
+   "grantor": "wizard",
+   "effective_level": 0,
+   "species": null,
+   "name": null,
+   "sex": null,
+   "kind": null,
+   "species_stats": null,
+   "chassis": null,
+   "feats": [],
+   "outcome": "archetype_removed",
+   "archetype": "Instructor",
+   "flags": [],
+   "contributors": [],
+   "stats": null
+  }
+ ],
+ "full_domain": [],
+ "school": "transmutation",
+ "opposing_school": [
+  "abjuration",
+  "conjuration"
+ ],
+ "bloodline": "N/A",
+ "background_traits": [
+  "Disdainful Defender",
+  "Punish Insurrection"
+ ],
+ "professions": [
+  "Wine Merchant",
+  "Medium",
+  "Shadow Diabolist"
+ ],
+ "craft_type": "Basketweaving",
+ "mannerisms": [
+  "Tucks hair behind ears",
+  "Flexes muscles"
+ ],
+ "personality_traits": [
+  "Eloquent",
+  "Clumsy",
+  "Leisurely",
+  "Greedy",
+  "Vibrant"
+ ],
+ "hero_points": 0,
+ "gender": "Male",
+ "class_ability_desc": {
+  "spells": "A wizard casts arcane spells drawn from the sorcerer/wizard spell list presented in Spell Lists. A wizard must choose and prepare his spells ahead of time. To learn, prepare, or cast a spell, the wizard must have an Intelligence score equal to at least 10 + the spell level. The Difficulty Class for a saving throw against a wizard's spell is 10 + the spell level + the wizard's Intelligence modifier. A wizard can cast only a certain number of spells of each spell level per day. His base daily spell allotment is given on Table: Wizard. In addition, he receives bonus spells per day if he has a high Intelligence score (see Table: Ability Modifiers and Bonus Spells). A wizard may know any number of spells. He must choose and prepare his spells ahead of time by getting 8 hours of sleep and spending 1 hour studying his spellbook. While studying, the wizard decides which spells to prepare.",
+  "bonus languages": "A wizard may substitute Draconic for one of the bonus languages available to the character because of his race.",
+  "arcane bond (ex or sp)": "At 1st level, wizards form a powerful bond with an object or a creature. This bond can take one of two forms: a familiar or a bonded object. A familiar is a magical pet that enhances the wizard's skills and senses and can aid him in magic, while a bonded object is an item a wizard can use to cast additional spells or to serve as a magical item. Once a wizard makes this choice, it is permanent and cannot be changed. Rules for bonded items are given below, while rules for familiars are at the end of this section. Wizards who select a bonded object begin play with one at no cost. Objects that are the subject of an arcane bond must fall into one of the following categories: amulet, ring, staff, wand, or weapon. These objects are always masterwork quality. Weapons acquired at 1st level are not made of any special material. If the object is an amulet or ring, it must be worn to have effect, while staves, wands, and weapons must be wielded. If a wizard attempts to cast a spell without his bonded object worn or in hand, he must make a concentration check or lose the spell. The DC for this check is equal to 20 + the spell's level. If the object is a ring or amulet, it occupies the ring or neck slot accordingly. A bonded object can be used once per day to cast any one spell that the wizard has in his spellbook and is capable of casting, even if the spell is not prepared. This spell is treated like any other spell cast by the wizard, including casting time, duration, and other effects dependent on the wizard's level. This spell cannot be modified by metamagic feats or other abilities. The bonded object cannot be used to cast spells from the wizard's opposition schools (see arcane school). A wizard can add additional magic abilities to his bonded object as if he has the required item creation feats and if he meets the level prerequisites of the feat. For example, a wizard with a bonded dagger must be at least 5th level to add magic abilities to the dagger (see the Craft Magic Arms and Armor feat in Feats). If the bonded object is a wand, it loses its wand abilities when its last charge is consumed, but it is not destroyed and it retains all of its bonded object properties and can be used to craft a new wand. The magic properties of a bonded object, including any magic abilities added to the object, only function for the wizard who owns it. If a bonded object's owner dies, or the item is replaced, the object reverts to being an ordinary masterwork item of the appropriate type. If a bonded object is damaged, it is restored to full hit points the next time the wizard prepares his spells. If the object of an arcane bond is lost or destroyed, it can be replaced after 1 week in a special ritual that costs 200 gp per wizard level plus the cost of the masterwork item. This ritual takes 8 hours to complete. Items replaced in this way do not possess any of the additional enchantments of the previous bonded item. A wizard can designate an existing magic item as his bonded item. This functions in the same way as replacing a lost or destroyed item except that the new magic item retains its abilities while gaining the benefits and drawbacks of becoming a bonded item.",
+  "arcane school": "A wizard can choose to specialize in one school of magic, gaining additional spells and powers based on that school. This choice must be made at 1st level, and once made, it cannot be changed. A wizard that does not select a school receives the universalist school instead. A wizard that chooses to specialize in one school of magic must select two other schools as his opposition schools, representing knowledge sacrificed in one area of arcane lore to gain mastery in another. A wizard who prepares spells from his opposition schools must use two spell slots of that level to prepare the spell. For example, a wizard with evocation as an opposition school must expend two of his available 3rd-level spell slots to prepare a fireball . In addition, a specialist takes a -4 penalty on any skill checks made when crafting a magic item that has a spell from one of his opposition schools as a prerequisite. A universalist wizard can prepare spells from any school without restriction. Each arcane school gives the wizard a number of school powers. In addition, specialist wizards receive an additional spell slot of each spell level he can cast, from 1st on up. Each day, a wizard can prepare a spell from his specialty school in that slot. This spell must be in the wizard's spellbook. A wizard can select a spell modified by a metamagic feat to prepare in his school slot, but it uses up a higher-level spell slot. Wizards with the universalist school do not receive a school slot.",
+  "cantrips": "Wizards can prepare a number of cantrips, or 0-level spells, each day, as noted on Table: Wizard under \"Spells per Day.\"These spells are cast like any other spell, but they are not expended when cast and may be used again. A wizard can prepare a cantrip from a prohibited school, but it uses up two of his available slots (see below).",
+  "scribe scroll": "At 1st level, a wizard gains Scribe Scroll as a bonus feat.",
+  "bonus feats": "At 5th, 10th, 15th, and 20th level, a wizard gains a bonus feat. At each such opportunity, he can choose a metamagic feat, an item creation feat, or Spell Mastery. The wizard must still meet all prerequisites for a bonus feat, including caster level minimums. These bonus feats are in addition to the feats that a character of any class gets from advancing levels. The wizard is not limited to the categories of item creation feats, metamagic feats, or Spell Mastery when choosing those feats.",
+  "spellbooks": "A wizard must study his spellbook each day to prepare his spells. He cannot prepare any spell not recorded in his spellbook, except for read magic, which all wizards can prepare from memory. A wizard begins play with a spellbook containing all 0-level wizard spells (except those from his prohibited schools, if any; see Arcane Schools) plus three 1st-level spells of his choice. The wizard also selects a number of additional 1st-level spells equal to his Intelligence modifier to add to the spellbook. At each new wizard level, he gains two new spells of any spell level or levels that he can cast (based on his new wizard level) for his spellbook. At any time, a wizard can also add spells found in other wizards' spellbooks to his own (see Magic). Alternate Capstones"
+ },
+ "class_ability": [
+  "spells_wizard",
+  "bonus languages_wizard",
+  "arcane bond (ex or sp)_wizard",
+  "arcane school_wizard",
+  "cantrips_wizard",
+  "scribe scroll_wizard",
+  "bonus feats_wizard",
+  "spellbooks_wizard"
+ ],
+ "class_features": {
+  "transmutation": {
+   "description": "Transmuters use magic to change the world around them.",
+   "Physical Enhancement (Su)": "You gain a +1 enhancement bonus to one physical ability score (Strength, Dexterity, or Constitution). This bonus increases by +1 for every five wizard levels you possess to a maximum of +5 at 20th level. You can change this bonus to a new ability score when you prepare spells. At 20th level, this bonus applies to two physical ability scores of your choice.",
+   "Telekinetic Fist (Sp)": "As a standard action, you can strike with a telekinetic fist, targeting any foe within 30 feet as a ranged touch attack. The telekinetic fist deals 1d4 points of bludgeoning damage + 1 for every two wizard levels you possess. You can use this ability a number of times per day equal to 3 + your Intelligence modifier.",
+   "Change Shape (Sp)": "At 8th level, you can change your shape for a number of rounds per day equal to your wizard level. These rounds do not need to be consecutive. This ability otherwise functions like beast shape II or elemental body I. At 12th level, this ability functions like beast shape III or elemental body II."
+  },
+  "Skill Unlock: Use Magic Device": {
+   "5 Ranks": "You can use the aid another action to assist another creature's Use Magic Device check by succeeding at a check against the item's DC.",
+   "10 Ranks": "Rolling a natural 1 while activating an item only gives you a -10 penalty on Use Magic Device checks with that item for 24 hours (instead of locking you out).",
+   "15 Ranks": "You can emulate two races or two alignments simultaneously.",
+   "20 Ranks": "After rolling a natural 1, you may reroll the check at a -10 penalty to activate the item (you must accept the second result)."
+  }
+ },
+ "class_feature_levels": {},
+ "archetype_info": "{\n    \"Instructor\": {\n        \"source\": \"Cohorts and Companions pg. 31 Whether serving as staff at a formal school of magic or simply acting as a wandering teacher, an instructor has an apprentice who trades service to the instructor for lessons in magic.\",\n        \"apprentice (ex)\": \"  At 1st level, an instructor acquires the services of a loyal apprentice. She functions similarly to a cohort, though your apprentice begins as a 1st-level commoner with Magical Aptitude as their 1st-level feat and NPC ability scores (13, 12, 11, 10, 9, 8 before racial modifiers). When the instructor reaches 3rd level, if his Leadership score is at least 2, the apprentice becomes a 1st-level wizard of the same school specialization as the instructor, and she gains heroic ability scores (15, 14, 13, 12, 10, 8 before racial modifiers). The apprentice never gains item creation feats, but otherwise follows the normal rules for a cohort. Each time the instructor gains a level, he may dismiss his existing apprentice as graduated (or expelled, depending on her performance), and gain a new cohort following the same rules. If an apprentice dies in service to the instructor, the instructor takes a -2 penalty to his Leadership score. This penalty is reduced by 1 for every level the instructor gains after the death, to a minimum of 0. Because cohorts are most interested in the instructor's magical ability, the instructor uses his Intelligence modifier, rather than Charisma, to determine his Leadership score. At 7th level, an instructor may select the Leadership feat-using his Intelligence modifier to determine his Leadership score-but doing so only provides followers, never a second cohort. This ability replaces arcane bond.\",\n        \"trained teamwork (ex)\": \"  Starting at 5th level, the instructor can take a teamwork feat as his wizard bonus feat. As long as his apprentice is within 60 feet, the apprentice gains all such teamwork feats as bonus feats. The apprentice does not have to meet the feat's prerequisites. This ability modifies the bonus feats gained at 5th, 10th, 15th, and 20th level.\"\n    }\n}",
+ "parents": "loving mother, loving father, raised in a wealthy household",
+ "older_brothers": " you have 0 older brothers",
+ "younger_brothers": " you have 0 younger brothers",
+ "older_sisters": " you have 3 older sisters",
+ "younger_sisters": " you have 0 younger sisters",
+ "weapon_name": "Cestus",
+ "specialty_schools": [
+  "transmutation"
+ ],
+ "counter_schools": [
+  "divination"
+ ],
+ "chosen_spell_descriptor": [
+  "emotion",
+  "electricity"
+ ],
+ "counter_spell_descriptor": [
+  "light",
+  "language-dependent"
+ ],
+ "total_rolled_hp": 36,
+ "mini_alignment": "le",
+ "casting_level_str_foundry": "high",
+ "main_stat": "int",
+ "story_feat_tax_dict": {
+  "Craft Magic Arms and Armor": [
+   "craft construct"
+  ]
+ },
+ "flaw_feat_tax_dict": {},
+ "flavor_feat_tax_dict": {},
+ "class_feat_tax_dict": {},
+ "feats_feat_tax_dict": {
+  "Hero's Fortune": [
+   "blood of heroes",
+   "luck of heroes"
+  ]
+ },
+ "feat_budget": {
+  "story": 2,
+  "flaw": 2,
+  "flavor": 1,
+  "class": 1,
+  "normal": 6,
+  "teamwork": 0,
+  "bloodline": 0,
+  "trainer": 5,
+  "profession": 0
+ },
+ "mod_char_sheet_var": false,
+ "backstory": "",
+ "formatted_bio": "Uzoma Yulianto\n- Alignment: Lawful Evil\n- Deity: Tanagaar\n- Race: Goblin\n- Class: Level 7 Wizard\n- Archetype: Shapeshifter\n- Tactics: Assumes its combat form before or during round one, then grinds with multi-attack natural routines no weapon build can match. Falls back on casting only when a shape cannot solve the problem.\n- Stat Focus: Int\n- Homeland: Esterdragon\n\nVocation\n- Profession: Wine Merchant (rank 8)\n- Profession: Medium (rank 3)\n- Profession: Shadow Diabolist (rank 1)\n- Known for: Basketweaving\n- Training: An excellent trainer who taught them Lingering Shadows, Duck and Cover, Minor Spell Expertise\n- Training: An average trainer who taught them Wild Talent, Hard to Fool\n\nFamily\n- Loving Mother\n- Loving Father\n- Raised In A Wealthy Household\n- 3 Older Sisters\n\nPersonality\n- Personality: Eloquent, Clumsy, Leisurely, Greedy, Vibrant\n- Mannerisms: Tucks hair behind ears, Flexes muscles\n- Flaws: Alcoholic, Haunted\n\nAppearance\n- Hair: Bald Brown\n- Eyes: Blue\n- Build: Sweet",
+ "classes": [
+  {
+   "name": "wizard",
+   "display": "Wizard",
+   "level": 7,
+   "archetype": {
+    "Instructor": {
+     "source": "Cohorts and Companions pg. 31 Whether serving as staff at a formal school of magic or simply acting as a wandering teacher, an instructor has an apprentice who trades service to the instructor for lessons in magic.",
+     "apprentice (ex)": "  At 1st level, an instructor acquires the services of a loyal apprentice. She functions similarly to a cohort, though your apprentice begins as a 1st-level commoner with Magical Aptitude as their 1st-level feat and NPC ability scores (13, 12, 11, 10, 9, 8 before racial modifiers). When the instructor reaches 3rd level, if his Leadership score is at least 2, the apprentice becomes a 1st-level wizard of the same school specialization as the instructor, and she gains heroic ability scores (15, 14, 13, 12, 10, 8 before racial modifiers). The apprentice never gains item creation feats, but otherwise follows the normal rules for a cohort. Each time the instructor gains a level, he may dismiss his existing apprentice as graduated (or expelled, depending on her performance), and gain a new cohort following the same rules. If an apprentice dies in service to the instructor, the instructor takes a -2 penalty to his Leadership score. This penalty is reduced by 1 for every level the instructor gains after the death, to a minimum of 0. Because cohorts are most interested in the instructor's magical ability, the instructor uses his Intelligence modifier, rather than Charisma, to determine his Leadership score. At 7th level, an instructor may select the Leadership feat-using his Intelligence modifier to determine his Leadership score-but doing so only provides followers, never a second cohort. This ability replaces arcane bond.",
+     "trained teamwork (ex)": "  Starting at 5th level, the instructor can take a teamwork feat as his wizard bonus feat. As long as his apprentice is within 60 feet, the apprentice gains all such teamwork feats as bonus feats. The apprentice does not have to meet the feat's prerequisites. This ability modifies the bonus feats gained at 5th, 10th, 15th, and 20th level."
+    }
+   }
+  }
+ ],
+ "total_level": 7,
+ "save_bases": {
+  "fort": 2,
+  "ref": 2,
+  "will": 5
+ },
+ "spellbooks": [
+  {
+   "name": "wizard",
+   "display": "Wizard",
+   "level": 7,
+   "capped_level": 7,
+   "casting_level_string": "high",
+   "casting_level_num": 7,
+   "highest_spell_known": 4,
+   "spells_known_list": [
+    8,
+    8,
+    11,
+    7,
+    9
+   ],
+   "spells_per_day_list": [
+    2,
+    6,
+    4,
+    3,
+    2
+   ],
+   "spell_list_choose_from": [
+    [
+     "Chameleon Scales",
+     "Jolt",
+     "Mage Hand",
+     "Mending",
+     "Message",
+     "Penumbra",
+     "Root",
+     "Scrivener's Chant"
+    ],
+    [
+     "Body Capacitance",
+     "Bouncy Body",
+     "Gravity Bow",
+     "Magic Weapon",
+     "Mirror Strike",
+     "Unerring Weapon",
+     "Vocal Alteration",
+     "Weaken Powder"
+    ],
+    [
+     "Adhesive Blood",
+     "Aggressive Thundercloud",
+     "Greensight",
+     "Hidden Knowledge",
+     "Pouncing Fury",
+     "Recoil Fire",
+     "Reinforce Armaments, Communal",
+     "Scale Spikes",
+     "Splinter Spell Resistance",
+     "Steal Breath",
+     "Winged Sword"
+    ],
+    [
+     "Blast Barrier",
+     "Erode Defenses",
+     "Ja Noi Aspect",
+     "Resinous Skin",
+     "Sheet Lightning",
+     "Storm Step",
+     "Touch Injection"
+    ],
+    [
+     "Create Holds",
+     "Earth Glide",
+     "Firefall",
+     "Imbue with Flight",
+     "Make Whole, Greater",
+     "Monstrous Physique II",
+     "Resilient Reservoir",
+     "Warp Metal",
+     "Wave Form"
+    ]
+   ],
+   "spells_prepared_per_level": [
+    2,
+    6,
+    4,
+    3,
+    2
+   ],
+   "casting_stat": "int",
+   "divine": false
+  }
+ ],
+ "class_feature_owners": {
+  "transmutation": "wizard"
+ },
+ "build_archetype": "Shapeshifter",
+ "build_tactics": "Assumes its combat form before or during round one, then grinds with multi-attack natural routines no weapon build can match. Falls back on casting only when a shape cannot solve the problem.",
+ "generation_seed": 181322216,
+ "spell_list_choose_from_dict": [
+  [
+   "Chameleon Scales",
+   "Jolt",
+   "Mage Hand",
+   "Mending",
+   "Message",
+   "Penumbra",
+   "Root",
+   "Scrivener's Chant"
+  ],
+  [
+   "Body Capacitance",
+   "Bouncy Body",
+   "Gravity Bow",
+   "Magic Weapon",
+   "Mirror Strike",
+   "Unerring Weapon",
+   "Vocal Alteration",
+   "Weaken Powder"
+  ],
+  [
+   "Adhesive Blood",
+   "Aggressive Thundercloud",
+   "Greensight",
+   "Hidden Knowledge",
+   "Pouncing Fury",
+   "Recoil Fire",
+   "Reinforce Armaments, Communal",
+   "Scale Spikes",
+   "Splinter Spell Resistance",
+   "Steal Breath",
+   "Winged Sword"
+  ],
+  [
+   "Blast Barrier",
+   "Erode Defenses",
+   "Ja Noi Aspect",
+   "Resinous Skin",
+   "Sheet Lightning",
+   "Storm Step",
+   "Touch Injection"
+  ],
+  [
+   "Create Holds",
+   "Earth Glide",
+   "Firefall",
+   "Imbue with Flight",
+   "Make Whole, Greater",
+   "Monstrous Physique II",
+   "Resilient Reservoir",
+   "Warp Metal",
+   "Wave Form"
+  ]
+ ],
+ "equip_descrip": {
+  "belts": {
+   "item_name": "Channel-Thieving Belt",
+   "description": " this wide black leather belt is inlaid with spiraling copper runes. If the wearer is a living creature, she heals each time she is within the area of a burst of channeled positive energy used to deal damage to undead creatures. If the wearer is an undead creature, it heals each time it is within the area of a burst of channeled negative energy used to deal damage to living creatures. The wearer regains 1 hit point for each 1d6 points of energy channeled. The belt has no effect if its wearer is the one channeling energy. "
+  },
+  "body": {
+   "item_name": "Robe of Components",
+   "description": " the pockets of this simple blue robe\r always seem to carry just what the\r wearer needs whenever she casts a spell. \r the robe functions as a spell component\r pouch, providing any spell components or\r focuses that are necessary for the wearer's\r spellcasting. The robe can even produce\r spell components or focuses with a specific\r cost, though it provides no more than 50worth of such\r materials in any single day. The materials supplied by the robe\r are suitable only for spellcasting, and disappear if they leave\r the wearer's person or when the spell requiring them is cast. "
+  },
+  "chest": {
+   "item_name": "Vest of Escape",
+   "description": " this simple silk vest looks nondescript, \r but is actually studded with numerous\r secret pockets sewn into its lining. \r hidden inside these are magic lockpicks\r that provide a +4 competence bonus\r on disable device checks. The vest also\r grants its wearer a +6 competence bonus\r on escape artist checks. "
+  },
+  "feet": {
+   "item_name": "Cat Burglar's Boots",
+   "description": " these soft-soled boots provide their wearer with a +2 competence bonus on acrobatics, climb, and stealth checks. Once per day as an immediate action, the wearer of cat burglar's boots can reroll any one failed acrobatics, climb, or stealth check, taking the result of that check in place of the first failed check (even if the second result is worse). In addition, a secret pocket in the boots is built to hold a fully functional set of masterwork thieves' tools. A dc 22 perception check is required to notice this pocket. Any other object in the pocket causes it to bulge and become obvious to even casual observation. "
+  },
+  "hands": {
+   "item_name": "Glowing Glove",
+   "description": " the wearer of this slender white leather\r glove may, as a standard action, press it\r against any surface or object and cause\r a luminous handprint to appear. This\r print glows any color the wearer wishes, \r sheds light as a candle, and is easily\r visible from a distance of up to 60 feet. Such handprints last for\r 1 day before fading away. The glowing handprint matches the\r wearer's hand in terms of size, position of fingers, and so on. "
+  },
+  "head": {
+   "item_name": "Ossuary Mask",
+   "description": " this golden funerary mask depicts the serene expression found only at the moment of a peaceful death. When worn, it grants the wearer a +2 competence bonus on appraise, perception, and sense motive checks, and a +2 resistance bonus on will saving throws. "
+  },
+  "shoulders": {
+   "item_name": "Catching Cape",
+   "description": " this silvery cape furls and ripples\r like a flag with every step its\r owner takes. As a swift action, \r the wearer can order the cape to\r transform into a faint sphere of\r force that surrounds him on all\r sides. The field grants the wearer\r concealment (20% miss chance)\r against ranged attacks and lasts for 1 minute or until the\r wearer is missed by a ranged attack due to the power of the\r cloak, whichever comes first. When the field is used, all magic\r is lost from the cloak, leaving only a mundane silvery garment. "
+  }
+ },
+ "maneuvers_desc_dict": {},
+ "powers_desc_dict": {},
+ "homebrew_feat_desc_dict": {
+  "Hero's Fortune": "Even at the start of your career, it was clear that you had a chance at greatness, and your legend continues to grow with every adventure",
+  "Tribal Scars": "You endured the grueling coming-of-age rituals of your tribe or following, and proudly bear the scars that grant you the blessings of your tribe's ancestors or totem",
+  "Undermine": "You and your allies take advantage of shifting terrain to unbalance enemies",
+  "Meditation Master": "When fully focused on your inner self, you can enter a deep meditative state that allows you a more perfect control over your mind and body",
+  "Enduring Mind": "You are trained to resist mental damage. whenever you would suffer ability damage to a mental ability score, reduce that damage by 2 (to a minimum of 0). ability damage you deal to yourself (such as from one of your feats or powers) is not reduced in this fashion.",
+  "Destructive Dispel": "When you dispel an enemy's magical defenses, those defenses crash down with debilitating effects",
+  "Cosmopolitan": "Living in large, exotic cities has put you in touch with many diverse civilizations, cultures, and races",
+  "Craft Magic Arms and Armor": "You can create magic armor, shields, and weapons",
+  "Blighted Critical": "With a critical hit from a spell or spell-like ability, you give the target a minor spellblight",
+  "Trapper's Setup": "You have an instinct for waiting until just the right moment to spring a hazard or trap",
+  "Butterfly's Sting": "You can forgo a critical hit in order to pass it on to an ally",
+  "Craft Rod": "You can create magic rods",
+  "Lingering Shadows": "Your darkness spells are harder to suppress and even more difficult to counter. Normal Most spells that lower lighting conditions (such as darkness) can have the area brightened by a light spell at least one level higher than the darkness spell. Most spells with the light descriptor can be used to counter and dispel a darkness spell of the same spell level or lower. magical light sources cannot increase the light level within the area of spells you cast with the darkness descriptor (such as darkness) unless the light spell is at least two spell levels higher than your darkness spell. spells with the light descriptor cannot be used to counter or dispel your darkness spells unless they are at least two spell levels higher than your darkness spells.",
+  "Duck and Cover": "Your allies assist you in avoiding certain attacks",
+  "Minor Spell Expertise": "You are able to cast a 1st-level spell as a spell-like ability",
+  "Wild Talent": "Your mind wakes to a previously unrealized talent for psionics. your latent power of psionics flares to life, conferring upon you the designation of a psionic character. as a psionic character, you gain a reserve of 2 power points and can take psionic feats, metapsionic feats, and psionic item creation feats. you do not, however, gain the ability to manifest powers simply by virtue of having this feat.",
+  "Hard to Fool": "You treat strange sights with healthy skepticism. Upon reaching 10 ranks in Perception, the distance you can see through illusions increases to 20 feet. At 15 ranks in Perception, it increases to 30 feet. Normal You only get a saving throw against many illusion effects if you directly interact with that effect. when you come within 10 feet of an active illusion effect that would require you to interact with it to disbelieve the effect, you automatically get a saving throw (as if you interacted with it). the gm should make your saving throw in secret."
+ },
+ "feat_changes_dict": {
+  "Tribal Scars": {
+   "changes": [
+    {
+     "formula": "6",
+     "target": "mhp",
+     "type": "untyped",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": [
+    {
+     "text": "Also grants one Mammoth Lords tribe sub-benefit (Bearpelt, Greattusk, Ice Chasm, Night Hunt, Raptorscale, or Slothjaw) chosen at selection — a small save/skill/speed bonus that varies by tribe.",
+     "target": "effect"
+    }
+   ]
+  }
+ },
+ "feat_conditionals_dict": {
+  "Butterfly's Sting": {
+   "name": "Butterfly's Sting: Effect: forgo this critical hit's extra damage; the next ally who hits the target with a melee attack before the start of your next turn automatically confirms a critical hit",
+   "default": false,
+   "modifiers": [],
+   "tier": "A"
+  }
+ },
+ "spell_changes_dict": {
+  "Body Capacitance": {
+   "changes": [
+    {
+     "formula": "3",
+     "target": "attack",
+     "type": "untyped",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": []
+  },
+  "Gravity Bow": {
+   "name": "Gravity Bow: arrows or bolts fired from your bow or crossbow deal damage as if one size larger (a Medium longbow's [[1d8]] becomes [[2d6]]). Only you benefit; anyone else using your bow deals normal damage for their size. Duration [[1]] minute/level.",
+   "default": false,
+   "modifiers": [
+    {
+     "formula": "1d8",
+     "target": "damage",
+     "subTarget": "allDamage",
+     "type": "untyped",
+     "damageType": [
+      "as-weapon"
+     ],
+     "critical": "nonCrit"
+    }
+   ]
+  },
+  "Magic Weapon": {
+   "changes": [
+    {
+     "formula": "1",
+     "target": "attack",
+     "type": "enhancement",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "1",
+     "target": "wdamage",
+     "type": "enhancement",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": []
+  },
+  "Mirror Strike": {
+   "changes": [
+    {
+     "formula": "2",
+     "target": "attack",
+     "type": "untyped",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": []
+  }
+ },
+ "spell_riders_dict": {
+  "Weaken Powder": {
+   "attack": null,
+   "save": {
+    "type": "will",
+    "dc": "",
+    "description": "negates (object)",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[25 + 5*floor(@spells.primary.cl.total/2)]] ft; Save: Will DC [[ 10 + @slvl + @castMod ]] negates (object); the targeted loaded firearm's range increment is halved, and the firer takes a -[[2]] penalty on damage rolls made with it; if the firer becomes aware of the spell's effect before firing (such as via a DC [[16]] Spellcraft check to identify the casting), they can spend a standard action to clear the altered ammunition from the firearm, destroying that ammunition; spell resistance: yes (object)"
+   ]
+  },
+  "Aggressive Thundercloud": {
+   "attack": null,
+   "save": {
+    "type": "reflex",
+    "dc": "",
+    "description": "negates",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[100 + 10*@spells.primary.cl.total]] ft; Save: Reflex DC [[ 10 + @slvl + @castMod ]] negates; the sphere flies [[20]] ft. per round with perfect maneuverability; if it enters a creature's space, it stops moving for the round and deals [[3d6]] electricity damage to that creature; it provides concealment ([[20]]% miss chance) to anything within it and illuminates the same area a candle would; it moves only when actively directed as a move action, otherwise it stays at rest; it can be moved by wind effects and counts as a Small creature for that purpose; it has no physical substance and cannot exert force on corporeal creatures or objects; it disperses if it exceeds the spell's range; spell resistance: yes"
+   ]
+  },
+  "Steal Breath": {
+   "attack": null,
+   "save": {
+    "type": "fortitude",
+    "dc": "",
+    "description": "negates; see text",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[25 + 5*floor(@spells.primary.cl.total/2)]] ft; Save: Fortitude DC [[ 10 + @slvl + @castMod ]] negates; see text; if the target fails its save, it takes [[2d6]] points of damage and cannot speak, use breath weapons, or do anything else requiring breathing, as a visible line of swirling air leaves the target's mouth and enters yours; if, during the duration, the target moves out of range or line of effect to you, the spell immediately ends; has no effect on creatures that do not need to breathe air; lasts [[1]] round; spell resistance: yes"
+   ]
+  },
+  "Blast Barrier": {
+   "attack": null,
+   "save": {
+    "type": "reflex",
+    "dc": "",
+    "description": "half",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[25 + 5*floor(@spells.primary.cl.total/2)]] ft; Save: Reflex DC [[ 10 + @slvl + @castMod ]] half; the barrier has AC [[9]], hardness [[0]], and [[5*@spells.primary.cl.total]] hit points. The caster must concentrate to maintain the wall's shape, and it can only be raised on natural, unworked ground where it provides total cover to Large or smaller creatures and objects; when the barrier is reduced to [[0]] hit points, or when the caster ceases concentrating on it, it explodes, and any creature adjacent to it takes [[2d6]] slashing damage plus [[(min(6, floor(@spells.primary.cl.total/3)))d6]] sonic damage; spell resistance: yes (see below)"
+   ]
+  },
+  "Sheet Lightning": {
+   "attack": null,
+   "save": {
+    "type": "fortitude",
+    "dc": "",
+    "description": "partial — target dazed for 1 round on a failed save, or dazzled for 1 round on a successful save",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[100 + 10*@spells.primary.cl.total]] ft; Save: Fortitude DC [[ 10 + @slvl + @castMod ]] partial — target dazed for [[1]] round on a failed save, or dazzled for [[1]] round on a successful save; [[1]] point electricity damage to all creatures within the [[20]]-foot-radius area (no save); only living creatures are subject to the daze/dazzle effect; a creature wearing metal armor takes a -[[2]] penalty on this saving throw; spell resistance: yes"
+   ]
+  },
+  "Storm Step": {
+   "attack": null,
+   "save": {
+    "type": "reflex",
+    "dc": "",
+    "description": "half",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[25 + 5*floor(@spells.primary.cl.total/2)]] ft; Save: Reflex DC [[ 10 + @slvl + @castMod ]] half; [[ (min(5, floor(@spells.primary.cl.total/2)))d8 ]] electricity damage to creatures and objects in your path; you must have line of sight to your destination, or specify a direction and distance within range; if your path intersects a solid object you damage the barrier accordingly — if the damage is enough to break through, you continue beyond it as long as the spell's range permits, otherwise your movement stops in the square adjacent to the barrier and the effect ends; spell resistance: yes"
+   ]
+  },
+  "Firefall": {
+   "attack": null,
+   "save": {
+    "type": "will",
+    "dc": "",
+    "description": "negates and Reflex negates; see text",
+    "harmless": false
+   },
+   "riders": [
+    "Save: Will DC [[ 10 + @slvl + @castMod ]] negates and Reflex negates; see text; the spell extinguishes one fire source up to a [[20]]-foot cube (a larger fire is only partly extinguished); magical fires are not extinguished, but a creature of the fire subtype used as the source takes [[@spells.primary.cl.total]] points of damage with no saving throw; the coruscating rain of fire fills a hemispherical burst with a radius of [[60]] feet, dealing [[5d6]] points of fire damage to all creatures and objects within and igniting them; creatures that succeed at a Reflex save take half damage and do not catch fire; creatures within [[120]] feet of the original fire source are blinded for [[1d4]]+[[1]] rounds unless they succeed at a Will save; spell resistance: no"
+   ]
+  },
+  "Warp Metal": {
+   "attack": null,
+   "save": {
+    "type": "will",
+    "dc": "",
+    "description": "negates (object)",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[25 + 5*floor(@spells.primary.cl.total/2)]] ft; Save: Will DC [[ 10 + @slvl + @castMod ]] negates (object); you cause metal to bend and warp, permanently destroying its straightness, form, and strength; a warped door springs open or becomes stuck, requiring a successful Strength check to open, at your option; a warped vehicle grinds to a halt and ceases to operate; warped ranged weapons are useless; a warped melee weapon imposes a -[[4]] penalty on attack rolls; you can warp up to [[@spells.primary.cl.total]] Small or smaller objects or their equivalent (a Medium object counts as [[2]] Small objects, a Large object as [[4]], a Huge object as [[8]], a Gargantuan object as [[16]], and a Colossal object as [[32]]); alternatively, you can unwarp metal back to normal with this spell; make whole does nothing to repair a warped item; multiple consecutive castings can be combined to warp or unwarp an object too large for a single casting, and the object suffers no ill effects until completely warped; spell resistance: yes (object)"
+   ]
+  }
+ },
+ "selected_traits_desc": [
+  {
+   "name": "Demonic Persuasion",
+   "description": "You gain a +2 trait bonus on Diplomacy and Intimidate checks when dealing with creatures of the demon subtype."
+  },
+  {
+   "name": "Subjective Truth",
+   "description": "You gain a +2 trait bonus on Bluff checks to lie, provided the person you're lying to has never known you to lie to him. Failing this check counts as being caught in a lie by the target, negating any future use of this bonus against that person."
+  },
+  {
+   "name": "Serpentine Squeeze",
+   "description": "You gain a +1 trait bonus on combat maneuver checks to grapple a foe, as well as a +1 trait bonus to your CMD whenever an opponent tries to grapple you."
+  },
+  {
+   "name": "Honest",
+   "description": "You gain a +1 trait bonus on Diplomacy checks. This bonus increases to +2 when the Diplomacy check is made to influence those who are already friendly or helpful toward you."
+  },
+  {
+   "name": "Enemy of the Undead",
+   "description": "You gain a +2 trait bonus on saving throws against any spells or spell-like abilities from an undead creature."
+  },
+  {
+   "name": "Teaching Mistake",
+   "description": "Once per scenario, when you roll a natural 1 on any saving throw, you gain a +1 trait bonus on your next saving throw, used before the end of the scenario."
+  },
+  {
+   "name": "Unpredictable",
+   "description": "You gain a +1 trait bonus on Bluff checks, and Bluff is always a class skill for you."
+  },
+  {
+   "name": "Worldly",
+   "description": "Once per day when attempting a skill check for a skill you're untrained in, you can roll twice and take the better result."
+  }
+ ],
+ "item_changes_dict": {
+  "Channel-Thieving Belt": {
+   "changes": [],
+   "contextNotes": [],
+   "unplaced": [
+    "The wearer regains 1 hit point for each 1d6 points of energy channeled."
+   ]
+  },
+  "Robe of Components": {
+   "changes": [],
+   "contextNotes": [],
+   "unplaced": [
+    "The robe functions as a spell component pouch, providing any spell components or focuses that are necessary for the wearer's spellcasting. The robe can even produce spell components or focuses with a specific cost, though it provides no more than 50worth of such materials in any single day."
+   ]
+  },
+  "Vest of Escape": {
+   "changes": [
+    {
+     "formula": "4",
+     "operator": "add",
+     "priority": 0,
+     "target": "skill.dev",
+     "type": "competence"
+    },
+    {
+     "formula": "6",
+     "operator": "add",
+     "priority": 0,
+     "target": "skill.esc",
+     "type": "competence"
+    }
+   ],
+   "contextNotes": []
+  },
+  "Cat Burglar's Boots": {
+   "changes": [
+    {
+     "formula": "2",
+     "operator": "add",
+     "priority": 0,
+     "target": "skill.acr",
+     "type": "competence"
+    },
+    {
+     "formula": "2",
+     "operator": "add",
+     "priority": 0,
+     "target": "skill.clm",
+     "type": "competence"
+    },
+    {
+     "formula": "2",
+     "operator": "add",
+     "priority": 0,
+     "target": "skill.ste",
+     "type": "competence"
+    }
+   ],
+   "contextNotes": [
+    {
+     "target": "skill.acr",
+     "text": "Once per day as an immediate action, the wearer of cat burglar's boots can reroll any one failed acrobatics, climb, or stealth check, taking the result of that check in place of the first failed check (even if the second result is worse). A dc [[22]] perception check is required to notice this pocket."
+    }
+   ]
+  },
+  "Glowing Glove": {
+   "changes": [],
+   "contextNotes": [],
+   "unplaced": [
+    "The wearer of this slender white leather glove may, as a standard action, press it against any surface or object and cause a luminous handprint to appear. This print glows any color the wearer wishes, sheds light as a candle, and is easily visible from a distance of up to 60 feet. Such handprints last for 1 day before fading away."
+   ]
+  },
+  "Ossuary Mask": {
+   "changes": [
+    {
+     "formula": "2",
+     "operator": "add",
+     "priority": 0,
+     "target": "skill.apr",
+     "type": "competence"
+    },
+    {
+     "formula": "2",
+     "operator": "add",
+     "priority": 0,
+     "target": "skill.per",
+     "type": "competence"
+    },
+    {
+     "formula": "2",
+     "operator": "add",
+     "priority": 0,
+     "target": "skill.sen",
+     "type": "competence"
+    },
+    {
+     "formula": "2",
+     "operator": "add",
+     "priority": 0,
+     "target": "will",
+     "type": "resist"
+    }
+   ],
+   "contextNotes": []
+  },
+  "Catching Cape": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "attack",
+     "text": "As a swift action, the wearer can order the cape to transform into a faint sphere of force that surrounds him on all sides. The field grants the wearer concealment (20% miss chance) against ranged attacks and lasts for [[1]] minute or until the wearer is missed by a ranged attack due to the power of the cloak, whichever comes first."
+    }
+   ]
+  }
+ },
+ "enhancement_effects_dict": {},
+ "flaw_effects_dict": {
+  "Alcoholic": {
+   "tier": "minor",
+   "description": "You cannot resist the bottle. Whenever you are presented with alcohol, you must pass a Will save (DC 5) or you are compelled to drink it.",
+   "changes": [],
+   "contextNotes": [
+    {
+     "text": "Alcoholic (minor): when presented with alcohol, Will save DC [[5]] or you must drink it.",
+     "target": "will"
+    }
+   ]
+  },
+  "Haunted": {
+   "tier": "major",
+   "description": "Malevolent spirits follow you wherever you go, causing minor mishaps and strange occurrences. Retrieving any stored item from your gear requires a standard action, and any item you drop lands 10 feet away in a random direction.",
+   "changes": [],
+   "contextNotes": [
+    {
+     "text": "Haunted: retrieving stored gear is a standard action; dropped items land [[10]] ft away in a random direction.",
+     "target": "ac"
+    }
+   ]
+  }
+ },
+ "class_feature_changes_dict": {},
+ "class_feature_conditionals_dict": {},
+ "skill_rank_budget": 84,
+ "normal_feat_amount": 6,
+ "luck": {
+  "type": "Default",
+  "score": 1,
+  "values": {
+   "negative": 0,
+   "default": 1,
+   "proximity": 0
+  },
+  "mod": 0,
+  "cap": 25,
+  "floor": -50,
+  "e_kat_earned": 0,
+  "e_kat_reserve": 0,
+  "e_kat_store_cap": 99,
+  "traits": [],
+  "trait_benefits": {},
+  "trait_changes": {},
+  "vault": 0,
+  "vault_cap": 77,
+  "dr_pool": 1,
+  "twist_fate_per_day": 0,
+  "feats": [],
+  "luck_feats": [
+   "Hero's Fortune"
+  ],
+  "derivation": [
+   "+1 from 1 hero point / luck feat(s)",
+   "= 1"
+  ],
+  "negative_feats": [],
+  "audit": {
+   "attribute_points": {
+    "before": 1,
+    "spent": 0,
+    "received": 0,
+    "after": 1,
+    "final": 1,
+    "luck_cost": 0
+   },
+   "hp": {
+    "before": 28,
+    "spent": 0,
+    "received": 0,
+    "after": 28,
+    "final": 28,
+    "luck_cost": 0
+   },
+   "skill_ranks": {
+    "before": 70,
+    "spent": 0,
+    "received": 0,
+    "after": 70,
+    "final": 84,
+    "luck_cost": 0
+   },
+   "feats": {
+    "before": 0,
+    "spent": 0,
+    "received": 0,
+    "after": 0,
+    "final": 0,
+    "luck_cost": 0
+   }
+  },
+  "payout_changes": [],
+  "attribute_bumps": {},
+  "stake": null
+ },
+ "mythic": null,
+ "enhancement_desc_dict": {},
+ "buff_gaps": [],
+ "weapon_size": "Small",
+ "weapon_size_steps": 0,
+ "weapon_size_source": null,
+ "weapon_size_attack_penalty": 0,
+ "generator_version": "2026-07-15 racial-stats",
+ "license_url": "https://pathfinder-char-creator-web-public-use.onrender.com/license"
+}

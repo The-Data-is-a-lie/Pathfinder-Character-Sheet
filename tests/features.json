@@ -1,0 +1,13 @@
+{
+  "$comment": "Feature ledger — the single list of every feature this sheet should have. status: have (proven by >=1 passing tagged test) | untested (shipped, not yet proven) | partial (tests must pass; needs a gap note) | missing (not built) | out (ruled out of scope). source: foundry | surpass | user. See tests/README.md.",
+  "features": [
+    { "id": "shell.boot-with-character", "area": "Shell", "title": "Sheet boots and renders a loaded character with its tabs", "source": "foundry", "status": "have" },
+    { "id": "generate.backend-roundtrip", "area": "Generate", "title": "Generate posts the form to the backend and renders the returned character", "source": "surpass", "status": "have" },
+    { "id": "combat.weapon-attack-card", "area": "Combat", "title": "A weapon Attack button posts an attack card to the roll log", "source": "foundry", "status": "have" },
+    { "id": "buffs.column-align", "area": "Buffs", "title": "Every non-name buff column lines up across rows and sections", "source": "user", "status": "missing", "ticket": 138 },
+    { "id": "spells.file-by-level", "area": "Spells", "title": "A picked spell files under its level for the book's class", "source": "user", "status": "missing", "ticket": 139 },
+    { "id": "catalog.browse-all", "area": "Catalog", "title": "Add menus list the whole applicable catalog A-Z before typing", "source": "user", "status": "missing", "ticket": 140 },
+    { "id": "inventory.multi-add", "area": "Inventory", "title": "Inventory picker adds many items across categories at once", "source": "user", "status": "missing", "ticket": 140 },
+    { "id": "companions.mini-sheet", "area": "Companions", "title": "Companions are full mini-sheets with derived math, buffs and conditions", "source": "user", "status": "missing", "ticket": 141 }
+  ]
+}

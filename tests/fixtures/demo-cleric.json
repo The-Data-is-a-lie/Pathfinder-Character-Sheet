@@ -1,0 +1,2482 @@
+{
+ "class features": {
+  "Glory": {
+   "subdomains": [
+    "Heroism",
+    "Honor",
+    "Hubris",
+    "Legend"
+   ],
+   "Touch of Glory (Sp)": [
+    "You can cause your hand to shimmer with divine radiance, allowing you to touch a creature as a standard action and give it a bonus equal to your cleric level on a single Charisma-based skill check or Charisma ability check. This ability lasts for 1 hour or until the creature touched elects to apply the bonus to a roll. You can use this ability to grant the bonus a number of times per day equal to 3 + your Wisdom modifier."
+   ],
+   "Divine Presence (Su)": [
+    "At 8th level, you can emit a 30-foot aura of divine presence for a number of rounds per day equal to your cleric level. All allies within this aura are treated as if under the effects of a sanctuary spell with a DC equal to 10 + 1/2 your cleric level + your Wisdom modifier. These rounds do not need to be consecutive. Activating this ability is a standard action. If an ally leaves the area or makes an attack, the effect ends for that ally. If you make an attack, the effect ends for you and your allies."
+   ],
+   "bonus spells": [
+    "sanctuary",
+    "shield of faith",
+    "bless weapon",
+    "searing light",
+    "holy smite",
+    "righteous might",
+    "undeath to death",
+    "holy sword",
+    "holy aura",
+    "gate"
+   ]
+  },
+  "War": {
+   "subdomains": [
+    "Blood",
+    "Duels",
+    "Tactics"
+   ],
+   "Battle Rage (Sp)": [
+    "You can touch a creature as a standard action to give it a bonus on melee damage rolls equal to 1/2 your cleric level for 1 round (minimum +1). You can do so a number of times per day equal to 3 + your Wisdom modifier."
+   ],
+   "Weapon Master (Su)": [
+    "At 8th level, as a swift action, you gain the use of one combat feat for a number of rounds per day equal to your cleric level. These rounds do not need to be consecutive and you can change the feat chosen each time you use this ability. You must meet the prerequisites to use this feat."
+   ],
+   "bonus spells": [
+    "magic weapon",
+    "spiritual weapon",
+    "magic vestment",
+    "divine power",
+    "flame strike",
+    "blade barrier",
+    "power word blind",
+    "power word stun",
+    "power word kill"
+   ]
+  },
+  "Skill Unlock: Linguistics": {
+   "5 Ranks": "You can use Linguistics in place of Sense Motive to intercept secret messages, and gain a scaling insight bonus on Perception/Disable Device checks for written magical traps.",
+   "10 Ranks": "Exceed a writing-examination check by 10 to learn its precise meaning, never draw false conclusions on a failure, and decipher spoken meaning at high DCs.",
+   "15 Ranks": "You can decipher magical writings (DC 25 + caster level) as if using read magic, and gain a +2 bonus on Disable Device for identified magical traps.",
+   "20 Ranks": "You decipher text at one page per round, and spending 1 minute per page lets you roll twice and take the better result."
+  }
+ },
+ "class feature levels": {},
+ "class feature owners": {
+  "Glory": "cleric",
+  "War": "cleric"
+ },
+ "region": "Tal-Falko",
+ "chosen_race": "Human",
+ "land_speed": 30,
+ "character_full_name": "Cade Erin",
+ "c_class": "cleric",
+ "c_class_display": "Cleric",
+ "c_class_2": "",
+ "alignment": "Lawful Good",
+ "age_number": 49,
+ "height_number": "6'1\"",
+ "weight_number": 164,
+ "dex": 14,
+ "str": 18,
+ "con": 16,
+ "int": 15,
+ "wis": 23,
+ "cha": 20,
+ "inherents": {
+  "str": 0,
+  "dex": 0,
+  "con": 0,
+  "int": 0,
+  "wis": 0,
+  "cha": 0
+ },
+ "level_up_stats": {
+  "str": 1,
+  "dex": 1,
+  "con": 1,
+  "int": 1,
+  "wis": 1,
+  "cha": 0
+ },
+ "racial_stats": {
+  "str": 0,
+  "dex": 0,
+  "con": 0,
+  "int": 0,
+  "wis": 2,
+  "cha": 0
+ },
+ "flaw": [
+  "Grudge Keeper",
+  "Shattered Psyche"
+ ],
+ "Total_HP": 165,
+ "sheet_health": 85,
+ "bab_total": 15,
+ "armor_ac": "7",
+ "shield_ac": 0,
+ "armor_name": "Iron lamellar",
+ "armor_spell_failure": 0,
+ "armor_weight": "50 lbs.",
+ "armor_armor_check_penalty": "-7",
+ "armor_max_dex_bonus": "0",
+ "shield_name": " ",
+ "shield_spell_failure": " ",
+ "shield_weight": " ",
+ "shield_armor_check_penalty": " ",
+ "shield_max_dex_bonus": " ",
+ "spell_list_choose_from": [
+  [
+   "Create Water",
+   "Detect Fiendish Presence",
+   "Mending",
+   "Purify Food and Drink",
+   "Read Magic",
+   "Resistance",
+   "Scrivener's Chant",
+   "Spark",
+   "Vigor",
+   "Virtue"
+  ],
+  [
+   "Ant Haul",
+   "Bless Water",
+   "Burning Disarm",
+   "Funereal Weapon",
+   "Magic Weapon",
+   "Marid's Mastery",
+   "Pesh Vigor",
+   "Recharge Innate Magic",
+   "Resist Starvation",
+   "Sanctuary"
+  ],
+  [
+   "Alchemical Tinkering",
+   "Ancestral Regression",
+   "Beloved of the Forge",
+   "Blood Blaze",
+   "Diminish Resistance",
+   "Effortless Armor",
+   "Fear the Sun",
+   "Magic Siege Engine",
+   "Pilfering Hand",
+   "Shield Of Faith",
+   "Snow Shape",
+   "Spiritual Squire",
+   "Spiritual Weapon",
+   "Staggering Fall",
+   "Violent Accident"
+  ],
+  [
+   "Bless Weapon",
+   "Blood Scent",
+   "Blot",
+   "Chain of Perdition",
+   "Contest of Skill",
+   "Daggermark's Exchange",
+   "Frosthammer",
+   "Kalistocrat's Nightmare",
+   "Magic Vestment",
+   "Monstrous Extremities",
+   "Raging Rubble",
+   "Stone Shape"
+  ],
+  [
+   "Blade of Light",
+   "Divine Power",
+   "Flaming Aura",
+   "Forceful Strike",
+   "Heavy Water",
+   "Majestic Image",
+   "Persistent Vigor",
+   "Planar Adaptation",
+   "Rags to Riches",
+   "Searing Light",
+   "Spiritual Ally",
+   "Symbol of Slowing",
+   "Wave Form"
+  ],
+  [
+   "Air Walk, Communal",
+   "Caustic Blood",
+   "Disrupting Weapon",
+   "Flame Strike",
+   "Half-Blood Extraction",
+   "Holy Smite",
+   "Lend Path",
+   "Rapid Repair",
+   "Sun's Disdain, Mass"
+  ],
+  [
+   "Bear's Endurance, Mass",
+   "Blade Barrier",
+   "Bull's Strength, Mass",
+   "Dust Form",
+   "Emblem of Greed",
+   "Enlightened Step",
+   "Hammer of Mending",
+   "Music of the Spheres",
+   "Oasis",
+   "Planetary Adaptation, Mass",
+   "Righteous Might",
+   "Sign of Wrath",
+   "Symbol of Sealing",
+   "Vengeful Stinger",
+   "Wind Walk"
+  ],
+  [
+   "Arbitrament",
+   "Artificer's Curse",
+   "Awaken Construct",
+   "Control Weather",
+   "Ethereal Jaunt",
+   "Memory of Function",
+   "Power Word Blind",
+   "Spell Scourge",
+   "Terraform",
+   "Undeath To Death"
+  ],
+  [
+   "Angelic Aspect, Greater",
+   "Antimagic Field",
+   "Cure Critical Wounds, Mass",
+   "Frightful Aspect",
+   "Heart of the Mammoth",
+   "Holy Sword",
+   "Inflict Critical Wounds, Mass",
+   "Phasic Challenge",
+   "Power Word Stun",
+   "Shield of Law",
+   "Spell Immunity, Greater"
+  ],
+  [
+   "Ascension",
+   "Astral Projection",
+   "Etherealness",
+   "Gate",
+   "Heal, Mass",
+   "Holy Aura",
+   "Imbue Army Special Ability",
+   "Overwhelming Presence",
+   "Polar Midnight",
+   "Power Word Kill",
+   "Salvage",
+   "Spell Immunity, Greater Communal",
+   "Spellcasting Contract, Greater"
+  ]
+ ],
+ "day_list": [
+  10,
+  8,
+  13,
+  10,
+  11,
+  7,
+  14,
+  8,
+  9,
+  11
+ ],
+ "known_list": [],
+ "spells_prepared_per_level": [
+  10,
+  10,
+  15,
+  12,
+  13,
+  9,
+  15,
+  10,
+  11,
+  13
+ ],
+ "martial_disciplines": [
+  "Iron Tortoise",
+  "Brutal Crocodile"
+ ],
+ "initiator_level": 10,
+ "maneuvers_known_list": [
+  4,
+  4,
+  4,
+  2,
+  2,
+  2
+ ],
+ "maneuvers_readied_list": [
+  0,
+  2,
+  4,
+  2,
+  2,
+  2
+ ],
+ "maneuvers_choose_from": [
+  [
+   "Throwing Shell",
+   "Snapping Strike",
+   "Snatching Talons",
+   "Expert Grip"
+  ],
+  [
+   "Taunting Turtle",
+   "Defensive Shell",
+   "Gar Rush",
+   "Agile Redirection"
+  ],
+  [
+   "Burnished Shell",
+   "Tortoise Defense",
+   "Monkey Vault",
+   "Into the Earth"
+  ],
+  [
+   "Snapping Riposte",
+   "Alligator Suplex"
+  ],
+  [
+   "Vicious Snapping Strike",
+   "Voracious Maul"
+  ],
+  [
+   "Steel Shell",
+   "Atrophic Brutalization"
+  ]
+ ],
+ "maneuvers_readied_names": [
+  [],
+  [
+   "Defensive Shell",
+   "Agile Redirection"
+  ],
+  [
+   "Burnished Shell",
+   "Tortoise Defense",
+   "Into the Earth",
+   "Monkey Vault"
+  ],
+  [
+   "Snapping Riposte",
+   "Alligator Suplex"
+  ],
+  [
+   "Vicious Snapping Strike",
+   "Voracious Maul"
+  ],
+  [
+   "Steel Shell",
+   "Atrophic Brutalization"
+  ]
+ ],
+ "stances_chosen": [
+  "Snapping Turtle Stance",
+  "Iron Tortoise Stance",
+  "Turtle Knights Stance",
+  "Mithral Tortoise Stance",
+  "Painbringer",
+  "Catfish Hold",
+  "Kraken's Coils",
+  "Insatiable Warpath"
+ ],
+ "mt_feats": [
+  "Martial Training I (Iron Tortoise)",
+  "Martial Training III (Iron Tortoise)",
+  "Martial Training V (Iron Tortoise)",
+  "Martial Training I (Brutal Crocodile)",
+  "Martial Training III (Brutal Crocodile)",
+  "Martial Training V (Brutal Crocodile)"
+ ],
+ "initiation_stat": "wis",
+ "magic_talent_items": [],
+ "combat_talent_items": [],
+ "sphere_feats": [],
+ "sphere_feat_tax": {},
+ "sphere_mana_pool": 0,
+ "spheres_chosen": [],
+ "sphere_counts": {},
+ "casting_tradition": {
+  "casting_ability_modifier": "Wisdom",
+  "drawbacks": [
+   "Addictive Casting",
+   "Prepared Caster",
+   "Material Casting",
+   "Draining Casting"
+  ],
+  "boons": [
+   "Easy Focus",
+   "Fortified Casting"
+  ],
+  "drawbacks_detail": [
+   {
+    "name": "Addictive Casting",
+    "description": "Your magic is addictive; each time you spend spell points you must make an escalating Fortitude save or risk gaining/intensifying an addiction, taking escalating penalties until you cast again.",
+    "counts_as": 2
+   },
+   {
+    "name": "Prepared Caster",
+    "description": "After resting you must pre-assign your spell points to specific spheres you possess; you may only spend points on the spheres you prepared until you next rest.",
+    "counts_as": 1
+   },
+   {
+    "name": "Material Casting",
+    "description": "Your magic requires expending consumable materials/components worth roughly 1 sp per caster level each time you use a sphere ability.",
+    "counts_as": 1
+   },
+   {
+    "name": "Draining Casting",
+    "description": "Each time you spend a spell point you take a small amount of nonlethal damage (scaling with caster level) that can only be removed by rest, not by healing or DR.",
+    "counts_as": 1
+   }
+  ],
+  "boons_detail": [
+   {
+    "name": "Easy Focus",
+    "description": "(Counters Focus Casting) You no longer need to make a check to cast without your focus item, or you ignore part of the Focus Casting penalty; maintaining a sphere ability that needs a standard action to concentrate on requires only a move action."
+   },
+   {
+    "name": "Fortified Casting",
+    "description": "(Pairs with Draining Casting) You shore up your lifeforce against draining magic; you may use Constitution as your casting ability modifier if it is higher than your usual one."
+   }
+  ],
+  "bonus_spell_points": 1
+ },
+ "sphere_drawbacks": [
+  "Addictive Casting",
+  "Prepared Caster",
+  "Material Casting",
+  "Draining Casting"
+ ],
+ "sphere_boons": [
+  "Easy Focus",
+  "Fortified Casting"
+ ],
+ "sphere_traits": [
+  "Addictive Casting",
+  "Prepared Caster",
+  "Material Casting",
+  "Draining Casting",
+  "Easy Focus",
+  "Fortified Casting"
+ ],
+ "deity_name": "Iomedae",
+ "skill_ranks": {
+  "knowledge planes": 17,
+  "bluff": 15,
+  "intimidate": 5,
+  "escape artist": 7,
+  "climb": 5,
+  "heal": 6,
+  "stealth": 8,
+  "knowledge history": 17,
+  "linguistics": 19,
+  "handle animal": 20,
+  "knowledge religion": 4,
+  "spellcraft": 9,
+  "craft": 7,
+  "knowledge local": 12,
+  "swim": 8,
+  "disguise": 7,
+  "acrobatics": 7,
+  "sleight of hand": 7,
+  "use magic device": 11,
+  "knowledge nobility": 4,
+  "knowledge nature": 5,
+  "appraise": 0,
+  "diplomacy": 0,
+  "disable device": 0,
+  "fly": 0,
+  "knowledge arcana": 0,
+  "knowledge dungeoneering": 0,
+  "knowledge engineering": 0,
+  "knowledge geography": 0,
+  "perception": 0,
+  "perform": 0,
+  "profession": 0,
+  "ride": 0,
+  "sense motive": 0,
+  "survival": 0
+ },
+ "weapon_enhancement_chosen_list": [
+  "Fury-Born",
+  "Spellstealing"
+ ],
+ "armor_enhancement_chosen_list": [
+  "Mental Focus",
+  "Evolving",
+  "Spirit-bonded",
+  "Shadow Blending"
+ ],
+ "shield_enhancement_chosen_list": [],
+ "weapon_enhancement_bonus": 5,
+ "armor_enhancement_bonus": 4,
+ "shield_enhancement_bonus": 0,
+ "selected_traits": [
+  "Convincing Liar",
+  "Infernal Bastard",
+  "Inspired",
+  "Gifted Adept",
+  "Exiled Scholar",
+  "Reincarnated",
+  "Resolve of the Rejected",
+  "Slippery"
+ ],
+ "equipment_list": [
+  "Anchoring Belt",
+  "Monk's Robe",
+  "Poisoner's Jacket, Lesser",
+  "Sniper Goggles, Greater",
+  "Cat Burglar's Boots",
+  "Rubble Gloves",
+  "Medusa Mask",
+  "Hunter's Band",
+  "Sihedron Medallion",
+  "Seafoam Shawl",
+  "Longarm Bracers",
+  "Steelhand Circle",
+  "Survivor's Ring"
+ ],
+ "level": 20,
+ "archetype1": null,
+ "hair_color": [
+  "Black"
+ ],
+ "hair_type": [
+  "Spiky"
+ ],
+ "eye_color": [
+  "Hazel"
+ ],
+ "appearance": [
+  "Shapely"
+ ],
+ "language_text": [
+  "Common",
+  "Orc",
+  "Grippli",
+  "Draconic",
+  "Goblin",
+  "Ignan",
+  "Gnome",
+  "Dwarven",
+  "Elven",
+  "Sphinx",
+  "Halfling",
+  "Gnoll",
+  "Auran",
+  "Undercommon",
+  "Aklo",
+  "Aquan",
+  "Celestial",
+  "Abyssal",
+  "Protean",
+  "Wayang",
+  "Giant",
+  "Tengu"
+ ],
+ "feats": [
+  "Selective Channeling",
+  "Demonologist",
+  "Martial Training I (Iron Tortoise)",
+  "Martial Training III (Iron Tortoise)",
+  "Martial Training V (Iron Tortoise)",
+  "Martial Training I (Brutal Crocodile)",
+  "Martial Training III (Brutal Crocodile)",
+  "Martial Training V (Brutal Crocodile)",
+  "Multi Talented",
+  "True Calling"
+ ],
+ "teamwork_feats": 0,
+ "teamwork_feat_labels": [],
+ "story_feats": [
+  "Grasping Tail",
+  "Divine Deception",
+  "Brew Potion",
+  "Expert Trainer",
+  "Nimble Moves"
+ ],
+ "flaw_feats": [
+  "Improved Counterspell",
+  "Skilled Driver"
+ ],
+ "class_feats": [],
+ "class_feat_labels": [],
+ "flavor_feats": [
+  "Craft Wand"
+ ],
+ "bloodline_feats": [],
+ "bloodline_feat_labels": [],
+ "trainer_feats": [
+  "Necromantic Affinity",
+  "Out of the Sun",
+  "Toppling Spell",
+  "Blighted Critical",
+  "Unsanctioned Knowledge",
+  "Create Reliquary Arms and Shields",
+  "Endurance",
+  "Elemental Focus",
+  "Expanded Fiendish Resistance",
+  "Self-Sufficient",
+  "Spell Focus",
+  "Shapeshifter Foil",
+  "Extra Cantrips Or Orisons",
+  "Craft Construct",
+  "Blighted Critical Mastery",
+  "Cooperative Crafting",
+  "Uncanny Concentration"
+ ],
+ "trainer_feat_labels": [
+  "(Trainer 1)",
+  "(Trainer 1)",
+  "(Trainer 2)",
+  "(Trainer 2)",
+  "(Trainer 2)",
+  "(Trainer 3)",
+  "(Trainer 3)",
+  "(Trainer 4)",
+  "(Trainer 4)",
+  "(Trainer 4)",
+  "(Trainer 5)",
+  "(Trainer 5)",
+  "(Trainer 5)",
+  "(Trainer 6)",
+  "(Trainer 6)",
+  "(Trainer 7)",
+  "(Trainer 7)"
+ ],
+ "trainer_feat_tax_dict": {
+  "Endurance": [
+   "altitude affinity",
+   "cold celerity",
+   "diehard",
+   "drunken brawler",
+   "fast healer",
+   "stalwart",
+   "survivor",
+   "wicked valor",
+   "improved stalwart"
+  ],
+  "Elemental Focus": [
+   "greater elemental focus"
+  ],
+  "Spell Focus": [
+   "greater spell focus",
+   "spell specialization",
+   "varisian tattoo",
+   "greater spell specialization"
+  ],
+  "Extra Cantrips Or Orisons": [
+   "extra cantrips or orisons"
+  ]
+ },
+ "trainer_calibers": [
+  2,
+  3,
+  2,
+  3,
+  3,
+  2,
+  2
+ ],
+ "profession_feats": [
+  "Multi Talented",
+  "True Calling"
+ ],
+ "profession_feat_desc": {
+  "Multi Talented": "Your profession rank cap increases by 10.",
+  "True Calling": "Your natural Profession rank cap rises to 15 in one qualifying profession."
+ },
+ "profession_ranks": [
+  {
+   "name": "Midden Tender",
+   "skill_label": "Profession (Midden Tender)",
+   "ranks": 15,
+   "cap": 15,
+   "associate_skills": [
+    "Handle Animal",
+    "Use Magic Device",
+    "Sense Motive",
+    "Perception"
+   ],
+   "ability_theme": "menial",
+   "ability_tier": "average",
+   "rank15_abilities": [
+    {
+     "name": "Pack Mule's Footing (Ex)",
+     "desc": "<p>Years of hauling on slick floors and crumbling ledges keep you upright. You gain a <strong>+4</strong> bonus to CMD against trip and bull rush, and you ignore difficult terrain caused by rubble, mud, or refuse.</p>",
+     "changes": [
+      {
+       "formula": "4",
+       "target": "cmd",
+       "type": "untyped",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    },
+    {
+     "name": "Stink of the Trade (Ex)",
+     "desc": "<p>The reek of your labor clings to you and keeps predators away. Animals and scent-based creatures take a <strong>-4</strong> penalty on checks to track you by smell, and you gain a +2 bonus on saves against inhaled poisons and stench effects.</p>",
+     "changes": [],
+     "contextNotes": [
+      {
+       "text": "+2 vs inhaled poison and stench",
+       "target": "allSavingThrows"
+      }
+     ],
+     "uses": null
+    },
+    {
+     "name": "Invisible Servant (Ex)",
+     "desc": "<p>People overlook the help. You gain a +4 bonus on Stealth checks while performing menial work in plain sight, and you routinely overhear what you should not, gaining a +4 bonus on a single Perception or social skill to catch and recall secrets.</p>",
+     "changes": [
+      {
+       "formula": "4",
+       "target": "skill.ste",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    }
+   ],
+   "rank5_abilities": [
+    {
+     "name": "Hardened Hands (Ex)",
+     "desc": "<p>A lifetime of rope, shovel, and bucket has turned your hands to leather. You gain a <strong>+2</strong> bonus on Climb checks and on combat maneuver checks to maintain a grapple, and you cannot be disarmed of a simple tool or weapon you hold.</p>",
+     "changes": [
+      {
+       "formula": "2",
+       "target": "skill.clm",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    },
+    {
+     "name": "Tireless Drudge (Ex)",
+     "desc": "<p>Endless labor has hardened you. You ignore fatigue caused by physical work, gain a +4 bonus on saves and checks to resist exhaustion, and can carry 25% more weight before becoming encumbered.</p>",
+     "changes": [],
+     "contextNotes": [],
+     "uses": null
+    }
+   ]
+  },
+  {
+   "name": "Master Falconer",
+   "skill_label": "Profession (Master Falconer)",
+   "ranks": 10,
+   "cap": 10,
+   "associate_skills": [
+    "Sleight of Hand",
+    "Appraise",
+    "Handle Animal",
+    "Knowledge (local)"
+   ],
+   "ability_theme": "nature",
+   "ability_tier": "good",
+   "rank15_abilities": [],
+   "rank5_abilities": [
+    {
+     "name": "Favored Terrain (Ex)",
+     "desc": "<p>Choose one type of terrain. While in it you gain a +2 bonus on initiative and on Knowledge (geography), Perception, Stealth, and Survival checks, and you leave no trail and cannot be tracked unless you choose.</p>",
+     "changes": [],
+     "contextNotes": [
+      {
+       "text": "+2 initiative in favored terrain",
+       "target": "init"
+      }
+     ],
+     "uses": null
+    },
+    {
+     "name": "Animal Companion (Ex)",
+     "desc": "<p>You gain a loyal animal companion that advances as that of a druid of a level equal to half your character level (minimum 1).</p>",
+     "changes": [],
+     "contextNotes": [],
+     "uses": null
+    },
+    {
+     "name": "Woodland Stride (Ex)",
+     "desc": "<p>The character moves through undergrowth, thorns, and natural difficult terrain at full speed, leaving the brush undisturbed behind them.</p>",
+     "changes": [],
+     "contextNotes": [
+      {
+       "text": "Ignores natural difficult terrain when moving",
+       "target": "init"
+      }
+     ],
+     "uses": null
+    }
+   ]
+  },
+  {
+   "name": "Pet Behaviorist",
+   "skill_label": "Profession (Pet Behaviorist)",
+   "ranks": 10,
+   "cap": 10,
+   "associate_skills": [
+    "Perception",
+    "Appraise",
+    "Sleight of Hand",
+    "Use Magic Device"
+   ],
+   "ability_theme": "craft",
+   "ability_tier": "average",
+   "rank15_abilities": [],
+   "rank5_abilities": [
+    {
+     "name": "Master Craftsman (Ex)",
+     "desc": "<p>You can use your Craft or Profession ranks in place of the caster-level prerequisite for item creation feats, and you craft masterwork goods in half the normal time and cost.</p>",
+     "changes": [],
+     "contextNotes": [],
+     "uses": null
+    },
+    {
+     "name": "Sturdy Workbench (Ex)",
+     "desc": "<p>With a proper bench, vise, and your own tools, you work without error. You gain a +2 competence bonus on Craft checks, and whenever you fail a Craft check by less than 5 while at your workbench, you do not ruin the raw materials.</p>",
+     "changes": [
+      {
+       "formula": "2",
+       "target": "skill.crf",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    }
+   ]
+  }
+ ],
+ "profession_pool": 35,
+ "profession_ability_items": [
+  {
+   "name": "Profession Rank 5: (Midden Tender)",
+   "description": "<p><em>Profession (Midden Tender) - rank 15/15. Associate skills (ranks 1/4/7/10): Handle Animal, Use Magic Device, Sense Motive, Perception.</em></p><hr><p><strong>Hardened Hands (Ex)</strong></p><p>A lifetime of rope, shovel, and bucket has turned your hands to leather. You gain a <strong>+2</strong> bonus on Climb checks and on combat maneuver checks to maintain a grapple, and you cannot be disarmed of a simple tool or weapon you hold.</p><hr><p><strong>Tireless Drudge (Ex)</strong></p><p>Endless labor has hardened you. You ignore fatigue caused by physical work, gain a +4 bonus on saves and checks to resist exhaustion, and can carry 25% more weight before becoming encumbered.</p>",
+   "changes": [
+    {
+     "formula": "2",
+     "target": "skill.clm",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": [],
+   "uses": null
+  },
+  {
+   "name": "Profession Rank 15: (Midden Tender)",
+   "description": "<p><em>Profession (Midden Tender) - rank 15/15.</em></p><hr><p><strong>Pack Mule's Footing (Ex)</strong></p><p>Years of hauling on slick floors and crumbling ledges keep you upright. You gain a <strong>+4</strong> bonus to CMD against trip and bull rush, and you ignore difficult terrain caused by rubble, mud, or refuse.</p><hr><p><strong>Stink of the Trade (Ex)</strong></p><p>The reek of your labor clings to you and keeps predators away. Animals and scent-based creatures take a <strong>-4</strong> penalty on checks to track you by smell, and you gain a +2 bonus on saves against inhaled poisons and stench effects.</p><hr><p><strong>Invisible Servant (Ex)</strong></p><p>People overlook the help. You gain a +4 bonus on Stealth checks while performing menial work in plain sight, and you routinely overhear what you should not, gaining a +4 bonus on a single Perception or social skill to catch and recall secrets.</p>",
+   "changes": [
+    {
+     "formula": "4",
+     "target": "cmd",
+     "type": "untyped",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "4",
+     "target": "skill.ste",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": [
+    {
+     "text": "+2 vs inhaled poison and stench",
+     "target": "allSavingThrows"
+    }
+   ],
+   "uses": null
+  },
+  {
+   "name": "Profession Rank 5: (Master Falconer)",
+   "description": "<p><em>Profession (Master Falconer) - rank 10/10. Associate skills (ranks 1/4/7/10): Sleight of Hand, Appraise, Handle Animal, Knowledge (local).</em></p><hr><p><strong>Favored Terrain (Ex)</strong></p><p>Choose one type of terrain. While in it you gain a +2 bonus on initiative and on Knowledge (geography), Perception, Stealth, and Survival checks, and you leave no trail and cannot be tracked unless you choose.</p><hr><p><strong>Animal Companion (Ex)</strong></p><p>You gain a loyal animal companion that advances as that of a druid of a level equal to half your character level (minimum 1).</p><hr><p><strong>Woodland Stride (Ex)</strong></p><p>The character moves through undergrowth, thorns, and natural difficult terrain at full speed, leaving the brush undisturbed behind them.</p>",
+   "changes": [],
+   "contextNotes": [
+    {
+     "text": "+2 initiative in favored terrain",
+     "target": "init"
+    },
+    {
+     "text": "Ignores natural difficult terrain when moving",
+     "target": "init"
+    }
+   ],
+   "uses": null
+  },
+  {
+   "name": "Profession Rank 5: (Pet Behaviorist)",
+   "description": "<p><em>Profession (Pet Behaviorist) - rank 10/10. Associate skills (ranks 1/4/7/10): Perception, Appraise, Sleight of Hand, Use Magic Device.</em></p><hr><p><strong>Master Craftsman (Ex)</strong></p><p>You can use your Craft or Profession ranks in place of the caster-level prerequisite for item creation feats, and you craft masterwork goods in half the normal time and cost.</p><hr><p><strong>Sturdy Workbench (Ex)</strong></p><p>With a proper bench, vise, and your own tools, you work without error. You gain a +2 competence bonus on Craft checks, and whenever you fail a Craft check by less than 5 while at your workbench, you do not ruin the raw materials.</p>",
+   "changes": [
+    {
+     "formula": "2",
+     "target": "skill.crf",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": [],
+   "uses": null
+  }
+ ],
+ "skill_unlock": {
+  "skill": "Linguistics",
+  "base_skill": "linguistics",
+  "ranks": 19,
+  "unlock": {
+   "5": "You can use Linguistics in place of Sense Motive to intercept secret messages, and gain a scaling insight bonus on Perception/Disable Device checks for written magical traps.",
+   "10": "Exceed a writing-examination check by 10 to learn its precise meaning, never draw false conclusions on a failure, and decipher spoken meaning at high DCs.",
+   "15": "You can decipher magical writings (DC 25 + caster level) as if using read magic, and gain a +2 bonus on Disable Device for identified magical traps.",
+   "20": "You decipher text at one page per round, and spending 1 minute per page lets you roll twice and take the better result."
+  },
+  "unlock_html": "<h2>Linguistics</h2><p><strong>5 Ranks</strong>: You can use Linguistics in place of Sense Motive to intercept secret messages, and gain a scaling insight bonus on Perception/Disable Device checks for written magical traps.</p><p><strong>10 Ranks</strong>: Exceed a writing-examination check by 10 to learn its precise meaning, never draw false conclusions on a failure, and decipher spoken meaning at high DCs.</p><p><strong>15 Ranks</strong>: You can decipher magical writings (DC 25 + caster level) as if using read magic, and gain a +2 bonus on Disable Device for identified magical traps.</p><p><strong>20 Ranks</strong>: You decipher text at one page per round, and spending 1 minute per page lets you roll twice and take the better result.</p>"
+ },
+ "gold": 97232,
+ "platnium": 9723.2,
+ "full_domain": [
+  "Glory",
+  "War"
+ ],
+ "school": "N/A",
+ "opposing_school": "N/A",
+ "bloodline": "N/A",
+ "background_traits": [
+  "Master Illusionist",
+  "Excitable",
+  "Holy Tattoo",
+  "Boarded [D]"
+ ],
+ "professions": [
+  "Midden Tender",
+  "Master Falconer",
+  "Pet Behaviorist"
+ ],
+ "craft_type": "Cobbling",
+ "mannerisms": [
+  "Fans oneself",
+  "Fiddles with hair",
+  "Furrows brow",
+  "Huffs"
+ ],
+ "personality_traits": [
+  "Spontaneous",
+  "Guarded",
+  "Hearty",
+  "Incapable",
+  "Honest"
+ ],
+ "hero_points": 0,
+ "gender": "Male",
+ "class_ability_desc": {
+  "aura": "A cleric of a chaotic, evil, good, or lawful deity has a particularly powerful aura corresponding to the deity's alignment (see the detect evil spell for details).",
+  "spells": "A cleric casts divine spells which are drawn from the cleric spell list presented in Spell Lists. Her alignment, however, may restrict her from casting certain spells opposed to her moral or ethical beliefs; see chaotic, evil, good, and lawful spells. A cleric must choose and prepare her spells in advance. To prepare or cast a spell, a cleric must have a Wisdom score equal to at least 10 + the spell level. The Difficulty Class for a saving throw against a cleric's spell is 10 + the spell level + the cleric's Wisdom modifier. Like other spellcasters, a cleric can cast only a certain number of spells of each spell level per day. Her base daily spell allotment is given on Table: Cleric. In addition, she receives bonus spells per day if she has a high Wisdom score (see Table: Ability Modifiers and Bonus Spells). Clerics meditate or pray for their spells. Each cleric must choose a time when she must spend 1 hour each day in quiet contemplation or supplication to regain her daily allotment of spells. A cleric may prepare and cast any spell on the cleric spell list, provided that she can cast spells of that level, but she must choose which spells to prepare during her daily meditation.",
+  "channel energy": "Regardless of alignment, any cleric can release a wave of energy by channeling the power of her faith through her holy (or unholy) symbol. This energy can be used to cause or heal damage, depending on the type of energy channeled and the creatures targeted. A good cleric (or one who worships a good deity) channels positive energy and can choose to deal damage to undead creatures or to heal living creatures. An evil cleric (or one who worships an evil deity) channels negative energy and can choose to deal damage to living creatures or to heal undead creatures. A neutral cleric who worships a neutral deity (or one who is not devoted to a particular deity) must choose whether she channels positive or negative energy. Once this choice is made, it cannot be reversed. This decision also determines whether the cleric casts spontaneous cure or inflict spells (see spontaneous casting). Channeling energy causes a burst that affects all creatures of one type (either undead or living) in a 30-foot radius centered on the cleric. The amount of damage dealt or healed is equal to 1d6 points of damage plus 1d6 points of damage for every two cleric levels beyond 1st (2d6 at 3rd, 3d6 at 5th, and so on). Creatures that take damage from channeled energy receive a Will save to halve the damage. The DC of this save is equal to 10 + 1/2 the cleric's level + the cleric's Charisma modifier. Creatures healed by channeled energy cannot exceed their maximum hit point total-all excess healing is lost. A cleric may channel energy a number of times per day equal to 3 + her Charisma modifier. This is a standard action that does not provoke an attack of opportunity. A cleric can choose whether or not to include herself in this effect. A cleric must be able to present her holy symbol to use this ability.",
+  "domains": "A cleric's deity influences her alignment, what magic she can perform, her values, and how others see her. A cleric chooses two domains from among those belonging to her deity. A cleric can select an alignment domain (Chaos, Evil, Good, or Law) only if her alignment matches that domain. If a cleric is not devoted to a particular deity, she still selects two domains to represent her spiritual inclinations and abilities (subject to GM approval). The restriction on alignment domains still applies. Each domain grants a number of domain powers, dependent upon the level of the cleric, as well as a number of bonus spells. A cleric gains one domain spell slot for each level of cleric spell she can cast, from 1st on up. Each day, a cleric can prepare one of the spells from her two domains in that slot. If a domain spell is not on the cleric spell list, a cleric can prepare it only in her domain spell slot. Domain spells cannot be used to cast spells spontaneously. In addition, a cleric gains the listed powers from both of her domains, if she is of a high enough level. Unless otherwise noted, using a domain power is a standard action. A full list of Cleric Domains can be found",
+  "orisons": "Clerics can prepare a number of orisons, or 0-level spells, each day, as noted on Table: Cleric under \"Spells per Day.\"These spells are cast like any other spell, but they are not expended when cast and may be used again.",
+  "spontaneous casting": "A good cleric (or a neutral cleric of a good deity) can channel stored spell energy into healing spells that she did not prepare ahead of time. The cleric can \"lose\"any prepared spell that is not an orison or domain spell in order to cast any cure spell of the same spell level or lower (a cure spell is any spell with \"cure\"in its name). An evil cleric (or a neutral cleric who worships an evil deity) can't convert prepared spells to cure spells but can convert them to inflict spells (an inflict spell is one with \"inflict\"in its name). A cleric who is neither good nor evil and whose deity is neither good nor evil can convert spells to either cure spells or inflict spells (player's choice). Once the player makes this choice, it cannot be reversed. This choice also determines whether the cleric channels positive or negative energy (see Channel Energy).",
+  "chaotic, evil, good, and lawful spells": "A cleric can't cast spells of an alignment opposed to her own or her deity's (if she has one). Spells associated with particular alignments are indicated by the chaotic, evil, good, and lawful descriptors in their spell descriptions.",
+  "bonus languages": "A cleric's bonus language options include Celestial, Abyssal, and Infernal (the languages of good, chaotic evil, and lawful evil outsiders, respectively). These choices are in addition to the bonus languages available to the character because of her race. Ex-Clerics A cleric who grossly violates the code of conduct required by her god loses all spells and class features, except for armor and shield proficiencies and proficiency with simple weapons. She cannot thereafter gain levels as a cleric of that god until she atones for her deeds (see the atonement spell description). Alternate Capstones"
+ },
+ "class_ability": [
+  "aura_cleric",
+  "spells_cleric",
+  "channel energy_cleric",
+  "domains_cleric",
+  "orisons_cleric",
+  "spontaneous casting_cleric",
+  "chaotic, evil, good, and lawful spells_cleric",
+  "bonus languages_cleric"
+ ],
+ "class_features": {
+  "Glory": {
+   "subdomains": [
+    "Heroism",
+    "Honor",
+    "Hubris",
+    "Legend"
+   ],
+   "Touch of Glory (Sp)": [
+    "You can cause your hand to shimmer with divine radiance, allowing you to touch a creature as a standard action and give it a bonus equal to your cleric level on a single Charisma-based skill check or Charisma ability check. This ability lasts for 1 hour or until the creature touched elects to apply the bonus to a roll. You can use this ability to grant the bonus a number of times per day equal to 3 + your Wisdom modifier."
+   ],
+   "Divine Presence (Su)": [
+    "At 8th level, you can emit a 30-foot aura of divine presence for a number of rounds per day equal to your cleric level. All allies within this aura are treated as if under the effects of a sanctuary spell with a DC equal to 10 + 1/2 your cleric level + your Wisdom modifier. These rounds do not need to be consecutive. Activating this ability is a standard action. If an ally leaves the area or makes an attack, the effect ends for that ally. If you make an attack, the effect ends for you and your allies."
+   ],
+   "bonus spells": [
+    "sanctuary",
+    "shield of faith",
+    "bless weapon",
+    "searing light",
+    "holy smite",
+    "righteous might",
+    "undeath to death",
+    "holy sword",
+    "holy aura",
+    "gate"
+   ]
+  },
+  "War": {
+   "subdomains": [
+    "Blood",
+    "Duels",
+    "Tactics"
+   ],
+   "Battle Rage (Sp)": [
+    "You can touch a creature as a standard action to give it a bonus on melee damage rolls equal to 1/2 your cleric level for 1 round (minimum +1). You can do so a number of times per day equal to 3 + your Wisdom modifier."
+   ],
+   "Weapon Master (Su)": [
+    "At 8th level, as a swift action, you gain the use of one combat feat for a number of rounds per day equal to your cleric level. These rounds do not need to be consecutive and you can change the feat chosen each time you use this ability. You must meet the prerequisites to use this feat."
+   ],
+   "bonus spells": [
+    "magic weapon",
+    "spiritual weapon",
+    "magic vestment",
+    "divine power",
+    "flame strike",
+    "blade barrier",
+    "power word blind",
+    "power word stun",
+    "power word kill"
+   ]
+  },
+  "Skill Unlock: Linguistics": {
+   "5 Ranks": "You can use Linguistics in place of Sense Motive to intercept secret messages, and gain a scaling insight bonus on Perception/Disable Device checks for written magical traps.",
+   "10 Ranks": "Exceed a writing-examination check by 10 to learn its precise meaning, never draw false conclusions on a failure, and decipher spoken meaning at high DCs.",
+   "15 Ranks": "You can decipher magical writings (DC 25 + caster level) as if using read magic, and gain a +2 bonus on Disable Device for identified magical traps.",
+   "20 Ranks": "You decipher text at one page per round, and spending 1 minute per page lets you roll twice and take the better result."
+  }
+ },
+ "class_feature_levels": {},
+ "archetype_info": "{\n    \"Elder Mythos Cultist\": {\n        \"source\": \"Horror Adventures pg. 48 Typically grasping, secretive, and thoroughly mad, Elder Mythos cultists open their bodies and minds to horrifying realities not meant for the sane as they strive to prepare the world for the eventual return of their alien masters.\",\n        \"alignment\": \" An Elder Mythos cultist must be chaotic evil or chaotic neutral. This alters the cleric's required alignment.\",\n        \"deities\": \" An Elder Mythos cultist must worship an Outer God or Great Old One.\",\n        \"domain\": \" An Elder Mythos cultist receives only a single domain, chosen from the following list: Chaos, Madness, or Void. He can choose any subdomain of those domains offered by an Outer God or Great Old One he worships. This ability alters domains.\",\n        \"forbidden knowledge (ex)\": \" An Elder Mythos cultist gains a +2 profane bonus on all Knowledge (arcana), Knowledge (dungeoneering), Knowledge (history), Knowledge (planes), and Knowledge (religion) checks, and can attempt these checks untrained. This bonus doubles if the check is related to the Elder Mythos.\",\n        \"unhinged mind (ex)\": \" Bartering sanity for unspeakable knowledge, an Elder Mythos cultist props up his crumbling sanity with a darkly enigmatic personality. An Elder Mythos cultist uses Charisma instead of Wisdom as his key spellcasting ability score (to determine his spell DCs, bonus spells per day, bonus on concentration checks, and so on), to determine the effects and  umber of uses of his domain powers, and to modify his Will saving throws. However, because of the fragile state of his mind, the Elder Mythos cultist takes a -2 penalty on Will saves to resist mind-affecting effects. An Elder Mythos cultist automatically fails any save to resist the effects of confusion , insanity , and nightmare , and other similar effects so long as the effect's caster level is higher than his character level.\",\n        \"channel the void (su)\": \" At 1st level, when an Elder Mythos cultist channels energy, he taps into the unthinkable void between the stars. This is similar to channeling negative energy, but instead of healing undead, this blast of energy harms and devours living beings, corporeal non-skeletal undead, and constructs crafted from flesh (such as flesh golems). This is not negative energy damage; instead, the damage manifests in the form of wounds from supernatural deterioration and rot. A creature that would take damage from this energy can attempt a Fortitude save to halve the damage, rather than a Will save. At 8th level, a creature that both fails the Fortitude save and would be killed or destroyed by this effect is entirely disintegrated, leaving behind only a trace of fine dust. A disintegrated creature's equipment is unaffected. This ability still counts as channel energy, but it counts as neither positive nor negative energy specifically (for example, the Elder Mythos cultist couldn't take the Turn Undead or Command Undead feat). For the purposes of feats that require channel energy but refer to what happens if the character channels positive or negative energy, this ability alters the listed effect for negative energy. For instance, an Elder Mythos cultist could use  annel Smite to damage living or fleshy creatures with his melee attack. This ability alters channel energy and replaces spontaneous casting.\",\n        \"maddening gaze (su)\": \" At 5th level, as a standard action, an Elder Mythos cultist can focus his gaze on a single living creature within 30 feet and inundate the creature's mind with visions of alien horror. The target takes 2 points of Wisdom damage and becomes confused and sickened for 1d4 rounds. A successful Will save (DC = 10 + 1/2 the Elder Mythos cultist's cleric level + his Charisma modifier) negates the Wisdom damage and the confusion effect, though the target is sickened for 1 round. This gaze attack is a mind-affecting effect. An Elder Mythos cultist can use this ability once per day at 5th level, plus an additional time per day for every 3 cleric levels thereafter. At 11th level, the target takes 1d6+1 points of Wisdom damage and is confused and sickened for 2d4 rounds. A successful Will save reduces the Wisdom damage to 1 point, and the target is instead sickened for 1d6 rounds. At 19th level, the target takes 2d6 points of Wisdom damage and is rendered permanently confused and sickened. Only greater restoration, heal, limited wish, miracle, or wish can remove the confused and sickened conditions. A successful Will save halves the Wisdom damage, and the target is instead sickened for 2d6 rounds. This ability replaces the increases to channel energy gained at 5th, 11th, and 19th levels.\"\n    }\n}",
+ "parents": "loving mother, absent father, raised in a poor household",
+ "older_brothers": " you have 0 older brothers",
+ "younger_brothers": " you have 0 younger brothers",
+ "older_sisters": " you have 0 older sisters",
+ "younger_sisters": " you have 0 younger sisters",
+ "weapon_name": "Shortspear",
+ "specialty_schools": [
+  "transmutation"
+ ],
+ "counter_schools": [
+  "necromancy"
+ ],
+ "chosen_spell_descriptor": [
+  "force",
+  "sonic"
+ ],
+ "counter_spell_descriptor": [
+  "curseUM",
+  "air"
+ ],
+ "total_rolled_hp": 77,
+ "mini_alignment": "lg",
+ "casting_level_str_foundry": "high",
+ "main_stat": "wis",
+ "story_feat_tax_dict": {
+  "Brew Potion": [
+   "create sanguine elixir"
+  ]
+ },
+ "flaw_feat_tax_dict": {
+  "Improved Counterspell": [
+   "parry spell"
+  ]
+ },
+ "flavor_feat_tax_dict": {},
+ "class_feat_tax_dict": {},
+ "feats_feat_tax_dict": {
+  "Demonologist": [
+   "demon grafter"
+  ],
+  "Martial Training I (Iron Tortoise)": [
+   "Martial Training II (Iron Tortoise)"
+  ],
+  "Martial Training III (Iron Tortoise)": [
+   "Martial Training IV (Iron Tortoise)"
+  ],
+  "Martial Training V (Iron Tortoise)": [
+   "Martial Training VI (Iron Tortoise)"
+  ],
+  "Martial Training I (Brutal Crocodile)": [
+   "Martial Training II (Brutal Crocodile)"
+  ],
+  "Martial Training III (Brutal Crocodile)": [
+   "Martial Training IV (Brutal Crocodile)"
+  ],
+  "Martial Training V (Brutal Crocodile)": [
+   "Martial Training VI (Brutal Crocodile)"
+  ]
+ },
+ "feat_budget": {
+  "story": 5,
+  "flaw": 2,
+  "flavor": 1,
+  "class": 0,
+  "normal": 9,
+  "teamwork": 0,
+  "bloodline": 0,
+  "trainer": 17,
+  "profession": 2
+ },
+ "mod_char_sheet_var": false,
+ "backstory": "",
+ "formatted_bio": "Cade Erin\n- Alignment: Lawful Good\n- Deity: Iomedae\n- Race: Human\n- Class: Level 20 Cleric\n- Archetype: Summoner\n- Tactics: Spends its first rounds pulling monsters onto the field, then directs the swarm while staying out of reach itself. Every summon is a body the enemy must answer -- it trades spell slots for tempo until the enemy has no turns left to spend.\n- Stat Focus: Wis\n- Disciplines: Iron Tortoise, Brutal Crocodile\n- Homeland: Tal-Falko\n\nVocation\n- Profession: Midden Tender (rank 15)\n- Profession: Master Falconer (rank 10)\n- Profession: Pet Behaviorist (rank 10)\n- Known for: Cobbling\n- Training: An average trainer who taught them Necromantic Affinity, Out of the Sun\n- Training: An excellent trainer who taught them Toppling Spell, Blighted Critical, Unsanctioned Knowledge\n- Training: An average trainer who taught them Create Reliquary Arms and Shields, Endurance\n- Training: An excellent trainer who taught them Elemental Focus, Expanded Fiendish Resistance, Self-Sufficient\n- Training: An excellent trainer who taught them Spell Focus, Shapeshifter Foil, Extra Cantrips Or Orisons\n- Training: An average trainer who taught them Craft Construct, Blighted Critical Mastery\n- Training: An average trainer who taught them Cooperative Crafting, Uncanny Concentration\n\nFamily\n- Loving Mother\n- Absent Father\n- Raised In A Poor Household\n- No Siblings\n\nPersonality\n- Personality: Spontaneous, Guarded, Hearty, Incapable, Honest\n- Mannerisms: Fans oneself, Fiddles with hair, Furrows brow, Huffs\n- Flaws: Grudge Keeper, Shattered Psyche\n\nAppearance\n- Hair: Spiky Black\n- Eyes: Hazel\n- Build: Shapely",
+ "classes": [
+  {
+   "name": "cleric",
+   "display": "Cleric",
+   "level": 20,
+   "archetype": {
+    "Elder Mythos Cultist": {
+     "source": "Horror Adventures pg. 48 Typically grasping, secretive, and thoroughly mad, Elder Mythos cultists open their bodies and minds to horrifying realities not meant for the sane as they strive to prepare the world for the eventual return of their alien masters.",
+     "alignment": " An Elder Mythos cultist must be chaotic evil or chaotic neutral. This alters the cleric's required alignment.",
+     "deities": " An Elder Mythos cultist must worship an Outer God or Great Old One.",
+     "domain": " An Elder Mythos cultist receives only a single domain, chosen from the following list: Chaos, Madness, or Void. He can choose any subdomain of those domains offered by an Outer God or Great Old One he worships. This ability alters domains.",
+     "forbidden knowledge (ex)": " An Elder Mythos cultist gains a +2 profane bonus on all Knowledge (arcana), Knowledge (dungeoneering), Knowledge (history), Knowledge (planes), and Knowledge (religion) checks, and can attempt these checks untrained. This bonus doubles if the check is related to the Elder Mythos.",
+     "unhinged mind (ex)": " Bartering sanity for unspeakable knowledge, an Elder Mythos cultist props up his crumbling sanity with a darkly enigmatic personality. An Elder Mythos cultist uses Charisma instead of Wisdom as his key spellcasting ability score (to determine his spell DCs, bonus spells per day, bonus on concentration checks, and so on), to determine the effects and  umber of uses of his domain powers, and to modify his Will saving throws. However, because of the fragile state of his mind, the Elder Mythos cultist takes a -2 penalty on Will saves to resist mind-affecting effects. An Elder Mythos cultist automatically fails any save to resist the effects of confusion , insanity , and nightmare , and other similar effects so long as the effect's caster level is higher than his character level.",
+     "channel the void (su)": " At 1st level, when an Elder Mythos cultist channels energy, he taps into the unthinkable void between the stars. This is similar to channeling negative energy, but instead of healing undead, this blast of energy harms and devours living beings, corporeal non-skeletal undead, and constructs crafted from flesh (such as flesh golems). This is not negative energy damage; instead, the damage manifests in the form of wounds from supernatural deterioration and rot. A creature that would take damage from this energy can attempt a Fortitude save to halve the damage, rather than a Will save. At 8th level, a creature that both fails the Fortitude save and would be killed or destroyed by this effect is entirely disintegrated, leaving behind only a trace of fine dust. A disintegrated creature's equipment is unaffected. This ability still counts as channel energy, but it counts as neither positive nor negative energy specifically (for example, the Elder Mythos cultist couldn't take the Turn Undead or Command Undead feat). For the purposes of feats that require channel energy but refer to what happens if the character channels positive or negative energy, this ability alters the listed effect for negative energy. For instance, an Elder Mythos cultist could use  annel Smite to damage living or fleshy creatures with his melee attack. This ability alters channel energy and replaces spontaneous casting.",
+     "maddening gaze (su)": " At 5th level, as a standard action, an Elder Mythos cultist can focus his gaze on a single living creature within 30 feet and inundate the creature's mind with visions of alien horror. The target takes 2 points of Wisdom damage and becomes confused and sickened for 1d4 rounds. A successful Will save (DC = 10 + 1/2 the Elder Mythos cultist's cleric level + his Charisma modifier) negates the Wisdom damage and the confusion effect, though the target is sickened for 1 round. This gaze attack is a mind-affecting effect. An Elder Mythos cultist can use this ability once per day at 5th level, plus an additional time per day for every 3 cleric levels thereafter. At 11th level, the target takes 1d6+1 points of Wisdom damage and is confused and sickened for 2d4 rounds. A successful Will save reduces the Wisdom damage to 1 point, and the target is instead sickened for 1d6 rounds. At 19th level, the target takes 2d6 points of Wisdom damage and is rendered permanently confused and sickened. Only greater restoration, heal, limited wish, miracle, or wish can remove the confused and sickened conditions. A successful Will save halves the Wisdom damage, and the target is instead sickened for 2d6 rounds. This ability replaces the increases to channel energy gained at 5th, 11th, and 19th levels."
+    }
+   }
+  }
+ ],
+ "total_level": 20,
+ "save_bases": {
+  "fort": 12,
+  "ref": 6,
+  "will": 12
+ },
+ "spellbooks": [
+  {
+   "name": "cleric",
+   "display": "Cleric",
+   "level": 20,
+   "capped_level": 20,
+   "casting_level_string": "high",
+   "casting_level_num": 20,
+   "highest_spell_known": 9,
+   "spells_known_list": [],
+   "spells_per_day_list": [
+    10,
+    8,
+    13,
+    10,
+    11,
+    7,
+    14,
+    8,
+    9,
+    11
+   ],
+   "spell_list_choose_from": [
+    [
+     "Create Water",
+     "Detect Fiendish Presence",
+     "Mending",
+     "Purify Food and Drink",
+     "Read Magic",
+     "Resistance",
+     "Scrivener's Chant",
+     "Spark",
+     "Vigor",
+     "Virtue"
+    ],
+    [
+     "Ant Haul",
+     "Bless Water",
+     "Burning Disarm",
+     "Funereal Weapon",
+     "Magic Weapon",
+     "Marid's Mastery",
+     "Pesh Vigor",
+     "Recharge Innate Magic",
+     "Resist Starvation",
+     "Sanctuary"
+    ],
+    [
+     "Alchemical Tinkering",
+     "Ancestral Regression",
+     "Beloved of the Forge",
+     "Blood Blaze",
+     "Diminish Resistance",
+     "Effortless Armor",
+     "Fear the Sun",
+     "Magic Siege Engine",
+     "Pilfering Hand",
+     "Shield Of Faith",
+     "Snow Shape",
+     "Spiritual Squire",
+     "Spiritual Weapon",
+     "Staggering Fall",
+     "Violent Accident"
+    ],
+    [
+     "Bless Weapon",
+     "Blood Scent",
+     "Blot",
+     "Chain of Perdition",
+     "Contest of Skill",
+     "Daggermark's Exchange",
+     "Frosthammer",
+     "Kalistocrat's Nightmare",
+     "Magic Vestment",
+     "Monstrous Extremities",
+     "Raging Rubble",
+     "Stone Shape"
+    ],
+    [
+     "Blade of Light",
+     "Divine Power",
+     "Flaming Aura",
+     "Forceful Strike",
+     "Heavy Water",
+     "Majestic Image",
+     "Persistent Vigor",
+     "Planar Adaptation",
+     "Rags to Riches",
+     "Searing Light",
+     "Spiritual Ally",
+     "Symbol of Slowing",
+     "Wave Form"
+    ],
+    [
+     "Air Walk, Communal",
+     "Caustic Blood",
+     "Disrupting Weapon",
+     "Flame Strike",
+     "Half-Blood Extraction",
+     "Holy Smite",
+     "Lend Path",
+     "Rapid Repair",
+     "Sun's Disdain, Mass"
+    ],
+    [
+     "Bear's Endurance, Mass",
+     "Blade Barrier",
+     "Bull's Strength, Mass",
+     "Dust Form",
+     "Emblem of Greed",
+     "Enlightened Step",
+     "Hammer of Mending",
+     "Music of the Spheres",
+     "Oasis",
+     "Planetary Adaptation, Mass",
+     "Righteous Might",
+     "Sign of Wrath",
+     "Symbol of Sealing",
+     "Vengeful Stinger",
+     "Wind Walk"
+    ],
+    [
+     "Arbitrament",
+     "Artificer's Curse",
+     "Awaken Construct",
+     "Control Weather",
+     "Ethereal Jaunt",
+     "Memory of Function",
+     "Power Word Blind",
+     "Spell Scourge",
+     "Terraform",
+     "Undeath To Death"
+    ],
+    [
+     "Angelic Aspect, Greater",
+     "Antimagic Field",
+     "Cure Critical Wounds, Mass",
+     "Frightful Aspect",
+     "Heart of the Mammoth",
+     "Holy Sword",
+     "Inflict Critical Wounds, Mass",
+     "Phasic Challenge",
+     "Power Word Stun",
+     "Shield of Law",
+     "Spell Immunity, Greater"
+    ],
+    [
+     "Ascension",
+     "Astral Projection",
+     "Etherealness",
+     "Gate",
+     "Heal, Mass",
+     "Holy Aura",
+     "Imbue Army Special Ability",
+     "Overwhelming Presence",
+     "Polar Midnight",
+     "Power Word Kill",
+     "Salvage",
+     "Spell Immunity, Greater Communal",
+     "Spellcasting Contract, Greater"
+    ]
+   ],
+   "spells_prepared_per_level": [
+    10,
+    10,
+    15,
+    12,
+    13,
+    9,
+    15,
+    10,
+    11,
+    13
+   ],
+   "casting_stat": "wis",
+   "divine": true
+  }
+ ],
+ "class_feature_owners": {
+  "Glory": "cleric",
+  "War": "cleric"
+ },
+ "build_archetype": "Summoner",
+ "build_tactics": "Spends its first rounds pulling monsters onto the field, then directs the swarm while staying out of reach itself. Every summon is a body the enemy must answer -- it trades spell slots for tempo until the enemy has no turns left to spend.",
+ "spell_list_choose_from_dict": [
+  [
+   "Create Water",
+   "Detect Fiendish Presence",
+   "Mending",
+   "Purify Food and Drink",
+   "Read Magic",
+   "Resistance",
+   "Scrivener's Chant",
+   "Spark",
+   "Vigor",
+   "Virtue"
+  ],
+  [
+   "Ant Haul",
+   "Bless Water",
+   "Burning Disarm",
+   "Funereal Weapon",
+   "Magic Weapon",
+   "Marid's Mastery",
+   "Pesh Vigor",
+   "Recharge Innate Magic",
+   "Resist Starvation",
+   "Sanctuary"
+  ],
+  [
+   "Alchemical Tinkering",
+   "Ancestral Regression",
+   "Beloved of the Forge",
+   "Blood Blaze",
+   "Diminish Resistance",
+   "Effortless Armor",
+   "Fear the Sun",
+   "Magic Siege Engine",
+   "Pilfering Hand",
+   "Shield Of Faith",
+   "Snow Shape",
+   "Spiritual Squire",
+   "Spiritual Weapon",
+   "Staggering Fall",
+   "Violent Accident"
+  ],
+  [
+   "Bless Weapon",
+   "Blood Scent",
+   "Blot",
+   "Chain of Perdition",
+   "Contest of Skill",
+   "Daggermark's Exchange",
+   "Frosthammer",
+   "Kalistocrat's Nightmare",
+   "Magic Vestment",
+   "Monstrous Extremities",
+   "Raging Rubble",
+   "Stone Shape"
+  ],
+  [
+   "Blade of Light",
+   "Divine Power",
+   "Flaming Aura",
+   "Forceful Strike",
+   "Heavy Water",
+   "Majestic Image",
+   "Persistent Vigor",
+   "Planar Adaptation",
+   "Rags to Riches",
+   "Searing Light",
+   "Spiritual Ally",
+   "Symbol of Slowing",
+   "Wave Form"
+  ],
+  [
+   "Air Walk, Communal",
+   "Caustic Blood",
+   "Disrupting Weapon",
+   "Flame Strike",
+   "Half-Blood Extraction",
+   "Holy Smite",
+   "Lend Path",
+   "Rapid Repair",
+   "Sun's Disdain, Mass"
+  ],
+  [
+   "Bear's Endurance, Mass",
+   "Blade Barrier",
+   "Bull's Strength, Mass",
+   "Dust Form",
+   "Emblem of Greed",
+   "Enlightened Step",
+   "Hammer of Mending",
+   "Music of the Spheres",
+   "Oasis",
+   "Planetary Adaptation, Mass",
+   "Righteous Might",
+   "Sign of Wrath",
+   "Symbol of Sealing",
+   "Vengeful Stinger",
+   "Wind Walk"
+  ],
+  [
+   "Arbitrament",
+   "Artificer's Curse",
+   "Awaken Construct",
+   "Control Weather",
+   "Ethereal Jaunt",
+   "Memory of Function",
+   "Power Word Blind",
+   "Spell Scourge",
+   "Terraform",
+   "Undeath To Death"
+  ],
+  [
+   "Angelic Aspect, Greater",
+   "Antimagic Field",
+   "Cure Critical Wounds, Mass",
+   "Frightful Aspect",
+   "Heart of the Mammoth",
+   "Holy Sword",
+   "Inflict Critical Wounds, Mass",
+   "Phasic Challenge",
+   "Power Word Stun",
+   "Shield of Law",
+   "Spell Immunity, Greater"
+  ],
+  [
+   "Ascension",
+   "Astral Projection",
+   "Etherealness",
+   "Gate",
+   "Heal, Mass",
+   "Holy Aura",
+   "Imbue Army Special Ability",
+   "Overwhelming Presence",
+   "Polar Midnight",
+   "Power Word Kill",
+   "Salvage",
+   "Spell Immunity, Greater Communal",
+   "Spellcasting Contract, Greater"
+  ]
+ ],
+ "equip_descrip": {
+  "belts": {
+   "item_name": "Anchoring Belt",
+   "description": " this belt looks like nothing more than iron chains connecting large pieces of slate. It grants its wearer a +5 inherent bonus to combat maneuver defense against bull rush, drag, grapple, overrun, reposition, and trip combat maneuvers and a +5 inherent bonus on saving throws against any effect that attempts to move the wearer with physical force or energy. Furthermore, if the wearer is a mythic creature and targeted by an effect that would teleport her, she can choose whether or not she wishes to be teleported. As a standard action, the wearer can expend one use of mythic power to create a 30-foot-radius aura that affects all enemy creatures within it as though they were subject to a dimensional anchor spell. This aura lasts for a number of rounds equal to the wearer's mythic tier. "
+  },
+  "body": {
+   "item_name": "Monk's Robe",
+   "description": " when worn, this simple brown robe confers great ability\r in unarmed combat. If the wearer has levels in monk, her\r ac and unarmed damage are treated as a monk of 5 levels\r higher. If donned by a character with the stunning fist feat, \r the robe lets her make one additional stunning attack per day. \r if the character is not a monk, she gains the ac and unarmed\r damage of a 5th-level monk (although she does not add her\r wisdom bonus to her ac). This ac bonus functions just like the\r monk's ac bonus. "
+  },
+  "chest": {
+   "item_name": "Poisoner's Jacket, Lesser",
+   "description": " three times per day, the wearer of this dark jacket can create a\r vial containing one dose of any poison from the core rulebook that costs 300or less. The jacket's poison always looks like\r a murky amber fluid. This poison becomes inert after 1 hour. "
+  },
+  "eyes": {
+   "item_name": "Sniper Goggles, Greater",
+   "description": " these goggles feature stubby periscopelike lenses that expand\r and retract depending on the needs of the wearer. These\r goggles function as sniper goggles , but the wearer gains the\r +2 circumstance bonus on each sneak attack when making a\r sneak attack at any range. "
+  },
+  "feet": {
+   "item_name": "Cat Burglar's Boots",
+   "description": " these soft-soled boots provide their wearer with a +2 competence bonus on acrobatics, climb, and stealth checks. Once per day as an immediate action, the wearer of cat burglar's boots can reroll any one failed acrobatics, climb, or stealth check, taking the result of that check in place of the first failed check (even if the second result is worse). In addition, a secret pocket in the boots is built to hold a fully functional set of masterwork thieves' tools. A dc 22 perception check is required to notice this pocket. Any other object in the pocket causes it to bulge and become obvious to even casual observation. "
+  },
+  "hands": {
+   "item_name": "Rubble Gloves",
+   "description": " these gloves are made of a fine metal mesh. If a creature wearing rubble gloves touches a 5-foot square of stone or earth floor, rubble roils to the surface, making the square difficult terrain. Using the gloves is a standard action that does not provoke attacks of opportunity. The wearer can use the gloves to create up to 20 squares of difficult terrain per day. "
+  },
+  "head": {
+   "item_name": "Medusa Mask",
+   "description": " this intricate mask is made of gold-plated iron. Writhing snake\r tails radiate from a gemstone upon the brow, almost as if\r they were medusa-like hair. The mask grants a +4 bonus on\r all saving throws against visual effects, including gaze attacks\r and sight-based illusions. Once per day as a standard action, \r the wearer can cause the central gemstone to glow with pale\r green light, at which point she may target any one creature\r within 30 feet. The targeted creature must succeed at a dc\r 15 fortitude save or be petrified for 1 minute, as if by flesh to\r stone "
+  },
+  "headband": {
+   "item_name": "Hunter's Band",
+   "description": " this simple headband of braided hide grants a +5\r competence bonus on survival checks and inures the\r wearer to the strain of long travel, as the tireless pursuit spell (advanced player's guide). If the wearer is a ranger, \r the hunter's band increases his favored enemy bonus on\r attack rolls by +1 for all his favored enemies. If the ranger\r has the hunter's bond (companions) class feature, this\r increase also applies to the attack roll bonus his allies gain\r from that ability. "
+  },
+  "neck": {
+   "item_name": "Sihedron Medallion",
+   "description": " this medallion hangs on a leather cord, a silver disc inscribed with the sihedron. These medallions were given to favored agents of the runelords; the medallions granted some minor benefits to the wearers, but also allowed the runelords to use the wearer as proxies. By concentrating on a scrying device (such as a runewell), a runelord can sense the world through the sihedron medallion wearer's senses, and could speak through her voiceprovided the runelord knows of the existence of the medallion and the fact that it is being worn. Thus, karzoug cannot use the medallion while it's worn by nualia in chapter one, as she is unknown to him, but once the pcs come to his attention later in the campaign, that may well change. See page 324 for more details on the ramifications of wearing a sihedron medallion in xin-shalast. While worn, a sihedron medallion grants its wearer a +1 resistance bonus on all saving throws. Once per day, as a free action, it may be commanded to bestow the effects of false life on the wearer. Placed on the neck of a dead body, a sihedron medallion preserves the body indefinitely via a gentle repose effect. "
+  },
+  "shoulders": {
+   "item_name": "Seafoam Shawl",
+   "description": " this shawl of delicate lace can be activated once per day to\r grant the benefits of the fins to feet spell (advanced race\r guide), transforming the wearer's lower fins or appendages\r into feet whenever he is on dry landunless dismissed, this\r effect lasts for 5 hours. "
+  },
+  "wrist": {
+   "item_name": "Longarm Bracers",
+   "description": " these bracers are constructed from\r woven strands of bamboo. Three times\r per day, as a swift action, the wearer\r can stretch her arms beyond their limits, \r increasing her reach by 5 feet until the\r start of her next turn. Her weapon attack\r rolls take a 4 penalty, while unarmed\r strikes and natural weapons using the arms take no penalty. "
+  },
+  "rings": {
+   "item_name": "Survivor's Ring",
+   "description": "This ring is shaped like a silver snake with an onyx in its mouth. Once per day, if the wearer would be reduced to 0 or fewer hit points but not be dead, she is instead reduced to 0 hit points and subject to an effect similar to mislead . Her illusory double appears to die or to take on the dying condition in her place, as appropriate for the negated effect. The wearer cannot control the double. In addition, the wearer can touch the ring's stone as a standard action once per day to use dimension door but only while the ring's mislead effect is active."
+  }
+ },
+ "maneuvers_desc_dict": {
+  "Throwing Shell": {
+   "description": "Using a special technique developed for surprisingly effective ranged attacks, the disciple of the Iron Tortoise knows how to deliver his shield in a powerful throw in a manner similar to a champion discus thrower. The initiator throws his shield light or heavy shields; this does not work with bucklers or tower shields with a range increment of 20 ft. as a ranged attack, inflicting damage as if the character had just shield bashed his opponent and inflicting an additional 1d6 points of damage and the shield falls to a space adjacent of his target the player may choose which space it lands in. If the attacked target is within the first two range increments, then the initiator may catch the shield as a free action and regain use of his shield on his turn.",
+   "type": "strike",
+   "level": 1,
+   "discipline": "Iron Tortoise",
+   "action": "1 standard action",
+   "range": "Ranged attack",
+   "duration": "Instant"
+  },
+  "Snapping Strike": {
+   "description": "Disciples of the Iron Tortoise school learn basics of the style, and that is to keep ones shield high and ones weapon low. By making a quick and vicious strike, the disciple may drive home a potent blow. The initiator makes a melee attack, and if successful, this attack inflicts an additional 1d6 points of damage.",
+   "type": "strike",
+   "level": 1,
+   "discipline": "Iron Tortoise",
+   "action": "1 standard action",
+   "range": "Melee attack",
+   "duration": "Instant"
+  },
+  "Taunting Turtle": {
+   "description": "The initiator singles out an enemy on the field of battlefield and through words, postures, or gestures insults and infuriates the foe to attack him on its next available action with whatever means it possesses. The target makes a Will save DC 12 + initiation modifier or it must attack the initiator on its next action in some form or fashion. This maneuver only effects creatures with an Intelligence score of 2 or higher.",
+   "type": "boost",
+   "level": 2,
+   "discipline": "Iron Tortoise",
+   "action": "1 swift action",
+   "range": "30 ft.",
+   "duration": ""
+  },
+  "Defensive Shell": {
+   "description": "The Iron Tortoise disciple has quick reflexes and a strong shield with which to defend his allies. The initiator makes a shield bash attempt against an enemys attack roll that targets an adjacent ally. If the initiator succeeds, he negates the attack against his ally.",
+   "type": "counter",
+   "level": 2,
+   "discipline": "Iron Tortoise",
+   "action": "1 immediate action",
+   "range": "5 feet",
+   "duration": ""
+  },
+  "Burnished Shell": {
+   "description": "By angling ones shield correctly and stepping into an enemy spells effect, he may deflect the power of the spell that targets him. Spells or powers countered by this ability must be targeted spells one cannot use Burnished Shield against fireball for example, as it does not specify a target with the martial disciple as the target. The initiator makes an attack roll using his base attack bonus plus his shield bonus to AC opposing the enemys caster level check. If successful, the spell or effect is negated.",
+   "type": "counter",
+   "level": 3,
+   "discipline": "Iron Tortoise",
+   "action": "1 immediate action",
+   "range": "Personal",
+   "duration": ""
+  },
+  "Tortoise Defense": {
+   "description": "By focusing on defense, the disciple sacrifices his movement speed for greater protection. The initiator may voluntarily reduce his movement speed by 10 ft. on his next turn to gain damage reduction 20/- against a single attack.",
+   "type": "counter",
+   "level": 3,
+   "discipline": "Iron Tortoise",
+   "action": "1 immediate action",
+   "range": "Personal",
+   "duration": "1 round"
+  },
+  "Snapping Riposte": {
+   "description": "By searching for openings in an opponents defenses when they reach to attack, the Iron Tortoise disciple learns to strike through this opening to score a vicious wound. The disciple makes a shield bash attempt against his foes attack roll. If successful, he may make an immediate counter attack against them with a +2 competence bonus to hit at his full attack bonus with his main hand weapon.",
+   "type": "counter",
+   "level": 4,
+   "discipline": "Iron Tortoise",
+   "action": "1 immediate action",
+   "range": "Personal",
+   "duration": ""
+  },
+  "Vicious Snapping Strike": {
+   "description": "A skilled disciple of the Iron Tortoise knows the secrets to slowing his opponents down to match his heavily armored speed. By landing a powerful, mobility-reducing blow, the martial disciple keeps his enemy close. Make a melee attack, and if successful, the strike inflicts an additional 5d6 points of damage and halves the opponents movement speed for their turn.",
+   "type": "strike",
+   "level": 5,
+   "discipline": "Iron Tortoise",
+   "action": "1 standard action",
+   "range": "Melee attack",
+   "duration": ""
+  },
+  "Steel Shell": {
+   "description": "By steeling himself against an attack behind the wall of his mighty shield, an Iron Tortoise disciple may attempt to negate or reduce an incoming attack. The initiator makes an opposed attack roll using his base attack bonus plus shield bonus to AC against the opponents attack roll. If successful, the attack is negated. If the opposed check is failed by the martial disciple, he instead gains DR 20/- to resist the attack.",
+   "type": "counter",
+   "level": 6,
+   "discipline": "Iron Tortoise",
+   "action": "1 immediate action",
+   "range": "Personal",
+   "duration": ""
+  },
+  "Snatching Talons": {
+   "description": "You adeptly tear through your foes defenses and begin crushing them in your hands. Initiate a grapple attempt against the target, which does not provoke an attack of opportunity. On a success, you deal 1d8 points of damage to the target, and deal 1d8 points of damage every time you maintain a grapple. This damage stacks with that from the constrict special ability.",
+   "type": "strike",
+   "level": 1,
+   "discipline": "Brutal Crocodile",
+   "action": "1 standard action",
+   "range": "Melee attack",
+   "duration": "Initiated grapple"
+  },
+  "Expert Grip": {
+   "description": "You utilize your skill at carrying yourself to carry your foe much in the same way. After the initiating this boost, if you make a grapple check at any point in the round, you may make a climb check and use the result in place of your grapple check. You may add any bonuses from items, feats, or abilities that you possess to this check that would normally apply to grapple checks.",
+   "type": "boost",
+   "level": 1,
+   "discipline": "Brutal Crocodile",
+   "action": "1 swift action",
+   "range": "Personal",
+   "duration": "1 round"
+  },
+  "Gar Rush": {
+   "description": "You rush at your quarry and thrash yourself to them as they struggle to avoid you. Make a charge at the target, initiating a grapple attempt that does not provoke an attack of opportunity rather than making an attack. You receive a +2 bonus on this grapple attempt. On a success, you deal 2d6 points of damage to the target, and 2d6 points of damage every time you maintain a grapple. This damage stacks with that from the constrict special ability.",
+   "type": "strike",
+   "level": 2,
+   "discipline": "Brutal Crocodile",
+   "action": "1 full round action",
+   "range": "Melee charge",
+   "duration": "Initiated grapple"
+  },
+  "Agile Redirection": {
+   "description": "You turn a foes momentum against them and shove them across the field. When a foe makes a melee attack against you, make a Climb check opposed by their attack roll. If your result exceeds theirs, the attack is completely negated, and you may move the target 10 feet in any direction of your choice this movement provokes attack of opportunity.",
+   "type": "counter",
+   "level": 2,
+   "discipline": "Brutal Crocodile",
+   "action": "1 immediate action",
+   "range": "Melee",
+   "duration": "1 round"
+  },
+  "Monkey Vault": {
+   "description": "Snagging an opponent, you use them as a base as you vault over or around them. Make a Climb check against the foes CMD. If successful, you may move to any square adjacent to the target, and the target is considered to be flat-footed until the end of your next turn.",
+   "type": "boost",
+   "level": 3,
+   "discipline": "Brutal Crocodile",
+   "action": "1 swift action",
+   "range": "Melee",
+   "duration": "1 round"
+  },
+  "Into the Earth": {
+   "description": "You slam your prey down at your feet, dealing substantial injury from the force of your throw. The target is released from the grapple, but is immediately knocked prone and takes 2d10 points of damage.",
+   "type": "strike",
+   "level": 3,
+   "discipline": "Brutal Crocodile",
+   "action": "1 standard action or [G]",
+   "range": "Melee",
+   "duration": "Instant"
+  },
+  "Alligator Suplex": {
+   "description": "Wrapping your arms around a grappled target, you slam them into the ground with immense force. The creature takes an amount of damage equal to 4d10 damage and must make a Fortitude save or be dazed for one round DC 14 + your initiation modifier. Initiating this maneuver automatically releases the creature from your grapple.",
+   "type": "strike",
+   "level": 4,
+   "discipline": "Brutal Crocodile",
+   "action": "1 standard action or [G]",
+   "range": "Melee",
+   "duration": "Instant"
+  },
+  "Voracious Maul": {
+   "description": "Letting loose with your unbridled feral fury, you plunge your armaments repeatedly into the hapless being in your coils. Make a full attack against a creature you are grappling. You may use all of your hands worth of weapons for the purpose of this full attack if those hands would otherwise be used to grapple the creature under attack. This does not allow you to use weapons that you could not otherwise use while grappling.",
+   "type": "strike",
+   "level": 5,
+   "discipline": "Brutal Crocodile",
+   "action": "1 standard action or [G]",
+   "range": "Melee",
+   "duration": "Instant"
+  },
+  "Atrophic Brutalization": {
+   "description": "Crippling your foes muscles, you seize hold of your opponent and begin to compact them within your coils. Make an attack against a creature using a discipline weapon. On a successful hit, you initiate a grapple with the target while dealing 1d4 points of strength damage and 8d6 points of damage. You deal 8d6 points of damage each round that you successfully maintain the grapple this stacks with any damage you may deal with constrict.",
+   "type": "strike",
+   "level": 6,
+   "discipline": "Brutal Crocodile",
+   "action": "1 standard action",
+   "range": "Melee",
+   "duration": "Initiated grapple"
+  },
+  "Snapping Turtle Stance": {
+   "description": "The disciple of the Iron Tortoise in this stance holds his shield in a manner to deliver punishing shield bashes without sacrificing his ability to defend himself. While in this stance, the initiator may make shield bash attacks without losing his shield bonus to his Armor Class, and shield bash attacks inflict an additional 1d6 points of damage. This bonus damage increases by +1d6 every 8 initiator levels beyond 1st level.",
+   "type": "stance",
+   "level": 1,
+   "discipline": "Iron Tortoise",
+   "action": "1 swift action",
+   "range": "Personal",
+   "duration": "Stance"
+  },
+  "Iron Tortoise Stance": {
+   "description": "This stance allows the disciple of the Iron Tortoise greater offensive ability while still remaining on the defensive, protecting himself and his allies. By positioning his footwork to allow for fast lunges and withdrawal, the reach of the martial disciple increases to meet his foes as they try to evade him and he stands imposing, impassable. The martial disciple is considered one size larger for the purposes of determining his CMD while in this stance, and he gains +5 ft. reach for making attacks of opportunity and may make one additional attack of opportunity per round.",
+   "type": "stance",
+   "level": 3,
+   "discipline": "Iron Tortoise",
+   "action": "1 swift action",
+   "range": "Personal",
+   "duration": "Stance"
+  },
+  "Turtle Knights Stance": {
+   "description": "By planting his feet, staying low to the ground with his shield at the ready, the martial disciple roots himself firmly in place, immovable. While in this stance, the initiator may not move from his spot, but gains several benefits for doing so. He gains a circumstance bonus equal to his initiator level to CMD, he gains the improved uncanny dodge special ability with a rogue level equal to his initiator level, and his shield bonus to AC improves by +4. Voluntarily moving beyond a 5-ft. step per round ends this stance automatically, but should he be moved not of his own violation, he retains the stance.",
+   "type": "stance",
+   "level": 5,
+   "discipline": "Iron Tortoise",
+   "action": "1 swift action",
+   "range": "Personal",
+   "duration": "Stance"
+  },
+  "Mithral Tortoise Stance": {
+   "description": "The Iron Tortoise disciple has become so comfortable in his armor that is like a second skin to him, and he is capable of moving better than most while wearing it. While in this stance, the initiator treats armor he is wearing as one type lighter i.e. heavy armor is treated as medium armor, and this stacks with the mithral material bonus, treating heavy mithral armor as light armor, increases his maximum Dexterity modifier by +2, and his total armor check penalty is halved while in this stance any armor check penalty from armor, shields, or encumbrance. Finally, due to being stronger from wearing his burden of metal so much, the initiator moves more freely, and gains a +2 dodge bonus to his AC and to his CMD.",
+   "type": "stance",
+   "level": 6,
+   "discipline": "Iron Tortoise",
+   "action": "1 swift action",
+   "range": "Personal",
+   "duration": "Stance"
+  },
+  "Painbringer": {
+   "description": "You force yourself onto the opponent while grappling with them, complicating their resistance further. Any creature you are grappling has the dexterity penalty from grappling increased from -4 to -8, and takes a -4 penalty on attack rolls and combat maneuver checks rather than -2.",
+   "type": "stance",
+   "level": 1,
+   "discipline": "Brutal Crocodile",
+   "action": "1 swift action",
+   "range": "Personal",
+   "duration": "Stance"
+  },
+  "Catfish Hold": {
+   "description": "Bracing yourself against the terrain, you steel yourself to control and redirect any oncoming assaults. While in this stance, you ignore any size modifiers to CMB that you or any creatures you are attempting to grapple possess, and may grapple creatures of any size. In addition, when you maintain a grapple, you deal an additional amount of damage equal to your initiation modifier.",
+   "type": "stance",
+   "level": 3,
+   "discipline": "Brutal Crocodile",
+   "action": "1 swift action",
+   "range": "Personal",
+   "duration": "Stance"
+  },
+  "Kraken's Coils": {
+   "description": "Like a tentacled beast of the deep, you have learned to hold foes in your clutches without the slightest impairment. While in this stance, all attacks that you make with discipline weapons gain the grab property, and you do not gain the grappled condition when grappling a creature. In addition, every round that you maintain a grapple, the grappled creature takes one point of constitution damage.",
+   "type": "stance",
+   "level": 5,
+   "discipline": "Brutal Crocodile",
+   "action": "1 swift action",
+   "range": "Personal",
+   "duration": "Stance"
+  },
+  "Insatiable Warpath": {
+   "description": "Your explosive instinct boils over, your ensnared targets becoming implements of destruction. While in this stance, your attacks with discipline weapons gain the grab property, and you may maintain a grapple as a free action this does not allow you to have or maintain multiple grapples against the same target. In addition, you may use grappled creatures as weapons, which have a base damage of 4d6 and a critical hit range of 20/x2. Any successful attacks with a grappled creature do the same amount of damage to the grappled creature as they do to the target.",
+   "type": "stance",
+   "level": 6,
+   "discipline": "Brutal Crocodile",
+   "action": "1 swift action",
+   "range": "Personal",
+   "duration": "Stance"
+  }
+ },
+ "homebrew_feat_desc_dict": {
+  "Martial Training I (Iron Tortoise)": "Youve learned the basics in a martial discipline. Special If you ever gain levels in a martial adept class or possess them previously, these maneuvers continue to use their own initiator level and recovery method, independent of your martial adept level. Those wishing to add new maneuvers from a discipline that is already available to their class should instead select the Advanced Study feat instead. select a martial discipline. the associated skill for this discipline is now a class skill. your initiation modifier is chosen from intelligence, wisdom, or charisma. your martial initiator level for maneuvers granted by this feat (and subsequent martial training feats) is equal to half your character level + your initiation modifier. you may select any two maneuvers from the 1st level maneuvers from this discipline, and you may ready one of your maneuvers for use. you may recover one maneuver by expending a full round action to recover it.",
+  "Martial Training II (Iron Tortoise)": "Youve continued to progress your martial studies. you may select two new maneuvers and one stance from your chosen discipline of up to 2nd level, and you may ready an additional maneuver. you must meet the minimum initiator level to select any maneuver.",
+  "Martial Training III (Iron Tortoise)": "Your mastery of your martial discipline improves. you may select an additional new maneuver from your chosen discipline of up to 3rd level, plus one new stance, and you may ready an additional maneuver. you may also trade out any one maneuver from your chosen discipline you know and replace it with a different maneuver from that discipline of up to 2nd level. you must meet the minimum initiator level to select any maneuver.",
+  "Martial Training IV (Iron Tortoise)": "You are fast approaching mastery of your chosen discipline. you may select two new maneuvers from your chosen discipline of up to 4th level, and you may ready an additional maneuver. you must meet the minimum initiator level to select any maneuver.",
+  "Martial Training V (Iron Tortoise)": "You are truly enlightened with using your chosen discipline. you may select two new maneuvers or one new maneuver and one new stance from your chosen discipline of up to 5th level, and you may ready an additional maneuver. you may also trade out any one maneuver from your chosen discipline you know and replace it with a different maneuver from that discipline of up to 4th level. you must meet the minimum initiator level to select any maneuver.",
+  "Martial Training VI (Iron Tortoise)": "You have reached your limits in mastering your chosen discipline. you may select two new maneuvers or one new maneuver and one new stance from your chosen discipline of up to 6th level, and you may ready an additional maneuver. you may also trade out any one maneuver from your chosen discipline you know and replace it with a different maneuver from that discipline of up to 5th level. you must meet the minimum initiator level to select any maneuver.",
+  "Martial Training I (Brutal Crocodile)": "Youve learned the basics in a martial discipline. Special If you ever gain levels in a martial adept class or possess them previously, these maneuvers continue to use their own initiator level and recovery method, independent of your martial adept level. Those wishing to add new maneuvers from a discipline that is already available to their class should instead select the Advanced Study feat instead. select a martial discipline. the associated skill for this discipline is now a class skill. your initiation modifier is chosen from intelligence, wisdom, or charisma. your martial initiator level for maneuvers granted by this feat (and subsequent martial training feats) is equal to half your character level + your initiation modifier. you may select any two maneuvers from the 1st level maneuvers from this discipline, and you may ready one of your maneuvers for use. you may recover one maneuver by expending a full round action to recover it.",
+  "Martial Training II (Brutal Crocodile)": "Youve continued to progress your martial studies. you may select two new maneuvers and one stance from your chosen discipline of up to 2nd level, and you may ready an additional maneuver. you must meet the minimum initiator level to select any maneuver.",
+  "Martial Training III (Brutal Crocodile)": "Your mastery of your martial discipline improves. you may select an additional new maneuver from your chosen discipline of up to 3rd level, plus one new stance, and you may ready an additional maneuver. you may also trade out any one maneuver from your chosen discipline you know and replace it with a different maneuver from that discipline of up to 2nd level. you must meet the minimum initiator level to select any maneuver.",
+  "Martial Training IV (Brutal Crocodile)": "You are fast approaching mastery of your chosen discipline. you may select two new maneuvers from your chosen discipline of up to 4th level, and you may ready an additional maneuver. you must meet the minimum initiator level to select any maneuver.",
+  "Martial Training V (Brutal Crocodile)": "You are truly enlightened with using your chosen discipline. you may select two new maneuvers or one new maneuver and one new stance from your chosen discipline of up to 5th level, and you may ready an additional maneuver. you may also trade out any one maneuver from your chosen discipline you know and replace it with a different maneuver from that discipline of up to 4th level. you must meet the minimum initiator level to select any maneuver.",
+  "Martial Training VI (Brutal Crocodile)": "You have reached your limits in mastering your chosen discipline. you may select two new maneuvers or one new maneuver and one new stance from your chosen discipline of up to 6th level, and you may ready an additional maneuver. you may also trade out any one maneuver from your chosen discipline you know and replace it with a different maneuver from that discipline of up to 5th level. you must meet the minimum initiator level to select any maneuver.",
+  "Multi Talented": "Your profession rank cap increases by 10.",
+  "True Calling": "Your natural Profession rank cap rises to 15 in one qualifying profession.",
+  "Selective Channeling": "You can choose whom to affect when you channel energy",
+  "Demonologist": "You have immersed yourself deeply in studies of the nature of the Abyss and its inhabitants",
+  "Grasping Tail": "Your tail becomes more useful",
+  "Divine Deception": "You are skilled at manipulating divine magical items",
+  "Brew Potion": "You can create magic potions",
+  "Expert Trainer": "You have a special knack for a certain profession and take to it with ease",
+  "Nimble Moves": "You can move across a single obstacle with ease",
+  "Improved Counterspell": "You are skilled at countering the spells of others using similar spells",
+  "Skilled Driver": "Choose a type a type of vehicle (either air, land, or water) You are more skilled when driving that vehicle",
+  "Craft Wand": "You can create magic wands",
+  "Necromantic Affinity": "Long exposure to necromantic energies has granted you a small measure of resistance against them",
+  "Out of the Sun": "Your allies use the sun's glare to their advantage",
+  "Toppling Spell": "Your spells with the force descriptor knock the affected creatures prone",
+  "Blighted Critical": "With a critical hit from a spell or spell-like ability, you give the target a minor spellblight",
+  "Unsanctioned Knowledge": "You have searched though forbidden texts and are privy to powerful but proscribed magic",
+  "Create Reliquary Arms and Shields": "Your magical creations are infused with divine power",
+  "Endurance": "Harsh conditions or long exertions do not easily tire you",
+  "Elemental Focus": "Your spells of a certain element are more difficult to resist",
+  "Expanded Fiendish Resistance": "You gain extra fiendish resistances",
+  "Self-Sufficient": "You know how to get along in the wild and how to effectively treat wounds",
+  "Spell Focus": "Choose a school of magic Any spells you cast of that school are more difficult to resist",
+  "Shapeshifter Foil": "Your command of shapeshifting magic can disrupt similar effects in others",
+  "Extra Cantrips Or Orisons": "You are a master of minor spells",
+  "Craft Construct": "You can create construct creatures like golems",
+  "Blighted Critical Mastery": "You control the type of spellblight your critical hits give your opponent",
+  "Cooperative Crafting": "Your assistance makes item crafting far more efficient",
+  "Uncanny Concentration": "You have learned to enter a deeper state when casting spells, allowing you to shrug off distractions, damage, weather effects, and even the effects of other spells"
+ },
+ "feat_changes_dict": {
+  "Divine Deception": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "text": "+5 on Use Magic Device checks to use divine spell-trigger/spell-completion items or to emulate a divine class feature.",
+     "target": "skill.umd"
+    }
+   ]
+  },
+  "Necromantic Affinity": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "text": "+2 bonus on saving throws to resist spells/effects that use negative energy, cause negative levels, or cause ability damage/drain/penalties.",
+     "target": "allSavingThrows"
+    }
+   ]
+  }
+ },
+ "feat_conditionals_dict": {},
+ "spell_changes_dict": {
+  "Marid's Mastery": {
+   "changes": [
+    {
+     "formula": "1",
+     "target": "attack",
+     "type": "untyped",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "1",
+     "target": "wdamage",
+     "type": "untyped",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": []
+  },
+  "Magic Siege Engine": {
+   "changes": [
+    {
+     "formula": "1",
+     "target": "wdamage",
+     "type": "enhancement",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": []
+  },
+  "Blade of Light": {
+   "name": "Blade of Light: infuses a weapon with pure sunlight, shedding light as daylight and functioning as a magic and good weapon for overcoming damage reduction; grants a +[[2]] sacred bonus on attack rolls and extra damage against undead, functions as ghost touch against incorporeal undead, and automatically confirms critical hits against foes vulnerable to sunlight. Duration [[1]] round/level.",
+   "default": false,
+   "modifiers": [
+    {
+     "formula": "2",
+     "target": "attack",
+     "subTarget": "allAttack",
+     "type": "sacred",
+     "damageType": [],
+     "critical": "normal"
+    },
+    {
+     "formula": "1d6",
+     "target": "damage",
+     "subTarget": "allDamage",
+     "type": "untyped",
+     "damageType": [
+      "untyped"
+     ],
+     "critical": "nonCrit"
+    }
+   ]
+  },
+  "Blood Scent": {
+   "changes": [
+    {
+     "formula": "2",
+     "target": "attack",
+     "type": "morale",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "2",
+     "target": "wdamage",
+     "type": "morale",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": []
+  },
+  "Holy Sword": {
+   "changes": [
+    {
+     "formula": "5",
+     "target": "attack",
+     "type": "enhancement",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "5",
+     "target": "wdamage",
+     "type": "enhancement",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": []
+  },
+  "Vengeful Stinger": {
+   "changes": [
+    {
+     "formula": "2",
+     "target": "attack",
+     "type": "sacred",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": []
+  },
+  "Vigor": {
+   "changes": [
+    {
+     "formula": "1",
+     "target": "wdamage",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": []
+  },
+  "Divine Power": {
+   "changes": [
+    {
+     "formula": "1",
+     "target": "attack",
+     "type": "luck",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "1",
+     "target": "wdamage",
+     "type": "luck",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": []
+  },
+  "Magic Weapon": {
+   "changes": [
+    {
+     "formula": "1",
+     "target": "attack",
+     "type": "enhancement",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "1",
+     "target": "wdamage",
+     "type": "enhancement",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": []
+  }
+ },
+ "spell_riders_dict": {
+  "Power Word Kill": {
+   "attack": null,
+   "save": null,
+   "riders": [
+    "Range: [[25 + 5*floor(@spells.primary.cl.total/2)]] ft; a target with [[100]] or fewer current hit points dies instantly; a creature with [[101]] or more hit points is unaffected; spell resistance: yes"
+   ]
+  },
+  "Snow Shape": {
+   "attack": null,
+   "save": null,
+   "riders": [
+    "Range: touch; you can form a mass of snow into any shape as per stone shape, though fine details usually aren't possible; a successful Craft (weapons) check (DC as normally listed for that skill, made by you at the time of casting) allows you to create a bladed weapon instead; a failed check means the spell is still cast, but the weapon created is malformed and useless; this spell can only be used to craft weapons, not more precise tools or elaborate armor; the created item solidifies into super-hard ice with hardness [[5]] and [[10]] hit points per inch of thickness, and takes double damage from fire; anyone using an ice weapon takes a -[[2]] penalty on attacks due to its slippery, unwieldy nature, but the weapon deals [[1]] additional point of cold damage; the weapon lasts [[24]] hours before melting into uselessness; spell resistance: no"
+   ]
+  },
+  "Inflict Critical Wounds, Mass": {
+   "attack": null,
+   "save": {
+    "type": "will",
+    "dc": "",
+    "description": "half",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[25 + 5*floor(@spells.primary.cl.total/2)]] ft; Save: Will DC [[ 10 + @slvl + @castMod ]] half; deals [[4d8 + min(40, @spells.primary.cl.total)]] damage to living creatures in the area; cures undead in the area for the same amount instead of damaging them; spell resistance: yes"
+   ]
+  },
+  "Phasic Challenge": {
+   "attack": null,
+   "save": {
+    "type": "will",
+    "dc": "",
+    "description": "negates, see text",
+    "harmless": false
+   },
+   "riders": [
+    "Range: short ([[25]] ft. + [[5]] ft./[[2]] levels); Save: Will DC [[ 10 + @slvl + @castMod ]] negates, see text; caster selects one enemy and one willing ally as targets; the enemy gains a new Will save at the beginning of each of its turns, ending the spell for both targets on a success; both targets remain visible and audible and can see and hear other creatures, but cannot physically interact with any creature except each other; spells or weapon attacks from the affected creatures affect only each other, though spells may still affect terrain or other unrelated factors; the effect ends for both targets if either becomes unconscious or dies, or if the effect is dispelled; spell resistance: yes"
+   ]
+  },
+  "Holy Aura": {
+   "attack": null,
+   "save": null,
+   "riders": [
+    "Cost: [[500]] gp material component; Range: [[20]] ft; each warded creature gains a +[[4]] deflection bonus to AC and a +[[4]] resistance bonus on saving throws, applying against all attacks and not only those made by evil creatures; each warded creature gains spell resistance [[25]] against evil spells and against spells cast by evil creatures; each warded creature is protected from possession and mental influence, as protection from evil; if an evil creature succeeds on a melee attack against a warded creature, the attacker is blinded as blindness/deafness (Fortitude save DC [[ 10 + @slvl + @castMod ]] negates, against this spell's save DC); spell resistance: yes (harmless)"
+   ]
+  },
+  "Arbitrament": {
+   "attack": null,
+   "save": {
+    "type": "will",
+    "dc": "",
+    "description": "negates (see text)",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[40]] ft; Save: Will DC [[ 10 + @slvl + @castMod ]] negates (see text); affects only chaotic evil, chaotic good, lawful evil, or lawful good creatures; creatures whose Hit Dice exceed your caster level are unaffected; the effects are cumulative and concurrent based on the target's Hit Dice relative to your caster level, and a creature affected by multiple effects attempts only one Will save applied to all of them: Hit Dice equal to caster level: sickened for [[1d4]] rounds (Will negates); Hit Dice up to caster level - [[1]]: also staggered for [[2d4]] rounds (Will save reduces this to [[1d4]] rounds); Hit Dice up to caster level - [[5]]: also nauseated for [[1d10]] minutes (Will save reduces this to [[1d4]] rounds); Hit Dice up to caster level - [[10]]: living creatures are also killed and undead creatures destroyed (Will negates), or if the save succeeds the creature instead takes [[3d6]] damage + [[ min(25, @spells.primary.cl.total) ]] damage; if you are on your home plane when you cast this spell, chaotic evil, chaotic good, lawful evil, and lawful good extraplanar creatures within the area are also banished back to their home planes regardless of whether they heard the spell (Will save at a -[[4]] penalty negates), and cannot return for at least [[24]] hours"
+   ]
+  },
+  "Power Word Blind": {
+   "attack": null,
+   "save": null,
+   "riders": [
+    "Range: [[25 + 5*floor(@spells.primary.cl.total/2)]] ft; target blinded permanently if it has [[50]] hp or less; blinded for [[1d4+1]] minutes if it has [[51]]-[[100]] hp; blinded for [[1d4+1]] rounds if it has [[101]]-[[200]] hp; a creature with [[201]] or more hit points is unaffected; spell resistance: yes"
+   ]
+  },
+  "Flame Strike": {
+   "attack": null,
+   "save": {
+    "type": "reflex",
+    "dc": "",
+    "description": "half",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[100 + 10*@spells.primary.cl.total]] ft; Save: Reflex DC [[ 10 + @slvl + @castMod ]] half; [[ (min(15, @spells.primary.cl.total))d6 ]] damage, half fire and half divine (the divine half is not subject to resistance to fire-based attacks); [[10]]-ft.-radius, [[40]]-ft.-high cylinder; spell resistance: yes"
+   ]
+  },
+  "Holy Smite": {
+   "attack": null,
+   "save": {
+    "type": "will",
+    "dc": "",
+    "description": "partial",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[100 + 10*@spells.primary.cl.total]] ft; Save: Will DC [[ 10 + @slvl + @castMod ]] partial; good creatures are unaffected; evil creatures other than evil outsiders: [[ (min(5, floor(@spells.primary.cl.total/2)))d8 ]] damage and blinded for [[1]] round; evil outsiders: [[ (min(10, @spells.primary.cl.total))d6 ]] damage and blinded for [[1]] round; creatures that are neither good nor evil take only half the listed damage and are not blinded, and can halve that damage again (down to one-quarter of the roll) with a successful Will save; spell resistance: yes"
+   ]
+  },
+  "Staggering Fall": {
+   "attack": null,
+   "save": {
+    "type": "will",
+    "dc": "",
+    "description": "negates staggered condition (the additional falling damage applies regardless of this save); on a failure the target is staggered until it succeeds at a new Will save, attempted as a free action each round, or until the spell's duration ends; a staggered creature must take a standard action to stand up",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[100 + 10*@spells.primary.cl.total]] ft; Save: Will DC [[ 10 + @slvl + @castMod ]] negates staggered condition (the additional falling damage applies regardless of this save); on a failure the target is staggered until it succeeds at a new Will save, attempted as a free action each round, or until the spell's duration ends; a staggered creature must take a standard action to stand up; [[1d6]] additional damage from the fall; spell duration [[@spells.primary.cl.total]] rounds; spell resistance: yes"
+   ]
+  },
+  "Violent Accident": {
+   "attack": null,
+   "save": {
+    "type": "reflex",
+    "dc": "",
+    "description": "half (when the accident occurs; no save exists to avoid the initial curse, only spell resistance)",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[400 + 40*@spells.primary.cl.total]] ft; Save: Reflex DC [[ 10 + @slvl + @castMod ]] half (when the accident occurs; no save exists to avoid the initial curse, only spell resistance); [[ (min(5, @spells.primary.cl.total))d8 ]] damage of a type appropriate to the accident's source (such as fire for an explosion or bludgeoning for a falling object); the target can avoid being cursed only with spell resistance at the time of casting and otherwise receives no saving throw until the accident actually occurs; although others may be surprised or inconvenienced by the accident, it damages only the target; spell resistance: yes"
+   ]
+  },
+  "Pesh Vigor": {
+   "attack": null,
+   "save": {
+    "type": "will",
+    "dc": "",
+    "description": "negates",
+    "harmless": false
+   },
+   "riders": [
+    "Cost: [[15]] gp material component (dose of pesh); Range: touch; Save: Will DC [[ 10 + @slvl + @castMod ]] negates; target gains a +[[2]] enhancement bonus to Strength; as a free action once per round, the target can increase the enhancement bonus by [[2]] for [[1]] round, taking [[1d6]] nonlethal damage and reducing the spell's duration by [[1]] additional round; for every [[5]] caster levels the caster has, the target can increase the bonus by an additional [[2]] (taking an additional [[1d6]] nonlethal damage and reducing the duration by [[1]] additional round per increase), to a maximum enhancement bonus of +[[10]] and [[4d6]] nonlethal damage at caster level [[15]]th; the target cannot spend more rounds than remain in the duration; when the spell ends, the target becomes fatigued; spell resistance: yes"
+   ]
+  },
+  "Fear the Sun": {
+   "attack": null,
+   "save": {
+    "type": "fortitude",
+    "dc": "",
+    "description": "negates",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[100 + 10*@spells.primary.cl.total]] ft; Save: Fortitude DC [[ 10 + @slvl + @castMod ]] negates; affects up to [[@spells.primary.cl.total]] creatures, no two of which can be more than [[30]] ft. apart; affected targets gain light blindness (as the universal monster rule) for [[@spells.primary.cl.total]] rounds; when exposed to bright light, an affected target is blinded for [[1]] full round and dazzled in successive rounds; if the spell is cast in the presence of bright light, an affected target is blinded immediately and dazzled starting at the beginning of its first turn; spell resistance: yes"
+   ]
+  },
+  "Polar Midnight": {
+   "attack": null,
+   "save": {
+    "type": "fortitude",
+    "dc": "",
+    "description": "partial",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[25 + 5*floor(@spells.primary.cl.total/2)]] ft; Save: Fortitude DC [[ 10 + @slvl + @castMod ]] partial; illumination in the area drops by two steps, down to darkness only (not supernatural darkness); each round, all creatures in the area take [[5d6]] cold damage and [[1d6]] Dexterity damage; a successful Fortitude save each round negates the Dexterity damage but not the cold damage; a creature that does not move on its turn becomes encased in a sheath of ice as wall of ice, rendering it helpless and unable to breathe; a corpse that remains in the area longer than [[1]] round is transmuted into solid ice, requiring true resurrection, miracle, or wish to revive; as a move action, the caster may move the area of effect up to [[10]] feet in any direction; spell resistance: yes"
+   ]
+  },
+  "Spell Scourge": {
+   "attack": null,
+   "save": {
+    "type": "will",
+    "dc": "",
+    "description": "negates the stripping of harmless spells and effects currently affecting the target (failure: all such spells and effects on the target end)",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[25 + 5*floor(@spells.primary.cl.total/2)]] ft; Save: Will DC [[ 10 + @slvl + @castMod ]] negates the stripping of harmless spells and effects currently affecting the target (failure: all such spells and effects on the target end); [[1d4]] rounds confused, if the target is not currently under the effect of at least one harmless spell (no save for this branch); spell resistance: yes"
+   ]
+  },
+  "Power Word Stun": {
+   "attack": null,
+   "save": null,
+   "riders": [
+    "Range: [[25 + 5*floor(@spells.primary.cl.total/2)]] ft; target stunned for [[4d4]] rounds if it has [[50]] hp or less; stunned for [[2d4]] rounds if it has [[51]]-[[100]] hp; stunned for [[1d4]] rounds if it has [[101]]-[[150]] hp; a creature with [[151]] or more hit points is unaffected; spell resistance: yes"
+   ]
+  },
+  "Burning Disarm": {
+   "attack": null,
+   "save": {
+    "type": "reflex",
+    "dc": "",
+    "description": "negates (object, see text)",
+    "harmless": false
+   },
+   "riders": [
+    "Range: Short ([[25]] ft. + [[5]] ft./[[2]] levels); Save: Reflex DC [[ 10 + @slvl + @castMod ]] negates (object, see text); targets a held metal item or up to [[15]] lbs. of unattended metal; a creature holding the item may attempt a Reflex save to drop it and take no damage, even if it is not currently its turn; if circumstances prevent the creature from dropping the item (such as a locked gauntlet), it gets no saving throw; the heat does not harm the item and does not last long enough to ignite flammable objects, and the item cools to its previous temperature almost instantly; if cast underwater, this spell deals half damage and boils the surrounding water; deals [[(min(5, @spells.primary.cl.total))d4]] fire damage; spell resistance: yes (object)"
+   ]
+  },
+  "Blade Barrier": {
+   "attack": null,
+   "save": {
+    "type": "reflex",
+    "dc": "",
+    "description": "half or negates (see text)",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[100 + 10*@spells.primary.cl.total]] ft; Save: Reflex DC [[ 10 + @slvl + @castMod ]] half or negates (see text); any creature passing through the wall (or present when it is evoked into that space) takes [[(min(15, @spells.primary.cl.total))d6]] slashing damage; a creature can instead avoid the wall entirely, ending up on the side of its choice, and take no damage with a successful Reflex save; the barrier provides cover (+[[4]] bonus to AC, +[[2]] bonus on Reflex saves) against attacks made through it; spell resistance: yes"
+   ]
+  },
+  "Overwhelming Presence": {
+   "attack": null,
+   "save": {
+    "type": "will",
+    "dc": "",
+    "description": "negates, see text",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[100 + 10*@spells.primary.cl.total]] ft; Save: Will DC [[ 10 + @slvl + @castMod ]] negates, see text; a target that fails the save falls to the ground and prostrates itself, becoming helpless for [[@spells.primary.cl.total]] rounds; a flying creature incapable of hovering must land immediately to prostrate itself; each round on its turn the target may attempt a new saving throw as a full-round action that does not provoke attacks of opportunity to end the effect early; a target that recovers early after being affected for at least [[1]] round takes [[1d6]] Wisdom drain and is staggered for [[1d4]] rounds; a target that succeeds at the initial save is staggered for [[1]] round; spell resistance: yes"
+   ]
+  }
+ },
+ "selected_traits_desc": [
+  {
+   "name": "Convincing Liar",
+   "description": "You gain a +1 trait bonus on Bluff or Intimidate checks and one of these skills (your choice) is always a class skill for you."
+  },
+  {
+   "name": "Infernal Bastard",
+   "description": "You are a tiefling but you lack a tiefling’s standard resistances to cold, electricity, and fire—instead, you merely have a +2 bonus on all saving throws made against these effects. Likewise, you do not have the ability to use darkness as a spell-like ability once per day—instead, you may choose any one 0-level spell that you can instead use at will as a spell-like ability."
+  },
+  {
+   "name": "Inspired",
+   "description": "Once per day as a free action, roll twice and take the better result on a skill check or ability check."
+  },
+  {
+   "name": "Gifted Adept",
+   "description": "Pick a spell when you choose this trait—from this point on, whenever you cast that spell, its effects manifest at +1 caster level."
+  },
+  {
+   "name": "Exiled Scholar",
+   "description": "You gain a +1 trait bonus on Knowledge (arcana) and (religion) checks. In addition, choose one Knowledge skill; you can attempt untrained checks with this skill as long as the DC is lower than 15."
+  },
+  {
+   "name": "Reincarnated",
+   "description": "You gain a +2 trait bonus on saving throws against fear and death effects."
+  },
+  {
+   "name": "Resolve of the Rejected",
+   "description": "You gain a +1 trait bonus on all saving throws against charm and compulsion effects. Also, once per day when you succeed at a saving throw against such an effect, you regain 1 grit point."
+  },
+  {
+   "name": "Slippery",
+   "description": "You gain a +1 trait bonus on Stealth checks and Stealth is always a class skill for you."
+  }
+ ],
+ "item_changes_dict": {
+  "Anchoring Belt": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "allSavingThrows",
+     "text": "It grants its wearer a +[[5]] inherent bonus to combat maneuver defense against bull rush, drag, grapple, overrun, reposition, and trip combat maneuvers and a +[[5]] inherent bonus on saving throws against any effect that attempts to move the wearer with physical force or energy. As a standard action, the wearer can expend one use of mythic power to create a [[30]]-foot-radius aura that affects all enemy creatures within it as though they were subject to a dimensional anchor spell."
+    }
+   ]
+  },
+  "Monk's Robe": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "ac",
+     "text": "If the wearer has levels in monk, her ac and unarmed damage are treated as a monk of 5 levels higher. If the character is not a monk, she gains the ac and unarmed damage of a 5th-level monk (although she does not add her wisdom bonus to her ac)."
+    }
+   ]
+  },
+  "Poisoner's Jacket, Lesser": {
+   "changes": [],
+   "contextNotes": [],
+   "unplaced": [
+    "Three times per day, the wearer of this dark jacket can create a vial containing one dose of any poison from the core rulebook that costs 300or less. This poison becomes inert after 1 hour."
+   ]
+  },
+  "Sniper Goggles, Greater": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "attack",
+     "text": "These goggles function as sniper goggles , but the wearer gains the +[[2]] circumstance bonus on each sneak attack when making a sneak attack at any range."
+    }
+   ]
+  },
+  "Cat Burglar's Boots": {
+   "changes": [
+    {
+     "formula": "2",
+     "operator": "add",
+     "priority": 0,
+     "target": "skill.acr",
+     "type": "competence"
+    },
+    {
+     "formula": "2",
+     "operator": "add",
+     "priority": 0,
+     "target": "skill.clm",
+     "type": "competence"
+    },
+    {
+     "formula": "2",
+     "operator": "add",
+     "priority": 0,
+     "target": "skill.ste",
+     "type": "competence"
+    }
+   ],
+   "contextNotes": [
+    {
+     "target": "skill.acr",
+     "text": "Once per day as an immediate action, the wearer of cat burglar's boots can reroll any one failed acrobatics, climb, or stealth check, taking the result of that check in place of the first failed check (even if the second result is worse). A dc [[22]] perception check is required to notice this pocket."
+    }
+   ]
+  },
+  "Rubble Gloves": {
+   "changes": [],
+   "contextNotes": [],
+   "unplaced": [
+    "If a creature wearing rubble gloves touches a 5-foot square of stone or earth floor, rubble roils to the surface, making the square difficult terrain. The wearer can use the gloves to create up to 20 squares of difficult terrain per day."
+   ]
+  },
+  "Medusa Mask": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "allSavingThrows",
+     "text": "The mask grants a +[[4]] bonus on all saving throws against visual effects, including gaze attacks and sight-based illusions."
+    },
+    {
+     "target": "allSavingThrows",
+     "text": "Once per day as a standard action, the wearer can cause the central gemstone to glow with pale green light, at which point she may target any one creature within [[30]] feet. The targeted creature must succeed at a dc [[15]] fortitude save or be petrified for [[1]] minute, as if by flesh to stone"
+    }
+   ]
+  },
+  "Hunter's Band": {
+   "changes": [
+    {
+     "formula": "5",
+     "operator": "add",
+     "priority": 0,
+     "target": "skill.sur",
+     "type": "competence"
+    }
+   ],
+   "contextNotes": [
+    {
+     "target": "attack",
+     "text": "If the wearer is a ranger, the hunter's band increases his favored enemy bonus on attack rolls by +[[1]] for all his favored enemies."
+    }
+   ]
+  },
+  "Sihedron Medallion": {
+   "changes": [
+    {
+     "formula": "1",
+     "operator": "add",
+     "priority": 0,
+     "target": "allSavingThrows",
+     "type": "resist"
+    }
+   ],
+   "contextNotes": [
+    {
+     "target": "allSavingThrows",
+     "text": "See page 324 for more details on the ramifications of wearing a sihedron medallion in xin-shalast. Once per day, as a free action, it may be commanded to bestow the effects of false life on the wearer."
+    }
+   ]
+  },
+  "Seafoam Shawl": {
+   "changes": [],
+   "contextNotes": [],
+   "unplaced": [
+    "This shawl of delicate lace can be activated once per day to grant the benefits of the fins to feet spell (advanced race guide), transforming the wearer's lower fins or appendages into feet whenever he is on dry landunless dismissed, this effect lasts for 5 hours."
+   ]
+  },
+  "Longarm Bracers": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "attack",
+     "text": "Three times per day, as a swift action, the wearer can stretch her arms beyond their limits, increasing her reach by [[5]] feet until the start of her next turn. Her weapon attack rolls take a 4 penalty, while unarmed strikes and natural weapons using the arms take no penalty."
+    }
+   ]
+  },
+  "Steelhand Circle": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "attack",
+     "text": "In practical terms, the wearer ignores the first 5 points of an object's hardness when performing a sunder combat maneuver or when smashing an object. She also does not take the standard 4 penalty for making a combat maneuver check to disarm while unarmed. Once per day, when a critical hit or sneak attack is scored on the wearer, there is a 50% chance that the critical hit or sneak attack is negated and damage is instead rolled normally."
+    }
+   ]
+  },
+  "Survivor's Ring": {
+   "changes": [],
+   "contextNotes": [],
+   "unplaced": [
+    "Once per day, if the wearer would be reduced to 0 or fewer hit points but not be dead, she is instead reduced to 0 hit points and subject to an effect similar to mislead . In addition, the wearer can touch the ring's stone as a standard action once per day to use dimension door but only while the ring's mislead effect is active."
+   ]
+  }
+ },
+ "enhancement_effects_dict": {
+  "weapon": {
+   "Fury-Born": {
+    "conditionals": [
+     {
+      "name": "Fury-Born: each time you damage an opponent, the weapon's enhancement bonus rises by +[[1]] against that opponent (max total +[[5]]); resets if the foe dies, you attack another creature, or [[1]] hour passes",
+      "default": false,
+      "modifiers": []
+     }
+    ],
+    "description": "A fury-born weapon draws power from the anger and frustration the wielder feels when battling foes that refuse to die. Each time the wielder damages an opponent with the weapon, its enhancement bonus increases by +1 when making attacks against that opponent (maximum total enhancement bonus of +5). This extra enhancement bonus goes away if the opponent dies, the wielder uses the weapon to attack a different creature, or 1 hour passes. Only melee weapons can have the fury-born ability."
+   },
+   "Spellstealing": {
+    "conditionals": [
+     {
+      "name": "Spellstealing: on a critical threat, forgo confirming to learn the target's active magical effects and steal one: caster level check [[ d20 + @attributes.hd.total + enhancement bonus ]] vs DC [[11]] + the effect's CL — success transfers it to you for [[1]] minute (or until it expires); one extra steal per crit multiple over x2",
+      "default": false,
+      "modifiers": []
+     }
+    ],
+    "description": "This special ability can only be placed on melee weapons. A spellstealing weapon allows its wielder to siphon protective magic from a target and transfer it to herself. When the wielder rolls a critical threat against a target, she can forgo confirming the critical hit and instead automatically learn which spells or magical effects are active upon the target. The wielder may then make a caster level check to steal her choice of one of those effects, using the spellstealing weapon's caster level plus its enhancement bonus, against a DC of 11 + the caster level of the effect. If the check succeeds, the target immediately loses the benefits of that effect and the wielder gains the effect for 1 minute (or until the effect expires, whichever comes first). If the spellstealing weapon has a critical multiplier greater than Ã—2, the wielder may attempt to steal one additional spell effect per additional multiple beyond Ã—2 (two effects for Ã—3, and so on)."
+   }
+  },
+  "armor": {
+   "Mental Focus": {
+    "changes": [],
+    "contextNotes": [
+     {
+      "text": "Mental Focus: +[[2]] enhancement on concentration checks; an occultist may spend [[1]] hour attuning [[1]]/day to gain [[1]] extra point of mental focus (lost if the armor is removed).",
+      "target": "concentration"
+     }
+    ],
+    "description": "Armor enhanced with the mental focus special ability grants its wearer a +2 enhancement bonus on concentration checks. If the wearer has the mental focus OA occultist class feature, once per day he can also spend 1 hour attuning himself to the armor to gain 1 additional point of mental focus . This point of mental focus is lost if the armor is removed. The mental focus special ability can be applied only to medium armor."
+   },
+   "Evolving": {
+    "changes": [],
+    "contextNotes": [
+     {
+      "text": "Evolving: [[1]]/day on command, fuses with the wearer's flesh for [[30]] minutes — no armor bonus to AC, but manifest two eidolon evolutions from: gills, improved natural armor, resistance, scent, slam, swim.",
+      "target": "ac"
+     }
+    ],
+    "description": "Armor with this special ability often has revolting fleshy protrusions that periodically quiver and twitch. Once per day on command, the armor fuses with the flesh of the wearer for 30 minutes or until dismissed. The armor doesn't grant any armor bonus to AC during this time, though the wearer still gains any of the armor's magic abilities. While fused with the armor, the wearer can manifest two of the following evolutions from the summoner list of eidolon evolutions ( Pathfinder RPG Advanced Player's Guide 60): gills, improved natural armor, resistance, scent, slam, and swim. The wearer can't wear another suit of armor while fused with evolving armor."
+   },
+   "Spirit-bonded": {
+    "changes": [],
+    "contextNotes": [
+     {
+      "text": "Spirit-bonded: +[[1]] on saves vs psychic spells and effects from incorporeal creatures; a medium's spirit bonus increases by [[1]].",
+      "target": "allSavingThrows"
+     }
+    ],
+    "description": "The wearer of armor with the spirit-bonded special ability gains a +1 bonus on saving throws to resist psychic spells and effects originating from incorporeal creatures. Additionally, if the wearer of the armor has the spirit bonus OA medium class feature, his spirit bonus increases by 1. The spirit-bonded special ability can be applied only to medium armor."
+   },
+   "Shadow Blending": {
+    "changes": [],
+    "contextNotes": [
+     {
+      "text": "Shadow Blending: attacks against the wearer in dim light have a [[40]]% miss chance instead of [[20]]% ( [[50]]% if the armor also has a shadow special ability); not total concealment.",
+      "target": "ac"
+     }
+    ],
+    "description": "Shadow blending armor is drab and mutes any colors in its wearer's attire into dull grays. Attacks against the wearer in dim light have a 40% miss chance instead of the normal 20%. This ability does not grant total concealment; it only increases the miss chance. If the armor also has the shadow , improved shadow , or greater shadow armor special ability, the miss chance increases to 50%."
+   }
+  }
+ },
+ "flaw_effects_dict": {
+  "Grudge Keeper": {
+   "tier": "minor",
+   "description": "You have difficulty letting go of grudges. You must pass a Will save (DC 5) to willingly accept aid (healing, buffs, Diplomacy) from anyone who has wronged you, however slightly.",
+   "changes": [],
+   "contextNotes": [
+    {
+     "text": "Grudge Keeper: Will save DC [[5]] to accept aid from anyone who has ever wronged you.",
+     "target": "will"
+    }
+   ]
+  },
+  "Shattered Psyche": {
+   "tier": "major",
+   "description": "Your mind is crowded with dozens of voices, fragmented snippets of your past lives. You take a -2 penalty on all Intelligence-based skill checks, Wisdom-based skill checks, and concentration checks.",
+   "changes": [],
+   "contextNotes": [
+    {
+     "text": "Shattered Psyche: -[[2]] on Intelligence-based skill checks.",
+     "target": "intSkills"
+    },
+    {
+     "text": "Shattered Psyche: -[[2]] on Wisdom-based skill checks.",
+     "target": "wisSkills"
+    },
+    {
+     "text": "Shattered Psyche: -[[2]] on concentration checks.",
+     "target": "concentration"
+    }
+   ]
+  }
+ },
+ "class_feature_changes_dict": {},
+ "class_feature_conditionals_dict": {},
+ "generator_version": "2026-07-15 racial-stats"
+}

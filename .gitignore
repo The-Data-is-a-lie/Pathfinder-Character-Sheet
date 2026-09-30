@@ -10,3 +10,10 @@ CLAUDE.local.md
 # local dev scratch — resume notes + ad-hoc verify harness, never for main
 RESUME-PART-B.md
 verify_split.js
+
+# acceptance harness (npm test)
+node_modules/
+test-results/
+playwright-report/
+tests/.last-run.json
+.claude/worktrees/

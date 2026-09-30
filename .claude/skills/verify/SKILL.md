@@ -16,13 +16,19 @@ python -m http.server 8971 &   # must be HTTP, not file:// (fetches data/*.json)
 
 ## Drive (Playwright)
 
-Playwright is available through the npx cache, not node_modules. Run scripts with:
+**Default: the acceptance harness.** `npm test` runs every `tests/*.spec.mjs` against a local server (`tools/serve.mjs`) and then checks the feature ledger. Write new checks as tagged tests using `tests/helpers.mjs`:
+- `openSheet` stubs the backend, dismisses the onboarding overlays and loads a fixture;
+- `gotoTab` switches tabs;
+- `waitForCharacter` waits for the named character;
+- `feature(id)` tags a test with the ledger id it proves.
+
+See `tests/README.md`. A PR that changes behaviour adds its ledger row and a test.
+
+**Legacy one-off scripts.** They still work, but prefer a spec. Borrow Playwright from `node_modules`, or from the old npx cache:
 
 ```bash
 NODE_PATH="C:/Users/Daniel/AppData/Local/npm-cache/_npx/e41f203b7505f1fb/node_modules" node script.js
 ```
-
-(If chromium is missing: `npx playwright install chromium`.)
 
 ## Flows worth driving
 

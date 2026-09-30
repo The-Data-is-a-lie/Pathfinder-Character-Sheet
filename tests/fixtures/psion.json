@@ -1,0 +1,1078 @@
+{
+ "class features": {
+  "psion_discipline": {
+   "Telepathy": "142 powers belong to this discipline. A psion who specializes in it gains its restricted powers and its discipline abilities, and can no longer learn powers restricted to any other discipline."
+  },
+  "Skill Unlock: Stealth": {
+   "5 Ranks": "Reduce the Stealth penalty from sniping by 10.",
+   "10 Ranks": "Stealth penalties for moving at full speed are halved (including the 5-rank sniping ability).",
+   "15 Ranks": "After a successful Stealth-based attack, your target is denied its Dexterity bonus against all attacks you make before the end of your turn.",
+   "20 Ranks": "After a successful Stealth-based attack, your target is denied its Dexterity bonus against all your attacks before the beginning of your next turn."
+  }
+ },
+ "class feature levels": {
+  "psion_discipline": {
+   "Telepathy": 1
+  }
+ },
+ "class feature owners": {
+  "psion_discipline": "psion"
+ },
+ "region": "Ieso",
+ "chosen_race": "Half-Orc",
+ "land_speed": 30,
+ "character_full_name": "Mograna Sneakthief",
+ "c_class": "psion",
+ "c_class_display": "Psion",
+ "c_class_2": "",
+ "alignment": "Chaotic Good",
+ "age_number": 33,
+ "height_number": "6'11\"",
+ "weight_number": 252,
+ "dex": 15,
+ "str": 9,
+ "con": 12,
+ "int": 17,
+ "wis": 14,
+ "cha": 13,
+ "inherents": {
+  "str": 0,
+  "dex": 0,
+  "con": 5,
+  "int": 0,
+  "wis": 0,
+  "cha": 0
+ },
+ "level_up_stats": {
+  "str": 1,
+  "dex": 0,
+  "con": 0,
+  "int": 0,
+  "wis": 0,
+  "cha": 0
+ },
+ "racial_stats": {
+  "str": 0,
+  "dex": 0,
+  "con": 0,
+  "int": 2,
+  "wis": 0,
+  "cha": 0
+ },
+ "flaw": [
+  "Curious"
+ ],
+ "Total_HP": 45,
+ "sheet_health": 30,
+ "bab_total": 2,
+ "armor_ac": 0,
+ "shield_ac": 0,
+ "armor_name": 0,
+ "armor_spell_failure": 0,
+ "armor_weight": 0,
+ "armor_armor_check_penalty": 0,
+ "armor_max_dex_bonus": 0,
+ "shield_name": " ",
+ "shield_spell_failure": " ",
+ "shield_weight": " ",
+ "shield_armor_check_penalty": " ",
+ "shield_max_dex_bonus": " ",
+ "spell_list_choose_from": [],
+ "day_list": [],
+ "known_list": [],
+ "spells_prepared_per_level": [],
+ "martial_disciplines": [],
+ "initiator_level": 0,
+ "maneuvers_known_list": [],
+ "maneuvers_readied_list": [],
+ "maneuvers_choose_from": [],
+ "maneuvers_readied_names": [],
+ "stances_chosen": [],
+ "mt_feats": [],
+ "initiation_stat": "int",
+ "manifesters": [
+  {
+   "name": "psion",
+   "display": "Psion",
+   "level": 5,
+   "manifester_level": 5,
+   "manifesting_stat": "int",
+   "caster_type": "high",
+   "pp_per_day": 32,
+   "max_power_level": 3,
+   "powers_known_list": [
+    3,
+    2,
+    4,
+    5
+   ],
+   "powers_by_level": [
+    [
+     "Detect Psionics",
+     "Blinding Flash",
+     "Energy Splash"
+    ],
+    [
+     "Inertial Armor",
+     "Shroudsight"
+    ],
+    [
+     "Control Sound",
+     "Mental Mist",
+     "Psionic Recharge",
+     "Sympathetic Drain"
+    ],
+    [
+     "Banshee's Hearing",
+     "Captivity Bond",
+     "Dispel Psionics",
+     "Obsession",
+     "Touchsight"
+    ]
+   ],
+   "powers_chosen": [
+    "Detect Psionics",
+    "Blinding Flash",
+    "Energy Splash",
+    "Inertial Armor",
+    "Shroudsight",
+    "Control Sound",
+    "Mental Mist",
+    "Psionic Recharge",
+    "Sympathetic Drain",
+    "Banshee's Hearing",
+    "Captivity Bond",
+    "Dispel Psionics",
+    "Obsession",
+    "Touchsight"
+   ],
+   "talents_known": 3,
+   "discipline": "Seer (Clairsentience)",
+   "subsystem_bucket": "",
+   "mind_blade": null
+  }
+ ],
+ "magic_talent_items": [],
+ "combat_talent_items": [],
+ "sphere_feats": [],
+ "sphere_feat_tax": {},
+ "sphere_mana_pool": 0,
+ "spheres_chosen": [],
+ "sphere_counts": {},
+ "casting_tradition": {
+  "casting_ability_modifier": "Intelligence",
+  "drawbacks": [
+   "Material Casting",
+   "Draining Casting",
+   "Skilled Casting",
+   "Focus Casting",
+   "Verbal Casting",
+   "Prepared Caster"
+  ],
+  "boons": [
+   "Overcharge",
+   "Fortified Casting",
+   "Easy Focus"
+  ],
+  "drawbacks_detail": [
+   {
+    "name": "Material Casting",
+    "description": "Your magic requires expending consumable materials/components worth roughly 1 sp per caster level each time you use a sphere ability.",
+    "counts_as": 1
+   },
+   {
+    "name": "Draining Casting",
+    "description": "Each time you spend a spell point you take a small amount of nonlethal damage (scaling with caster level) that can only be removed by rest, not by healing or DR.",
+    "counts_as": 1
+   },
+   {
+    "name": "Skilled Casting",
+    "description": "Your magic is channeled through an activity tied to a specific Craft, Perform, or Profession skill; you must succeed on a skill check (DC 15 + the ability's caster level) for any sphere ability to take effect.",
+    "counts_as": 1
+   },
+   {
+    "name": "Focus Casting",
+    "description": "You must wield or wear a specific item (wand, staff, holy symbol, ring, etc.) to cast; without it you must make a concentration check (DC 20 + 1/2 caster level) or the ability fails.",
+    "counts_as": 1
+   },
+   {
+    "name": "Verbal Casting",
+    "description": "You must speak in a loud, clear voice to cast; your magic fails in areas of magical silence or when you cannot speak clearly, and casting breaks stealth.",
+    "counts_as": 1
+   },
+   {
+    "name": "Prepared Caster",
+    "description": "After resting you must pre-assign your spell points to specific spheres you possess; you may only spend points on the spheres you prepared until you next rest.",
+    "counts_as": 1
+   }
+  ],
+  "boons_detail": [
+   {
+    "name": "Overcharge",
+    "description": "You can push your magic harder, taking +2 caster level on a sphere ability but becoming fatigued (then exhausted, then unconscious) afterward."
+   },
+   {
+    "name": "Fortified Casting",
+    "description": "(Pairs with Draining Casting) You shore up your lifeforce against draining magic; you may use Constitution as your casting ability modifier if it is higher than your usual one."
+   },
+   {
+    "name": "Easy Focus",
+    "description": "(Counters Focus Casting) You no longer need to make a check to cast without your focus item, or you ignore part of the Focus Casting penalty; maintaining a sphere ability that needs a standard action to concentrate on requires only a move action."
+   }
+  ],
+  "bonus_spell_points": 0
+ },
+ "sphere_drawbacks": [
+  "Material Casting",
+  "Draining Casting",
+  "Skilled Casting",
+  "Focus Casting",
+  "Verbal Casting",
+  "Prepared Caster"
+ ],
+ "sphere_boons": [
+  "Overcharge",
+  "Fortified Casting",
+  "Easy Focus"
+ ],
+ "sphere_traits": [
+  "Material Casting",
+  "Draining Casting",
+  "Skilled Casting",
+  "Focus Casting",
+  "Verbal Casting",
+  "Prepared Caster",
+  "Overcharge",
+  "Fortified Casting",
+  "Easy Focus"
+ ],
+ "deity_name": "Cayden Cailean",
+ "skill_ranks": {
+  "acrobatics": 12,
+  "stealth": 3,
+  "escape artist": 3,
+  "knowledge nobility": 1,
+  "diplomacy": 4,
+  "bluff": 4,
+  "survival": 3,
+  "knowledge history": 4,
+  "sleight of hand": 3,
+  "knowledge engineering": 5,
+  "appraise": 0,
+  "climb": 0,
+  "craft": 2,
+  "disable device": 0,
+  "disguise": 0,
+  "fly": 0,
+  "heal": 0,
+  "intimidate": 0,
+  "knowledge arcana": 0,
+  "knowledge dungeoneering": 0,
+  "knowledge local": 0,
+  "knowledge nature": 0,
+  "knowledge planes": 0,
+  "knowledge religion": 0,
+  "linguistics": 4,
+  "perception": 0,
+  "perform": 0,
+  "profession": 0,
+  "ride": 0,
+  "sense motive": 0,
+  "spellcraft": 0,
+  "swim": 0,
+  "use magic device": 0,
+  "handle animal": 2
+ },
+ "weapon_enhancement_chosen_list": [],
+ "armor_enhancement_chosen_list": [],
+ "shield_enhancement_chosen_list": [],
+ "weapon_enhancement_bonus": 1,
+ "armor_enhancement_bonus": 1,
+ "shield_enhancement_bonus": 0,
+ "selected_traits": [
+  "Defensive Strategist",
+  "Clever Wordplay",
+  "Akitonian Ferocity",
+  "Snowstride",
+  "Distance Aptitude",
+  "Miner",
+  "Issian Noble",
+  "Storyteller"
+ ],
+ "equipment_list": [
+  "Ioun Gauntlet",
+  "Quickmetal Bracers, Silver",
+  "Aquatic Cummerbund",
+  "Robe of Infinite Twine",
+  "Bandages of Rapid Recovery"
+ ],
+ "level": 5,
+ "archetype1": null,
+ "hair_color": [
+  "Brown"
+ ],
+ "hair_type": [
+  "Flowing"
+ ],
+ "eye_color": [
+  "Green"
+ ],
+ "appearance": [
+  "Striking"
+ ],
+ "language_text": [
+  "Common",
+  "Orc",
+  "Goblin",
+  "Draconic",
+  "Giant",
+  "Abyssal",
+  "Gnoll"
+ ],
+ "feats": [
+  "Demonologist",
+  "Biomech Pilot",
+  "Animal Affinity",
+  "Quillbreaker Defense",
+  "Multi Talented"
+ ],
+ "teamwork_feats": 0,
+ "teamwork_feat_labels": [],
+ "story_feats": [
+  "Two-Weapon Fighting",
+  "Coordinated Distraction"
+ ],
+ "flaw_feats": [
+  "Improved Initiative"
+ ],
+ "class_feats": [],
+ "class_feat_labels": [],
+ "flavor_feats": [
+  "Exploit Schema"
+ ],
+ "bloodline_feats": [],
+ "bloodline_feat_labels": [],
+ "trainer_feats": [],
+ "trainer_feat_labels": [],
+ "trainer_feat_tax_dict": {},
+ "trainer_calibers": [],
+ "profession_feats": [
+  "Multi Talented"
+ ],
+ "profession_feat_desc": {
+  "Multi Talented": "Your profession rank cap increases by 10."
+ },
+ "profession_ranks": [
+  {
+   "name": "Baron of the March",
+   "skill_label": "Profession (Baron of the March)",
+   "ranks": 10,
+   "cap": 10,
+   "associate_skills": [
+    "Handle Animal",
+    "Sleight of Hand",
+    "Profession",
+    "Sense Motive"
+   ],
+   "ability_theme": "noble",
+   "ability_tier": "average",
+   "rank15_abilities": [],
+   "rank5_abilities": [
+    {
+     "name": "House Allowance (Ex)",
+     "desc": "<p>A steady purse from your estate keeps you in fine cloth and ready coin. You begin each adventure with starting wealth equal to 125% of the normal amount, and you may draw on your house's credit to acquire any single mundane item worth up to 100 gp once per week.</p>",
+     "changes": [],
+     "contextNotes": [],
+     "uses": null
+    },
+    {
+     "name": "Bearing of Rank (Ex)",
+     "desc": "<p>You carry yourself as one who expects to be obeyed. You gain a +1 morale bonus on Will saving throws and a +2 competence bonus on Sense Motive checks to read the intentions of those beneath your station.</p>",
+     "changes": [
+      {
+       "formula": "1",
+       "target": "will",
+       "type": "morale",
+       "operator": "add",
+       "priority": 0
+      },
+      {
+       "formula": "2",
+       "target": "skill.sen",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    }
+   ]
+  },
+  {
+   "name": "Glyphwright",
+   "skill_label": "Profession (Glyphwright)",
+   "ranks": 10,
+   "cap": 10,
+   "associate_skills": [
+    "Handle Animal",
+    "Appraise",
+    "Profession",
+    "Knowledge (local)"
+   ],
+   "ability_theme": "arcane",
+   "ability_tier": "average",
+   "rank15_abilities": [],
+   "rank5_abilities": [
+    {
+     "name": "Spark of Talent (Sp)",
+     "desc": "<p>Once per day the Psion may cast a single 1st-level arcane spell of their choice, a faint glimmer of untrained potential.</p>",
+     "changes": [],
+     "contextNotes": [],
+     "uses": {
+      "per": "day",
+      "maxFormula": "1",
+      "value": null
+     }
+    },
+    {
+     "name": "Detect Magic (Sp)",
+     "desc": "<p>The Psion can cast <strong>detect magic</strong> at will, sensing the presence and rough strength of magical auras nearby.</p>",
+     "changes": [],
+     "contextNotes": [],
+     "uses": null
+    }
+   ]
+  }
+ ],
+ "profession_pool": 20,
+ "profession_ability_items": [
+  {
+   "name": "Profession Rank 5: (Baron of the March)",
+   "description": "<p><em>Profession (Baron of the March) - rank 10/10. Associate skills (ranks 1/4/7/10): Handle Animal, Sleight of Hand, Profession, Sense Motive.</em></p><hr><p><strong>House Allowance (Ex)</strong></p><p>A steady purse from your estate keeps you in fine cloth and ready coin. You begin each adventure with starting wealth equal to 125% of the normal amount, and you may draw on your house's credit to acquire any single mundane item worth up to 100 gp once per week.</p><hr><p><strong>Bearing of Rank (Ex)</strong></p><p>You carry yourself as one who expects to be obeyed. You gain a +1 morale bonus on Will saving throws and a +2 competence bonus on Sense Motive checks to read the intentions of those beneath your station.</p>",
+   "changes": [
+    {
+     "formula": "1",
+     "target": "will",
+     "type": "morale",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "2",
+     "target": "skill.sen",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": [],
+   "uses": null
+  },
+  {
+   "name": "Profession Rank 5: (Glyphwright)",
+   "description": "<p><em>Profession (Glyphwright) - rank 10/10. Associate skills (ranks 1/4/7/10): Handle Animal, Appraise, Profession, Knowledge (local).</em></p><hr><p><strong>Spark of Talent (Sp)</strong></p><p>Once per day the Psion may cast a single 1st-level arcane spell of their choice, a faint glimmer of untrained potential.</p><hr><p><strong>Detect Magic (Sp)</strong></p><p>The Psion can cast <strong>detect magic</strong> at will, sensing the presence and rough strength of magical auras nearby.</p>",
+   "changes": [],
+   "contextNotes": [],
+   "uses": {
+    "per": "day",
+    "maxFormula": "1",
+    "value": null
+   }
+  }
+ ],
+ "skill_unlock": {
+  "skill": "Stealth",
+  "base_skill": "stealth",
+  "ranks": 3,
+  "unlock": {
+   "5": "Reduce the Stealth penalty from sniping by 10.",
+   "10": "Stealth penalties for moving at full speed are halved (including the 5-rank sniping ability).",
+   "15": "After a successful Stealth-based attack, your target is denied its Dexterity bonus against all attacks you make before the end of your turn.",
+   "20": "After a successful Stealth-based attack, your target is denied its Dexterity bonus against all your attacks before the beginning of your next turn."
+  },
+  "unlock_html": "<h2>Stealth</h2><p><strong>5 Ranks</strong>: Reduce the Stealth penalty from sniping by 10.</p><p><strong>10 Ranks</strong>: Stealth penalties for moving at full speed are halved (including the 5-rank sniping ability).</p><p><strong>15 Ranks</strong>: After a successful Stealth-based attack, your target is denied its Dexterity bonus against all attacks you make before the end of your turn.</p><p><strong>20 Ranks</strong>: After a successful Stealth-based attack, your target is denied its Dexterity bonus against all your attacks before the beginning of your next turn.</p>"
+ },
+ "gold": 100,
+ "platnium": 10,
+ "animal_companion": null,
+ "bonded_creatures": [],
+ "full_domain": [],
+ "school": "N/A",
+ "opposing_school": "N/A",
+ "bloodline": "N/A",
+ "background_traits": [
+  "Scholar of the Great Beyond"
+ ],
+ "professions": [
+  "Baron of the March",
+  "Glyphwright"
+ ],
+ "craft_type": "Weaving",
+ "mannerisms": [
+  "Cups chin with hand",
+  "Glances over shoulder",
+  "Chews gum"
+ ],
+ "personality_traits": [
+  "Eccentric",
+  "Enthusiastic",
+  "Romantic"
+ ],
+ "hero_points": 3,
+ "gender": "Female",
+ "class_ability_desc": {
+  "discipline": "Every psion must decide at 1st level which psionic discipline he will specialize in. Choosing a discipline provides a psion with access to the class skills associated with that discipline (see above), as well as the powers restricted to that discipline, and the special abilities associated with that discipline (detailed below). However, choosing a discipline also means that the psion cannot learn powers that are restricted to the other disciplines (generalist psions cannot learn powers on any of the discipline power lists). He can’t even use such powers by employing psionic items.",
+  "bonus feats": "A psion gains a bonus feat at 1st level, 5th level, 10th level, 15th level, and 20th level. This feat must be a psionic feat, a metapsionic feat, or a psionic item creation feat.\n\nThese bonus feats are in addition to the feats that a character of any class gains every other level. A psion is not limited to psionic feats, metapsionic feats, and psionic item creation feats when choosing these other feats.",
+  "talents": "Each psion gains three 0 level talents of their choice, as well as detect psionics. These talents do not count against the psion’s powers known.",
+  "discipline abilities": "At 2nd, 8th, 14th, and 20th level, the psion gains special abilities related to his choice of discipline, as detailed below.",
+  "psionic disciplines": "A discipline is one of seven groupings of powers, each defined by a common theme. The seven disciplines are athanatism, clairsentience, metacreativity, psychokinesis, psychometabolism, psychoportation, and telepathy. If a psion chooses to specialize in a discipline, he gains special benefits, while those who choose to stay generalists gain unique benefits of their own. Psionic Disciplines can be found here."
+ },
+ "class_ability": [
+  "discipline_psion",
+  "bonus feats_psion",
+  "talents_psion",
+  "discipline abilities_psion",
+  "psionic disciplines_psion"
+ ],
+ "class_features": {
+  "psion_discipline": {
+   "Telepathy": "142 powers belong to this discipline. A psion who specializes in it gains its restricted powers and its discipline abilities, and can no longer learn powers restricted to any other discipline."
+  },
+  "Skill Unlock: Stealth": {
+   "5 Ranks": "Reduce the Stealth penalty from sniping by 10.",
+   "10 Ranks": "Stealth penalties for moving at full speed are halved (including the 5-rank sniping ability).",
+   "15 Ranks": "After a successful Stealth-based attack, your target is denied its Dexterity bonus against all attacks you make before the end of your turn.",
+   "20 Ranks": "After a successful Stealth-based attack, your target is denied its Dexterity bonus against all your attacks before the beginning of your next turn."
+  }
+ },
+ "class_feature_levels": {
+  "psion_discipline": {
+   "Telepathy": 1
+  }
+ },
+ "archetype_info": "{}",
+ "parents": "absent mother, loving father, raised in a middle income household",
+ "older_brothers": " you have 0 older brothers",
+ "younger_brothers": " you have 0 younger brothers",
+ "older_sisters": " you have 0 older sisters",
+ "younger_sisters": " you have 0 younger sisters",
+ "weapon_name": "Light crossbow",
+ "specialty_schools": [
+  "evocation"
+ ],
+ "counter_schools": [
+  "abjuration"
+ ],
+ "chosen_spell_descriptor": [
+  "fire"
+ ],
+ "counter_spell_descriptor": [
+  "evil"
+ ],
+ "total_rolled_hp": 24,
+ "mini_alignment": "cg",
+ "casting_level_str_foundry": "None",
+ "main_stat": "int",
+ "story_feat_tax_dict": {
+  "Two-Weapon Fighting": [
+   "improved two-weapon fighting",
+   "greater two-weapon fighting"
+  ]
+ },
+ "flaw_feat_tax_dict": {
+  "Improved Initiative": [
+   "surprising combatant"
+  ]
+ },
+ "flavor_feat_tax_dict": {},
+ "class_feat_tax_dict": {},
+ "feats_feat_tax_dict": {
+  "Demonologist": [
+   "demon grafter"
+  ]
+ },
+ "feat_budget": {
+  "story": 2,
+  "flaw": 1,
+  "flavor": 1,
+  "class": 0,
+  "normal": 4,
+  "teamwork": 0,
+  "bloodline": 0,
+  "trainer": 0,
+  "profession": 1
+ },
+ "mod_char_sheet_var": false,
+ "backstory": "",
+ "formatted_bio": "Mograna Sneakthief\n- Alignment: Chaotic Good\n- Deity: Cayden Cailean\n- Race: Half-Orc\n- Class: Level 5 Psion\n- Archetype: Archer\n- Tactics: Full-attacks from range every round, focusing fire on whatever its party marks. Keeps thirty feet of buffer at all times and shoots the ones who try to take it away.\n- Stat Focus: Int\n- Homeland: Ieso\n\nVocation\n- Profession: Baron of the March (rank 10)\n- Profession: Glyphwright (rank 10)\n- Known for: Weaving\n\nFamily\n- Absent Mother\n- Loving Father\n- Raised In A Middle Income Household\n- No Siblings\n\nPersonality\n- Personality: Eccentric, Enthusiastic, Romantic\n- Mannerisms: Cups chin with hand, Glances over shoulder, Chews gum\n- Flaws: Curious\n\nAppearance\n- Hair: Flowing Brown\n- Eyes: Green\n- Build: Striking",
+ "classes": [
+  {
+   "name": "psion",
+   "display": "Psion",
+   "level": 5,
+   "archetype": {}
+  }
+ ],
+ "total_level": 5,
+ "save_bases": {
+  "fort": 1,
+  "ref": 1,
+  "will": 4
+ },
+ "spellbooks": [],
+ "class_feature_owners": {
+  "psion_discipline": "psion"
+ },
+ "build_archetype": "Archer",
+ "build_tactics": "Full-attacks from range every round, focusing fire on whatever its party marks. Keeps thirty feet of buffer at all times and shoots the ones who try to take it away.",
+ "generation_seed": 1653577194,
+ "spell_list_choose_from_dict": [],
+ "equip_descrip": {
+  "hands": {
+   "item_name": "Ioun Gauntlet",
+   "description": " much like wayfinders , an ioun gauntlet grants enhanced or altogether new abilities depending on the type of ioun stone inserted into its matrix. In its base form, an ioun gauntlet grants its wearer the ability to cast detect magic as a spell-like ability once per day. When the detect magic effect is active, the gauntlet also sheds illumination as light in the 60- foot cone of the detect magic effect. An ioun gauntlet features a single matrix in the back of the hand, suitable for one ioun stone . When an ioun stone is inserted into the matrix as a standard action, the wearer gains the associated bonus from the ioun stone as well an additional effect based on the shape of the ioun stone inserted, as listed below. While a creature can put on two ioun gauntlets , the wearer gains the additional benefit from only one inserted ioun stone cabochon : +1 enhancement bonus on acrobatics checks. Disk : +1 enhancement bonus on linguistics checks. Ellipsoid : +1 enhancement bonus on knowledge (arcana) checks. Nodule : +1 enhancement bonus on knowledge (geography) checks. Pentacle : +1 enhancement bonus on knowledge (religion) checks. Prism : +1 enhancement bonus on perception checks. Pyramid : +1 enhancement bonus on appraise checks. Rhomboid : +1 enhancement bonus on stealth checks. Sphere : +1 enhancement bonus on sense motive checks. Spindle : bonus language (aboleth). Star : +1 enhancement bonus on knowledge (nobility) checks. Trillian : +1 enhancement bonus on bluff checks. "
+  },
+  "wrist": {
+   "item_name": "Quickmetal Bracers, Silver",
+   "description": " once per day when a user wearing both these bracers speaks a command word, the metal turns entirely liquid and swims over the wearer's hands to cover her weapons. The user can cover a two-handed melee weapon or up to two one-handed or light melee weapons. For the next 10 rounds, the affected weapons can overcome damage reduction as though the weapons were made of adamantine, cold iron, or silver (as determined by the quickmetal bracers, ' type). The heavy, shifting metal coating affects the balance of manufactured weapons, imposing a 2 penalty on attack rolls. Improvised weapons, however, are already unwieldy, and the metal coating doesn't significantly affect their balance. If the wielder lets go of a weapon affected by the bracers, the liquid metal immediately turns back into a solid metal bracer or bracers, in the case of a two-handed weaponreappearing on the user's wrists. The bracers cannot therefore affect thrown weapons or ranged weapon ammunition. "
+  },
+  "belts": {
+   "item_name": "Aquatic Cummerbund",
+   "description": " long believed to have been gnome in origin, this stately\r cummerbund features a number of dancing dolphins\r embroidered on its deep blue material. The cummerbund grants\r its wearer a +4 competence bonus on swim checks, and allows\r her to take 10 on such checks even if distracted or endangered. "
+  },
+  "body": {
+   "item_name": "Robe of Infinite Twine",
+   "description": " this coarse hempen robe seems made from a single strand of\r twine. The wearer can draw up to 30 feet of twine or up to 10\r feet of hemp rope per round from the robe without harming\r it. As an immediate action, the wearer can draw up to 150\r feet of twine or 50 feet of rope from the robe, but this gives\r the robe the broken condition and suppresses its powers until\r it is repaired. Twine or rope drawn from the robe remains\r connected until cut or torn, but is treated as common material\r rather than part of a magic item. Pieces removed become\r normal twine or rope. "
+  },
+  "chest": {
+   "item_name": "Bandages of Rapid Recovery",
+   "description": " these linen bandages have the same\r color and softness as the feathers of a\r dove, but their antiseptic smell suggests\r a less natural origin. Any creature\r wrapped in these bandages recovers\r from wounds and ability damage each\r day as if receiving complete bed rest, regardless of activity\r (core rulebook 191). A creature actually receiving long-term\r care (from the heal skill) or complete bed rest while wearing\r the bandages gains a +4 bonus to its effective level or hit\r dice when determining how many hit points it recovers each\r day. The bandages are destroyed once removed or when the\r wearer recovers all hit points and ability damage, whichever\r comes first. "
+  }
+ },
+ "maneuvers_desc_dict": {},
+ "powers_desc_dict": {
+  "Detect Psionics": {
+   "name": "Detect Psionics",
+   "display": "Auditory and visual",
+   "discipline": "Clairsentience",
+   "level": "Cryptic 0, dread 0, gambler 0, gifted blade 1, highlord 0, marksman 0, psion/wilder 0, psychic warrior 0, sighted seeker 1, tactician 0, vitalist 0, voyager 0",
+   "manifesting time": "1 standard action",
+   "range": "60 ft.",
+   "duration": "Concentration, up to 1 min./level (D)",
+   "saving throw": "None",
+   "power resistance": "No",
+   "power points": "Psionic focus or 1",
+   "text": "You detect psionic auras. A psionic aura is given off by any active or permanent power, or during the use of any psionic feat. Characters who have levels in a psionic class, creatures with the psionic subtype, and creatures with the Wild Talent feat possess psionic auras. The amount of information revealed by the manifestation of this power depends on how long you study a particular area or subject.\n\n1st Round: Presence or absence of psionic auras.\n\n2nd Round: Number of different psionic auras and the strength of the most potent aura.\n\n3rd Round: The strength and location of each aura. If the items or creatures bearing the auras are in line of sight, you can make Knowledge (psionics) checks to determine the discipline involved in each aura. (Make one check per aura; DC 15 + power level, or 15 + one-half manifester level for an effect that is not created by a power, such as that of a psionic item.) If the aura emanates from a psionic item, you can attempt to identify its properties (see Spellcraft).\n\nPsionically charged locations, multiple disciplines, or strong local psionic emanations may confuse or conceal weaker auras.\n\nAura Strength: A psionic aura’s strength depends on a functioning power’s level or an item’s manifester level. If an aura falls into more than one category, detect psionics indicates the stronger of the two. Detection of an overwhelming aura (see the accompanying table) dazes you for 1 round and the power ends.\n\n{| class=\"wikitable\"\n! rowspan=\"2\" style=\"text-align: center; background-color:#000000; color:#ffffff;\" | Power or Item\n! colspan=\"4\" style=\"text-align: center; background-color:#000000; color:#ffffff;\" | Aura Strength\n|-\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | Faint\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | Moderate\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | Strong\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | Overwhelming\n|-\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | Functioning power (power level)\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | 3rd or lower\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | 4th-6th\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | 7th-9th\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | 10th+ (deity-level)\n|-\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | Psionic item or creature (manifester level)*\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | 5th or lower\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | 6th-11th\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | 12th-20th\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | 21st+ (artifact)\n|}\n<nowiki>*</nowiki> For creatures without a manifester level, use the creature’s CR or hit die, whichever is lower.\n\nLingering Aura: A psionic aura lingers after its original source dissipates (in the case of a power) or is destroyed (in the case of a psionic item). If detect psionics is manifested and directed at such a location, the power indicates an aura of dim (even weaker than a faint aura). How long the aura lingers at this dim level depends on its original strength:\n{| class=\"wikitable\"\n! style=\"text-align: center; background-color:#000000; color:#ffffff;\" | Original Strength\n! style=\"text-align: center; background-color:#000000; color:#ffffff;\" | Duration\n|-\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | Faint\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | 1d6 minutes\n|-\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | Moderate\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | 1d6 x 10 minutes\n|-\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | Strong\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | 1d6 hours\n|-\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | Overwhelming\n| style=\"text-align: center; background-color:#000000; color:#ffffff;\" | 1d6 days\n|}\nEach round, you can turn to detect psionics in a new area. You can tell the difference between magical and psionic auras. The power can penetrate barriers, but 1 foot of stone, 1 inch of common metal, a thin sheet of lead, or 3 feet of wood or dirt blocks it.",
+   "augment": "If you spend 2 additional power points, the duration changes to 3 rounds/level (D) (no concentration required) and it also gives you a +10 enhancement bonus on Spellcraft checks made to identify the properties and command words of magic items in your possession. This power does not allow you to identify artifacts.\n\nLibrarian Note: In Psionics Unleashed, this power is instead a 1st-level power for psions, wilders, and psychic warriors. In addition, it also does not have the duration change augment effect (but keeps the +10 Spellcraft effect). Otherwise, it is functionally the same power."
+  },
+  "Blinding Flash": {
+   "name": "Blinding Flash",
+   "display": "Visual",
+   "discipline": "Psychokinesis [Light]",
+   "level": "Gambler 0, psion/wilder 0, psychic warrior 0, sighted seeker 1, voyager 0",
+   "manifesting time": "1 swift action",
+   "range": "Close (25 ft. + 5 ft./2 levels)",
+   "duration": "1 round",
+   "saving throw": "Fortitude Negates",
+   "power resistance": "Yes",
+   "power points": "Psionic focus or 1",
+   "text": "You create a blinding flash of light to momentarily distract an opponent. The target of this power must make a Fortitude save or be dazzled for one round.",
+   "augment": "You may augment this power in one or both of the following ways:\n*For every additional power point you spend, the power’s duration increases by one round.\n*If you spend 4 additional power points, the target is blinded instead of dazzled.\nIn addition, for every 2 power points spent to achieve either of these effects, increase the save DC by 1."
+  },
+  "Energy Splash": {
+   "name": "Energy Splash",
+   "display": "Auditory",
+   "discipline": "Psychokinesis [see text];",
+   "level": "Gambler 0, psion/wilder 0",
+   "manifesting time": "1 standard action",
+   "range": "Close (25 ft. + 5 ft./2 levels)",
+   "duration": "Instantaneous",
+   "saving throw": "None",
+   "power resistance": "Yes",
+   "power points": "Psionic focus or 1",
+   "text": "You create a ray of your active energy type (cold, electricity,\nfire, or sonic) that shoots forth from your fingertip and\nstrikes a target within range, dealing damage if you succeed\non a ranged touch attack with the ray.\n* Cold: A ray of this energy type deals 2 points of damage. Alternately, the manifester can choose to deal no damage but instead chill up to 1 pound of non-living material (such as cooling a drink).\n* Electricity: A ray of this energy type deals 1 point of damage. Manifesting a ray of this energy type provides a +3 bonus on your attack roll if the target is wearing metal armor and a +2 bonus on manifester level checks for the purpose of overcoming power resistance. Alternately, the manifester can choose to deal no damage but instead cause a relatively harmless static shock. This shock is painful enough to wake someone sleeping, but is not painful to interrupt concentration or spellcasting.\n* Fire: A ray of this energy type deals 2 points of damage. Alternately, the manifester can choose to deal no damage but instead light a readily flammable object such as a lantern or torch, or warm up to 1 pound of nonliving material (such as heating food).\n* Sonic: A ray of this energy type deals 1 point of damage and ignores an object’s hardness. Alternately, the manifester can choose to deal no damage but instead cause a loud bang at the target location (DC 10 Perception check to hear it).\nThis power’s subtype is the same as the type of energy\nyou manifest.",
+   "augment": ""
+  },
+  "Inertial Armor": {
+   "name": "Inertial Armor",
+   "display": "Visual; see text",
+   "discipline": "Psychokinesis [Force]",
+   "level": "Gambler 1, gifted blade 1, highlord 1, psion/wilder 1, psychic warrior 1, voyager 1",
+   "manifesting time": "1 standard action",
+   "range": "Personal",
+   "duration": "1 hour/level (D)",
+   "saving throw": "",
+   "power resistance": "",
+   "power points": "1",
+   "text": "Your mind generates a tangible field of force that provides a +4 armor bonus to Armor Class. Unlike mundane armor, inertial armor entails no armor check penalty or speed reduction. Because inertial armor is composed of psychokinetic force, incorporeal creatures can’t bypass it the way they do normal armor.\n\nYour inertial armor can be invisible or can appear as a colored glow, at your option.\n\nThe armor bonus provided by inertial armor does not stack with the armor bonus provided by regular armor.",
+   "augment": "For every 2 additional power points you spend, the armor bonus to Armor Class increases by 1.\n\n== Mythic Inertial Armor ==\nThe armor bonus is increased by 50% (rounded down). There is a 50% chance that any critical hit or sneak attack made against the target is negated and treated as a normal hit, as if the target were wearing moderate fortification armor."
+  },
+  "Shroudsight": {
+   "name": "Shroudsight",
+   "display": "Mental and visual",
+   "discipline": "Athanatism",
+   "level": "Psion/wilder 1, vitalist 1",
+   "manifesting time": "1 standard action",
+   "range": "60 ft.",
+   "duration": "Concentration",
+   "saving throw": "None",
+   "power resistance": "No",
+   "power points": "1",
+   "text": "You attune your eyes to the energies of the dead\nand the half-living, detecting undead and incorporeal\ncreatures. The amount of information revealed depends\non how long you study a particular area.\n\n1st Round: Presence or absence of undead or\nincorporeal auras.\n\n2nd Round: Number of incorporeal or undead auras in\nthe area and the strength of the strongest incorporeal or\nundead aura present. If you are of good alignment, and\nthe strongest incorporeal or undead aura’s strength is\noverwhelming (11 HD or greater), and the creature has\nHD of at least twice your character level, you are stunned\nfor 1 round and the power ends.\n\n3rd Round: The strength and location of each\nincorporeal or undead aura. If an aura is outside your\nline of sight, then you discern its direction but not its\nexact location.\n\nEach round, you can turn to detect incorporeal creatures\nor undead in a new area. The power can penetrate barriers,\nbut 1 foot of stone, 1 inch of common metal, a thin sheet of\nlead, or 3 feet of wood or dirt blocks it.\n\nFor the purpose of detecting incorporeal undead, you\ncount as if you had spent three rounds focusing whenever\nyou manifest this power, automatically granting you the\nmaximum amount of information.",
+   "augment": "By spending an additional 3 power points,\ngain a +1 bonus on attack rolls, power save DCs, and skill\nchecks against any creatures that you detected with this\npower. This bonus lasts for a number of rounds equal to\nyour key manifesting modifier."
+  },
+  "Control Sound": {
+   "name": "Control Sound",
+   "display": "Auditory; see text",
+   "discipline": "Psychokinesis [Sonic]",
+   "level": "Cryptic 2, Gambler 2, Psion/Wilder 2, Thug 2",
+   "manifesting time": "1 standard action",
+   "range": "Medium (100 ft. + 10 ft./level)",
+   "duration": "Concentration, up to 1 min./level; see text",
+   "saving throw": "None",
+   "power resistance": "No",
+   "power points": "3",
+   "text": "You shape and alter existing sounds. You can target one sound, such as a person speaking or singing, or a group of related sounds, such as the patter of many raindrops or the tramp of soldiers passing by. A sound as quiet as a snapping finger can be controlled. You can substitute any sound you have heard for the target sound. If you attempt to exactly duplicate the voice of a specific individual, or an inherently terrifying sound (such as a dragon’s roar), you must succeed on a Bluff check with a +5 circumstance bonus opposed by the intended listener’s Sense Motive check to avoid arousing suspicion.\n\nYou can entirely muffle a noise or magnify a sound to such loudness that it drowns out all other conversation in the immediate area. In this way, you can provide yourself or any with a +4 circumstance bonus on Stealth and audio-based Perception checks.\n\nAlternatively, you can use up the power in an instant. You do this by modulating a sound into a one-time destructive impetus that shatters nonmagical/nonpsionic, unattended objects of crystal, glass, ceramics, or porcelain (vials, bottles, flasks, jugs, mirrors, and so forth) in the area.\n\n== Mythic Control Sound ==\nAdd your tier to any Bluff check, Stealth check, or audio-based Perception check while using the power. You can make a 5 foot square completely silent, negating all sound from that square or entering that square. Among other things, this means any creature in that square cannot speak, nor hear, nor perform any action requiring speaking or verbal components.",
+   "augment": "ed (3rd): If you expend one use of mythic power, you can cause a number of creatures equal to your tier in range to be deafened for a number of rounds equal to your tier. A successful Fortitude save negates the effect."
+  },
+  "Mental Mist": {
+   "name": "Mental Mist",
+   "display": "Mental",
+   "discipline": "Telepathy [mind-affecting]",
+   "level": "dread 2, highlord 2, psion/wilder2, tactician 2, vitalist 2",
+   "manifesting time": "1 standard action",
+   "range": "Medium (100 ft. + 10 ft./level)",
+   "duration": "1 minute/level",
+   "saving throw": "Will negates",
+   "power resistance": "Yes",
+   "power points": "3",
+   "text": "You reach into the minds of your targets and cloud them, making them think they are deep inside an overwhelming mist or fog. These who fail their Will saves are affected as follows: The mental mist obscures all sight, including darkvision, beyond 5 feet. A creature within 5 feet has concealment (attacks have a 20% miss chance). Creatures farther away have total concealment (50% miss chance, and the attacker can’t use sight to locate the target).",
+   "augment": "This power can be augmented in one or more of the following ways.\n* If you spend 4 additional power points, all targets that fail their saves are mentally drained, move at half their normal speed and take a -2 penalty on all attack rolls and melee damage rolls and cannot take a 5-foot-step while inside.\n* If you spend 4 additional power points, all targets that failed their Will save also take 1d6 points of damage at the start of your turn, beginning with the turn you manifest the mental mist.\n* If you spend 6 additional power points, all targets must make a Fortitude save at the beginning of their turn or be overwhelmed by horrid mental images tearing them apart, taking 1d4 points of Wisdom damage. If they succeed on this save, they take half damage.\n* If you expend your psionic focus, you can exclude yourself from all effects while inside the area."
+  },
+  "Psionic Recharge": {
+   "name": "Psionic Recharge",
+   "display": "visual",
+   "discipline": "psychokinesis",
+   "level": "cryptic 2, dread 2, gambler 2, gifted blade 2, highlord 2, marksman 2, psion/wilder 2, psionic formulist 2, psychic warrior 2, tactician 2, vitalist 2, voyager 2",
+   "manifesting time": "1 standard action",
+   "range": "touch",
+   "duration": "instantaneous",
+   "saving throw": "Fortitude negates (object)",
+   "power resistance": "no",
+   "power points": "3",
+   "text": "Transforming some of your psionic power into electrical energy, you force charges into a technological object in your possession. The object regains 3 charges, to a maximum of the max number of charges the object can normally hold. Charges in excess of this maximum are simply dissipated",
+   "augment": ": This power can be augmented in the following ways:\n*For every additional power point you spend, the object gains one additional charge\n*For every 4 additional power points you spend, you may choose an additional item to be recharged by this effect.\n*If you expend your psionic focus, you may manifest this power as a swift action."
+  },
+  "Sympathetic Drain": {
+   "name": "Sympathetic Drain",
+   "display": "Visual",
+   "discipline": "Psychometabolism",
+   "level": "Psion/wilder 2, vitalist 2",
+   "manifesting time": "1 standard action",
+   "range": "Close (25 ft. plus 5 ft. per 2 levels)",
+   "duration": "Instantaneous",
+   "saving throw": "Will partial",
+   "power resistance": "Yes",
+   "power points": "3",
+   "text": "You establish a channel between you and a victim, through which you both bleed life force. When you manifest this power, sacrifice any number of hp up to 1/2 your full maximum total (you may not sacrifice temporary hp). Your victim loses an equal amount of hp and must succeed at a Will save or be sickened for 1 round.",
+   "augment": "For every 2 additional power points you spend when manifesting this power, the duration of the sickened effect increases by 1 round and its save DC increases by 1.\n\nSurge Augmentation: If you invoke your wild surge when you manifest this power your opponent loses 2 hp for each 1 hp you sacrifice."
+  },
+  "Banshee's Hearing": {
+   "name": "Banshee’s Hearing",
+   "display": "Auditory",
+   "discipline": "Athanatism",
+   "level": "Dread 2, psion/wilder 3",
+   "manifesting time": "1 standard action",
+   "range": "Personal",
+   "duration": "10 minutes/level (D)",
+   "saving throw": "",
+   "power resistance": "",
+   "power points": "3 (dread), 5 (psion/wilder)",
+   "text": "Like the spectral undead, you attune your senses to the heartbeats of the living. You gain blindsight with a range of 60 ft. However, any target that does not have a heartbeat (undead, constructs, some aberrations, etc.) is treated as having total concealment from your blindsight. Your normal senses continue to function.",
+   "augment": "You may augment this power in one of the following ways.\n* You may spend an additional 2 power points to increase the range of your blindsight from this power by 10 feet.\n* By spending an additional 4 power points, the duration of this power becomes 1 hour/level."
+  },
+  "Captivity Bond": {
+   "name": "Captivity Bond",
+   "display": "Material",
+   "discipline": "Psychometabolism",
+   "level": "Dread 2, cryptic 2, highlord 3, marksman 2,psion/wilder 3, tactician 3, vitalist 3",
+   "manifesting time": "1 standard action",
+   "range": "Close (25 ft. + 5 ft./level)",
+   "duration": "One round/level",
+   "saving throw": "Fortitude negates",
+   "power resistance": "Yes",
+   "power points": "Dread 3, cryptic 3, highlord 5, marksman 3, psion/wilder 5, tactician 5, vitalist 5",
+   "text": "A thin film of colored oily liquid engulfs your target then appears to be absorbed into their skin, leaving them tinted to match. For the duration of this power, the altered creature can take only nonlethal damage from any source. If they are suffering from ongoing bleed damage, they will bleed nonlethally. This power only applies to effects that deal hit point damage, and it can only be manifested upon creatures that are not immune to nonlethal damage.\n\nMythic Captivity Bond\n\nFor the duration of this power, if the target creature performs movement away from the manifester, they take nonlethal damage equal to the resulting increase in distance. For example, a creature moving around obstacles may move 15 feet, but only 5 of those feet might be “away” from the manifester, and thus that movement causes 5 points of nonlethal damage. Movement performed by psychoportive means does not cause the target to take damage.\n[[Category:Source: Psionics",
+   "augment": "ed: Compilation II]]"
+  },
+  "Dispel Psionics": {
+   "name": "Dispel Psionics",
+   "display": "Visual",
+   "discipline": "Psychokinesis",
+   "level": "Cryptic 3, gambler 3, psion/wilder 3, vitalist 3, voyager 3",
+   "manifesting time": "1 standard action",
+   "range": "Medium (100 ft. + 10 ft./level)",
+   "duration": "Instantaneous",
+   "saving throw": "None",
+   "power resistance": "No",
+   "power points": "5",
+   "text": "You can use dispel psionics to end one ongoing power that has been manifest on a creature or object or to temporarily suppress the psionic abilities of a psionic item. A dispelled power ends as if its duration had expired. Some powers, as detailed in their descriptions, can’t be defeated by dispel psionics. Dispel psionics can dispel (but not counter) psi-like effects just as it does powers. The effect of a power with an instantaneous duration can’t be dispelled, because the psionic effect is already over before the dispel psionics can take effect.\n\nTargeted Dispel: One object, creature, or power is the target of the dispel psionics power. You make one dispel check (1d20 + your manifester level) and compare that to the power with highest manifester level (DC = 11 + the power’s manifester level). If successful, that power ends. If not, compare the same result to the power with the next highest manifester level. Repeat this process until you have dispelled one power affecting the target, or you have failed to dispel every power.\n\nFor example, a 7th-level manifester manifests dispel psionics, targeting a creature affected by biofeedback (manifester level 12th) and flight (manifester level 7th). The manifester level check results in a 19. This check is not high enough to end the biofeedback (which would have required a 23 or higher), but it is high enough to end the flight (which only required a 18). Had the dispel check resulted in a 23 or higher, the biofeedback would have been dispelled, leaving the flight intact. Had the dispel check been a 17 or less, no powers would have been affected.\n\nYou can also use a targeted dispel to specifically end one power affecting the target or one power affecting an area (such as a wall of fire). You must name the specific power effect to be targeted in this way. If your manifester level check is equal to or higher than the DC of that power, it ends. No other powers or effects on the target are dispelled if your check is not high enough to end the targeted effect.\n\nIf you target an object or creature that is the effect of an ongoing power (such as a monster summoned by summon monster), you make a dispel check to end the power that conjured the object or creature.\n\nIf the object that you target is a psionic item, you make a dispel check against the item’s manifester level (DC = 11 + the item’s manifester level). If you succeed, all the item’s psionic properties are suppressed for 1d4 rounds, after which the item recovers its psionic properties. A suppressed item becomes nonpsionic for the duration of the effect. An interdimensional opening (such as a bag of holding) is temporarily closed. A psionic item’s physical properties are unchanged: A suppressed psionic sword is still a sword (a masterwork sword, in fact). Artifacts and deities are unaffected by mortal psionics such as this. You automatically succeed on your dispel check against any power that you manifest yourself.",
+   "augment": "This power may be augmented in one of the following ways.\n*If you spend an additional 6 power points, your targeted dispel can dispel one power for every four manifester levels you possess, starting with the highest level powers and proceeding to lower level powers. It also has a chance to dispel any effect that remove curse can remove, even if an unaugmented dispel psionics can’t dispel that effect. The DC of this check is equal to the curse’s DC.\n*If you spend an additional 6 power points, you may choose to make an area dispel instead of a targeted dispel.\nArea Dispel: When dispel psionics is used in this way, the power affects everything within a 20-foot-radius burst. Roll one dispel check and apply that check to each creature in the area, as if targeted by dispel psionics. For each object within the area that is the target of one or more powers, apply the dispel check as with creatures. Psionic items are not affected by an area dispel.\n\nFor each ongoing area or effect power whose point of origin is within the area of the dispel psionics power, apply the dispel check to dispel the power. For each ongoing power whose area overlaps that of the dispel psionics power, apply the dispel check to end the effect, but only within the overlapping area.\n\nIf an object or creature that is the effect of an ongoing power (such as a weapon summoned by call weaponry) is in the area, apply the dispel check to end the power that conjured that object or creature (returning it whence it came) in addition to attempting to dispel one power targeting the creature or object.\n\nYou may choose to automatically succeed on dispel checks against any power that you have manifested.\n\n== Mythic Dispel Psionics ==\nWhen used as a targeted dispel, this power can end two effects affecting the target instead of just one. If the targeted dispel successfully dispels at least one effect, you heal 1d4 points of damage for every power level of the dispelled effect. If you dispel two effects, this healing applies only to the highest-level effect dispelled."
+  },
+  "Obsession": {
+   "name": "Obsession",
+   "display": "Auditory and Material",
+   "discipline": "Telepathy (Mind-affecting)",
+   "level": "Psion/Wilder 3",
+   "manifesting time": "1 standard action",
+   "range": "Close (25 ft. + 5 ft./2 levels)",
+   "duration": "1 hour/level",
+   "saving throw": "Will negates",
+   "power resistance": "Yes",
+   "power points": "5",
+   "text": "Placing an overwhelming compulsion in the target’s mind, you guide them towards a certain mission, object, or entity. If the target of the creature’s obsession is an object, place, or creature, the creature will pursue that entity and not allow it to leave their sight, resisting violently if they are forcibly separated. If the target of the creature’s obsession is an objective or quest, they will work ardently to complete that objective so long as they remain affected by this power. This power does not cause the creature to perform any actions that would be suicidal or otherwise heavily detrimental to itself (killing a powerful ally is normally considered detrimental in this manner, but sabotaging their weapon or otherwise interfering with their activity would not). However, the creature takes a -2 penalty on all attack rolls, skill checks, and saving throws when acting in opposition to their obsession.\n\nWhen you manifest this power, you may choose to have instill it with either loving or hateful emotions. If the target’s obsession is fueled by love, it will try to safeguard and protect the target of its obsession however it can. If the target is fueled by hateful emotions, it will do everything in its power to inhibit or interfere with the target of its obsession. You have no special influence over a creature affected by this power, but this effect may cause a target to do things that would normally be out of its nature.\n\n==",
+   "augment": "==\n*If you spend 4 additional power points, this power’s duration increases to 1 day/level.\n*If you spend 4 additional power points, the penalty from this power becomes more severe. For every hour that the target spends acting against its obsession (or for every day, if the duration of the power is 1 day/level), the target takes 2 points of wisdom damage. This damage can be healed by acting in accordance with the obsession in a major way (such as finding the item you are obsessed with or grievously harming the reputation of someone you hate) or by acting on the obsession for at least 10 minutes."
+  },
+  "Touchsight": {
+   "name": "Touchsight (power)",
+   "display": "Visual",
+   "discipline": "Psychometabolism",
+   "level": "Gambler 3, marksman 3, psion/wilder 3, voyager 3",
+   "manifesting time": "1 standard action",
+   "range": "Personal; see text",
+   "duration": "1 min./level (D)",
+   "saving throw": "",
+   "power resistance": "",
+   "power points": "5",
+   "text": "You generate a subtle telekinetic field of mental contact, allowing you to “feel” your surroundings even in total darkness or when your sight would otherwise be obscured by your physical environment. Your touchsight field emanates from you out to 60 feet. You ignore invisibility, darkness, and concealment, though you must have line of effect to a creature or an object to discern it. You do not need to make Perception checks to notice creatures; you can detect and pinpoint all creatures within 60 feet. In many circumstances, comparing your regular senses to what you learn with touchsight is enough to tell you the difference between visible, invisible, hiding, and concealed creatures.",
+   "augment": "For every 2 additional power points you spend, the radius of your touchsight field increases by 10 feet."
+  }
+ },
+ "homebrew_feat_desc_dict": {
+  "Multi Talented": "Your profession rank cap increases by 10.",
+  "Demonologist": "You have immersed yourself deeply in studies of the nature of the Abyss and its inhabitants",
+  "Biomech Pilot": "Your mech incorporates many biological parts, offering it versatility not seen in other machines. The following mech enhancements can be selected by a mech pilot with this feat in addition to regular mech enhancements Special If you possess this feat as well as the ability to craft constructs, you may craft constructs with the biomech template and create mechs that use the mech enhancements listed above. your mech is at least partially biological, if not completely so, and as a result has access to many additional abilities. such entities are known as biomechs and possess the biomech template.",
+  "Animal Affinity": "You are skilled at working with animals and mounts",
+  "Quillbreaker Defense": "You know how to put armor spikes to defensive use by thrusting them into the path of an oncoming attack just in time",
+  "Two-Weapon Fighting": "You can fight with a weapon wielded in each of your hands You can make one extra attack each round with the secondary weapon",
+  "Coordinated Distraction": "When working in tandem, you can make it difficult for foes to use their magical abilities",
+  "Improved Initiative": "Your quick ref lexes allow you to react rapidly to danger",
+  "Exploit Schema": "You can act in such a way that you seem so out of place that people just fail to notice you. as a standard action, you may adjust your personage to become so outlandish that those who witness your actions are convinced they are seeing things. creatures must make a will save (dc = 10 + 1/2 ranks in perform or bluff + charisma modifier), or fail to notice you, treating you as invisible. you must spend a standard action each round to maintain the personage, and creatures receive a new save each round to recognize your presence. if you attempt any overtly hostile action (draw a weapon, attack someone) the effect immediately ends. creatures with an intelligence score of 3 or less, without an intelligence score, or with the animal type are immune to this effect, and any interaction between you and the subject ends the effect. this is a mind-affecting supernatural effect."
+ },
+ "feat_changes_dict": {},
+ "feat_conditionals_dict": {},
+ "spell_changes_dict": {},
+ "spell_riders_dict": {},
+ "selected_traits_desc": [
+  {
+   "name": "Defensive Strategist",
+   "description": "You are not flat-footed when you are an unaware combatant. This includes a surprise round that you don’t get to act in, and before you get to act at the start of a battle."
+  },
+  {
+   "name": "Clever Wordplay",
+   "description": "Choose one Charisma-based skill. You attempt checks with that skill using your Intelligence modifier instead of your Charisma modifier."
+  },
+  {
+   "name": "Akitonian Ferocity",
+   "description": "Once per day, the first time you are brought below 0 hit points but not killed, you can fight on for 1 more round as if disabled. At the end of your next turn, unless brought to above 0 hit points, you immediately fall unconscious and begin dying."
+  },
+  {
+   "name": "Snowstride",
+   "description": "You gain a +1 trait bonus on Acrobatics checks made on slippery surfaces and enables you to trip or bull rush opponents two size categories larger than you instead of just one."
+  },
+  {
+   "name": "Distance Aptitude",
+   "description": "Treat your caster level as 1 higher for the purposes of determining the range of spells and spell-like abilities."
+  },
+  {
+   "name": "Miner",
+   "description": "You gain a +1 trait bonus on Appraise checks, and Appraise becomes a class skill for you."
+  },
+  {
+   "name": "Issian Noble",
+   "description": "You gain a +1 trait bonus on Knowledge (nobility) and Sense Motive checks."
+  },
+  {
+   "name": "Storyteller",
+   "description": "Once per scenario, you can make a Knowledge skill check with a trait bonus equal to your Intelligence modifier plus 3 (minimum +1). You can make this check even if you do not have ranks in the required Knowledge skill."
+  }
+ ],
+ "item_changes_dict": {
+  "Ioun Gauntlet": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "skill.acr",
+     "text": "In its base form, an ioun gauntlet grants its wearer the ability to cast detect magic as a spell-like ability once per day. When the detect magic effect is active, the gauntlet also sheds illumination as light in the 60- foot cone of the detect magic effect. When an ioun stone is inserted into the matrix as a standard action, the wearer gains the associated bonus from the ioun stone as well an additional effect based on the shape of the ioun stone inserted, as listed below. While a creature can put on two ioun gauntlets , the wearer gains the additional benefit from only one inserted ioun stone cabochon : +[[1]] enhancement bonus on acrobatics checks."
+    },
+    {
+     "target": "skill.lin",
+     "text": "Disk : +[[1]] enhancement bonus on linguistics checks."
+    },
+    {
+     "target": "skill.kar",
+     "text": "Ellipsoid : +[[1]] enhancement bonus on knowledge (arcana) checks."
+    },
+    {
+     "target": "skill.kge",
+     "text": "Nodule : +[[1]] enhancement bonus on knowledge (geography) checks."
+    },
+    {
+     "target": "skill.kre",
+     "text": "Pentacle : +[[1]] enhancement bonus on knowledge (religion) checks."
+    },
+    {
+     "target": "skill.per",
+     "text": "Prism : +[[1]] enhancement bonus on perception checks."
+    },
+    {
+     "target": "skill.apr",
+     "text": "Pyramid : +[[1]] enhancement bonus on appraise checks."
+    },
+    {
+     "target": "skill.ste",
+     "text": "Rhomboid : +[[1]] enhancement bonus on stealth checks."
+    },
+    {
+     "target": "skill.sen",
+     "text": "Sphere : +[[1]] enhancement bonus on sense motive checks."
+    },
+    {
+     "target": "skill.kno",
+     "text": "Star : +[[1]] enhancement bonus on knowledge (nobility) checks."
+    },
+    {
+     "target": "skill.blf",
+     "text": "Trillian : +[[1]] enhancement bonus on bluff checks."
+    }
+   ]
+  },
+  "Quickmetal Bracers, Silver": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "attack",
+     "text": "Once per day when a user wearing both these bracers speaks a command word, the metal turns entirely liquid and swims over the wearer's hands to cover her weapons. For the next [[10]] rounds, the affected weapons can overcome damage reduction as though the weapons were made of adamantine, cold iron, or silver (as determined by the quickmetal bracers, ' type). The heavy, shifting metal coating affects the balance of manufactured weapons, imposing a 2 penalty on attack rolls."
+    }
+   ]
+  },
+  "Aquatic Cummerbund": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "skill.swm",
+     "text": "The cummerbund grants its wearer a +[[4]] competence bonus on swim checks, and allows her to take 10 on such checks even if distracted or endangered."
+    }
+   ]
+  },
+  "Robe of Infinite Twine": {
+   "changes": [],
+   "contextNotes": [],
+   "unplaced": [
+    "The wearer can draw up to 30 feet of twine or up to 10 feet of hemp rope per round from the robe without harming it. As an immediate action, the wearer can draw up to 150 feet of twine or 50 feet of rope from the robe, but this gives the robe the broken condition and suppresses its powers until it is repaired. Twine or rope drawn from the robe remains connected until cut or torn, but is treated as common material rather than part of a magic item."
+   ]
+  },
+  "Bandages of Rapid Recovery": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "skills",
+     "text": "Any creature wrapped in these bandages recovers from wounds and ability damage each day as if receiving complete bed rest, regardless of activity (core rulebook 191). A creature actually receiving long-term care (from the heal skill) or complete bed rest while wearing the bandages gains a +[[4]] bonus to its effective level or hit dice when determining how many hit points it recovers each day."
+    }
+   ]
+  }
+ },
+ "enhancement_effects_dict": {},
+ "flaw_effects_dict": {
+  "Curious": {
+   "tier": "minor",
+   "description": "You are easily distracted by the sights and sounds around you. When you encounter something novel or mysterious, you must pass a Will save (DC 5) to resist stopping to investigate it, even at inopportune moments.",
+   "changes": [],
+   "contextNotes": [
+    {
+     "text": "Curious: Will save DC [[5]] to resist investigating anything novel or mysterious, even in danger.",
+     "target": "will"
+    }
+   ]
+  }
+ },
+ "class_feature_changes_dict": {},
+ "class_feature_conditionals_dict": {},
+ "skill_rank_budget": 50,
+ "normal_feat_amount": 4,
+ "luck": {
+  "type": "Default",
+  "score": 0,
+  "values": {
+   "negative": 0,
+   "default": 0,
+   "proximity": 0
+  },
+  "mod": 0,
+  "cap": 25,
+  "floor": -50,
+  "e_kat_earned": 0,
+  "e_kat_reserve": 0,
+  "e_kat_store_cap": 99,
+  "traits": [],
+  "trait_benefits": {},
+  "trait_changes": {},
+  "vault": 0,
+  "vault_cap": 77,
+  "dr_pool": 0,
+  "twist_fate_per_day": 0,
+  "feats": [],
+  "luck_feats": [],
+  "derivation": [
+   "= 0"
+  ],
+  "negative_feats": [],
+  "audit": {
+   "attribute_points": {
+    "before": 1,
+    "spent": 0,
+    "received": 0,
+    "after": 1,
+    "final": 1,
+    "luck_cost": 0
+   },
+   "hp": {
+    "before": 45,
+    "spent": 0,
+    "received": 0,
+    "after": 45,
+    "final": 45,
+    "luck_cost": 0
+   },
+   "skill_ranks": {
+    "before": 40,
+    "spent": 0,
+    "received": 0,
+    "after": 40,
+    "final": 50,
+    "luck_cost": 0
+   },
+   "feats": {
+    "before": 0,
+    "spent": 0,
+    "received": 0,
+    "after": 0,
+    "final": 0,
+    "luck_cost": 0
+   }
+  },
+  "payout_changes": [],
+  "attribute_bumps": {},
+  "stake": null
+ },
+ "mythic": null,
+ "enhancement_desc_dict": {},
+ "buff_gaps": [],
+ "weapon_size": "Medium",
+ "weapon_size_steps": 0,
+ "weapon_size_source": null,
+ "weapon_size_attack_penalty": 0,
+ "generator_version": "2026-07-15 racial-stats",
+ "license_url": "https://pathfinder-char-creator-web-public-use.onrender.com/license"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "pathfinder-character-sheet",
+  "private": true,
+  "description": "Dev-only tooling for the feature-ledger acceptance harness. The site itself has no build step.",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test && node tools/features.mjs --check",
+    "features": "node tools/features.mjs",
+    "fixtures:refresh": "node tools/refresh-fixtures.mjs",
+    "serve": "node tools/serve.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  }
+}

@@ -72,3 +72,15 @@ It's a static site — serve the folder over HTTP (not `file://`, since it fetch
 ```
 python -m http.server 8080     # then open http://localhost:8080/
 ```
+
+## Tests
+
+A feature ledger (`tests/features.json`) lists every feature the sheet should have. Browser tests prove each one marked as shipped. CI runs them on every PR.
+
+```
+npm install && npx playwright install chromium   # once
+npm test            # all browser tests + the ledger check
+npm run features    # what's proven, what's missing
+```
+
+See [`tests/README.md`](tests/README.md).
