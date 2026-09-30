@@ -866,8 +866,11 @@ window.SheetModals = (function () {
                 row.setAttribute('role', 'option');
                 const main = h('span', 'catalog-result-name', hit.name);
                 row.appendChild(main);
-                if (hit.subtitle) {
-                    row.appendChild(h('span', 'catalog-result-sub', hit.subtitle));
+                // opts.subtitle(hit) lets a caller say more than the catalog knows (#139: the
+                // spell's level for this spellbook's class).
+                const sub = opts.subtitle ? opts.subtitle(hit) : hit.subtitle;
+                if (sub) {
+                    row.appendChild(h('span', 'catalog-result-sub', sub));
                 }
                 row.addEventListener('click', () => {
                     close();
