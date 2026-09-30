@@ -1,0 +1,1291 @@
+{
+ "class features": {
+  "Skill Unlock: Swim": {
+   "5 Ranks": "You gain a swim speed of 10 feet in water with a Swim DC of 15 or lower.",
+   "10 Ranks": "Your swim speed equals your base speed in water of DC 15 or lower, and 10 feet in other water.",
+   "15 Ranks": "You ignore the penalties for using slashing or bludgeoning weapons underwater, as freedom of movement.",
+   "20 Ranks": "Your swim speed equals your base speed in all water, and you gain a +8 racial bonus on Swim checks with both hands free."
+  }
+ },
+ "class feature levels": {},
+ "class feature owners": {},
+ "region": "Ieso",
+ "chosen_race": "Drow",
+ "land_speed": 30,
+ "character_full_name": "Uggara Mograine",
+ "c_class": "druid",
+ "c_class_display": "Druid",
+ "c_class_2": "",
+ "alignment": "Neutral Good",
+ "age_number": 88,
+ "height_number": "5'9\"",
+ "weight_number": 129,
+ "dex": 19,
+ "str": 11,
+ "con": 14,
+ "int": 10,
+ "wis": 20,
+ "cha": 16,
+ "inherents": {
+  "str": 4,
+  "dex": 0,
+  "con": 0,
+  "int": 4,
+  "wis": 0,
+  "cha": 0
+ },
+ "level_up_stats": {
+  "str": 0,
+  "dex": 0,
+  "con": 0,
+  "int": 1,
+  "wis": 0,
+  "cha": 0
+ },
+ "racial_stats": {
+  "str": 0,
+  "dex": 2,
+  "con": -2,
+  "int": 0,
+  "wis": 0,
+  "cha": 2
+ },
+ "flaw": [],
+ "Total_HP": 60,
+ "sheet_health": 48,
+ "bab_total": 4,
+ "armor_ac": "4",
+ "shield_ac": 0,
+ "armor_name": "Hide",
+ "armor_spell_failure": "20%",
+ "armor_weight": "25 lbs.",
+ "armor_armor_check_penalty": "-3",
+ "armor_max_dex_bonus": "4",
+ "shield_name": " ",
+ "shield_spell_failure": " ",
+ "shield_weight": " ",
+ "shield_armor_check_penalty": " ",
+ "shield_max_dex_bonus": " ",
+ "spell_list_choose_from": [
+  [
+   "Create Water",
+   "Detect Magic",
+   "Detect Poison",
+   "Grasp",
+   "Guidance",
+   "Know Direction",
+   "Read Magic",
+   "Spark"
+  ],
+  [
+   "Call Animal",
+   "Charm Animal",
+   "Detect Aberration",
+   "Detect Animals or Plants",
+   "Detect Radiation",
+   "Detect the Faithful",
+   "Nature's Paths",
+   "Planar Orientation",
+   "Spirit Call",
+   "Wave Shield",
+   "Whispering Lore"
+  ],
+  [
+   "Animal Messenger",
+   "Beastspeak",
+   "Compel Tongue",
+   "Elemental Speech",
+   "Hold Animal",
+   "Reveal Mirage",
+   "Sense Fear",
+   "Share Language"
+  ],
+  [
+   "Aquatic Trail",
+   "Dominate Animal",
+   "Reinvigorating Wind",
+   "Speak with Plants"
+  ]
+ ],
+ "day_list": [
+  8,
+  11,
+  8,
+  4
+ ],
+ "known_list": [],
+ "spells_prepared_per_level": [
+  8,
+  11,
+  8,
+  4
+ ],
+ "martial_disciplines": [],
+ "initiator_level": 0,
+ "maneuvers_known_list": [],
+ "maneuvers_readied_list": [],
+ "maneuvers_choose_from": [],
+ "maneuvers_readied_names": [],
+ "stances_chosen": [],
+ "mt_feats": [],
+ "initiation_stat": "wis",
+ "manifesters": [],
+ "magic_talent_items": [],
+ "combat_talent_items": [],
+ "sphere_feats": [],
+ "sphere_feat_tax": {},
+ "sphere_mana_pool": 0,
+ "spheres_chosen": [],
+ "sphere_counts": {},
+ "casting_tradition": {
+  "casting_ability_modifier": "Wisdom",
+  "drawbacks": [
+   "Wild Magic",
+   "Extended Casting",
+   "Prepared Caster",
+   "Draining Casting",
+   "Verbal Casting"
+  ],
+  "boons": [
+   "Easy Focus",
+   "Overcharge",
+   "Fortified Casting"
+  ],
+  "drawbacks_detail": [
+   {
+    "name": "Wild Magic",
+    "description": "Whenever you spend a spell point there is a base 10% chance (modified by caster level) to trigger an unexpected wild-magic event, rolled on the rod of wonder table.",
+    "counts_as": 1
+   },
+   {
+    "name": "Extended Casting",
+    "description": "Every sphere ability takes one step longer to activate than normal (swift to move, move to standard, standard to full-round, etc.).",
+    "counts_as": 2
+   },
+   {
+    "name": "Prepared Caster",
+    "description": "After resting you must pre-assign your spell points to specific spheres you possess; you may only spend points on the spheres you prepared until you next rest.",
+    "counts_as": 1
+   },
+   {
+    "name": "Draining Casting",
+    "description": "Each time you spend a spell point you take a small amount of nonlethal damage (scaling with caster level) that can only be removed by rest, not by healing or DR.",
+    "counts_as": 1
+   },
+   {
+    "name": "Verbal Casting",
+    "description": "You must speak in a loud, clear voice to cast; your magic fails in areas of magical silence or when you cannot speak clearly, and casting breaks stealth.",
+    "counts_as": 1
+   }
+  ],
+  "boons_detail": [
+   {
+    "name": "Easy Focus",
+    "description": "(Counters Focus Casting) You no longer need to make a check to cast without your focus item, or you ignore part of the Focus Casting penalty; maintaining a sphere ability that needs a standard action to concentrate on requires only a move action."
+   },
+   {
+    "name": "Overcharge",
+    "description": "You can push your magic harder, taking +2 caster level on a sphere ability but becoming fatigued (then exhausted, then unconscious) afterward."
+   },
+   {
+    "name": "Fortified Casting",
+    "description": "(Pairs with Draining Casting) You shore up your lifeforce against draining magic; you may use Constitution as your casting ability modifier if it is higher than your usual one."
+   }
+  ],
+  "bonus_spell_points": 0
+ },
+ "sphere_drawbacks": [
+  "Wild Magic",
+  "Extended Casting",
+  "Prepared Caster",
+  "Draining Casting",
+  "Verbal Casting"
+ ],
+ "sphere_boons": [
+  "Easy Focus",
+  "Overcharge",
+  "Fortified Casting"
+ ],
+ "sphere_traits": [
+  "Wild Magic",
+  "Extended Casting",
+  "Prepared Caster",
+  "Draining Casting",
+  "Verbal Casting",
+  "Easy Focus",
+  "Overcharge",
+  "Fortified Casting"
+ ],
+ "deity_name": "Ragathiel",
+ "skill_ranks": {
+  "appraise": 3,
+  "diplomacy": 8,
+  "swim": 6,
+  "knowledge nobility": 5,
+  "knowledge engineering": 6,
+  "knowledge dungeoneering": 8,
+  "use magic device": 1,
+  "stealth": 2,
+  "knowledge geography": 4,
+  "knowledge religion": 3,
+  "intimidate": 2,
+  "sleight of hand": 3,
+  "perform": 3,
+  "disable device": 4,
+  "survival": 2,
+  "acrobatics": 0,
+  "bluff": 0,
+  "climb": 0,
+  "craft": 0,
+  "disguise": 0,
+  "escape artist": 0,
+  "fly": 0,
+  "handle animal": 0,
+  "heal": 0,
+  "knowledge arcana": 0,
+  "knowledge history": 2,
+  "knowledge local": 0,
+  "knowledge nature": 0,
+  "knowledge planes": 0,
+  "linguistics": 4,
+  "perception": 0,
+  "profession": 0,
+  "ride": 0
+ },
+ "weapon_enhancement_chosen_list": [],
+ "armor_enhancement_chosen_list": [],
+ "shield_enhancement_chosen_list": [],
+ "weapon_enhancement_bonus": 1,
+ "armor_enhancement_bonus": 1,
+ "shield_enhancement_bonus": 0,
+ "selected_traits": [
+  "Freed Slave",
+  "Hunter's Eye",
+  "The Flexing Arm",
+  "Abendego Spellpiercer",
+  "Blessed",
+  "Domineering",
+  "Heart of Clay",
+  "Ghost Sight"
+ ],
+ "equipment_list": [
+  "Lupine Robe",
+  "Spectacles of Understanding",
+  "Cap of Light",
+  "Beneficial Bandolier",
+  "Bandages of Rapid Recovery"
+ ],
+ "level": 6,
+ "archetype1": null,
+ "hair_color": [
+  "Brown"
+ ],
+ "hair_type": [
+  "Bald"
+ ],
+ "eye_color": [
+  "Hazel"
+ ],
+ "appearance": [
+  "Pimply"
+ ],
+ "language_text": [
+  "Elven",
+  "Undercommon",
+  "Druidic",
+  "Goblin",
+  "Abyssal",
+  "Gnome",
+  "Sakvroth"
+ ],
+ "feats": [
+  "Uncanny Concentration",
+  "Dark Allure",
+  "Endurance",
+  "Ostentatious Display",
+  "Multi Talented"
+ ],
+ "teamwork_feats": 0,
+ "teamwork_feat_labels": [],
+ "story_feats": [
+  "Shaping Focus",
+  "Focused Discipline"
+ ],
+ "flaw_feats": [],
+ "class_feats": [],
+ "class_feat_labels": [],
+ "flavor_feats": [
+  "Technologist"
+ ],
+ "bloodline_feats": [],
+ "bloodline_feat_labels": [],
+ "trainer_feats": [
+  "Deft Hands",
+  "Ensemble"
+ ],
+ "trainer_feat_labels": [
+  "(Trainer 1)",
+  "(Trainer 1)"
+ ],
+ "trainer_feat_tax_dict": {
+  "Deft Hands": [
+   "close call"
+  ]
+ },
+ "trainer_calibers": [
+  2
+ ],
+ "profession_feats": [
+  "Multi Talented"
+ ],
+ "profession_feat_desc": {
+  "Multi Talented": "Your profession rank cap increases by 10."
+ },
+ "profession_ranks": [
+  {
+   "name": "Loremonger",
+   "skill_label": "Profession (Loremonger)",
+   "ranks": 5,
+   "cap": 10,
+   "associate_skills": [
+    "Perception",
+    "Sense Motive"
+   ],
+   "ability_theme": "scholar",
+   "ability_tier": "average",
+   "rank15_abilities": [],
+   "rank5_abilities": [
+    {
+     "name": "Polyglot's Ear (Ex)",
+     "desc": "<p>Hours of study across foreign grammars let you puzzle out unfamiliar speech and script. You gain a +2 competence bonus on Linguistics checks, and you can read a message in a language you do not know, or decipher an unfamiliar cipher, with a Linguistics check (DC 10 + half your character level + your Intelligence modifier).</p>",
+     "changes": [
+      {
+       "formula": "2",
+       "target": "skill.lin",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    },
+    {
+     "name": "Encyclopedic Recall (Ex)",
+     "desc": "<p>Your memory is a well-ordered archive of names, dates, and minor facts. You gain a +2 competence bonus on all Knowledge checks, and you can attempt any Knowledge check untrained to recall an obscure fact.</p>",
+     "changes": [
+      {
+       "formula": "2",
+       "target": "skill.kar",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      },
+      {
+       "formula": "2",
+       "target": "skill.khi",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      },
+      {
+       "formula": "2",
+       "target": "skill.kge",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      },
+      {
+       "formula": "2",
+       "target": "skill.kna",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    }
+   ]
+  },
+  {
+   "name": "Actor",
+   "skill_label": "Profession (Actor)",
+   "ranks": 10,
+   "cap": 10,
+   "associate_skills": [
+    "Appraise",
+    "Knowledge (local)",
+    "Profession",
+    "Diplomacy"
+   ],
+   "ability_theme": "performance",
+   "ability_tier": "average",
+   "rank15_abilities": [],
+   "rank5_abilities": [
+    {
+     "name": "Quick Curtsy (Ex)",
+     "desc": "<p>A practiced bow or pirouette keeps you light on your feet under the stage lights. You gain a <strong>+2 competence bonus</strong> on Acrobatics checks.</p>",
+     "changes": [
+      {
+       "formula": "2",
+       "target": "skill.acr",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    },
+    {
+     "name": "Crowd-Pleaser (Ex)",
+     "desc": "<p>You have a knack for playing to whatever audience is in front of you. You gain a <strong>+2 competence bonus</strong> on Perform checks to entertain a crowd.</p>",
+     "changes": [
+      {
+       "formula": "2",
+       "target": "skill.prf",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    }
+   ]
+  },
+  {
+   "name": "Medium",
+   "skill_label": "Profession (Medium)",
+   "ranks": 6,
+   "cap": 10,
+   "associate_skills": [
+    "Knowledge (local)",
+    "Appraise"
+   ],
+   "ability_theme": "arcane",
+   "ability_tier": "average",
+   "rank15_abilities": [],
+   "rank5_abilities": [
+    {
+     "name": "Detect Magic (Sp)",
+     "desc": "<p>The Druid can cast <strong>detect magic</strong> at will, sensing the presence and rough strength of magical auras nearby.</p>",
+     "changes": [],
+     "contextNotes": [],
+     "uses": null
+    },
+    {
+     "name": "Cantrip Repertoire (Sp)",
+     "desc": "<p>The Druid knows a full repertoire of arcane cantrips (such as <em>acid splash</em>, <em>dancing lights</em>, <em>daze</em>, <em>detect magic</em>, and <em>mage hand</em>). A number of times per day equal to 3 + their Intelligence modifier they may cast any one of these cantrips as a spell-like ability (caster level equal to their character level).</p>",
+     "changes": [],
+     "contextNotes": [],
+     "uses": {
+      "per": "day",
+      "maxFormula": "3 + @abilities.int.mod",
+      "value": null
+     }
+    }
+   ]
+  }
+ ],
+ "profession_pool": 21,
+ "profession_ability_items": [
+  {
+   "name": "Profession Rank 5: (Loremonger)",
+   "description": "<p><em>Profession (Loremonger) - rank 5/10. Associate skills (ranks 1/4/7/10): Perception, Sense Motive.</em></p><hr><p><strong>Polyglot's Ear (Ex)</strong></p><p>Hours of study across foreign grammars let you puzzle out unfamiliar speech and script. You gain a +2 competence bonus on Linguistics checks, and you can read a message in a language you do not know, or decipher an unfamiliar cipher, with a Linguistics check (DC 10 + half your character level + your Intelligence modifier).</p><hr><p><strong>Encyclopedic Recall (Ex)</strong></p><p>Your memory is a well-ordered archive of names, dates, and minor facts. You gain a +2 competence bonus on all Knowledge checks, and you can attempt any Knowledge check untrained to recall an obscure fact.</p>",
+   "changes": [
+    {
+     "formula": "2",
+     "target": "skill.lin",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "2",
+     "target": "skill.kar",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "2",
+     "target": "skill.khi",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "2",
+     "target": "skill.kge",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "2",
+     "target": "skill.kna",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": [],
+   "uses": null
+  },
+  {
+   "name": "Profession Rank 5: (Actor)",
+   "description": "<p><em>Profession (Actor) - rank 10/10. Associate skills (ranks 1/4/7/10): Appraise, Knowledge (local), Profession, Diplomacy.</em></p><hr><p><strong>Quick Curtsy (Ex)</strong></p><p>A practiced bow or pirouette keeps you light on your feet under the stage lights. You gain a <strong>+2 competence bonus</strong> on Acrobatics checks.</p><hr><p><strong>Crowd-Pleaser (Ex)</strong></p><p>You have a knack for playing to whatever audience is in front of you. You gain a <strong>+2 competence bonus</strong> on Perform checks to entertain a crowd.</p>",
+   "changes": [
+    {
+     "formula": "2",
+     "target": "skill.acr",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "2",
+     "target": "skill.prf",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": [],
+   "uses": null
+  },
+  {
+   "name": "Profession Rank 5: (Medium)",
+   "description": "<p><em>Profession (Medium) - rank 6/10. Associate skills (ranks 1/4/7/10): Knowledge (local), Appraise.</em></p><hr><p><strong>Detect Magic (Sp)</strong></p><p>The Druid can cast <strong>detect magic</strong> at will, sensing the presence and rough strength of magical auras nearby.</p><hr><p><strong>Cantrip Repertoire (Sp)</strong></p><p>The Druid knows a full repertoire of arcane cantrips (such as <em>acid splash</em>, <em>dancing lights</em>, <em>daze</em>, <em>detect magic</em>, and <em>mage hand</em>). A number of times per day equal to 3 + their Intelligence modifier they may cast any one of these cantrips as a spell-like ability (caster level equal to their character level).</p>",
+   "changes": [],
+   "contextNotes": [],
+   "uses": {
+    "per": "day",
+    "maxFormula": "3 + @abilities.int.mod",
+    "value": null
+   }
+  }
+ ],
+ "skill_unlock": {
+  "skill": "Swim",
+  "base_skill": "swim",
+  "ranks": 6,
+  "unlock": {
+   "5": "You gain a swim speed of 10 feet in water with a Swim DC of 15 or lower.",
+   "10": "Your swim speed equals your base speed in water of DC 15 or lower, and 10 feet in other water.",
+   "15": "You ignore the penalties for using slashing or bludgeoning weapons underwater, as freedom of movement.",
+   "20": "Your swim speed equals your base speed in all water, and you gain a +8 racial bonus on Swim checks with both hands free."
+  },
+  "unlock_html": "<h2>Swim</h2><p><strong>5 Ranks</strong>: You gain a swim speed of 10 feet in water with a Swim DC of 15 or lower.</p><p><strong>10 Ranks</strong>: Your swim speed equals your base speed in water of DC 15 or lower, and 10 feet in other water.</p><p><strong>15 Ranks</strong>: You ignore the penalties for using slashing or bludgeoning weapons underwater, as freedom of movement.</p><p><strong>20 Ranks</strong>: Your swim speed equals your base speed in all water, and you gain a +8 racial bonus on Swim checks with both hands free.</p>"
+ },
+ "gold": 100,
+ "platnium": 10,
+ "animal_companion": {
+  "species": "cave salamander",
+  "kind": "normal",
+  "species_stats": {
+   "source": "prg: mc",
+   "starting statistics": {
+    "size": "medium",
+    "speed": "40 ft. ",
+    "ac": "+2 natural armor",
+    "attack": "bite (1d6)",
+    "ability scores": {
+     "str": 13,
+     "dex": 12,
+     "con": 13,
+     "int": 1,
+     "wis": 12,
+     "cha": 4
+    },
+    "special qualities": "darkvision 60 ft. "
+   },
+   "4th-level advancement": {
+    "ability scores": {
+     "str": "+2",
+     "con": "+2"
+    },
+    "special qualities": "combat training (see handle animal)"
+   }
+  },
+  "chassis": {
+   "hd": 6,
+   "bab": 4,
+   "fort": 5,
+   "ref": 5,
+   "will": 2,
+   "skills": 6,
+   "feats": 3,
+   "natural armor bonus": 4,
+   "str/dex bonus": 2,
+   "bonus tricks": 3,
+   "special": "link, share spells, evasion, ability score increase, devotion"
+  },
+  "feats": [
+   "Desert Dweller",
+   "Rugged Northerner",
+   "Storm-Lashed"
+  ]
+ },
+ "bonded_creatures": [
+  {
+   "type": "companion",
+   "grantor": "druid",
+   "effective_level": 6,
+   "species": "cave salamander",
+   "name": "Skullcrush",
+   "sex": "Male",
+   "kind": "normal",
+   "species_stats": {
+    "source": "prg: mc",
+    "starting statistics": {
+     "size": "medium",
+     "speed": "40 ft. ",
+     "ac": "+2 natural armor",
+     "attack": "bite (1d6)",
+     "ability scores": {
+      "str": 13,
+      "dex": 12,
+      "con": 13,
+      "int": 1,
+      "wis": 12,
+      "cha": 4
+     },
+     "special qualities": "darkvision 60 ft. "
+    },
+    "4th-level advancement": {
+     "ability scores": {
+      "str": "+2",
+      "con": "+2"
+     },
+     "special qualities": "combat training (see handle animal)"
+    }
+   },
+   "chassis": {
+    "hd": 6,
+    "bab": 4,
+    "fort": 5,
+    "ref": 5,
+    "will": 2,
+    "skills": 6,
+    "feats": 3,
+    "natural armor bonus": 4,
+    "str/dex bonus": 2,
+    "bonus tricks": 3,
+    "special": "link, share spells, evasion, ability score increase, devotion"
+   },
+   "feats": [
+    "Desert Dweller",
+    "Rugged Northerner",
+    "Storm-Lashed"
+   ],
+   "outcome": "granted",
+   "archetype": "Road Keeper",
+   "flags": [],
+   "contributors": [
+    "druid"
+   ],
+   "gear": [],
+   "gear_source": "not modelled in v1; when added, funded from character.gold (PF1e: companions have no wealth-by-level)",
+   "feat_labels": [
+    "Animal Companion 1",
+    "Animal Companion 2",
+    "Animal Companion 5"
+   ],
+   "flaw_feats": [],
+   "feat_tax_dict": {},
+   "flaws": [],
+   "flaw_effects": {},
+   "flaw_feat_amount": 0,
+   "feat_notes": [
+    "feat pool: 816 feats after the creature exclusions, 3 taken, prerequisites fail closed",
+    "770 pool feats were ineligible for this body"
+   ],
+   "stats": {
+    "size": "medium",
+    "space": 5,
+    "hd": 6,
+    "hit_die": "d8",
+    "hp": 60,
+    "abilities": {
+     "str": 17,
+     "dex": 14,
+     "con": 15,
+     "int": 1,
+     "wis": 12,
+     "cha": 4
+    },
+    "ability_modifiers": {
+     "str": 3,
+     "dex": 2,
+     "con": 2,
+     "int": -5,
+     "wis": 1,
+     "cha": -3
+    },
+    "ac": 18,
+    "touch_ac": 12,
+    "flat_footed_ac": 16,
+    "natural_armor": 6,
+    "saves": {
+     "fort": 7,
+     "ref": 7,
+     "will": 3
+    },
+    "bab": 4,
+    "initiative": 2,
+    "cmb": 7,
+    "cmd": 19,
+    "speed": "40 ft. ",
+    "attacks": [
+     {
+      "name": "bite",
+      "count": 1,
+      "atk": 7,
+      "damage": "1d6+4",
+      "notes": null,
+      "crit_multiplier": null,
+      "alternative": false
+     }
+    ],
+    "skills": {
+     "acrobatics": {
+      "ranks": 1,
+      "total": 6
+     },
+     "escape artist": {
+      "ranks": 1,
+      "total": 6
+     },
+     "intimidate": {
+      "ranks": 1,
+      "total": 1
+     },
+     "perception": {
+      "ranks": 1,
+      "total": 5
+     },
+     "stealth": {
+      "ranks": 1,
+      "total": 6
+     },
+     "survival": {
+      "ranks": 1,
+      "total": 5
+     }
+    },
+    "special_qualities": "darkvision 60 ft. , combat training (see handle animal)",
+    "special_attacks": null,
+    "bonus_tricks": 3,
+    "special": "link, share spells, evasion, ability score increase, devotion",
+    "size_change": null,
+    "other": {},
+    "merge_notes": [
+     "4th-level advancement applied"
+    ],
+    "applied_changes": [],
+    "context_notes": []
+   }
+  }
+ ],
+ "full_domain": [],
+ "school": "N/A",
+ "opposing_school": "N/A",
+ "bloodline": "N/A",
+ "background_traits": [
+  "Fey Protection"
+ ],
+ "professions": [
+  "Loremonger",
+  "Actor",
+  "Medium"
+ ],
+ "craft_type": "Shellwork",
+ "mannerisms": [
+  "Covers ears",
+  "Leans on desk"
+ ],
+ "personality_traits": [
+  "Dainty",
+  "Insightful",
+  "Delusional",
+  "Crafty",
+  "Resourceful"
+ ],
+ "hero_points": 2,
+ "gender": "Female",
+ "class_ability_desc": {
+  "spells": "A druid casts divine spells which are drawn from the druid spell list presented in Spell Lists. Her alignment may restrict her from casting certain spells opposed to her moral or ethical beliefs; see Chaotic, Evil, Good, and Lawful Spells. A druid must choose and prepare her spells in advance. To prepare or cast a spell, the druid must have a Wisdom score equal to at least 10 + the spell level. The Difficulty Class for a saving throw against a druid's spell is 10 + the spell level + the druid's Wisdom modifier. Like other spellcasters, a druid can cast only a certain number of spells of each spell level per day. Her base daily spell allotment is given on Table: Druid. In addition, she receives bonus spells per day if she has a high Wisdom score (see Table: Ability Modifiers and Bonus Spells). A druid must spend 1 hour each day in a trance-like meditation on the mysteries of nature to regain her daily allotment of spells. A druid may prepare and cast any spell on the druid spell list, provided that she can cast spells of that level, but she must choose which spells to prepare during her daily meditation.",
+  "spontaneous casting": "A druid can channel stored spell energy into summoning spells that she hasn't prepared ahead of time. She can \"lose\"a prepared spell in order to cast any summon nature's ally spell of the same level or lower.",
+  "chaotic, evil, good, and lawful spells": "A druid can't cast spells of an alignment opposed to her own or her deity's (if she has one). Spells associated with particular alignments are indicated by the chaos, evil, good, and law descriptors in their spell descriptions.",
+  "orisons": "Druids can prepare a number of orisons, or 0-level spells, each day, as noted on Table: Druid under \"Spells per Day.\"These spells are cast like any other spell, but they are not expended when cast and may be used again.",
+  "bonus languages": "A druid's bonus language options include Sylvan, the language of woodland creatures. This choice is in addition to the bonus languages available to the character because of her race. A druid also knows Druidic, a secret language known only to druids, which she learns upon becoming a 1st-level druid. Druidic is a free language for a druid; that is, she knows it in addition to her regular allotment of languages and it doesn't take up a language slot. Druids are forbidden to teach this language to nondruids. Druidic has its own alphabet.",
+  "nature bond": "At 1st level, a druid forms a bond with nature. This bond can take one of two forms. The first is a close tie to the natural world, granting the druid one of the following cleric domains: Air, Animal, Earth, Fire, Plant, Water, or Weather. When determining the powers and bonus spells granted by this domain, the druid's effective cleric level is equal to her druid level. A druid that selects this option also receives additional domain spell slots, just like a cleric. She must prepare the spell from her domain in this slot and this spell cannot be used to cast a spell spontaneously. The second option is to form a close bond with an animal companion. A druid may begin play with any of the animals listed in Animal Choices . This animal is a loyal companion that accompanies the druid on her adventures. Unlike normal animals of its kind, an animal companion's Hit Dice, abilities, skills, and feats advance as the druid advances in level. If a character receives an animal companion from more than one source, her effective druid levels stack for the purposes of determining the statistics and abilities of the companion. Most animal companions increase in size when their druid reaches 4th or 7th level, depending on the companion. If a druid releases her companion from service, she may gain a new one by performing a ceremony requiring 24 uninterrupted hours of prayer in the environment where the new companion typically lives. This ceremony can also replace an animal companion that has perished. Instead of granting access to a domain or an animal companion, a druid's bond with nature can take a third form: access to druidic herbalism",
+  "nature sense": "A druid gains a +2 bonus on Knowledge (nature) and Survival checks.",
+  "wild empathy": "A druid can improve the attitude of an animal. This ability functions just like a Diplomacy check made to improve the attitude of a person (see Using Skills). The druid rolls 1d20 and adds her druid level and her Charisma modifier to determine the wild empathy check result. The typical domestic animal has a starting attitude of indifferent, while wild animals are usually unfriendly. To use wild empathy, the druid and the animal must be within 30 feet of one another under normal conditions. Generally, influencing an animal in this way takes 1 minute but, as with influencing people, it might take more or less time. A druid can also use this ability to influence a magical beast with an Intelligence score of 1 or 2, but she takes a -4 penalty on the check.",
+  "woodland stride": "Starting at 2nd level, a druid may move through any sort of undergrowth (such as natural thorns, briars, overgrown areas, and similar terrain) at her normal speed and without taking damage or suffering any other impairment. Thorns, briars, and overgrown areas that have been magically manipulated to impede motion, however, still affect her.",
+  "trackless step": "Starting at 3rd level, a druid leaves no trail in natural surroundings and cannot be tracked. She may choose to leave a trail if so desired.",
+  "resist nature's lure": "Starting at 4th level, a druid gains a +4 bonus on saving throws against the spell-like and supernatural abilities of fey. This bonus also applies to spells and effects that utilize or target plants, such as blight , entangle , spike growth , and warp wood",
+  "wild shape": "At 4th level, a druid gains the ability to turn herself into any Small or Medium animal and back again once per day. Her options for new forms include all creatures with the animal type. This ability functions like the beast shape I spell, except as noted here. The effect lasts for 1 hour per druid level, or until she changes back. Changing form (to animal or back) is a standard action and doesn't provoke an attack of opportunity. The form chosen must be that of an animal with which the druid is familiar. A druid loses her ability to speak while in animal form because she is limited to the sounds that a normal, untrained animal can make, but she can communicate normally with other animals of the same general grouping as her new form. (The normal sound a wild parrot makes is a squawk, so changing to this form does not permit speech.) A druid can use this ability an additional time per day at 6th level and every two levels thereafter, for a total of eight times at 18th level. At 20th level, a druid can use wild shape at will. As a druid gains levels, this ability allows the druid to take on the form of larger and smaller animals, elementals, and plants. Each form expends one daily use of this ability, regardless of the form taken. At 6th level, a druid can also use wild shape to change into a Large or Tiny animal or a Small elemental. When taking the form of an animal, a druid's wild shape now functions as beast shape II . When taking the form of an elemental, the druid's wild shape functions as elemental body I At 8th level, a druid can also use wild shape to change into a Huge or Diminutive animal, a Medium elemental, or a Small or Medium plant creature. When taking the form of animals, a druid's wild shape now functions as beast shape III . When taking the form of an elemental, the druid's wild shape now functions as elemental body II . When taking the form of a plant creature, the druid's wild shape functions as plant shape I At 10th level, a druid can also use wild shape to change into a Large elemental or a Large plant creature. When taking the form of an elemental, the druid's wild shape now functions as elemental body III . When taking the form of a plant, the druid's wild shape now functions as plant shape II At 12th level, a druid can also use wild shape to change into a Huge elemental or a Huge plant creature. When taking the form of an elemental, the druid's wild shape now functions as elemental body IV . When taking the form of a plant, the druid's wild shape now functions as plant shape III",
+  "venom immunity": "At 9th level, a druid gains immunity to all poisons.",
+  "a thousand faces": "At 13th level, a druid gains the ability to change her appearance at will, as if using the alter self spell, but only while in her normal form.",
+  "timeless body": "After attaining 15th level, a druid no longer takes ability score penalties for aging and cannot be magically aged. Any penalties she may have already incurred, however, remain in place. Bonuses still accrue, and the druid still dies of old age when her time is up. Ex-Druids A druid who ceases to revere nature, changes to a prohibited alignment, or teaches the Druidic language to a nondruid loses all spells and druid abilities (including her animal companion, but not including weapon, armor, and shield proficiencies). She cannot thereafter gain levels as a druid until she atones (see the atonement spell description). Alternate Capstones"
+ },
+ "class_ability": [
+  "spells_druid",
+  "spontaneous casting_druid",
+  "chaotic, evil, good, and lawful spells_druid",
+  "orisons_druid",
+  "bonus languages_druid",
+  "nature bond_druid",
+  "nature sense_druid",
+  "wild empathy_druid",
+  "woodland stride_druid",
+  "trackless step_druid",
+  "resist nature's lure_druid",
+  "wild shape_druid",
+  "venom immunity_druid",
+  "a thousand faces_druid",
+  "timeless body_druid"
+ ],
+ "class_features": {
+  "Skill Unlock: Swim": {
+   "5 Ranks": "You gain a swim speed of 10 feet in water with a Swim DC of 15 or lower.",
+   "10 Ranks": "Your swim speed equals your base speed in water of DC 15 or lower, and 10 feet in other water.",
+   "15 Ranks": "You ignore the penalties for using slashing or bludgeoning weapons underwater, as freedom of movement.",
+   "20 Ranks": "Your swim speed equals your base speed in all water, and you gain a +8 racial bonus on Swim checks with both hands free."
+  }
+ },
+ "class_feature_levels": {},
+ "archetype_info": "{\n    \"Road Keeper\": {\n        \"source\": \"Ultimate Wilderness pg. 48 Guardians of the lonely paths between cities, road keepers protect the wild from travelers, and travelers from the wild.\",\n        \"one with the road (su)\": \"  A road keeper casts the following spells as though her caster level were 1 higher: 1st- longstrider , 2nd- scent trail , 3rd- nature's exile , 4th- freedom of movement , 5th- tree stride , 6th- find the path , 7th- wind walk , 8th- word of recall , 9th- world wave . At 9th level, the bonus to her caster level for these spells increases to +2. This replaces spontaneous casting.\",\n        \"road bond (ex)\": \"  If the road keeper chooses a cleric domain as her nature bond, she must choose from the Community, Liberation, Protection, Travel, or Weather domains. The road keeper can also choose any subdomain associated with these domains. This alters nature bond and replaces wild empathy.\",\n        \"take the high road (ex)\": \"  At 2nd level, a road keeper travels over roads and paths at an accelerated rate. She and her allies can hustle for 2 hours without taking nonlethal damage, instead of 1, provided they travel along a road or path. Additionally, as long as they travel on a road or path, the road keeper and her allies count as traveling along a highway regardless of the quality of the road or path on which they travel. Allies must remain within 30 feet of the road keeper to benefit from this ability. This replaces woodland stride.\",\n        \"trodden path (ex)\": \"  At 4th level, a road keeper gains a +4 bonus on Survival checks to follow or identify tracks. She also gains this bonus on saving throws against severe weather effects. This replaces resist nature's lure.\",\n        \"road less traveled (su)\": \"  At 4th level, a road keeper can discourage creatures from entering or exiting the wild. Once per day as a standard action, she can target a creature within 30 feet and curse it with clumsiness and disorientation. The road keeper chooses whether to punish her target for entering the wild from a road or building, or vice versa. If her target is entering the wild, it treats every square of wilderness not on a road or in a building as difficult terrain. If her target is exiting the wild, it treats every square on a road or inside a building as difficult terrain. In either case, the ground feels uneven and the target suffers extreme vertigo during movement. The victim of this curse can attempt a Will saving throw (DC = 10 + half the road keeper's level + her Wisdom modifier) at the beginning of its turn each round to end the effect. The effect lasts until the target successfully saves or for a number of minutes equal to the road keeper's level. A creature's movement isn't affected if it is burrowing, climbing, earth gliding, flying, or swimming. This is a mind-affecting curse effect. At 6th level and every 2 levels thereafter, the road keeper can target an additional creature per day with this ability (to a maximum number of nine targets per day at 20th level). She can target more than one creature with a single use of this ability or the same target more than once in the same day (though its effects do not stack), but her total number of targets per day cannot exceed this daily maximum. If she targets more than one creature at one time, each target must be within 30 feet of the road keeper. This replaces wild shape.\"\n    }\n}",
+ "parents": "loving mother, dead father, raised in a wealthy household",
+ "older_brothers": " you have 0 older brothers",
+ "younger_brothers": " you have 0 younger brothers",
+ "older_sisters": " you have 0 older sisters",
+ "younger_sisters": " you have 0 younger sisters",
+ "weapon_name": "Spring blade",
+ "specialty_schools": [
+  "divination",
+  "enchantment"
+ ],
+ "counter_schools": [
+  "conjuration",
+  "transmutation"
+ ],
+ "chosen_spell_descriptor": [
+  "water"
+ ],
+ "counter_spell_descriptor": [
+  "fear"
+ ],
+ "total_rolled_hp": 40,
+ "mini_alignment": "ng",
+ "casting_level_str_foundry": "high",
+ "main_stat": "wis",
+ "story_feat_tax_dict": {},
+ "flaw_feat_tax_dict": {},
+ "flavor_feat_tax_dict": {},
+ "class_feat_tax_dict": {},
+ "feats_feat_tax_dict": {
+  "Endurance": [
+   "altitude affinity"
+  ]
+ },
+ "feat_budget": {
+  "story": 2,
+  "flaw": 0,
+  "flavor": 1,
+  "class": 0,
+  "normal": 4,
+  "teamwork": 0,
+  "bloodline": 0,
+  "trainer": 2,
+  "profession": 1
+ },
+ "mod_char_sheet_var": false,
+ "backstory": "",
+ "formatted_bio": "Uggara Mograine\n- Alignment: Neutral Good\n- Deity: Ragathiel\n- Race: Drow\n- Class: Level 6 Druid\n- Archetype: Beastmaster\n- Tactics: Fights as a two-body unit: the companion engages or flanks while the handler supports from the second rank with strikes, spells, or aid. Protects the companion like a second character sheet, because it is one.\n- Stat Focus: Wis\n- Homeland: Ieso\n\nVocation\n- Profession: Loremonger (rank 5)\n- Profession: Actor (rank 10)\n- Profession: Medium (rank 6)\n- Known for: Shellwork\n- Training: An average trainer who taught them Deft Hands, Ensemble\n\nFamily\n- Loving Mother\n- Dead Father\n- Raised In A Wealthy Household\n- No Siblings\n\nPersonality\n- Personality: Dainty, Insightful, Delusional, Crafty, Resourceful\n- Mannerisms: Covers ears, Leans on desk\n\nAppearance\n- Hair: Bald Brown\n- Eyes: Hazel\n- Build: Pimply",
+ "classes": [
+  {
+   "name": "druid",
+   "display": "Druid",
+   "level": 6,
+   "archetype": {
+    "Road Keeper": {
+     "source": "Ultimate Wilderness pg. 48 Guardians of the lonely paths between cities, road keepers protect the wild from travelers, and travelers from the wild.",
+     "one with the road (su)": "  A road keeper casts the following spells as though her caster level were 1 higher: 1st- longstrider , 2nd- scent trail , 3rd- nature's exile , 4th- freedom of movement , 5th- tree stride , 6th- find the path , 7th- wind walk , 8th- word of recall , 9th- world wave . At 9th level, the bonus to her caster level for these spells increases to +2. This replaces spontaneous casting.",
+     "road bond (ex)": "  If the road keeper chooses a cleric domain as her nature bond, she must choose from the Community, Liberation, Protection, Travel, or Weather domains. The road keeper can also choose any subdomain associated with these domains. This alters nature bond and replaces wild empathy.",
+     "take the high road (ex)": "  At 2nd level, a road keeper travels over roads and paths at an accelerated rate. She and her allies can hustle for 2 hours without taking nonlethal damage, instead of 1, provided they travel along a road or path. Additionally, as long as they travel on a road or path, the road keeper and her allies count as traveling along a highway regardless of the quality of the road or path on which they travel. Allies must remain within 30 feet of the road keeper to benefit from this ability. This replaces woodland stride.",
+     "trodden path (ex)": "  At 4th level, a road keeper gains a +4 bonus on Survival checks to follow or identify tracks. She also gains this bonus on saving throws against severe weather effects. This replaces resist nature's lure.",
+     "road less traveled (su)": "  At 4th level, a road keeper can discourage creatures from entering or exiting the wild. Once per day as a standard action, she can target a creature within 30 feet and curse it with clumsiness and disorientation. The road keeper chooses whether to punish her target for entering the wild from a road or building, or vice versa. If her target is entering the wild, it treats every square of wilderness not on a road or in a building as difficult terrain. If her target is exiting the wild, it treats every square on a road or inside a building as difficult terrain. In either case, the ground feels uneven and the target suffers extreme vertigo during movement. The victim of this curse can attempt a Will saving throw (DC = 10 + half the road keeper's level + her Wisdom modifier) at the beginning of its turn each round to end the effect. The effect lasts until the target successfully saves or for a number of minutes equal to the road keeper's level. A creature's movement isn't affected if it is burrowing, climbing, earth gliding, flying, or swimming. This is a mind-affecting curse effect. At 6th level and every 2 levels thereafter, the road keeper can target an additional creature per day with this ability (to a maximum number of nine targets per day at 20th level). She can target more than one creature with a single use of this ability or the same target more than once in the same day (though its effects do not stack), but her total number of targets per day cannot exceed this daily maximum. If she targets more than one creature at one time, each target must be within 30 feet of the road keeper. This replaces wild shape."
+    }
+   }
+  }
+ ],
+ "total_level": 6,
+ "save_bases": {
+  "fort": 5,
+  "ref": 2,
+  "will": 5
+ },
+ "spellbooks": [
+  {
+   "name": "druid",
+   "display": "Druid",
+   "level": 6,
+   "capped_level": 6,
+   "casting_level_string": "high",
+   "casting_level_num": 6,
+   "highest_spell_known": 3,
+   "spells_known_list": [],
+   "spells_per_day_list": [
+    8,
+    11,
+    8,
+    4
+   ],
+   "spell_list_choose_from": [
+    [
+     "Create Water",
+     "Detect Magic",
+     "Detect Poison",
+     "Grasp",
+     "Guidance",
+     "Know Direction",
+     "Read Magic",
+     "Spark"
+    ],
+    [
+     "Call Animal",
+     "Charm Animal",
+     "Detect Aberration",
+     "Detect Animals or Plants",
+     "Detect Radiation",
+     "Detect the Faithful",
+     "Nature's Paths",
+     "Planar Orientation",
+     "Spirit Call",
+     "Wave Shield",
+     "Whispering Lore"
+    ],
+    [
+     "Animal Messenger",
+     "Beastspeak",
+     "Compel Tongue",
+     "Elemental Speech",
+     "Hold Animal",
+     "Reveal Mirage",
+     "Sense Fear",
+     "Share Language"
+    ],
+    [
+     "Aquatic Trail",
+     "Dominate Animal",
+     "Reinvigorating Wind",
+     "Speak with Plants"
+    ]
+   ],
+   "spells_prepared_per_level": [
+    8,
+    11,
+    8,
+    4
+   ],
+   "casting_stat": "wis",
+   "divine": true
+  }
+ ],
+ "class_feature_owners": {},
+ "build_archetype": "Beastmaster",
+ "build_tactics": "Fights as a two-body unit: the companion engages or flanks while the handler supports from the second rank with strikes, spells, or aid. Protects the companion like a second character sheet, because it is one.",
+ "generation_seed": 650327338,
+ "spell_list_choose_from_dict": [
+  [
+   "Create Water",
+   "Detect Magic",
+   "Detect Poison",
+   "Grasp",
+   "Guidance",
+   "Know Direction",
+   "Read Magic",
+   "Spark"
+  ],
+  [
+   "Call Animal",
+   "Charm Animal",
+   "Detect Aberration",
+   "Detect Animals or Plants",
+   "Detect Radiation",
+   "Detect the Faithful",
+   "Nature's Paths",
+   "Planar Orientation",
+   "Spirit Call",
+   "Wave Shield",
+   "Whispering Lore"
+  ],
+  [
+   "Animal Messenger",
+   "Beastspeak",
+   "Compel Tongue",
+   "Elemental Speech",
+   "Hold Animal",
+   "Reveal Mirage",
+   "Sense Fear",
+   "Share Language"
+  ],
+  [
+   "Aquatic Trail",
+   "Dominate Animal",
+   "Reinvigorating Wind",
+   "Speak with Plants"
+  ]
+ ],
+ "equip_descrip": {
+  "body": {
+   "item_name": "Lupine Robe",
+   "description": " the following wondrous item is generally available only to members of the indicated race or ethnicity. This silk robe is covered in exquisitely detailed embroidery depicting foxes frolicking in a pristine meadow. Four times per day, the wearer can add 1d6 to the result of a dexterity-, intelligence-, or charisma-based skill check as a free action. The wearer can do this only once per check, and the wearer can't benefit from both the lupine robe and the inspiration acg class feature on the same check. If the wearer is a kitsune, he can spend two of the robe's daily uses to add 1d10 on a skill check instead of 1d6. "
+  },
+  "eyes": {
+   "item_name": "Spectacles of Understanding",
+   "description": " when worn, these innocent-looking spectacles convert\r any written language to one known by the wearer, as the comprehend languages spell. The glasses are also good at\r detecting falsified documents, granting their wearer a +5\r bonus to linguistics checks to identify forgeries and the\r ability make such checks untrained. "
+  },
+  "head": {
+   "item_name": "Cap of Light",
+   "description": " this small cloth skullcap resembles\r those some priests wear, but is\r topped with a small silver statue in\r the shape of a lit candle. The wearer\r can command the statue to radiate light (as the spell). The light can also\r be turned off on command. "
+  },
+  "belts": {
+   "item_name": "Beneficial Bandolier",
+   "description": " this bandolier is made of finely tanned\r leather. It has slots for up to 200 rounds\r of ammunition. Pellets and black\r powder are kept in tiny individual\r pouches, and bullets in small loops. The bandolier alters itself\r as needed to accommodate both. There are also places on the beneficial bandolier for a gunsmith's kit and a powder horn. \r regardless of what quantities of these items are placed within\r the beneficial bandolier , its weight does not change. As a swift action, the wearer can command a single round\r of ammunition from the beneficial bandolier to teleport into a\r firearm of the appropriate type that he is wielding. "
+  },
+  "chest": {
+   "item_name": "Bandages of Rapid Recovery",
+   "description": " these linen bandages have the same\r color and softness as the feathers of a\r dove, but their antiseptic smell suggests\r a less natural origin. Any creature\r wrapped in these bandages recovers\r from wounds and ability damage each\r day as if receiving complete bed rest, regardless of activity\r (core rulebook 191). A creature actually receiving long-term\r care (from the heal skill) or complete bed rest while wearing\r the bandages gains a +4 bonus to its effective level or hit\r dice when determining how many hit points it recovers each\r day. The bandages are destroyed once removed or when the\r wearer recovers all hit points and ability damage, whichever\r comes first. "
+  }
+ },
+ "maneuvers_desc_dict": {},
+ "powers_desc_dict": {},
+ "homebrew_feat_desc_dict": {
+  "Multi Talented": "Your profession rank cap increases by 10.",
+  "Uncanny Concentration": "You have learned to enter a deeper state when casting spells, allowing you to shrug off distractions, damage, weather effects, and even the effects of other spells",
+  "Dark Allure": "Those you have Claimed by become distracted by your presence. Special Characters with the Dark Authority feat cannot take this feat. creatures claimed by you take a penalty on attack rolls against creatures other than you equal to the number of creatures you currently have claimed.",
+  "Endurance": "Harsh conditions or long exertions do not easily tire you",
+  "Ostentatious Display": "Your extravagant jewelry and accessories give you an air of importance you can use to your advantage in many social situations",
+  "Shaping Focus": "Your powers of shapeshifting outstrip your dabbling in the druidic faith",
+  "Focused Discipline": "Familiarity with the military traditions of your homeland inspires uncommon valor in you",
+  "Technologist": "You are familiar with the basic mechanics of technology. Normal You treat all skill checks made against technology as if they were untrained skill checks. This may mean that you cannot attempt certain skill checks, even if you possess ranks in the skill in question. you are considered to be trained in any skill used against a technology-based subject. if the skill in question requires training to use even against non-technological subjects, you must still have ranks in that skill in order to gain the of technologist.",
+  "Deft Hands": "You have exceptional manual dexterity",
+  "Ensemble": "You can create an ensemble of skilled and amateur performers to aid you in your performance"
+ },
+ "feat_changes_dict": {
+  "Focused Discipline": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "text": "+2 on all saving throws against fear effects.",
+     "target": "allSavingThrows"
+    }
+   ]
+  }
+ },
+ "feat_conditionals_dict": {
+  "Focused Discipline": {
+   "name": "Focused Discipline: +2 morale on attack rolls, weapon damage, and CMB vs a creature whose fear effect you just resisted (1 round).",
+   "default": false,
+   "modifiers": [
+    {
+     "formula": "2",
+     "target": "attack",
+     "subTarget": "allAttack",
+     "type": "morale",
+     "damageType": [],
+     "critical": "normal"
+    },
+    {
+     "formula": "2",
+     "target": "attack",
+     "subTarget": "allAttack",
+     "type": "morale",
+     "damageType": [],
+     "critical": "crit"
+    }
+   ]
+  }
+ },
+ "spell_changes_dict": {
+  "Guidance": {
+   "changes": [
+    {
+     "formula": "1",
+     "target": "attack",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": []
+  }
+ },
+ "spell_riders_dict": {},
+ "selected_traits_desc": [
+  {
+   "name": "Freed Slave",
+   "description": "You gain a +1 trait bonus on Will saves."
+  },
+  {
+   "name": "Hunter's Eye",
+   "description": "You do not suffer a penalty for the second range increment when using a longbow or shortbow and you are always considered proficient with one of these weapons (your choice)."
+  },
+  {
+   "name": "The Flexing Arm",
+   "description": "You can use Strength instead of Dexterity as your base ability for Escape Artist skill checks."
+  },
+  {
+   "name": "Abendego Spellpiercer",
+   "description": "You gain a +2 trait bonus on concentration checks when spellcasting."
+  },
+  {
+   "name": "Blessed",
+   "description": "Once per day as a swift action, you gain a +1 trait bonus on all saving throws for 1 round."
+  },
+  {
+   "name": "Domineering",
+   "description": "Choose one 1st-level enchantment spell you are capable of casting. The DC of that spell increases by 1."
+  },
+  {
+   "name": "Heart of Clay",
+   "description": "You gain a +1 trait bonus on Fortitude saves."
+  },
+  {
+   "name": "Ghost Sight",
+   "description": "You receive a +2 trait bonus to Perception checks when trying to locate undead, and can attempt to locate ethereal undead (though they are still considered merely invisible, +20 to Stealth)."
+  }
+ ],
+ "item_changes_dict": {
+  "Lupine Robe": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "skills",
+     "text": "Four times per day, the wearer can add [[1d6]] to the result of a dexterity-, intelligence-, or charisma-based skill check as a free action. If the wearer is a kitsune, he can spend two of the robe's daily uses to add [[1d10]] on a skill check instead of [[1d6]]."
+    }
+   ]
+  },
+  "Spectacles of Understanding": {
+   "changes": [
+    {
+     "formula": "5",
+     "operator": "add",
+     "priority": 0,
+     "target": "skill.lin",
+     "type": "untyped"
+    }
+   ],
+   "contextNotes": []
+  },
+  "Cap of Light": {
+   "changes": [],
+   "contextNotes": [],
+   "unplaced": [
+    "The light can also be turned off on command."
+   ]
+  },
+  "Beneficial Bandolier": {
+   "changes": [],
+   "contextNotes": [],
+   "unplaced": [
+    "It has slots for up to 200 rounds of ammunition. As a swift action, the wearer can command a single round of ammunition from the beneficial bandolier to teleport into a firearm of the appropriate type that he is wielding."
+   ]
+  },
+  "Bandages of Rapid Recovery": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "skills",
+     "text": "Any creature wrapped in these bandages recovers from wounds and ability damage each day as if receiving complete bed rest, regardless of activity (core rulebook 191). A creature actually receiving long-term care (from the heal skill) or complete bed rest while wearing the bandages gains a +[[4]] bonus to its effective level or hit dice when determining how many hit points it recovers each day."
+    }
+   ]
+  }
+ },
+ "enhancement_effects_dict": {},
+ "flaw_effects_dict": {},
+ "class_feature_changes_dict": {},
+ "class_feature_conditionals_dict": {},
+ "skill_rank_budget": 66,
+ "normal_feat_amount": 4,
+ "luck": {
+  "type": "Default",
+  "score": 0,
+  "values": {
+   "negative": 0,
+   "default": 0,
+   "proximity": 0
+  },
+  "mod": 0,
+  "cap": 25,
+  "floor": -50,
+  "e_kat_earned": 0,
+  "e_kat_reserve": 0,
+  "e_kat_store_cap": 99,
+  "traits": [],
+  "trait_benefits": {},
+  "trait_changes": {},
+  "vault": 0,
+  "vault_cap": 77,
+  "dr_pool": 0,
+  "twist_fate_per_day": 0,
+  "feats": [],
+  "luck_feats": [],
+  "derivation": [
+   "= 0"
+  ],
+  "negative_feats": [],
+  "audit": {
+   "attribute_points": {
+    "before": 1,
+    "spent": 0,
+    "received": 0,
+    "after": 1,
+    "final": 1,
+    "luck_cost": 0
+   },
+   "hp": {
+    "before": 60,
+    "spent": 0,
+    "received": 0,
+    "after": 60,
+    "final": 60,
+    "luck_cost": 0
+   },
+   "skill_ranks": {
+    "before": 54,
+    "spent": 0,
+    "received": 0,
+    "after": 54,
+    "final": 66,
+    "luck_cost": 0
+   },
+   "feats": {
+    "before": 0,
+    "spent": 0,
+    "received": 0,
+    "after": 0,
+    "final": 0,
+    "luck_cost": 0
+   }
+  },
+  "payout_changes": [],
+  "attribute_bumps": {},
+  "stake": null
+ },
+ "mythic": null,
+ "enhancement_desc_dict": {},
+ "buff_gaps": [],
+ "weapon_size": "Medium",
+ "weapon_size_steps": 0,
+ "weapon_size_source": null,
+ "weapon_size_attack_penalty": 0,
+ "generator_version": "2026-07-15 racial-stats",
+ "license_url": "https://pathfinder-char-creator-web-public-use.onrender.com/license"
+}

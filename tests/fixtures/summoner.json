@@ -1,0 +1,1381 @@
+{
+ "class features": {
+  "Skill Unlock: Knowledge (planes)": {
+   "5 Ranks": "You gain one additional piece of useful information for every 5 ranks you possess in that Knowledge skill.",
+   "10 Ranks": "After identifying a creature you gain a +1 competence bonus (increasing per 5 ranks) on attack rolls, opposed checks, skill checks, and caster level checks against creatures of that kind for 1 minute.",
+   "15 Ranks": "You can reroll a failed Knowledge check at a -10 penalty, and the competence bonus also applies to saving throws against that creature type's special abilities.",
+   "20 Ranks": "You can roll twice and take the better result on Knowledge checks."
+  }
+ },
+ "class feature levels": {},
+ "class feature owners": {},
+ "region": "Esterdragon",
+ "chosen_race": "Elf",
+ "land_speed": 30,
+ "character_full_name": "Yasin Indrawan",
+ "c_class": "summoner",
+ "c_class_display": "Summoner",
+ "c_class_2": "",
+ "alignment": "Lawful Neutral",
+ "age_number": 126,
+ "height_number": "5'6\"",
+ "weight_number": 116,
+ "dex": 13,
+ "str": 14,
+ "con": 11,
+ "int": 18,
+ "wis": 13,
+ "cha": 15,
+ "inherents": {
+  "str": 0,
+  "dex": 0,
+  "con": 0,
+  "int": 3,
+  "wis": 8,
+  "cha": 6
+ },
+ "level_up_stats": {
+  "str": 0,
+  "dex": 0,
+  "con": 0,
+  "int": 1,
+  "wis": 0,
+  "cha": 1
+ },
+ "racial_stats": {
+  "str": 0,
+  "dex": 2,
+  "con": -2,
+  "int": 2,
+  "wis": 0,
+  "cha": 0
+ },
+ "flaw": [
+  "Curious",
+  "Powerless Prophecy",
+  "Deaf",
+  "Motion Sickness"
+ ],
+ "Total_HP": 64,
+ "sheet_health": 64,
+ "bab_total": 6,
+ "armor_ac": "2",
+ "shield_ac": 0,
+ "armor_name": "Lamellar cuirass",
+ "armor_spell_failure": "5%",
+ "armor_weight": "8 lbs.",
+ "armor_armor_check_penalty": "0",
+ "armor_max_dex_bonus": "4",
+ "shield_name": " ",
+ "shield_spell_failure": " ",
+ "shield_weight": " ",
+ "shield_armor_check_penalty": " ",
+ "shield_max_dex_bonus": " ",
+ "spell_list_choose_from": [
+  [
+   "Acid Splash",
+   "Arcane Mark",
+   "Daze",
+   "Mage Hand",
+   "Message",
+   "Open/Close"
+  ],
+  [
+   "Compel Hostility",
+   "Daze Monster",
+   "Enlarge Person",
+   "Shadowfade",
+   "Unseen Servant"
+  ],
+  [
+   "Ant Haul, Communal",
+   "Barkskin",
+   "Share Glory",
+   "Venomous Bite"
+  ],
+  [
+   "Bite the Hand",
+   "Control Summoned Creature",
+   "Heroism"
+  ]
+ ],
+ "day_list": [
+  1,
+  5,
+  5,
+  2
+ ],
+ "known_list": [
+  6,
+  5,
+  4,
+  3
+ ],
+ "spells_prepared_per_level": [
+  1,
+  5,
+  4,
+  2
+ ],
+ "martial_disciplines": [],
+ "initiator_level": 0,
+ "maneuvers_known_list": [],
+ "maneuvers_readied_list": [],
+ "maneuvers_choose_from": [],
+ "maneuvers_readied_names": [],
+ "stances_chosen": [],
+ "mt_feats": [],
+ "initiation_stat": "int",
+ "manifesters": [],
+ "magic_talent_items": [],
+ "combat_talent_items": [],
+ "sphere_feats": [],
+ "sphere_feat_tax": {},
+ "sphere_mana_pool": 0,
+ "spheres_chosen": [],
+ "sphere_counts": {},
+ "casting_tradition": {
+  "casting_ability_modifier": "Intelligence",
+  "drawbacks": [
+   "Draining Casting",
+   "Somatic Casting",
+   "Material Casting"
+  ],
+  "boons": [
+   "Fortified Casting"
+  ],
+  "drawbacks_detail": [
+   {
+    "name": "Draining Casting",
+    "description": "Each time you spend a spell point you take a small amount of nonlethal damage (scaling with caster level) that can only be removed by rest, not by healing or DR.",
+    "counts_as": 1
+   },
+   {
+    "name": "Somatic Casting",
+    "description": "Your magic requires elaborate gestures; you need a free hand and suffer arcane-style spell failure in armor heavier than light. May be taken twice (no armor or shield at all without failure).",
+    "counts_as": 1
+   },
+   {
+    "name": "Material Casting",
+    "description": "Your magic requires expending consumable materials/components worth roughly 1 sp per caster level each time you use a sphere ability.",
+    "counts_as": 1
+   }
+  ],
+  "boons_detail": [
+   {
+    "name": "Fortified Casting",
+    "description": "(Pairs with Draining Casting) You shore up your lifeforce against draining magic; you may use Constitution as your casting ability modifier if it is higher than your usual one."
+   }
+  ],
+  "bonus_spell_points": 1
+ },
+ "sphere_drawbacks": [
+  "Draining Casting",
+  "Somatic Casting",
+  "Material Casting"
+ ],
+ "sphere_boons": [
+  "Fortified Casting"
+ ],
+ "sphere_traits": [
+  "Draining Casting",
+  "Somatic Casting",
+  "Material Casting",
+  "Fortified Casting"
+ ],
+ "deity_name": "Ragathiel",
+ "skill_ranks": {
+  "escape artist": 4,
+  "knowledge planes": 9,
+  "diplomacy": 7,
+  "swim": 10,
+  "climb": 4,
+  "knowledge nobility": 11,
+  "knowledge local": 11,
+  "bluff": 6,
+  "linguistics": 5,
+  "knowledge religion": 7,
+  "knowledge geography": 1,
+  "heal": 1,
+  "disable device": 6,
+  "sense motive": 3,
+  "appraise": 4,
+  "craft": 0,
+  "disguise": 0,
+  "fly": 0,
+  "handle animal": 2,
+  "intimidate": 0,
+  "knowledge arcana": 0,
+  "knowledge dungeoneering": 0,
+  "knowledge engineering": 0,
+  "knowledge history": 2,
+  "perception": 0,
+  "perform": 1,
+  "profession": 0,
+  "ride": 0,
+  "sleight of hand": 2,
+  "spellcraft": 0,
+  "stealth": 0,
+  "use magic device": 0
+ },
+ "weapon_enhancement_chosen_list": [],
+ "armor_enhancement_chosen_list": [],
+ "shield_enhancement_chosen_list": [],
+ "weapon_enhancement_bonus": 2,
+ "armor_enhancement_bonus": 1,
+ "shield_enhancement_bonus": 0,
+ "selected_traits": [
+  "Scorned by Magic",
+  "Unorthodox Strategy",
+  "Transmuter",
+  "Hardly a Fool",
+  "Blessed Touch",
+  "Chivalrous",
+  "Ordinary",
+  "Relic-Proof"
+ ],
+ "equipment_list": [
+  "Dawnflower Sash",
+  "Tunic of Deadly Might",
+  "Goggles of Brilliant Light",
+  "Demon Mother's Mask",
+  "Amulet of Natural Armor +1"
+ ],
+ "level": 8,
+ "archetype1": null,
+ "hair_color": [
+  "Red"
+ ],
+ "hair_type": [
+  "Spiky"
+ ],
+ "eye_color": [
+  "Amber"
+ ],
+ "appearance": [
+  "Elegant"
+ ],
+ "language_text": [
+  "Common",
+  "Elven",
+  "Gnome",
+  "Gnoll",
+  "Orc",
+  "Celestial",
+  "Draconic",
+  "Sylvan",
+  "Goblin"
+ ],
+ "feats": [
+  "Extend the Bulwark",
+  "Deceitful",
+  "Cursed Item Detection",
+  "Cast Rune",
+  "Elemental Focus",
+  "Multi Talented"
+ ],
+ "teamwork_feats": 0,
+ "teamwork_feat_labels": [],
+ "story_feats": [
+  "Dragonslayer",
+  "Unknowable Fear"
+ ],
+ "flaw_feats": [
+  "Stealthy",
+  "Stealth Synergy",
+  "Arcane Trap Suppressor"
+ ],
+ "class_feats": [],
+ "class_feat_labels": [],
+ "flavor_feats": [
+  "Escape Route"
+ ],
+ "bloodline_feats": [],
+ "bloodline_feat_labels": [],
+ "trainer_feats": [],
+ "trainer_feat_labels": [],
+ "trainer_feat_tax_dict": {},
+ "trainer_calibers": [],
+ "profession_feats": [
+  "Multi Talented"
+ ],
+ "profession_feat_desc": {
+  "Multi Talented": "Your profession rank cap increases by 10."
+ },
+ "profession_ranks": [
+  {
+   "name": "Poison Brewer",
+   "skill_label": "Profession (Poison Brewer)",
+   "ranks": 10,
+   "cap": 10,
+   "associate_skills": [
+    "Appraise",
+    "Profession",
+    "Use Magic Device",
+    "Craft"
+   ],
+   "ability_theme": "alchemy",
+   "ability_tier": "average",
+   "rank15_abilities": [],
+   "rank5_abilities": [
+    {
+     "name": "Smoke and Reagents (Ex)",
+     "desc": "<p>A flair for theatrical chemistry lets this character produce colored smokes, harmless flashes, and pungent vapors to dazzle an audience or cover a retreat. It impresses the unschooled.</p>",
+     "changes": [
+      {
+       "formula": "2",
+       "target": "skill.blf",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    },
+    {
+     "name": "Apothecary's Apprentice (Ex)",
+     "desc": "<p>A passable hand at the workbench, you brew minor tinctures and identify simple poisons and curatives. You gain a +2 competence bonus on Craft (alchemy) checks.</p>",
+     "changes": [
+      {
+       "formula": "2",
+       "target": "skill.crf",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    }
+   ]
+  },
+  {
+   "name": "Tightrope walker",
+   "skill_label": "Profession (Tightrope walker)",
+   "ranks": 2,
+   "cap": 10,
+   "associate_skills": [
+    "Sense Motive"
+   ],
+   "ability_theme": "performance",
+   "ability_tier": "average",
+   "rank15_abilities": [],
+   "rank5_abilities": []
+  },
+  {
+   "name": "Beast Stalker",
+   "skill_label": "Profession (Beast Stalker)",
+   "ranks": 10,
+   "cap": 10,
+   "associate_skills": [
+    "Knowledge (local)",
+    "Perception",
+    "Profession",
+    "Appraise"
+   ],
+   "ability_theme": "wayfarer",
+   "ability_tier": "average",
+   "rank15_abilities": [],
+   "rank5_abilities": [
+    {
+     "name": "Wanderer's Bearings (Ex)",
+     "desc": "<p>You never truly lose your way. You always know which way is north and roughly how far you have travelled, and you gain a +1 competence bonus on initiative checks from your traveller's wariness.</p>",
+     "changes": [
+      {
+       "formula": "1",
+       "target": "init",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    },
+    {
+     "name": "Lockpick's Touch (Ex)",
+     "desc": "<p>You have coaxed open more strongboxes than you can count. You gain a +2 competence bonus on Disable Device checks and on Sleight of Hand checks, the deft hands of a seasoned treasure-hunter.</p>",
+     "changes": [
+      {
+       "formula": "2",
+       "target": "skill.dev",
+       "type": "competence",
+       "operator": "add",
+       "priority": 0
+      }
+     ],
+     "contextNotes": [],
+     "uses": null
+    }
+   ]
+  },
+  {
+   "name": "Rag Gatherer",
+   "skill_label": "Profession (Rag Gatherer)",
+   "ranks": 1,
+   "cap": 10,
+   "associate_skills": [
+    "Craft"
+   ],
+   "ability_theme": "menial",
+   "ability_tier": "bad",
+   "rank15_abilities": [],
+   "rank5_abilities": []
+  }
+ ],
+ "profession_pool": 23,
+ "profession_ability_items": [
+  {
+   "name": "Profession Rank 5: (Poison Brewer)",
+   "description": "<p><em>Profession (Poison Brewer) - rank 10/10. Associate skills (ranks 1/4/7/10): Appraise, Profession, Use Magic Device, Craft.</em></p><hr><p><strong>Smoke and Reagents (Ex)</strong></p><p>A flair for theatrical chemistry lets this character produce colored smokes, harmless flashes, and pungent vapors to dazzle an audience or cover a retreat. It impresses the unschooled.</p><hr><p><strong>Apothecary's Apprentice (Ex)</strong></p><p>A passable hand at the workbench, you brew minor tinctures and identify simple poisons and curatives. You gain a +2 competence bonus on Craft (alchemy) checks.</p>",
+   "changes": [
+    {
+     "formula": "2",
+     "target": "skill.blf",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "2",
+     "target": "skill.crf",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": [],
+   "uses": null
+  },
+  {
+   "name": "Profession Rank 5: (Beast Stalker)",
+   "description": "<p><em>Profession (Beast Stalker) - rank 10/10. Associate skills (ranks 1/4/7/10): Knowledge (local), Perception, Profession, Appraise.</em></p><hr><p><strong>Wanderer's Bearings (Ex)</strong></p><p>You never truly lose your way. You always know which way is north and roughly how far you have travelled, and you gain a +1 competence bonus on initiative checks from your traveller's wariness.</p><hr><p><strong>Lockpick's Touch (Ex)</strong></p><p>You have coaxed open more strongboxes than you can count. You gain a +2 competence bonus on Disable Device checks and on Sleight of Hand checks, the deft hands of a seasoned treasure-hunter.</p>",
+   "changes": [
+    {
+     "formula": "1",
+     "target": "init",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    },
+    {
+     "formula": "2",
+     "target": "skill.dev",
+     "type": "competence",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": [],
+   "uses": null
+  }
+ ],
+ "skill_unlock": {
+  "skill": "Knowledge (planes)",
+  "base_skill": "knowledge",
+  "ranks": 9,
+  "unlock": {
+   "5": "You gain one additional piece of useful information for every 5 ranks you possess in that Knowledge skill.",
+   "10": "After identifying a creature you gain a +1 competence bonus (increasing per 5 ranks) on attack rolls, opposed checks, skill checks, and caster level checks against creatures of that kind for 1 minute.",
+   "15": "You can reroll a failed Knowledge check at a -10 penalty, and the competence bonus also applies to saving throws against that creature type's special abilities.",
+   "20": "You can roll twice and take the better result on Knowledge checks."
+  },
+  "unlock_html": "<h2>Knowledge (planes)</h2><p><strong>5 Ranks</strong>: You gain one additional piece of useful information for every 5 ranks you possess in that Knowledge skill.</p><p><strong>10 Ranks</strong>: After identifying a creature you gain a +1 competence bonus (increasing per 5 ranks) on attack rolls, opposed checks, skill checks, and caster level checks against creatures of that kind for 1 minute.</p><p><strong>15 Ranks</strong>: You can reroll a failed Knowledge check at a -10 penalty, and the competence bonus also applies to saving throws against that creature type's special abilities.</p><p><strong>20 Ranks</strong>: You can roll twice and take the better result on Knowledge checks.</p>"
+ },
+ "gold": 100,
+ "platnium": 10,
+ "animal_companion": null,
+ "bonded_creatures": [
+  {
+   "type": "eidolon",
+   "grantor": "summoner",
+   "effective_level": 8,
+   "species": "serpentine",
+   "name": "Habiba",
+   "sex": "Female",
+   "kind": null,
+   "species_stats": {
+    "size": "medium",
+    "speed": "20 ft., climb 20 ft.",
+    "ac": "+2 natural armor",
+    "attack": "bite (1d6), tail slap (1d6)",
+    "ability scores": {
+     "str": 12,
+     "dex": 16,
+     "con": 13,
+     "int": 7,
+     "wis": 10,
+     "cha": 11
+    }
+   },
+   "chassis": {
+    "hd": 6,
+    "bab": 6,
+    "good_save": 5,
+    "poor_save": 2,
+    "skills": 24,
+    "feats": 3,
+    "armor_bonus": 6,
+    "str_dex_bonus": 3,
+    "evolution_pool": 11,
+    "max_attacks": 4,
+    "special": []
+   },
+   "feats": [
+    "Focused Discipline",
+    "Improved Natural Armor",
+    "Improved Natural Attack"
+   ],
+   "outcome": "granted",
+   "archetype": null,
+   "flags": [],
+   "contributors": [
+    "summoner"
+   ],
+   "gear": [],
+   "gear_source": "not modelled in v1; when added, funded from character.gold (PF1e: companions have no wealth-by-level)",
+   "base_form": "serpentine",
+   "base_form_notes": [],
+   "base_size": "medium",
+   "size": "medium",
+   "pf_content": "Serpentine Baseform",
+   "evolutions": [
+    {
+     "name": "Sacrifice",
+     "key": "sacrifice",
+     "cost": 3,
+     "choice": null,
+     "benefit": "An eidolon can sacrifice its own health to heal another creature. As a standard action , the eidolon can sacrifice up to 2 hit points per Hit Die and then touch the target creature, thereby healing the creature for half the amount sacrificed."
+    },
+    {
+     "name": "Trip",
+     "key": "trip",
+     "cost": 2,
+     "choice": null,
+     "benefit": "An eidolon becomes adept at knocking foes to the ground with its bite, granting it a trip attack. Whenever the eidolon makes a successful bite attack of the selected type, it can attempt a free combat maneuver check. If successful, the target is knocked prone . If the check fails, the eidolon is not tripped in return. This ability only works on creatures of a size equal to or smaller than the eidolon. The eidolon must possess the bite evolution to select this evolution."
+    },
+    {
+     "name": "Extra Feat",
+     "key": "extra feat",
+     "cost": 2,
+     "choice": null,
+     "benefit": "The eidolon gains an extra feat. It must meet the prerequisites of the feat."
+    },
+    {
+     "name": "Tentacle",
+     "key": "tentacle",
+     "cost": 1,
+     "choice": null,
+     "benefit": "An eidolon possesses a long, sinuous tentacle, granting it a tentacle attack. This attack is a secondary attack. The tentacle attack deals 1d4 points of damage (1d6 if Large, 1d8 if Huge). This evolution can be selected more than once."
+    },
+    {
+     "name": "Unnatural Aura",
+     "key": "unnatural aura",
+     "cost": 1,
+     "choice": null,
+     "benefit": "An eidolon is obviously of unnatural origin. Normal animals do not willingly approach the eidolon unless the animal's master makes a DC 25 Handle Animal , Ride , or wild empathy check."
+    },
+    {
+     "name": "Swim",
+     "key": "swim",
+     "cost": 1,
+     "choice": null,
+     "benefit": "An eidolon gains webbed hands, feet, or powerful flippers, giving it a swim speed equal to its base speed. This evolution does not give the eidolon the ability to breathe underwater. This evolution can be selected more than once. Each additional time it is selected, increase the eidolon's swim speed by 20 feet."
+    },
+    {
+     "name": "Push",
+     "key": "push",
+     "cost": 1,
+     "choice": null,
+     "benefit": "An eidolon gains the ability to push creatures away with a successful attack. Select one type of natural attack. Whenever the eidolon makes a successful attack of the selected type, it can attempt a free combat maneuver check. If successful, the target of the attack is pushed 5 feet directly away from the eidolon. This ability only works on creatures of a size equal to or smaller than the eidolon. Creatures pushed in this way do not provoke attacks of opportunity . This evolution can be selected more than once. Its effects do not stack. Each time an eidolon selects this evolution, it applies to a different natural attack."
+    }
+   ],
+   "ep": {
+    "pool": 11,
+    "spent": 11,
+    "diverted": 0
+   },
+   "free_evolutions": {
+    "bite": [
+     null
+    ],
+    "climb": [
+     null
+    ],
+    "reach": [
+     "bite"
+    ],
+    "tail": [
+     null
+    ],
+    "tail slap": [
+     null
+    ]
+   },
+   "feat_labels": [
+    "Eidolon 1",
+    "Eidolon 3",
+    "Eidolon 6"
+   ],
+   "feat_tax_dict": {},
+   "flaw_feats": [],
+   "feat_notes": [
+    "feat pool: 822 feats after the creature exclusions (hands: False), 3 taken, prerequisites fail closed",
+    "no flaws and no feat-tax children by ruling (see eidolon_feats)"
+   ],
+   "stats": {
+    "size": "medium",
+    "space": 5,
+    "hd": 6,
+    "hit_die": "d10",
+    "hp": 66,
+    "abilities": {
+     "str": 13,
+     "dex": 18,
+     "con": 13,
+     "int": 7,
+     "wis": 10,
+     "cha": 11
+    },
+    "ability_modifiers": {
+     "str": 1,
+     "dex": 4,
+     "con": 1,
+     "int": -2,
+     "wis": 0,
+     "cha": 0
+    },
+    "ac": 23,
+    "touch_ac": 14,
+    "flat_footed_ac": 19,
+    "natural_armor": 9,
+    "saves": {
+     "fort": 3,
+     "ref": 9,
+     "will": 5
+    },
+    "bab": 6,
+    "initiative": 4,
+    "cmb": 7,
+    "cmd": 21,
+    "speed": "20 ft., climb 20 ft.",
+    "attacks": [
+     {
+      "name": "Bite",
+      "kind": "primary",
+      "atk": 7,
+      "damage": "1d6",
+      "damage_bonus": 1
+     },
+     {
+      "name": "Tail Slap",
+      "kind": "secondary",
+      "atk": 2,
+      "damage": "1d6",
+      "damage_bonus": 0
+     },
+     {
+      "name": "Tentacle",
+      "kind": "secondary",
+      "atk": 2,
+      "damage": "1d4",
+      "damage_bonus": 0
+     }
+    ],
+    "skills": {
+     "acrobatics": {
+      "ranks": 1,
+      "total": 10
+     },
+     "appraise": {
+      "ranks": 1,
+      "total": 2
+     },
+     "bluff": {
+      "ranks": 1,
+      "total": 4
+     },
+     "diplomacy": {
+      "ranks": 1,
+      "total": 4
+     },
+     "escape artist": {
+      "ranks": 1,
+      "total": 8
+     },
+     "handle animal": {
+      "ranks": 1,
+      "total": 4
+     },
+     "heal": {
+      "ranks": 1,
+      "total": 4
+     },
+     "intimidate": {
+      "ranks": 1,
+      "total": 4
+     },
+     "knowledge dungeoneering": {
+      "ranks": 1,
+      "total": 2
+     },
+     "knowledge engineering": {
+      "ranks": 1,
+      "total": 2
+     },
+     "knowledge geography": {
+      "ranks": 1,
+      "total": 2
+     },
+     "knowledge history": {
+      "ranks": 1,
+      "total": 2
+     },
+     "knowledge nature": {
+      "ranks": 1,
+      "total": 2
+     },
+     "knowledge nobility": {
+      "ranks": 1,
+      "total": 2
+     },
+     "knowledge planes": {
+      "ranks": 1,
+      "total": 2
+     },
+     "knowledge religion": {
+      "ranks": 1,
+      "total": 2
+     },
+     "perception": {
+      "ranks": 1,
+      "total": 4
+     },
+     "ride": {
+      "ranks": 1,
+      "total": 8
+     },
+     "sense motive": {
+      "ranks": 1,
+      "total": 4
+     },
+     "spellcraft": {
+      "ranks": 1,
+      "total": 2
+     },
+     "stealth": {
+      "ranks": 1,
+      "total": 8
+     },
+     "survival": {
+      "ranks": 1,
+      "total": 4
+     },
+     "swim": {
+      "ranks": 1,
+      "total": 5
+     },
+     "use magic device": {
+      "ranks": 1,
+      "total": 4
+     }
+    },
+    "special": "darkvision, link, share spells, evasion, ability score increase, devotion",
+    "str_dex_bonus_spent_on": [
+     "dex",
+     "dex",
+     "str"
+    ],
+    "size_change": null,
+    "unapplied": [
+     "Climb: a climb speed equal to base speed",
+     "Extra Feat: rules text only",
+     "Push: rules text only",
+     "Reach (bite): +5 ft. reach on one attack; reach is deliberately absent from this stat block (D12)",
+     "Sacrifice: rules text only",
+     "Swim: a swim speed equal to base speed",
+     "Trip: rules text only",
+     "Unnatural Aura: rules text only",
+     "Improved Natural Attack: a die-size step on one chosen natural attack; the generator picks no attack and this stat block has no die-step table."
+    ],
+    "applied_changes": [
+     {
+      "source": "Tail",
+      "target": "skill.acr",
+      "value": 2
+     },
+     {
+      "source": "Improved Natural Armor",
+      "target": "nac",
+      "value": 1
+     }
+    ],
+    "context_notes": [
+     {
+      "source": "Improved Natural Attack",
+      "target": "attack",
+      "text": "Improved Natural Attack: the damage die of one natural attack increases by one step."
+     }
+    ]
+   }
+  }
+ ],
+ "full_domain": [],
+ "school": "N/A",
+ "opposing_school": "N/A",
+ "bloodline": "N/A",
+ "background_traits": [
+  "Stargazer"
+ ],
+ "professions": [
+  "Poison Brewer",
+  "Tightrope walker",
+  "Beast Stalker",
+  "Rag Gatherer"
+ ],
+ "craft_type": "Printing",
+ "mannerisms": [
+  "Fidgets",
+  "Grits teeth",
+  "Furrows brow",
+  "Gathers hair into a ponytail"
+ ],
+ "personality_traits": [
+  "Determinate",
+  "Agreeable",
+  "Logical",
+  "Entertaining"
+ ],
+ "hero_points": 3,
+ "gender": "Male",
+ "class_ability_desc": {
+  "spells": "A summoner casts arcane spells drawn from the summoner spell list . He can cast any spell he knows without preparing it ahead of time, assuming he has not yet used up his allotment of spells per day for the spell's level. To learn or cast a spell, a summoner must have a Charisma score equal to at least 10 + the spell level. The Difficulty Class for a saving throw against a summoner's spell is 10 + the spell level + the summoner's Charisma modifier. A summoner can cast only a certain number of spells of each spell level each day. His base daily spell allotment is given on Table 2-7. In addition, he receives bonus spells per day if he has a high Charisma score (see Table 1-3 of the Pathfinder RPG Core Rulebook ). A summoner's selection of spells is extremely limited. A summoner begins play knowing four 0-level spells and two 1st-level spells of the summoner's choice. At each new summoner level, he gains one or more new spells as indicated on Table 2-8. (Unlike spells per day, the number of spells a summoner knows is not affected by his Charisma score. The numbers on Table 2-8 are fixed.) Upon reaching 5th level, and at every third summoner level thereafter (8th, 11th, and so on), a summoner can choose to learn a new spell in place of one he already knows. In effect, the summoner \"loses\"the old spell in exchange for the new one. The new spell's level must be the same as that of the spell being exchanged, and it must be at least one level lower than the highest-level summoner spell he can cast. A summoner may swap out only a single spell at any given level and must choose whether or not to swap the spell at the same time that he gains new spells known for the level.",
+  "cantrips": "A summoner learns a number of cantrips, or 0-level spells, as noted on Table 2-8 under \"Spells Known.\"These spells are cast like any other spell, but they may be cast any number of times per day. Cantrips prepared using other spell slots, due to metamagic feats, for example, consume spell slots as normally.",
+  "eidolon": "A summoner begins play with the ability to summon to his side a powerful outsider called an eidolon. The eidolon forms a link with the summoner, who, forever after, summons an aspect of the same creature. An eidolon has the same alignment as the summoner that calls it and can speak all of his languages. Eidolons are treated as summoned creatures, except that they are not sent back to their home plane until reduced to a number of negative hit points equal to or greater than their Constitution score. In addition, due to its tie to its summoner, an eidolon can touch and attack creatures warded by protection from evil and similar effects that prevent contact with summoned creatures. A summoner can summon his eidolon in a ritual that takes 1 minute to perform. When summoned in this way, the eidolon hit points are unchanged from the last time it was summoned. The only exception to this is if the eidolon was slain, in which case it returns with half its normal hit points. The eidolon does not heal naturally. The eidolon remains until dismissed by the summoner (a standard action). If the eidolon is sent back to its home plane due to death, it cannot be summoned again until the following day. The eidolon cannot be sent back to its home plane by means of dispel magic , but spells such as dismissal and banishment work normally. If the summoner is unconscious, asleep, or killed, his eidolon is immediately banished. The eidolon takes a form shaped by the summoner's desires. The eidolon's Hit Dice, saving throws, skills, feats, and abilities are tied to the summoner's class level and increase as the summoner gains levels. In addition, each eidolon receives a pool of evolution points, based on the summoner's class level, that can be used to give the eidolon different abilities and powers. Whenever the summoner gains a level, he must decide how these points are spent, and they are set until he gains another level of summoner. The eidolon's physical appearance is up to the summoner, but it always appears as some sort of fantastical creature. This control is not fine enough to make the eidolon appear like a specific creature. The eidolon also bears a glowing rune that is identical to a rune that appears on the summoner's forehead as long as the eidolon is summoned. While this rune can be hidden through mundane means, it cannot be concealed through magic that changes appearance, such as alter self or polymorph (although invisibility does conceal it as long as the spell lasts).",
+  "life link": "Starting at 1st level, a summoner forms a close bond with his eidolon. Whenever the eidolon takes enough damage to send it back to its home plane, the summoner can, as a free action, sacrifice any number of hit points. Each hit point sacrificed in this way prevents 1 point of damage done to the eidolon. This can prevent the eidolon from being sent back to its home plane. In addition, the eidolon and the summoner must remain within 100 feet of one another for the eidolon to remain at full strength. If the eidolon is beyond 100 feet but closer than 1,000 feet, its current and maximum hit point totals are reduced by 50%. If the eidolon is more than 1,000 feet away but closer than 10,000 feet, its current and maximum hit point totals are reduced by 75%. If the eidolon is more than 10,000 feet away, it is immediately returned to its home plane. Current hit points lost in this way are not restored when the eidolon gets closer to its summoner, but its maximum hit point total does return to normal.",
+  "summon monster i (sp)": "Starting at 1st level, a summoner can cast summon monster I as a spell-like ability a number of times per day equal to 3 + his Charisma modifier. Drawing upon this ability uses up the same power as the summoner uses to call his eidolon. As a result, he can only use this ability when his eidolon is not summoned. He can cast this spell as a standard action and the creatures remain for 1 minute per level (instead of 1 round per level). At 3rd level, and every 2 levels thereafter, the power of this ability increases by one spell level, allowing him to summon more powerful creatures (to a maximum of summon monster IX at 17th level). At 19th level, this ability can be used as gate or summon monster IX . If used as gate , the summoner must pay any required material components. A summoner cannot have more than one summon monster or gate spell active in this way at one time. If this ability is used again, any existing summon monster or gate immediately ends. These summon spells are considered to be part of his spell list for the purposes of spell trigger and spell completion items. In addition, he can expend uses of this ability to fufill the construction requirements of any magic item he creates, so long as he can use this ability to cast the required spell.",
+  "bond senses": "Starting at 2nd level, a summoner can, as a standard action, share the senses of his eidolon, hearing, seeing, smelling, tasting, and touching everything the eidolon does. He can use this ability a number of rounds per day equal to his summoner level. There is no range to this effect, but the eidolon and the summoner must be on the same plane. The summoner can end this effect as a free action.",
+  "shield ally": "At 4th level, whenever a summoner is within his eidolon's reach, the summoner receives a +2 shield bonus to his Armor Class and a +2 circumstance bonus on his saving throws. This bonus does not apply if the eidolon is grappled, helpless, paralyzed, stunned, or unconscious.",
+  "maker's call": "At 6th level, as a standard action, a summoner can call his eidolon to his side. This functions as dimension door , using the summoner's caster level. When used, the eidolon appears adjacent to the summoner (or as close as possible if all adjacent spaces are occupied). If the eidolon is out of range, the ability is wasted. The summoner can use this ability once per day at 6th level, plus one additional time per day for every four levels beyond 6th.",
+  "transposition": "At 8th level, a summoner can use his maker's call ability to swap locations with his eidolon. If it is larger than him, he can appear in any square occupied by the eidolon. The eidolon must occupy the square that was occupied by the summoner if able, or as close as possible if it is not able.",
+  "aspect": "At 10th level, a summoner can divert up to 2 points from his eidolon's evolution pool to add evolutions to himself. He cannot select any evolution that the eidolon could not possess, and he must be able to meet the requirements as well. He cannot select the ability increase evolution through this ability. Any points spent in this way are taken from the eidolon's evolution pool (reducing the total number available to the eidolon). The summoner can change the evolutions he receives from these points any time he can change the eidolon's evolutions.",
+  "greater shield ally": "At 12th level, whenever an ally is within an eidolon's reach, the ally receives a +2 shield bonus to its Armor Class and a +2 circumstance bonus on its saving throws. If this ally is the summoner, these bonuses increase to +4. This bonus does not apply if the eidolon is grappled, helpless, paralyzed, stunned, or unconscious.",
+  "life bond": "At 14th level, a summoner's life becomes linked to his eidolon's. As long as the eidolon has 1 or more hit points, the summoner is protected from harm. Damage in excess of that which would reduce the summoner to fewer than 0 hit points is instead transferred to the eidolon. This damage is transferred 1 point at a time, meaning that as soon as the eidolon is reduced to a number of negative hit points equal to its Constitution score, all excess damage remains with the summoner. Effects that cause death but not damage are unaffected by this ability. This ability does not affect spells like baleful polymorph , flesh to stone , or imprisonment , or other spells that do not cause actual damage.",
+  "merge forms": "At 16th level, as a full-round action, a summoner can touch his eidolon and the two can merge forms. This transformation includes all of the summoner's gear. While merged in this way, the summoner is protected from harm and cannot be the target of spells or effects. All effects and spells currently targeting the summoner are suspended until the summoner emerges from the eidolon (although durations continue to expire). The summoner can cast spells while inside the eidolon by taking control of the eidolon for the duration of the casting. Any material components used for these spells are taken from the summoner's gear, even though they are otherwise inaccessible. The summoner can direct all of the eidolon's actions while merged, can perceive through its senses, and can speak through its voice. The summoner can use this ability for a number of rounds per day equal to his summoner level. He can end this effect at any time as a swift action. The summoner emerges in a square adjacent to the eidolon if able. If the eidolon is returned to its home plane while the summoner is merged with it, the summoner is immediately ejected, taking 4d6 points of damage, and is stunned for 1 round.",
+  "greater aspect": "At 18th level, a summoner can divert more of his eidolon's evolutions to himself. This ability functions as the aspect ability, but up to 6 evolution points can be taken. Unlike the aspect ability, the eidolon loses 1 point from its evolution pool for every 2 points (or fraction thereof) diverted to the summoner.",
+  "twin eidolon": "At 20th level, a summoner and his eidolon share a true connection. As a standard action, the summoner can assume the shape of his eidolon, copying all of its evolutions, form, and abilities. His Strength, Dexterity, and Constitution scores change to match the base scores of his eidolon. He can choose to have any gear that he carries become absorbed by his new form, as with spells from the polymorph subschool. Items with continuous effects continue to function while absorbed in this way. The summoner loses his natural attacks and all racial traits (except bonus feats, skills, and languages) in favor of the abilities granted by his eidolon's evolutions. The summoner retains all of his class features. The summoner can keep this form for a number of minutes per day equal to his summoner level. This duration does not need to be consecutive, but it must be spent in 1-minute increments. The summoner can end this effect as a free action. Alternate Capstones"
+ },
+ "class_ability": [
+  "spells_summoner",
+  "cantrips_summoner",
+  "eidolon_summoner",
+  "life link_summoner",
+  "summon monster i (sp)_summoner",
+  "bond senses_summoner",
+  "shield ally_summoner",
+  "maker's call_summoner",
+  "transposition_summoner",
+  "aspect_summoner",
+  "greater shield ally_summoner",
+  "life bond_summoner",
+  "merge forms_summoner",
+  "greater aspect_summoner",
+  "twin eidolon_summoner"
+ ],
+ "class_features": {
+  "Skill Unlock: Knowledge (planes)": {
+   "5 Ranks": "You gain one additional piece of useful information for every 5 ranks you possess in that Knowledge skill.",
+   "10 Ranks": "After identifying a creature you gain a +1 competence bonus (increasing per 5 ranks) on attack rolls, opposed checks, skill checks, and caster level checks against creatures of that kind for 1 minute.",
+   "15 Ranks": "You can reroll a failed Knowledge check at a -10 penalty, and the competence bonus also applies to saving throws against that creature type's special abilities.",
+   "20 Ranks": "You can roll twice and take the better result on Knowledge checks."
+  }
+ },
+ "class_feature_levels": {},
+ "archetype_info": "{\n    \"Master Summoner\": {\n        \"source\": \"Ultimate Magic pg. 80 Most summoners forge a bond with a single, powerful eidolon, but some summoners seek to control a variety of creatures. The master summoner sacrifices the power of his eidolon in favor of summoning a plethora of otherworldly creatures to aid him.\",\n        \"lesser eidolon\": \"  A master summoner's class level is halved (minimum 1) for the purposes of determining his eidolon's abilities, Hit Dice, evolution pool, and so on. The eidolon otherwise functions as normal. This ability replaces the summoner's normal eidolon ability.\",\n        \"summoning mastery (sp)\": \"  Starting at 1st level, a master summoner can cast summon monster I as a spell-like ability a number of times per day equal to 5 + his Charisma modifier. The summoner can use this ability when his eidolon is summoned. Only one summon monster spell may be in effect while the eidolon is summoned. If the summoner's eidolon is not summoned, the number of creatures that can be summoned with this ability is only limited by its uses per day. This ability otherwise functions as the summoner's normal summon monster I ability. Other than these restrictions, there is no limit to how many summon monster or gate spells the summoner can have active at one time. This ability replaces the summoner's normal summon monster I ability and shield ally.\",\n        \"augment summoning\": \"  At 2nd level, a master summoner gains Augment Summoning as a bonus feat. He does not have to meet any requirements for this feat. This ability replaces bond senses. Hordes of Summoned Monsters The broodmaster and master summoner archetypes can potentially have 5, 10, or even more summoned creatures in play. This is a deliberate feature of these archetypes, and means that the summoner can potentially be a strong candidate for 'solo' adventuring by one player. However, in the hands of an inexperienced or moderately experienced player, dealing with all of those creatures in combat can take a long time, forcing other players to wait extended periods between their turns in the initiative. It is strongly recommended that GMs only allow these archetypes for experienced players, or decide on a way to speed up the summoner's turn (such as by allowing other players to control some of the summoned monsters).\"\n    }\n}",
+ "parents": "loving mother, absent father, raised in a wealthy household",
+ "older_brothers": " you have 0 older brothers",
+ "younger_brothers": " you have 0 younger brothers",
+ "older_sisters": " you have 2 older sisters",
+ "younger_sisters": " you have 0 younger sisters",
+ "weapon_name": "Kumade",
+ "specialty_schools": [
+  "enchantment"
+ ],
+ "counter_schools": [
+  "divination"
+ ],
+ "chosen_spell_descriptor": [
+  "fire",
+  "curse"
+ ],
+ "counter_spell_descriptor": [
+  "good",
+  "mind-affecting"
+ ],
+ "total_rolled_hp": 56,
+ "mini_alignment": "ln",
+ "casting_level_str_foundry": "med",
+ "main_stat": "int",
+ "story_feat_tax_dict": {},
+ "flaw_feat_tax_dict": {},
+ "flavor_feat_tax_dict": {},
+ "class_feat_tax_dict": {},
+ "feats_feat_tax_dict": {
+  "Extra Cantrips Or Orisons": [
+   "extra cantrips or orisons"
+  ]
+ },
+ "feat_budget": {
+  "story": 2,
+  "flaw": 3,
+  "flavor": 1,
+  "class": 0,
+  "normal": 5,
+  "teamwork": 0,
+  "bloodline": 0,
+  "trainer": 0,
+  "profession": 1
+ },
+ "mod_char_sheet_var": false,
+ "backstory": "",
+ "formatted_bio": "Yasin Indrawan\n- Alignment: Lawful Neutral\n- Deity: Ragathiel\n- Race: Elf\n- Class: Level 8 Summoner\n- Archetype: Eidolon Master\n- Tactics: Sends the eidolon into melee and treats its own turns as the eidolon's support crew -- buffs, repositioning, and emergency summons. Personal offense is a last resort; if the eidolon falls, it flees or floods the field with summoned cover.\n- Stat Focus: Int\n- Homeland: Esterdragon\n\nVocation\n- Profession: Poison Brewer (rank 10)\n- Profession: Tightrope walker (rank 2)\n- Profession: Beast Stalker (rank 10)\n- Profession: Rag Gatherer (rank 1)\n- Known for: Printing\n\nFamily\n- Loving Mother\n- Absent Father\n- Raised In A Wealthy Household\n- 2 Older Sisters\n\nPersonality\n- Personality: Determinate, Agreeable, Logical, Entertaining\n- Mannerisms: Fidgets, Grits teeth, Furrows brow, Gathers hair into a ponytail\n- Flaws: Curious, Powerless Prophecy, Deaf, Motion Sickness\n\nAppearance\n- Hair: Spiky Red\n- Eyes: Amber\n- Build: Elegant",
+ "classes": [
+  {
+   "name": "summoner",
+   "display": "Summoner",
+   "level": 8,
+   "archetype": {
+    "Master Summoner": {
+     "source": "Ultimate Magic pg. 80 Most summoners forge a bond with a single, powerful eidolon, but some summoners seek to control a variety of creatures. The master summoner sacrifices the power of his eidolon in favor of summoning a plethora of otherworldly creatures to aid him.",
+     "lesser eidolon": "  A master summoner's class level is halved (minimum 1) for the purposes of determining his eidolon's abilities, Hit Dice, evolution pool, and so on. The eidolon otherwise functions as normal. This ability replaces the summoner's normal eidolon ability.",
+     "summoning mastery (sp)": "  Starting at 1st level, a master summoner can cast summon monster I as a spell-like ability a number of times per day equal to 5 + his Charisma modifier. The summoner can use this ability when his eidolon is summoned. Only one summon monster spell may be in effect while the eidolon is summoned. If the summoner's eidolon is not summoned, the number of creatures that can be summoned with this ability is only limited by its uses per day. This ability otherwise functions as the summoner's normal summon monster I ability. Other than these restrictions, there is no limit to how many summon monster or gate spells the summoner can have active at one time. This ability replaces the summoner's normal summon monster I ability and shield ally.",
+     "augment summoning": "  At 2nd level, a master summoner gains Augment Summoning as a bonus feat. He does not have to meet any requirements for this feat. This ability replaces bond senses. Hordes of Summoned Monsters The broodmaster and master summoner archetypes can potentially have 5, 10, or even more summoned creatures in play. This is a deliberate feature of these archetypes, and means that the summoner can potentially be a strong candidate for 'solo' adventuring by one player. However, in the hands of an inexperienced or moderately experienced player, dealing with all of those creatures in combat can take a long time, forcing other players to wait extended periods between their turns in the initiative. It is strongly recommended that GMs only allow these archetypes for experienced players, or decide on a way to speed up the summoner's turn (such as by allowing other players to control some of the summoned monsters)."
+    }
+   }
+  }
+ ],
+ "total_level": 8,
+ "save_bases": {
+  "fort": 2,
+  "ref": 2,
+  "will": 6
+ },
+ "spellbooks": [
+  {
+   "name": "summoner",
+   "display": "Summoner",
+   "level": 8,
+   "capped_level": 8,
+   "casting_level_string": "mid",
+   "casting_level_num": 8,
+   "highest_spell_known": 3,
+   "spells_known_list": [
+    6,
+    5,
+    4,
+    3
+   ],
+   "spells_per_day_list": [
+    1,
+    5,
+    5,
+    2
+   ],
+   "spell_list_choose_from": [
+    [
+     "Acid Splash",
+     "Arcane Mark",
+     "Daze",
+     "Mage Hand",
+     "Message",
+     "Open/Close"
+    ],
+    [
+     "Compel Hostility",
+     "Daze Monster",
+     "Enlarge Person",
+     "Shadowfade",
+     "Unseen Servant"
+    ],
+    [
+     "Ant Haul, Communal",
+     "Barkskin",
+     "Share Glory",
+     "Venomous Bite"
+    ],
+    [
+     "Bite the Hand",
+     "Control Summoned Creature",
+     "Heroism"
+    ]
+   ],
+   "spells_prepared_per_level": [
+    1,
+    5,
+    4,
+    2
+   ],
+   "casting_stat": "cha",
+   "divine": false
+  }
+ ],
+ "class_feature_owners": {},
+ "build_archetype": "Eidolon Master",
+ "build_tactics": "Sends the eidolon into melee and treats its own turns as the eidolon's support crew -- buffs, repositioning, and emergency summons. Personal offense is a last resort; if the eidolon falls, it flees or floods the field with summoned cover.",
+ "generation_seed": 1432206947,
+ "spell_list_choose_from_dict": [
+  [
+   "Acid Splash",
+   "Arcane Mark",
+   "Daze",
+   "Mage Hand",
+   "Message",
+   "Open/Close"
+  ],
+  [
+   "Compel Hostility",
+   "Daze Monster",
+   "Enlarge Person",
+   "Shadowfade",
+   "Unseen Servant"
+  ],
+  [
+   "Ant Haul, Communal",
+   "Barkskin",
+   "Share Glory",
+   "Venomous Bite"
+  ],
+  [
+   "Bite the Hand",
+   "Control Summoned Creature",
+   "Heroism"
+  ]
+ ],
+ "equip_descrip": {
+  "belts": {
+   "item_name": "Dawnflower Sash",
+   "description": " this long strip of red qadiran fabric is wrapped around the wearer's waist or head several times and held in place by an ankh-shaped clasp of red gold. The wearer is protected as if by endure elements , but only in warm environments. If the wearer unwraps the sash to its full length and holds the clasp in her hand, she can use feather fall once per day, briefly leaving behind a trail of pleasant red-gold light as bright as a torch that lasts for 1 round. If sarenrae is the wearer's patron, the wearer can use the sash to cast cure light wounds once per day on command. The wearer can trigger this ability as an immediate action if reduced to 1 hit points or fewer, though thereafter the sash must be recharged by placing it in strong sunlight for 8 continuous hours. As a swift action, the wearer can cause the clasp to shine as brightly as a torch or cease this illumination; the light is warm, feels like sunlight, and is bright enough to make sun-fearing creatures slightly uncomfortable but not so bright as to cause them harm. "
+  },
+  "chest": {
+   "item_name": "Tunic of Deadly Might",
+   "description": " this tunic is crafted from golden thread, and has silver-hemmed\r sleeves. The wearer gains a +2 bonus to combat maneuver\r defense against disarm and sunder combat maneuvers. If the\r wearer is a samurai, twice per day as a swift action he can\r apply the effects of the thundering weapon special ability (core\r rulebook 472) to a successful critical hit against the target of his\r challenge. "
+  },
+  "eyes": {
+   "item_name": "Goggles of Brilliant Light",
+   "description": " these sturdy goggles have a mirror sheen on the outside of their\r lenses, a wrapping of leather holding them snugly in place. This\r tint blocks a considerable amount of natural light. Twice per day, \r the goggles' wearer can emit bright light on command to a range\r of 30 feet. Any creature within that area must succeed at a dc 13\r fortitude saving throw or be blinded for 1 hour. In addition, the\r wearer also gains a +2 resistance bonus on saving throws against\r visual effects. "
+  },
+  "head": {
+   "item_name": "Demon Mother's Mask",
+   "description": " this primitive hyena mask is usually made of leather, but may be made of soft metal like copper or carved from an animal's skull. The wearer gains a +2 competence bonus on handle animal and heal checks. The wearer can smell when nearby creatures are in heat or otherwise especially fertile (creatures such as humans that can breed at any time of the year always smell fertile unless they are barren). If lamashtu is the wearer's patron, the mask counts as an unholy symbol and a hole for a third eye appears in its forehead. The wearer can use summon monster ii once per day to summon a fiendish hyena, which obeys the wearer as if they shared a common language. The wearer may interbreed with animals within one size category of the wearer's size. The offspring of such unions are members of the mother's race with the fiendish simple template and bear monstrous aesthetic features of the father's race. "
+  },
+  "neck": {
+   "item_name": "Amulet of Natural Armor +1",
+   "description": " this amulet, usually containing some\r type of magically preserved monster\r hide or other natural armorsuch as\r bone, horn, carapace, or beast scales\r toughens the wearer's body and flesh, \r giving him an enhancement bonus\r to his natural armor from +1 to +5, \r depending on the kind of amulet. "
+  }
+ },
+ "maneuvers_desc_dict": {},
+ "powers_desc_dict": {},
+ "homebrew_feat_desc_dict": {
+  "Multi Talented": "Your profession rank cap increases by 10.",
+  "Extend the Bulwark": "You can bolster a trained ally's defenses by interposing your own armored body",
+  "Deceitful": "You are skilled at deceiving others, both with the spoken word and with physical disguises",
+  "Cursed Item Detection": "Your arcane prowess is so great that even cursed items fail to befuddle you",
+  "Cast Rune": "Even if you are not a practitioner of rune magic, you are protected by a specific rune present in your name or influencing your day of birth. Special You can gain this feat multiple times. Its effects do not stack. Each time you take the feat, it grants a new rune you can invoke. select one rune as per the patron rune trait. you may invoke your patron rune once per day to gain its , as listed under runic divination. the runes effects last for 1 hour, or until you use its granted power once (whatever happens first).",
+  "Elemental Focus": "Your spells of a certain element are more difficult to resist",
+  "Dragonslayer": "You have been trained to fight dragons",
+  "Unknowable Fear": "Your terrifying presence precedes you. other creatures take a 2 penalty on intimidate checks against you, and you can perform the project hostility occult skill unlock even if you can't cast psychic spells. if you can cast psychic spells or have the psychic sensitivity feat, then creatures do not become immune to your project hostility for 24 hours after being targeted with it.",
+  "Stealthy": "You are good at avoiding unwanted attention and slipping out of bonds",
+  "Stealth Synergy": "Working closely with an ally, you are able to move like twin shadows",
+  "Arcane Trap Suppressor": "Your magic can suppress magic traps longer than usual",
+  "Escape Route": "You have trained to watch your allies' backs, covering them as they make tactical withdraws"
+ },
+ "feat_changes_dict": {},
+ "feat_conditionals_dict": {},
+ "spell_changes_dict": {
+  "Heroism": {
+   "changes": [
+    {
+     "formula": "2",
+     "target": "attack",
+     "type": "morale",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": []
+  }
+ },
+ "spell_riders_dict": {
+  "Daze": {
+   "attack": null,
+   "save": {
+    "type": "will",
+    "dc": "",
+    "description": "negates",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[25 + 5*floor(@spells.primary.cl.total/2)]] ft; Save: Will DC [[ 10 + @slvl + @castMod ]] negates; affects one humanoid of [[4]] or fewer HD (humanoids with [[5]] or more HD are not affected); the target is dazed and takes no actions for [[1]] round; a dazed subject is not stunned, so attackers get no special advantage against it; after being dazed by this spell, the creature is immune to it for [[1]] minute; spell resistance: yes"
+   ]
+  },
+  "Daze Monster": {
+   "attack": null,
+   "save": {
+    "type": "will",
+    "dc": "",
+    "description": "negates",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[100 + 10*@spells.primary.cl.total]] ft; Save: Will DC [[ 10 + @slvl + @castMod ]] negates; functions like daze, but affects any one living creature of [[6]] or fewer HD (creatures of [[7]] or more HD are not affected); the target is dazed and takes no actions for [[1]] round; a dazed subject is not stunned, so attackers get no special advantage against it; after being dazed by this spell, the creature is immune to it for [[1]] minute; spell resistance: yes"
+   ]
+  },
+  "Enlarge Person": {
+   "attack": null,
+   "save": {
+    "type": "fortitude",
+    "dc": "",
+    "description": "negates",
+    "harmless": false
+   },
+   "riders": [
+    "Range: [[25 + 5*floor(@spells.primary.cl.total/2)]] ft; Save: Fortitude DC [[ 10 + @slvl + @castMod ]] negates; the target's height doubles and its weight multiplies by [[8]], increasing its size category by one step; the target gains a +[[2]] size bonus to Strength, a -[[2]] size penalty to Dexterity (minimum [[1]]), and a -[[1]] penalty on attack rolls and AC due to its increased size; a target enlarged to Large gains a space of [[10]] feet and a natural reach of [[10]] feet; the target's speed is unchanged; all equipment worn or carried by the target is enlarged as well, and melee weapons affected deal increased damage, though other magical properties are unaffected; any enlarged item that leaves the target's possession (including a thrown or projectile weapon) instantly returns to normal size and deals normal damage; if insufficient room is available for the growth, the target attains the maximum possible size and may attempt a Strength check (using its increased Strength) to burst any enclosures, or is otherwise constrained without harm; multiple magical effects that increase size do not stack; enlarge person counters and dispels reduce person; enlarge person can be made permanent with a permanency spell; spell resistance: yes"
+   ]
+  }
+ },
+ "selected_traits_desc": [
+  {
+   "name": "Scorned by Magic",
+   "description": "Reduce the caster level of spells and spell-like abilities cast upon you by 1 for the purpose of attempting dispel checks and overcoming your spell resistance (if any)."
+  },
+  {
+   "name": "Unorthodox Strategy",
+   "description": "You gain a +2 trait bonus on Acrobatics checks made to move through an enemy’s threatened squares."
+  },
+  {
+   "name": "Transmuter",
+   "description": "Whenever you cast a spell from the transmutation school, its effects manifest at +1 caster level. Additionally, select one of the following transmutation spells: bear's endurance, bull's strength, cat's grace, eagle's splendor, fox's cunning, or owl's wisdom. Once per day when you cast that spell, its duration is doubled. A spell affected by this trait cannot be modified further by the Extend Spell metamagic feat or similar abilities."
+  },
+  {
+   "name": "Hardly a Fool",
+   "description": "You gain a +1 trait bonus on Sense Motive checks and a +1 trait bonus on saving throws against illusion effects."
+  },
+  {
+   "name": "Blessed Touch",
+   "description": "You heal 1 additional point of damage when using lay on hands, channeling energy, or casting a cure spell."
+  },
+  {
+   "name": "Chivalrous",
+   "description": "You gain a +1 trait bonus to Diplomacy and Knowledge (history) checks."
+  },
+  {
+   "name": "Ordinary",
+   "description": "You gain a + 4 trait bonus on Stealth checks whenever you attempt to hide in a crowd."
+  },
+  {
+   "name": "Relic-Proof",
+   "description": "You gain a +1 trait bonus on saving throws against effects produced by spell completion and spell trigger items."
+  }
+ ],
+ "item_changes_dict": {
+  "Dawnflower Sash": {
+   "changes": [],
+   "contextNotes": [],
+   "unplaced": [
+    "If the wearer unwraps the sash to its full length and holds the clasp in her hand, she can use feather fall once per day, briefly leaving behind a trail of pleasant red-gold light as bright as a torch that lasts for 1 round. If sarenrae is the wearer's patron, the wearer can use the sash to cast cure light wounds once per day on command. The wearer can trigger this ability as an immediate action if reduced to 1 hit points or fewer, though thereafter the sash must be recharged by placing it in strong sunlight for 8 continuous hours."
+   ]
+  },
+  "Tunic of Deadly Might": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "cmd",
+     "text": "The wearer gains a +[[2]] bonus to combat maneuver defense against disarm and sunder combat maneuvers. If the wearer is a samurai, twice per day as a swift action he can apply the effects of the thundering weapon special ability (core rulebook 472) to a successful critical hit against the target of his challenge."
+    }
+   ]
+  },
+  "Goggles of Brilliant Light": {
+   "changes": [],
+   "contextNotes": [
+    {
+     "target": "allSavingThrows",
+     "text": "In addition, the wearer also gains a +[[2]] resistance bonus on saving throws against visual effects."
+    },
+    {
+     "target": "allSavingThrows",
+     "text": "Twice per day, the goggles' wearer can emit bright light on command to a range of [[30]] feet. Any creature within that area must succeed at a dc [[13]] fortitude saving throw or be blinded for [[1]] hour."
+    }
+   ]
+  },
+  "Demon Mother's Mask": {
+   "changes": [
+    {
+     "formula": "2",
+     "operator": "add",
+     "priority": 0,
+     "target": "skill.han",
+     "type": "competence"
+    },
+    {
+     "formula": "2",
+     "operator": "add",
+     "priority": 0,
+     "target": "skill.hea",
+     "type": "competence"
+    }
+   ],
+   "contextNotes": [
+    {
+     "target": "skill.han",
+     "text": "The wearer can use summon monster ii once per day to summon a fiendish hyena, which obeys the wearer as if they shared a common language."
+    }
+   ]
+  },
+  "Amulet of Natural Armor +1": {
+   "changes": [
+    {
+     "formula": "1",
+     "operator": "add",
+     "priority": 0,
+     "target": "nac",
+     "type": "enh"
+    }
+   ],
+   "contextNotes": []
+  }
+ },
+ "enhancement_effects_dict": {},
+ "flaw_effects_dict": {
+  "Curious": {
+   "tier": "minor",
+   "description": "You are easily distracted by the sights and sounds around you. When you encounter something novel or mysterious, you must pass a Will save (DC 5) to resist stopping to investigate it, even at inopportune moments.",
+   "changes": [],
+   "contextNotes": [
+    {
+     "text": "Curious: Will save DC [[5]] to resist investigating anything novel or mysterious, even in danger.",
+     "target": "will"
+    }
+   ]
+  },
+  "Powerless Prophecy": {
+   "tier": "major",
+   "description": "You are forewarned of danger but cannot act to prevent it. You can take no actions during a surprise round (not even free actions), and if there is no surprise round you are staggered for the entire first round of combat.",
+   "changes": [],
+   "contextNotes": [
+    {
+     "text": "Powerless Prophecy: no actions in surprise rounds; without a surprise round, staggered for round [[1]].",
+     "target": "init"
+    }
+   ]
+  },
+  "Deaf": {
+   "tier": "major",
+   "description": "You cannot hear and suffer all the usual penalties for being deafened: -4 on initiative, automatic failure on Perception checks based on sound, and a 20% failure chance when casting spells with verbal components.",
+   "changes": [
+    {
+     "formula": "-4",
+     "target": "init",
+     "type": "untyped",
+     "operator": "add",
+     "priority": 0
+    }
+   ],
+   "contextNotes": [
+    {
+     "text": "Deaf: auto-fail sound-based Perception; [[20]]% spell failure on verbal spells.",
+     "target": "skill.per"
+    }
+   ]
+  },
+  "Motion Sickness": {
+   "tier": "minor",
+   "description": "Travel turns your stomach. After 10 minutes riding a mount, vehicle, or ship, you must pass a Fortitude save (DC 5) or be sickened for as long as the ride continues.",
+   "changes": [],
+   "contextNotes": [
+    {
+     "text": "Motion Sickness: after [[10]] minutes riding/sailing, Fortitude save DC [[5]] or sickened while it continues.",
+     "target": "fort"
+    }
+   ]
+  }
+ },
+ "class_feature_changes_dict": {},
+ "class_feature_conditionals_dict": {},
+ "skill_rank_budget": 96,
+ "normal_feat_amount": 5,
+ "luck": {
+  "type": "Default",
+  "score": 0,
+  "values": {
+   "negative": 0,
+   "default": 0,
+   "proximity": 0
+  },
+  "mod": 0,
+  "cap": 25,
+  "floor": -50,
+  "e_kat_earned": 0,
+  "e_kat_reserve": 0,
+  "e_kat_store_cap": 99,
+  "traits": [],
+  "trait_benefits": {},
+  "trait_changes": {},
+  "vault": 0,
+  "vault_cap": 77,
+  "dr_pool": 0,
+  "twist_fate_per_day": 0,
+  "feats": [],
+  "luck_feats": [],
+  "derivation": [
+   "= 0"
+  ],
+  "negative_feats": [],
+  "audit": {
+   "attribute_points": {
+    "before": 2,
+    "spent": 0,
+    "received": 0,
+    "after": 2,
+    "final": 2,
+    "luck_cost": 0
+   },
+   "hp": {
+    "before": 64,
+    "spent": 0,
+    "received": 0,
+    "after": 64,
+    "final": 64,
+    "luck_cost": 0
+   },
+   "skill_ranks": {
+    "before": 80,
+    "spent": 0,
+    "received": 0,
+    "after": 80,
+    "final": 96,
+    "luck_cost": 0
+   },
+   "feats": {
+    "before": 0,
+    "spent": 0,
+    "received": 0,
+    "after": 0,
+    "final": 0,
+    "luck_cost": 0
+   }
+  },
+  "payout_changes": [],
+  "attribute_bumps": {},
+  "stake": null
+ },
+ "mythic": null,
+ "enhancement_desc_dict": {},
+ "buff_gaps": [],
+ "weapon_size": "Medium",
+ "weapon_size_steps": 0,
+ "weapon_size_source": null,
+ "weapon_size_attack_penalty": 0,
+ "generator_version": "2026-07-15 racial-stats",
+ "license_url": "https://pathfinder-char-creator-web-public-use.onrender.com/license"
+}
