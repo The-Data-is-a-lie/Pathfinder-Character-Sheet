@@ -419,6 +419,9 @@ window.SheetTabBuffs = (function () {
         row.appendChild(activeCell);
 
         const ctrl = h('div', 'buffs-col-ctrl no-print');
+        // #138: three fixed slots (Edit · ⧉ · ×) like a buff row; empty ones are placeholders
+        // so the × sits on the same line as every other row's.
+        const slot = () => h('span', 'buff-ctrl-slot');
         // #108: features/traits/class features open their owning feature sheet from here.
         if (['feat', 'trait', 'classFeat'].includes(g.sourceKind)) {
             const editBtn = h('button', 'inv-btn', 'Edit');
@@ -435,7 +438,10 @@ window.SheetTabBuffs = (function () {
                 });
             });
             ctrl.appendChild(editBtn);
+        } else {
+            ctrl.appendChild(slot());
         }
+        ctrl.appendChild(slot());   // no duplicate for a derived source
         const rm = h('button', 'inv-btn inv-btn-danger', '×');
         rm.type = 'button';
         rm.title = 'Delete this source from the sheet math and list';

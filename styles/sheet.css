@@ -2707,24 +2707,33 @@ body.dnd-dragging .feature-group.is-empty .feat-list {
 .buffs-col-legend,
 .buffs-row {
     display: grid;
+    /* #138: the name is the only flexible track. Every other column is a fixed width, so the
+       legend, the buff rows and the Permanent passive rows (separate builders, separate grids)
+       all land on the same vertical lines whatever each row's content is. */
     grid-template-columns:
         1.1rem                      /* grip — zone 1 of the uniform row contract */
-        minmax(8rem, 1.4fr)
-        minmax(4.5rem, 0.7fr)
+        minmax(8rem, 1fr)
+        7rem
         3.2rem
         3.2rem
-        auto;
+        var(--buff-ctrl-w);
     gap: 0.35rem 0.5rem;
     align-items: center;
 }
 /* Always-on source rows have no storage order, so they carry no grip — the column is held
    open by a spacer instead, keeping every row's remaining zones on the same vertical lines. */
 .dnd-spacer { display: block; }
+.buffs-tab {
+    /* Controls are always three slots — Edit · ⧉ · × — with placeholders where a row has fewer. */
+    --buff-ctrl-slots: 2.6rem 1.6rem 1.6rem;
+    --buff-ctrl-w: calc(2.6rem + 1.6rem + 1.6rem + 2 * 0.25rem);
+}
 .buffs-col-legend {
     font-size: 0.72rem;
     font-variant: small-caps;
     color: var(--dim);
-    padding: 0.15rem 0.45rem;
+    /* Same content box as a row inside .buffs-section (1px border, 3px accent on the left). */
+    padding: 0.15rem calc(0.5rem + 1px) 0.15rem calc(0.5rem + 3px);
     border-bottom: 1px solid var(--menu-divider);
     margin-bottom: 0.35rem;
 }
@@ -2811,11 +2820,12 @@ body.dnd-dragging .feature-group.is-empty .feat-list {
     cursor: pointer;
 }
 .buffs-col-ctrl {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: var(--buff-ctrl-slots);
     gap: 0.25rem;
-    justify-content: flex-end;
 }
+.buffs-col-ctrl > .inv-btn { padding-left: 0; padding-right: 0; text-align: center; }
+.buff-ctrl-slot { display: block; }
 .buff-editor-panel {
     grid-column: 1 / -1;
     margin-top: 0.35rem;
@@ -2849,7 +2859,7 @@ body.dnd-dragging .feature-group.is-empty .feat-list {
     .buffs-col-dur { grid-area: dur; }
     .buffs-col-lv { grid-area: lv; }
     .buffs-col-active { grid-area: active; justify-content: flex-start; }
-    .buffs-col-ctrl { grid-area: ctrl; }
+    .buffs-col-ctrl { grid-area: ctrl; justify-content: end; }
 }
 
 /* Path of War ready list */
