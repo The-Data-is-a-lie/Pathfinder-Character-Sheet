@@ -11,13 +11,16 @@ window.SheetInventoryModel = (function () {
 
     const gearLine = (name, enhList) => name && name.trim()
         ? name + (nonEmpty(enhList) ? ' [' + enhList.join(', ') + ']' : '') : null;
+    // Ids carry a per-session counter as well as the clock: a multi-add (#140) creates several
+    // items in the same millisecond, and Date.now() alone collided (the createBuff bug).
+    let addSeq = 0;
     function addInventoryItem(data, name) {
         const nm = String(name || '').trim();
         if (!nm) return null;
         ensureInventoryObjects(data);
         const foundry = window.SheetDetails?.lookupItem?.(nm);
         const item = {
-            id: 'eq:' + nm.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now(),
+            id: 'eq:' + nm.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now() + '-' + (++addSeq),
             name: foundry?.name || nm,
             equipped: true,
             carried: true,

@@ -508,6 +508,7 @@ window.SheetTabBuffs = (function () {
                     onCustom: own,
                     picker: {
                         title: 'Add ' + sec.label.toLowerCase() + ' buff',
+                        multi: true,
                         kinds: KINDS,
                         allowCustom: true,
                         customPlaceholder: 'Custom buff name',

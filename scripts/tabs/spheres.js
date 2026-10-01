@@ -169,6 +169,7 @@ window.SheetTabSpheres = (function () {
             browseLabel: 'Browse talents',
             picker: {
                 title: 'Add sphere talent',
+                multi: true,
                 kinds: ['talents'],
                 allowCustom: true,
                 customPlaceholder: 'Custom talent name',

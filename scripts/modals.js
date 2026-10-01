@@ -745,7 +745,7 @@ window.SheetModals = (function () {
         let handle = null;
         const close = () => handle?.close();
 
-        const card = h('div', 'catalog-picker-card');
+        const card = h('div', 'catalog-picker-card' + (opts.wide ? ' catalog-picker-wide' : ''));
         card.id = 'catalog-picker';
         const head = h('div', 'catalog-picker-head');
         head.appendChild(h('h3', null, opts.title || 'Browse catalog'));
@@ -756,12 +756,38 @@ window.SheetModals = (function () {
         head.appendChild(closeBtn);
         card.appendChild(head);
 
-        const lead = h('p', 'catalog-picker-lead dim',
-            'Search the item database. Pick a result, or add a custom name if it is not listed.');
+        // #140: tick several rows, then add them together. A click on a row's name still adds
+        // that one entry straight away, so single-pick callers behave exactly as before.
+        const multi = !!opts.multi;
+        const lead = h('p', 'catalog-picker-lead dim', opts.lead || (multi
+            ? 'Browse A–Z or search. Click a name to add it, or tick several and add them together.'
+            : 'Browse A–Z or search. Pick a result, or add a custom name if it is not listed.'));
         card.appendChild(lead);
 
         let activeKind = kinds[0];
-        if (kinds.length > 1) {
+        // #140: `categories` ([{id, label}] + `categoryOf(hit)`) replaces the kind tabs with
+        // multi-toggle chips over the union of every kind — "consumables and weapons" at once.
+        // No chip on means every category.
+        const activeCats = new Set(opts.initialCategories || []);
+        if (opts.categories) {
+            const chips = h('div', 'catalog-cat-chips');
+            for (const c of opts.categories) {
+                const on = activeCats.has(c.id);
+                const b = h('button', 'catalog-cat-chip' + (on ? ' is-active' : ''), c.label);
+                b.type = 'button';
+                b.dataset.cat = c.id;
+                b.setAttribute('aria-pressed', String(on));
+                b.addEventListener('click', () => {
+                    if (activeCats.has(c.id)) activeCats.delete(c.id);
+                    else activeCats.add(c.id);
+                    b.classList.toggle('is-active', activeCats.has(c.id));
+                    b.setAttribute('aria-pressed', String(activeCats.has(c.id)));
+                    runSearch();
+                });
+                chips.appendChild(b);
+            }
+            card.appendChild(chips);
+        } else if (kinds.length > 1) {
             const tabs = h('div', 'catalog-kind-tabs');
             kinds.forEach((k) => {
                 const b = h('button', 'catalog-kind-tab' + (k === activeKind ? ' is-active' : ''),
@@ -786,9 +812,40 @@ window.SheetModals = (function () {
         searchRow.appendChild(input);
         card.appendChild(searchRow);
 
+        // #140: with nothing typed the whole list shows A–Z; the strip jumps to a letter.
+        const letters = h('div', 'catalog-letters');
+        letters.setAttribute('aria-label', 'Jump to letter');
+        card.appendChild(letters);
+
         const results = h('div', 'catalog-results');
         results.setAttribute('role', 'listbox');
         card.appendChild(results);
+
+        const selected = new Map(); // lowercase name -> { hit, qty }
+        const multiBar = h('div', 'catalog-multi-bar hidden');
+        const multiCount = h('span', 'catalog-multi-count dim');
+        const multiClear = h('button', 'inv-btn', 'Clear');
+        multiClear.type = 'button';
+        const multiAdd = h('button', 'inv-btn inv-btn-primary catalog-multi-add', 'Add selected');
+        multiAdd.type = 'button';
+        multiBar.append(multiCount, multiClear, multiAdd);
+        if (multi) card.appendChild(multiBar);
+        const syncMultiBar = () => {
+            const n = selected.size;
+            const total = [...selected.values()].reduce((a, p) => a + p.qty, 0);
+            multiBar.classList.toggle('hidden', n === 0);
+            multiCount.textContent = opts.quantity && total !== n
+                ? `${n} selected (${total} total)` : `${n} selected`;
+            multiAdd.textContent = n === 1 ? 'Add 1' : `Add ${n}`;
+        };
+        multiClear.addEventListener('click', () => { selected.clear(); syncMultiBar(); runSearch(); });
+        multiAdd.addEventListener('click', () => {
+            const picks = [...selected.values()].map((p) => ({ ...p.hit, quantity: p.qty }));
+            if (!picks.length) return;
+            close();
+            if (opts.onPickMany) opts.onPickMany(picks);
+            else for (const hit of picks) opts.onPick?.(hit);
+        });
 
         if (opts.allowCustom !== false) {
             const customRow = h('div', 'catalog-custom-row');
@@ -832,52 +889,174 @@ window.SheetModals = (function () {
             card.appendChild(customRow);
         }
 
+        // #140: the list renders in chunks as it scrolls, so a 6,500-entry catalog opens instantly.
+        const CHUNK = 60;
+        let shown = [];   // the hits currently listed, in order
+        let rendered = 0; // how many of them have DOM rows yet
+        function buildRow(hit) {
+            const row = h('button', 'catalog-result');
+            row.type = 'button';
+            row.setAttribute('role', 'option');
+            row.appendChild(h('span', 'catalog-result-name', hit.name));
+            // opts.subtitle(hit) lets a caller say more than the catalog knows (#139: the
+            // spell's level for this spellbook's class).
+            const sub = opts.subtitle ? opts.subtitle(hit) : hit.subtitle;
+            if (sub) row.appendChild(h('span', 'catalog-result-sub', sub));
+            row.addEventListener('click', () => {
+                close();
+                opts.onPick?.(hit);
+            });
+            if (!multi) return row;
+
+            const key = String(hit.name).toLowerCase();
+            const wrap = h('div', 'catalog-result-wrap');
+            const tick = h('input', 'catalog-tick');
+            tick.type = 'checkbox';
+            tick.setAttribute('aria-label', 'Select ' + hit.name);
+            const qtyBox = h('span', 'catalog-qty');
+            let qtyIn = null;
+            const sync = () => {
+                const on = selected.has(key);
+                tick.checked = on;
+                wrap.classList.toggle('is-ticked', on);
+                qtyBox.classList.toggle('hidden', !on);
+                if (on && qtyIn) qtyIn.value = String(selected.get(key).qty);
+            };
+            if (opts.quantity) {
+                const step = (d) => {
+                    const p = selected.get(key);
+                    if (!p) return;
+                    p.qty = Math.max(1, (Number(p.qty) || 1) + d);
+                    sync();
+                    syncMultiBar();
+                };
+                const minus = h('button', 'inv-btn catalog-qty-btn', '−');
+                minus.type = 'button';
+                minus.title = 'One fewer';
+                minus.addEventListener('click', () => step(-1));
+                qtyIn = h('input', 'edit-field catalog-qty-input');
+                qtyIn.type = 'number';
+                qtyIn.min = '1';
+                qtyIn.setAttribute('aria-label', 'Quantity of ' + hit.name);
+                qtyIn.addEventListener('input', () => {
+                    const p = selected.get(key);
+                    const n = parseInt(qtyIn.value, 10);
+                    if (p && Number.isFinite(n) && n >= 1) { p.qty = n; syncMultiBar(); }
+                });
+                const plus = h('button', 'inv-btn catalog-qty-btn', '+');
+                plus.type = 'button';
+                plus.title = 'One more';
+                plus.addEventListener('click', () => step(1));
+                qtyBox.append(minus, qtyIn, plus);
+            }
+            tick.addEventListener('change', () => {
+                if (tick.checked) selected.set(key, { hit, qty: selected.get(key)?.qty || 1 });
+                else selected.delete(key);
+                sync();
+                syncMultiBar();
+            });
+            wrap.append(tick, row);
+            if (opts.quantity) wrap.appendChild(qtyBox);
+            sync();
+            return wrap;
+        }
+        function renderUpTo(n) {
+            const stop = Math.min(n, shown.length);
+            const frag = document.createDocumentFragment();
+            for (; rendered < stop; rendered++) {
+                const el = buildRow(shown[rendered]);
+                el.dataset.idx = String(rendered);
+                frag.appendChild(el);
+            }
+            results.appendChild(frag);
+        }
+        results.addEventListener('scroll', () => {
+            if (rendered >= shown.length) return;
+            if (results.scrollTop + results.clientHeight > results.scrollHeight - 240) {
+                renderUpTo(rendered + CHUNK);
+            }
+        });
+        const letterOf = (name) => {
+            const c = String(name || '').trim().charAt(0).toUpperCase();
+            return c >= 'A' && c <= 'Z' ? c : '#';
+        };
+        function renderLetters(alphabetical) {
+            letters.innerHTML = '';
+            // A short list needs no index; neither does a ranked search result.
+            const on = alphabetical && shown.length > CHUNK;
+            letters.classList.toggle('hidden', !on);
+            if (!on) return;
+            const first = new Map();
+            shown.forEach((hit, i) => {
+                const L = letterOf(hit.name);
+                if (!first.has(L)) first.set(L, i);
+            });
+            for (const L of ['#', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ']) {
+                if (L === '#' && !first.has('#')) continue;
+                const b = h('button', 'catalog-letter', L);
+                b.type = 'button';
+                b.dataset.letter = L;
+                if (!first.has(L)) b.disabled = true;
+                else {
+                    b.addEventListener('click', () => {
+                        const i = first.get(L);
+                        renderUpTo(i + CHUNK);
+                        const el = results.querySelector(`[data-idx="${i}"]`);
+                        if (el) results.scrollTop = el.offsetTop - results.firstElementChild.offsetTop;
+                    });
+                }
+                letters.appendChild(b);
+            }
+        }
+
         function runSearch() {
             results.innerHTML = '';
+            results.scrollTop = 0;
+            shown = [];
+            rendered = 0;
             const q = input.value.trim();
-            // showAllOnEmpty lets a local source (e.g. per-class archetypes) list every
-            // option before the user types; the bundled catalog still needs a query.
-            if (q.length < 1 && !(opts.showAllOnEmpty && opts.localSource)) {
+            // Nothing typed lists the whole applicable catalog A–Z (#140); a caller can still
+            // opt out with browseAll: false.
+            if (q.length < 1 && opts.browseAll === false && !(opts.showAllOnEmpty && opts.localSource)) {
+                renderLetters(false);
                 results.appendChild(h('p', 'catalog-empty dim', 'Start typing to search the catalog.'));
                 return;
             }
-            // Catalog hits (if the active kind has bundled data) plus any caller-supplied
-            // local options (e.g. previously-used archetypes), deduped by name.
-            const catalogHits = q.length >= 1
-                ? (window.SheetDetails?.searchCatalog?.(activeKind, q, { limit: 50 }) || [])
-                : [];
+            // Catalog hits (every kind when category chips merge them, else the active tab) plus
+            // any caller-supplied local options (e.g. previously-used archetypes), deduped by name.
+            const pool = opts.categories ? kinds : [activeKind];
+            const catalogHits = pool.flatMap((k) =>
+                window.SheetDetails?.searchCatalog?.(k, q, { limit: Infinity, all: true }) || []);
             const localHits = opts.localSource ? (opts.localSource(q) || []) : [];
             const seen = new Set();
-            const hits = [];
+            let hits = [];
             for (const hit of [...localHits, ...catalogHits]) {
                 const key = String(hit?.name || '').toLowerCase();
                 if (!key || seen.has(key)) continue;
                 seen.add(key);
                 hits.push(hit);
             }
+            if (opts.categories && activeCats.size) {
+                hits = hits.filter((hit) => activeCats.has(opts.categoryOf?.(hit)));
+            }
+            // One ordering for every source: prefix matches first, then A–Z.
+            const ql = q.toLowerCase();
+            hits.sort((a, b) => {
+                const an = String(a.name).toLowerCase();
+                const bn = String(b.name).toLowerCase();
+                const ap = ql && an.startsWith(ql) ? 0 : 1;
+                const bp = ql && bn.startsWith(ql) ? 0 : 1;
+                return ap !== bp ? ap - bp : an.localeCompare(bn);
+            });
             if (!hits.length) {
+                renderLetters(false);
                 results.appendChild(h('p', 'catalog-empty dim',
                     'No matches. Use “Add custom” below for homebrew names.'));
                 return;
             }
-            for (const hit of hits) {
-                const row = h('button', 'catalog-result');
-                row.type = 'button';
-                row.setAttribute('role', 'option');
-                const main = h('span', 'catalog-result-name', hit.name);
-                row.appendChild(main);
-                // opts.subtitle(hit) lets a caller say more than the catalog knows (#139: the
-                // spell's level for this spellbook's class).
-                const sub = opts.subtitle ? opts.subtitle(hit) : hit.subtitle;
-                if (sub) {
-                    row.appendChild(h('span', 'catalog-result-sub', sub));
-                }
-                row.addEventListener('click', () => {
-                    close();
-                    opts.onPick?.(hit);
-                });
-                results.appendChild(row);
-            }
+            shown = hits;
+            renderLetters(!q);
+            renderUpTo(CHUNK);
         }
 
         let timer = null;

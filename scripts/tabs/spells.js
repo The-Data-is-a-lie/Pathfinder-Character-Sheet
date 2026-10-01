@@ -821,6 +821,7 @@ window.SheetTabSpells = (function () {
             extra: levelSel,
             picker: {
                 title: 'Add spell to ' + bk.name,
+                multi: true,
                 kinds: ['spells'],
                 allowCustom: true,
                 customPlaceholder: 'Custom spell name',
