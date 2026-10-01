@@ -514,6 +514,7 @@ window.SheetTabFeatures = (function () {
             browseLabel: 'Browse feats',
             picker: {
                 title: 'Add feat',
+                multi: true,
                 kinds: ['feats'],
                 allowCustom: true,
                 customPlaceholder: 'Custom feat name',
@@ -608,6 +609,7 @@ window.SheetTabFeatures = (function () {
             browseLabel: 'Browse traits',
             picker: {
                 title: 'Add trait',
+                multi: true,
                 kinds: ['traits'],
                 allowCustom: true,
                 onPick: (hit) => {
@@ -869,6 +871,7 @@ window.SheetTabFeatures = (function () {
             browseLabel: 'Browse class features',
             picker: {
                 title: 'Add class feature',
+                multi: true,
                 kinds: ['classFeatures'],
                 allowCustom: true,
                 onPick: (hit) => {

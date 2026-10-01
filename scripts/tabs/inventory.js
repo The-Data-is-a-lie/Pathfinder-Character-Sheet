@@ -190,6 +190,43 @@ window.SheetTabInventory = (function () {
         }
         return bar;
     }
+    // #140: the Inventory add box. Category chips (several at once) over items + weapons merged,
+    // multi-select with a quantity per ticked row, and one re-render for the whole batch.
+    function catalogCategoryOf(hit) {
+        if (hit.kind === 'weapons') return 'weapons';
+        return inventoryCategory({ name: hit.name, ...(hit.entry || {}) });
+    }
+    /** Add one catalog pick; `cat` is the section whose + opened the picker, if any. */
+    function addPicked(data, hit, cat) {
+        const it = addInventoryItem(data, hit.name);
+        if (!it) return null;
+        const qty = Math.max(1, parseInt(hit.quantity, 10) || 1);
+        if (qty !== 1) it.quantity = qty;
+        // Known items keep their natural category; unknowns land in the section asked for.
+        if (cat && inventoryCategory(it) !== cat && INV_CAT_ITEMTYPE[cat]) it.itemType = INV_CAT_ITEMTYPE[cat];
+        quietSave();
+        return it;
+    }
+    function inventoryPickerBase(data, cat) {
+        return {
+            kinds: ['items', 'weapons'],
+            wide: true,
+            multi: true,
+            quantity: true,
+            categories: INV_CATEGORY_ORDER.map(([id, label]) => ({ id, label })),
+            categoryOf: catalogCategoryOf,
+            initialCategories: cat ? [cat] : [],
+            allowCustom: true,
+            customPlaceholder: 'Custom item name',
+            onPickMany: (hits) => {
+                for (const hit of hits) addPicked(data, hit, cat);
+                invRerender(data);
+                const n = hits.reduce((a, x) => a + (parseInt(x.quantity, 10) || 1), 0);
+                window.SheetOverlay?.toast(`Added ${hits.length} item${hits.length === 1 ? '' : 's'}`
+                    + (n !== hits.length ? ` (${n} total)` : ''));
+            },
+        };
+    }
     function renderGear(data) {
         const { sec, body } = section('Inventory', 'inventory-tab');
 
@@ -227,15 +264,13 @@ window.SheetTabInventory = (function () {
 
         body.appendChild(sectionCatalogToolbar({
             browseLabel: 'Browse items',
-            browseTitle: 'Search weapons & equipment',
+            browseTitle: 'Browse or search weapons & equipment; tick several to add them at once',
             extra: toolbarExtra,
             picker: {
-                title: 'Add inventory item',
-                kinds: ['items', 'weapons'],
-                allowCustom: true,
-                customPlaceholder: 'Custom item name',
+                ...inventoryPickerBase(data),
+                title: 'Add inventory items',
                 onPick: (hit) => {
-                    addInventoryItem(data, hit.name);
+                    addPicked(data, hit);
                     invRerender(data);
                 },
                 onCustom: (name) => {
@@ -291,17 +326,10 @@ window.SheetTabInventory = (function () {
             addBtn.type = 'button';
             addBtn.title = 'Add to ' + label.toLowerCase();
             addBtn.addEventListener('click', () => openCatalogPicker({
+                ...inventoryPickerBase(data, cat),
                 title: 'Add — ' + label.toLowerCase(),
-                kinds: cat === 'weapons' ? ['weapons', 'items'] : ['items', 'weapons'],
-                allowCustom: true,
-                customPlaceholder: 'Custom item name',
                 onPick: (hit) => {
-                    const it = addInventoryItem(data, hit.name);
-                    // Known items keep their natural category; unknowns land here.
-                    if (it && inventoryCategory(it) !== cat && INV_CAT_ITEMTYPE[cat]) {
-                        it.itemType = INV_CAT_ITEMTYPE[cat];
-                        quietSave();
-                    }
+                    addPicked(data, hit, cat);
                     invRerender(data);
                 },
                 onCustom: (name) => {

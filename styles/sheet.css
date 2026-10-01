@@ -3794,6 +3794,90 @@ body.dnd-dragging, body.dnd-dragging .dnd-handle { cursor: grabbing; }
     font-size: 0.75rem;
     color: var(--dim);
 }
+/* #140: browse-all, category chips, letter jump, multi-select */
+.catalog-picker-card.catalog-picker-wide {
+    width: min(48rem, 100%);
+    max-height: min(44rem, 92vh);
+}
+.catalog-results { position: relative; } /* row offsetTop is measured against the list */
+.catalog-cat-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    padding: 0.45rem 0.85rem 0;
+}
+.catalog-cat-chip {
+    font: inherit;
+    font-size: 0.78rem;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    background: var(--row-bg);
+    color: var(--ink);
+    cursor: pointer;
+}
+.catalog-cat-chip.is-active {
+    background: var(--chip-bg);
+    border-color: var(--accent);
+    color: var(--accent-dark);
+    font-weight: 600;
+}
+.catalog-letters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem;
+    padding: 0 0.85rem 0.35rem;
+}
+.catalog-letters.hidden { display: none; }
+.catalog-letter {
+    font: inherit;
+    font-size: 0.72rem;
+    min-width: 1.45rem;
+    padding: 0.1rem 0.2rem;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--row-bg);
+    color: var(--accent-dark);
+    cursor: pointer;
+}
+.catalog-letter:hover:not(:disabled) { border-color: var(--accent); }
+.catalog-letter:disabled { color: var(--dim); opacity: 0.45; cursor: default; }
+.catalog-result-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.catalog-result-wrap > .catalog-result { flex: 1 1 auto; min-width: 0; }
+.catalog-result-wrap.is-ticked > .catalog-result {
+    border-left-color: var(--accent);
+    background: var(--chip-bg);
+}
+.catalog-tick {
+    flex: none;
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+.catalog-qty {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+}
+.catalog-qty.hidden { display: none; }
+.catalog-qty-input { width: 3.2rem; text-align: center; }
+.catalog-multi-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    padding: 0.45rem 0.85rem;
+    border-top: 1px solid var(--menu-divider);
+    background: var(--row-bg);
+}
+.catalog-multi-bar.hidden { display: none; }
+.catalog-multi-count { margin-right: auto; font-size: 0.82rem; }
 .catalog-custom-row {
     display: flex;
     flex-wrap: wrap;

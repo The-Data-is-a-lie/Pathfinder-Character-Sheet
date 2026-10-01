@@ -1618,8 +1618,9 @@ window.SheetDetails = (function () {
         const limit = opts.limit || 40;
         const q = String(query || '').toLowerCase().trim();
         // Classes are a bounded list, so an empty query lists them all alphabetically
-        // (lets "Browse classes" show every option before the user types).
-        if ((!q || q.length < 1) && kind !== 'classes') return [];
+        // (lets "Browse classes" show every option before the user types). #140: `opts.all`
+        // does the same for any catalog — the picker browses A–Z and renders in chunks.
+        if (!q && kind !== 'classes' && !opts.all) return [];
 
         const out = [];
         const push = (row) => {
