@@ -130,7 +130,8 @@ window.SheetGenerate = (function () {
      * Mythic / optimized / luck: real options, not the Foundry module's dev toggles. Absent means
      * "as before"; the backend treats absent as never-mythic, random mode, and a normal luck roll.
      *   mythic         'y' (a rolled tier that leans low) or an int 1-10 (exactly that tier)
-     *   optimize       true; house_rules true rides only alongside it (meaningless alone)
+     *   homebrew       true = Sieg's Guide house rules; absent = plain Pathfinder 1e
+     *   optimize       true; house_rules true rides only alongside it AND homebrew
      *   luck_direction 'buy' | 'sell'
      */
     function namedExtras(form) {
@@ -139,9 +140,12 @@ window.SheetGenerate = (function () {
         const my = String(el('mythic')?.value || '').trim();
         if (my === 'y') out.mythic = 'y';
         else if (/^([1-9]|10)$/.test(my)) out.mythic = Number(my);
+        // The master house-rule switch (backend utils/house_rules.py): absent = plain Pathfinder 1e.
+        const homebrew = !!el('homebrew')?.checked;
+        if (homebrew) out.homebrew = true;
         if (el('optimize')?.checked) {
             out.optimize = true;
-            if (el('house_rules')?.checked) out.house_rules = true;
+            if (homebrew && el('house_rules')?.checked) out.house_rules = true;
         }
         const luck = String(el('luck_direction')?.value || '').trim();
         if (luck === 'buy' || luck === 'sell') out.luck_direction = luck;
@@ -210,8 +214,8 @@ window.SheetGenerate = (function () {
             fields: { bab: 'random', caster_level: 'random', multiclass: 'n',
                 inherents: 'n', spheres_of_power: 'n', modded_char_sheet: 'n',
                 homebrew_feat_amount: 'n',
-                // Standard also means not mythic, ordinary luck and a random build.
-                mythic: '', luck_direction: '', optimize: false },
+                // Standard also means plain Pathfinder, not mythic, ordinary luck, a random build.
+                homebrew: false, mythic: '', luck_direction: '', optimize: false },
         },
         high: {
             label: 'High-powered',
@@ -227,7 +231,12 @@ window.SheetGenerate = (function () {
         },
         optimized: {
             label: 'Optimized',
-            fields: { optimize: true, house_rules: true },
+            fields: { optimize: true },
+        },
+        // Everything Sieg's Guide adds, at its old defaults -- what every roll was before 2026-10-02.
+        house: {
+            label: 'House rules',
+            fields: { homebrew: true, inherents: 'y', homebrew_feat_amount: 'y' },
         },
     };
     function applyGenPreset(form, id) {

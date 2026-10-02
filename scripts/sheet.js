@@ -826,14 +826,18 @@
         syncQuickLevel(form);
         // House-rule kickers only mean something on an optimized build; the box follows the
         // Optimized one so it cannot be ticked into a request that ignores it.
+        // They are also house rules, so they need the House rules box too.
         const optimizeBox = form.elements.optimize;
         const houseBox = form.elements.house_rules;
+        const homebrewBox = form.elements.homebrew;
         if (optimizeBox && houseBox) {
             const follow = () => {
-                houseBox.disabled = !optimizeBox.checked;
-                if (!optimizeBox.checked) houseBox.checked = false;
+                const on = optimizeBox.checked && (!homebrewBox || homebrewBox.checked);
+                houseBox.disabled = !on;
+                if (!on) houseBox.checked = false;
             };
             optimizeBox.addEventListener('change', follow);
+            homebrewBox?.addEventListener('change', follow);
             follow();
         }
         quickLevelSelect(form)?.addEventListener('change', () => applyQuickLevel(form));
