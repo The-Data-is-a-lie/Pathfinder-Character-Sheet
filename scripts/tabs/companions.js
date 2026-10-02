@@ -60,9 +60,10 @@ window.SheetTabCompanions = (function () {
     }
 
     // ---- generated companions: payload -> row ------------------------------------------------ //
-    // A `bonded_creatures` entry becomes ONE ordinary companion row. After the first render it is
-    // indistinguishable from a hand-made one -- same model, same editors, same ×. Nothing refreshes
-    // it and nothing merges into it, because the payload never changes for a saved character.
+    // A `bonded_creatures` entry becomes ONE ordinary companion row -- same model, same editors,
+    // same × as a hand-made one. Since #141 the row's numbers are derived from `comp.base`
+    // (domain/companion-adapter.js), and `refreshFromBackend` re-reads only the base fields
+    // nobody has edited: hand edits win.
 
     const isRow = (e) => !!(e && e.species && e.stats && typeof e.stats === 'object');
     const titleCase = (s) => String(s || '').replace(/\b[a-z]/g, (c) => c.toUpperCase());
@@ -250,12 +251,37 @@ window.SheetTabCompanions = (function () {
     function seedCompanions(data) {
         if (!data || typeof data !== 'object') return;
         const st = sheetState(data);
-        if (st.companionsSeeded) return;
         const list = Array.isArray(data.bonded_creatures) ? data.bonded_creatures : [];
-        st.companionsSeeded = true;
-        if (!list.length) return;
-        if (!Array.isArray(st.companions)) st.companions = [];
-        list.forEach((entry, i) => { if (isRow(entry)) st.companions.push(mapBondedCreature(entry, i)); });
+        if (!st.companionsSeeded) {
+            st.companionsSeeded = true;
+            if (list.length && !Array.isArray(st.companions)) st.companions = [];
+            list.forEach((entry, i) => { if (isRow(entry)) st.companions.push(mapBondedCreature(entry, i)); });
+        }
+        deriveCompanions(data);
+    }
+
+    /**
+     * #141: every row runs on the derived model. A row is upgraded ONCE (`migrate` keeps any
+     * stored total the derivation disagrees with as an override, so nothing on screen moves).
+     * Then a generated row re-reads the payload for the fields nobody edited (hand edits win),
+     * and the legacy total fields the card and the share code read are refreshed.
+     */
+    function deriveCompanions(data) {
+        const AD = window.SheetCompanionAdapter;
+        const st = sheetState(data);
+        if (!AD || !Array.isArray(st.companions)) return;
+        const payload = Array.isArray(data.bonded_creatures) ? data.bonded_creatures : [];
+        for (const comp of st.companions) {
+            const m = comp.source === 'generated' ? /-(\d+)$/.exec(String(comp.id)) : null;
+            const entry = m && isRow(payload[Number(m[1])]) ? payload[Number(m[1])] : null;
+            try {
+                AD.migrate(comp, entry);
+                AD.refreshFromBackend(comp, entry);
+                AD.syncLegacy(comp);
+            } catch (err) {
+                console.warn('[companions] derive failed for', comp.name, err);
+            }
+        }
     }
 
     function logRoll(name, label, bonus) {
@@ -266,6 +292,40 @@ window.SheetTabCompanions = (function () {
     function logDamage(name, formula) {
         window.SheetRoll?.setOpen?.(true);
         window.SheetRoll?.rollAndLog?.(formula, `${name} — damage`);
+    }
+
+    /** A card box over a DERIVED field: editing it writes a hand override (#141). */
+    function editDerived(comp, field, current) {
+        const AD = window.SheetCompanionAdapter;
+        const bag = { v: current };
+        const node = dblclickEditable(bag, 'v', {
+            type: 'number', min: -99,
+            format: (v) => String(v ?? 0),
+            parse: (s) => parseIntLoose(s, 0),
+            onChange: (v) => { AD.setOverride(comp, field, Number(v) || 0); AD.syncLegacy(comp); quietSave(); },
+        });
+        if (AD?.isOverridden(comp, field)) {
+            node.classList.add('is-edited');
+            node.title = 'Edited by hand. Open the sheet to reset it.';
+        }
+        return node;
+    }
+    /** A card box over a BASE field (HD, an ability score): the derivation follows it. */
+    function editBase(data, comp, path, current) {
+        const AD = window.SheetCompanionAdapter;
+        const bag = { v: current };
+        return dblclickEditable(bag, 'v', {
+            type: 'number', min: -99,
+            format: (v) => String(v ?? 0),
+            parse: (s) => parseIntLoose(s, 0),
+            onChange: (v) => {
+                AD.setBase(comp, path, Number(v) || 0);
+                AD.syncLegacy(comp);
+                quietSave();
+                renderSheet(data);
+                setActiveTab('companions');
+            },
+        });
     }
 
     const editNum = (obj, key, onDone) => dblclickEditable(obj, key, {
@@ -318,8 +378,13 @@ window.SheetTabCompanions = (function () {
         typeSel.addEventListener('change', () => { comp.type = typeSel.value; quietSave(); });
         head.appendChild(typeSel);
         const hdWrap = h('span', 'dim');
-        hdWrap.append('HD ', editNum(comp, 'hd'));
+        hdWrap.append('HD ', editBase(data, comp, 'hd', comp.hd));
         head.appendChild(hdWrap);
+        const openBtn = h('button', 'inv-btn companion-open', 'Open sheet');
+        openBtn.type = 'button';
+        openBtn.title = 'The full mini-sheet: vitals, buffs and conditions, skills, feats and attacks';
+        openBtn.addEventListener('click', () => window.SheetCompanionSheet?.open(data, comp.id));
+        head.appendChild(openBtn);
         const del = h('button', 'inv-btn inv-btn-danger companion-del', '×');
         del.type = 'button';
         del.title = 'Remove this companion';
@@ -353,16 +418,16 @@ window.SheetTabCompanions = (function () {
             vitals.appendChild(cell);
         };
         const hpPair = h('span', 'companion-hp');
-        hpPair.append(editNum(comp.hp, 'current'), ' / ', editNum(comp.hp, 'max'));
+        hpPair.append(editNum(comp.hp, 'current'), ' / ', editDerived(comp, 'hpMax', comp.hp.max));
         vital('HP', hpPair);
-        vital('AC', editNum(comp, 'ac'), null, null, 'ac');
-        vital('Touch', editNum(comp, 'touch'), null, null, 'touch');
-        vital('FF', editNum(comp, 'ff'), null, null, 'ff');
-        vital('Fort', editNum(comp.saves, 'fort'), () => comp.saves.fort, 'Fortitude save', 'fort');
-        vital('Ref', editNum(comp.saves, 'ref'), () => comp.saves.ref, 'Reflex save', 'ref');
-        vital('Will', editNum(comp.saves, 'will'), () => comp.saves.will, 'Will save', 'will');
-        vital('CMB', editNum(comp, 'cmb'), () => comp.cmb, 'combat manoeuvre', 'cmb');
-        vital('CMD', editNum(comp, 'cmd'), null, null, 'cmd');
+        vital('AC', editDerived(comp, 'ac', comp.ac), null, null, 'ac');
+        vital('Touch', editDerived(comp, 'touch', comp.touch), null, null, 'touch');
+        vital('FF', editDerived(comp, 'ff', comp.ff), null, null, 'ff');
+        vital('Fort', editDerived(comp, 'fort', comp.saves.fort), () => comp.saves.fort, 'Fortitude save', 'fort');
+        vital('Ref', editDerived(comp, 'ref', comp.saves.ref), () => comp.saves.ref, 'Reflex save', 'ref');
+        vital('Will', editDerived(comp, 'will', comp.saves.will), () => comp.saves.will, 'Will save', 'will');
+        vital('CMB', editDerived(comp, 'cmb', comp.cmb), () => comp.cmb, 'combat manoeuvre', 'cmb');
+        vital('CMD', editDerived(comp, 'cmd', comp.cmd), null, null, 'cmd');
         // Speed is FREE TEXT, not a number: the backend ships prose ('10 ft. , fly 80 ft. (average)')
         // and the second number is the one a bird companion's player actually needs. Rows saved
         // before this carry speed: 40, which stringifies unchanged.
@@ -379,7 +444,7 @@ window.SheetTabCompanions = (function () {
         for (const ab of AB_KEYS) {
             const cell = h('span', 'companion-ab');
             cell.appendChild(h('span', 'companion-vital-label', ab.toUpperCase()));
-            cell.appendChild(editNum(comp.abilities, ab));
+            cell.appendChild(editBase(data, comp, 'abilities.' + ab, comp.base?.abilities?.[ab] ?? comp.abilities[ab]));
             cell.appendChild(h('span', 'dim', ` (${fmt(mod(comp.abilities[ab]))})`));
             abRow.appendChild(cell);
         }
@@ -392,7 +457,7 @@ window.SheetTabCompanions = (function () {
             comp.skills.forEach((sk, si) => {
                 const cell = h('span', 'companion-skill');
                 cell.appendChild(h('span', 'companion-vital-label', sk.name));
-                cell.appendChild(editNum(comp.skills[si], 'total'));
+                cell.appendChild(editDerived(comp, 'skill:' + sk.name, sk.total));
                 const b = h('button', 'inv-btn companion-roll', '🎲');
                 b.type = 'button';
                 b.title = 'Roll ' + sk.name;
@@ -415,10 +480,18 @@ window.SheetTabCompanions = (function () {
             row.appendChild(dblclickEditable(nameBag2, 'v', {
                 format: (v) => String(v || 'Attack'),
                 parse: (s) => String(s),
-                onChange: (v) => { line.name = String(v || '').trim() || line.name; quietSave(); },
+                onChange: (v) => {
+                    const nm = String(v || '').trim();
+                    if (nm && comp.base?.attacks?.[li]) {
+                        comp.base.attacks[li].name = nm;
+                        (comp.edited ??= {})['base.attacks'] = true;
+                    }
+                    line.name = nm || line.name;
+                    quietSave();
+                },
             }));
             const atkWrap = h('span');
-            atkWrap.append('atk ', editNum(line, 'atk'));
+            atkWrap.append('atk ', editDerived(comp, 'atk:' + li, line.atk));
             const atkBadge = badge('attack');
             if (atkBadge) atkWrap.appendChild(atkBadge);
             row.appendChild(atkWrap);
@@ -427,7 +500,13 @@ window.SheetTabCompanions = (function () {
             dmgWrap.append('dmg ', dblclickEditable(dmgBag, 'v', {
                 format: (v) => String(v || '1d4'),
                 parse: (s) => String(s),
-                onChange: (v) => { line.dmg = String(v || '').trim() || line.dmg; quietSave(); },
+                onChange: (v) => {
+                    const f = String(v || '').trim();
+                    if (!f) return;
+                    window.SheetCompanionAdapter.setOverride(comp, 'dmg:' + li, f.split('/')[0]);
+                    window.SheetCompanionAdapter.syncLegacy(comp);
+                    quietSave();
+                },
             }));
             const dmgBadge = badge('damage');
             if (dmgBadge) dmgWrap.appendChild(dmgBadge);
@@ -451,7 +530,8 @@ window.SheetTabCompanions = (function () {
             const rm = h('button', 'inv-btn inv-btn-danger', '×');
             rm.type = 'button';
             rm.addEventListener('click', () => {
-                comp.attacks.splice(li, 1);
+                window.SheetCompanionAdapter.removeAttack(comp, li);
+                window.SheetCompanionAdapter.syncLegacy(comp);
                 quietSave();
                 renderSheet(data);
                 setActiveTab('companions');
@@ -462,7 +542,8 @@ window.SheetTabCompanions = (function () {
         const addAtk = h('button', 'inv-btn', '+ attack');
         addAtk.type = 'button';
         addAtk.addEventListener('click', () => {
-            comp.attacks.push({ name: 'Attack', atk: 0, dmg: '1d4' });
+            window.SheetCompanionAdapter.addAttack(comp);
+            window.SheetCompanionAdapter.syncLegacy(comp);
             quietSave();
             renderSheet(data);
             setActiveTab('companions');
@@ -539,7 +620,9 @@ window.SheetTabCompanions = (function () {
             const b = h('button', 'inv-btn', '+ ' + t);
             b.type = 'button';
             b.addEventListener('click', () => {
-                companions(data).push(newCompanion(data, t));
+                const comp = newCompanion(data, t);
+                window.SheetCompanionAdapter?.migrate(comp, null);
+                companions(data).push(comp);
                 quietSave();
                 renderSheet(data);
                 setActiveTab('companions');
@@ -550,5 +633,6 @@ window.SheetTabCompanions = (function () {
         return sec;
     }
 
-    return { renderCompanions, companions, newCompanion, seedCompanions, mapBondedCreature };
+    return { renderCompanions, companions, newCompanion, seedCompanions, deriveCompanions, mapBondedCreature,
+        renderEvolutions };
 })();

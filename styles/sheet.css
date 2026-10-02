@@ -6406,3 +6406,67 @@ body.is-offline .pa-generate {
 .mounted-chip:disabled { opacity: 0.55; cursor: not-allowed; }
 .mounted-select { font-size: 0.8rem; }
 .speed-mount-note { white-space: nowrap; }
+
+/* #141: the companion mini-sheet — a full-screen SheetOverlay with internal tabs. */
+.sheet-overlay.overlay-fullscreen .overlay-card {
+    width: min(72rem, 100%);
+    max-height: 96vh;
+    height: 96vh;
+}
+.companion-sheet { display: flex; flex-direction: column; gap: 0.5rem; min-height: 0; }
+.companion-sheet-content { display: flex; flex-direction: column; gap: 0.6rem; }
+.companion-sheet-pane { display: flex; flex-direction: column; gap: 0.6rem; }
+.companion-sheet-card {
+    border: 1px solid var(--menu-border);
+    border-radius: 8px;
+    padding: 0.5rem 0.7rem;
+    background: var(--panel);
+}
+.companion-sheet-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.companion-sheet-field { display: inline-flex; align-items: center; gap: 0.25rem; }
+.companion-sheet-num { width: 4.2rem; }
+.companion-sheet-name { font-weight: 700; font-size: 1.1rem; min-width: 12rem; }
+.companion-sheet-abilities,
+.companion-sheet-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+    gap: 0.5rem;
+}
+.companion-sheet-ab,
+.companion-sheet-stat { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; }
+.companion-sheet-value { font-weight: 700; font-size: 1.15rem; cursor: text; }
+.companion-sheet-derived.is-edited .companion-sheet-value,
+.dbl-edit.is-edited .dbl-edit-display { text-decoration: underline dotted var(--accent); }
+.companion-edited-mark {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+}
+.companion-sheet-reset { padding: 0 0.35rem; }
+.companion-hp-current { font-size: 1.6rem; font-weight: 700; }
+.companion-hp-current.is-low { color: var(--danger, #b00020); }
+.companion-hp-amount { width: 5.5rem; }
+.companion-sheet-conds { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
+.companion-buff-row { border-top: 1px solid var(--menu-border); padding: 0.35rem 0; }
+.companion-buff-name { min-width: 12rem; }
+.companion-change-row { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.25rem 0 0 1.6rem; }
+.companion-change-formula { width: 6rem; }
+.companion-sheet-table { width: 100%; border-collapse: collapse; }
+.companion-sheet-table th,
+.companion-sheet-table td { text-align: left; padding: 0.2rem 0.4rem; border-bottom: 1px solid var(--menu-border); }
+.companion-feature-row { display: flex; align-items: center; gap: 0.4rem; padding: 0.15rem 0; }
+.companion-feature-row > details,
+.companion-feature-row > span:first-child { flex: 1; }
+.companion-sheet-attacks .companion-attack-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; }
+.companion-attack-dice { width: 4.5rem; }
+@media (max-width: 760px) {
+    .sheet-overlay.overlay-fullscreen .overlay-card { height: 100vh; max-height: 100vh; border-radius: 0; }
+}
+.companion-sheet .edit-field { width: auto; }
+.companion-sheet .companion-sheet-name { flex: 1; }
+.companion-sheet .companion-sheet-num { width: 4.2rem; }
+.companion-sheet .companion-attack-name { width: 10rem; }
+.companion-sheet .companion-attack-dice,
+.companion-sheet .companion-change-formula { width: 5rem; }
+.companion-sheet .companion-notes { width: 100%; }
