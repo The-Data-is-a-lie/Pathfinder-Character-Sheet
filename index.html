@@ -297,6 +297,7 @@
             <button type="button" class="gen-preset" data-preset="multiclass">Multiclass</button>
             <button type="button" class="gen-preset" data-preset="spheres">Spheres</button>
             <button type="button" class="gen-preset" data-preset="optimized">Optimized</button>
+            <button type="button" class="gen-preset" data-preset="house">House rules</button>
         </div>
         <div class="form-grid">
             <label title="Which naming culture the character's name is drawn from">Region
@@ -414,11 +415,14 @@
                     <option value="sell">Sell (negative)</option>
                 </select>
             </label>
+            <label class="gen-check" title="Sieg's Guide house rules: feat tax and free combat feats, story and flavour feats, trainers, professions, flaws, luck, inherent stats, the skill unlock and the combined caster level. Off is plain Pathfinder 1e plus its subsystems (Path of War, Spheres, psionics, mythic)">
+                <input type="checkbox" name="homebrew"> House rules (Sieg's Guide)
+            </label>
             <label class="gen-check" title="Every choice the form leaves open is made well instead of randomly: the backend picks the character's power role from its class and builds toward it. Off is the ordinary random character">
                 <input type="checkbox" name="optimize"> Optimized build
             </label>
             <label class="gen-check gen-check-sub" title="With Optimized build: also use the table's house-rule kickers (Strength of a Warrior, the defensive-sphere package, sword-and-board two-weapon defense…). Does nothing on its own">
-                <input type="checkbox" name="house_rules" disabled> House-rule kickers
+                <input type="checkbox" name="house_rules" disabled> House-rule kickers (needs House rules)
             </label>
             <label title="Yes writes the backstory with a language model. No uses the built-in templates, which is faster and always available">Backstory API
                 <select name="use_backstory_api">

@@ -731,7 +731,9 @@ window.SheetDerive = (function () {
     }
     /**
      * Caster level. `caster_level` is user-entered only (the generator never ships it), so an explicit
-     * override always wins; otherwise use the campaign's homebrew COMBINED caster level -- every
+     * override always wins. Plain Pathfinder (`homebrew: false`) takes the best single book, which is
+     * also the backend's own casting_level_num. Otherwise the campaign's homebrew COMBINED caster
+     * level -- a payload from before the `homebrew` key existed was generated under it -- every
      * casting class contributes its full class level, or level-3 for a 'low' caster, summed and
      * floored to 1. The backend already bakes the -3 into each spellbook's casting_level_num, so
      * summing the books reproduces the rule (this mirrors spellCLExpr() in the Foundry module).
@@ -741,7 +743,10 @@ window.SheetDerive = (function () {
         const n = Number(data.caster_level);
         if (Number.isFinite(n) && n > 0) return n;
         const books = data?.spellbooks;
-        if (Array.isArray(books) && books.length) {
+        if (Array.isArray(books) && books.length && data?.homebrew === false) {
+            const best = Math.max(0, ...books.map(b => Number(b?.casting_level_num) || 0));
+            if (best > 0) return best;
+        } else if (Array.isArray(books) && books.length) {
             const combined = books.reduce(
                 (sum, b) => sum + Math.max(0, Number(b?.casting_level_num) || 0), 0);
             if (combined > 0) return combined;
