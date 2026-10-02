@@ -776,7 +776,7 @@ window.SheetTabFeatures = (function () {
         discoveries: { label: 'Discoveries', singular: 'Discovery' },
         arcana: { label: 'Magus Arcana', singular: 'Arcana' },
         exploits: { label: 'Arcanist Exploits', singular: 'Exploit' },
-        mysteries: { label: 'Mystery & Revelations', singular: 'Revelation' },
+        mysteries: { label: 'Oracle Mystery', singular: 'Mystery' },
         revelations: { label: 'Revelations', singular: 'Revelation' },
         curses: { label: 'Oracle Curse', singular: 'Curse' },
         rogue_talents: { label: 'Rogue Talents', singular: 'Rogue Talent' },
