@@ -325,6 +325,11 @@ window.SheetRoll = (function () {
             let dmgTotal = 0;
             const parts = [];
             let diceFlavor = '';
+            // Typed for the #146 calculator. The extract's part types are empty at the source,
+            // so the description supplies them (single unambiguous energy type only); spell
+            // damage ignores DR whatever its type.
+            const inferred = window.SheetDamageCalc?.inferSpellTypes?.(sd.description) || [];
+            const typed = { phys: 0, physTypes: [], energy: {}, bypass: [], spell: true };
             for (const p of dmgPartsRaw) {
                 const expanded = expandSpellFormula(p.formula, ctx);
                 const types = (p.type?.values || []).join(', ');
@@ -355,6 +360,13 @@ window.SheetRoll = (function () {
                     mmTag = ' (empowered)';
                 }
                 dmgTotal += value;
+                const partTypes = (p.type?.values?.length ? p.type.values : inferred).map((t) => String(t).toLowerCase());
+                const energyType = partTypes.find((t) => window.SheetDamageCalc?.ENERGY_TYPES?.includes(t));
+                if (energyType) typed.energy[energyType] = (typed.energy[energyType] || 0) + value;
+                else {
+                    typed.phys += value;
+                    for (const t of partTypes) if (!typed.physTypes.includes(t)) typed.physTypes.push(t);
+                }
                 const rolls = r.parts.filter((x) => x.kind === 'dice').flatMap((x) => x.rolls);
                 const shown = rolls.length ? '[' + rolls.join(', ') + ']' : String(r.total);
                 parts.push({
@@ -375,6 +387,8 @@ window.SheetRoll = (function () {
                 // Cure spells carry actionType 'heal' in spell_details.json — the block
                 // renders an Apply-healing button instead of the damage buttons (#20).
                 isHeal: actionType === 'heal',
+                label: inferred.length ? inferred.join('/') : '',
+                typed: actionType === 'heal' ? undefined : typed,
             });
         }
 
@@ -1061,75 +1075,17 @@ window.SheetRoll = (function () {
     /** One DR entry vs this damage's context. 'or' lists need any part, 'and' lists every
      *  part; DR/— (or blank) is never bypassed. Physical-type DR (DR 5/bludgeoning) is
      *  beaten by the weapon's own damage types. */
-    function drBypassed(bypass, typed) {
-        const b = String(bypass || '').trim().toLowerCase();
-        if (!b || b === '—' || b === '-') return false;
-        const anyMode = / or /.test(b);
-        const partsList = b.split(/ or | and /).map((s) => s.trim()).filter(Boolean);
-        const hit = (p) => (typed.bypass || []).includes(p)
-            || (typed.physTypes || []).map((t) => String(t).toLowerCase()).includes(p);
-        return anyMode ? partsList.some(hit) : partsList.every(hit);
-    }
-
     /**
-     * Route a typed damage block through the Defenses tab: immunity → 0, vulnerability
-     * ×1.5, energy resistance per type, the single largest applicable DR against the
-     * physical bucket. `half` halves each bucket first (save made). Returns the mitigated
-     * total plus human-readable arithmetic for the card.
+     * Route a typed damage block through the Defenses tab (#4), now via the #146 calculator
+     * (`SheetDamageCalc.evaluate`) so a card and the Defenses-tab calculator share one rule set:
+     * immunity → 0, vulnerability ×1.5, energy resistance per type, the single largest
+     * applicable DR against the physical bucket (none at all for spell damage). Hand-typed and
+     * buff-granted chips both count. `half` halves each bucket first (save made).
      */
     function mitigateDamage(dmg, { half = false } = {}) {
-        const defs = currentData?._sheet?.defenses || {};
-        const t = dmg.typed;
-        const steps = [];
-        const lower = (list) => (list || []).map((e) => String(e.type || '').toLowerCase());
-        const immune = lower(defs.dmgImmune);
-        const vuln = lower(defs.dmgVuln);
-        let out = 0;
-
-        const bucket = (label, raw, types, isPhys) => {
-            let n = half ? Math.floor(raw / 2) : raw;
-            if (half && raw) steps.push(`${label} ${raw} → ${n} (half)`);
-            if (n <= 0) return;
-            const tl = types.map((x) => String(x).toLowerCase());
-            if (tl.length && tl.every((x) => immune.includes(x))) {
-                steps.push(`immune to ${types.join('/')}: ${n} → 0`);
-                return;
-            }
-            if (tl.some((x) => vuln.includes(x))) {
-                const v = Math.floor(n * 1.5);
-                steps.push(`vulnerable (${types.join('/')}): ${n} → ${v}`);
-                n = v;
-            }
-            if (isPhys) {
-                const applicable = (defs.dr || [])
-                    .filter((e) => (Number(e.amount) || 0) > 0 && !drBypassed(e.bypass, t));
-                if (applicable.length) {
-                    const best = applicable.reduce((a, b) =>
-                        ((Number(b.amount) || 0) > (Number(a.amount) || 0) ? b : a));
-                    const after = Math.max(0, n - Number(best.amount));
-                    steps.push(`DR ${best.amount}/${best.bypass || '—'}: ${n} → ${after}`);
-                    n = after;
-                } else if ((defs.dr || []).some((e) => (Number(e.amount) || 0) > 0)) {
-                    steps.push(`DR bypassed (${(t.bypass || []).join(', ') || 'damage type'})`);
-                }
-            } else {
-                const resist = (defs.resist || [])
-                    .filter((e) => tl.includes(String(e.type || '').toLowerCase()))
-                    .reduce((a, e) => Math.max(a, Number(e.amount) || 0), 0);
-                if (resist > 0) {
-                    const after = Math.max(0, n - resist);
-                    steps.push(`${types.join('/')} resist ${resist}: ${n} → ${after}`);
-                    n = after;
-                }
-            }
-            out += n;
-        };
-
-        bucket('physical', t.phys || 0, t.physTypes?.length ? t.physTypes : [], true);
-        for (const [etype, amount] of Object.entries(t.energy || {})) {
-            bucket(etype, amount, [etype], false);
-        }
-        return { total: out, steps };
+        const calc = window.SheetDamageCalc;
+        const res = calc.evaluate(calc.fromTyped(dmg.typed), calc.effectiveDefenses(currentData), { half });
+        return { total: res.total, steps: res.steps, checks: res.checks };
     }
 
     function expandRiderInlineRolls(text, data, ctx) {
@@ -1768,44 +1724,68 @@ window.SheetRoll = (function () {
         if (!nonlethal && rest > 0) wounds = Math.max(0, wounds - rest);
         st.vigorCurrent = vigor;
         st.woundsCurrent = wounds;
-        window.SheetOverlay?.toast?.(
-            `${n}${nonlethal ? ' nonlethal' : ''} damage — Vigor ${vigor}/${vigorMax}, `
+        return `${n}${nonlethal ? ' nonlethal' : ''} damage — Vigor ${vigor}/${vigorMax}, `
             + `Wounds ${wounds}/${woundsMax}`
-            + (wounds <= 0 ? ' · dying!' : (wounds <= threshold ? ' · wounded!' : '')));
-        window.SheetApp?.quietSave?.();
-        window.SheetApp?.renderSheet?.(currentData);
+            + (wounds <= 0 ? ' · dying!' : (wounds <= threshold ? ' · wounded!' : ''));
     }
 
+    // Every HP pool a damage application can touch — the Undo snapshot (#146).
+    const HP_KEYS = ['hpCurrent', 'hpTemp', 'hpNonlethal', 'vigorCurrent', 'woundsCurrent'];
+
     /** Apply rolled damage to the loaded character's HP. Temp HP absorbs first (lethal);
-     *  nonlethal accumulates in its own pool. hpCurrent seeds from max on first touch. */
-    function applyDamageToHp(amount, { nonlethal = false } = {}) {
+     *  nonlethal accumulates in its own pool. hpCurrent seeds from max on first touch.
+     *  The confirmation toast carries an Undo that restores every pool exactly as it was —
+     *  the after-the-fact reassurance that lets Apply skip a confirm dialog. `onUndo` lets
+     *  the caller amend its own record (a roll card's note) when that happens. */
+    function applyDamageToHp(amount, { nonlethal = false, onUndo = null } = {}) {
         const n = Math.max(0, Math.floor(Number(amount) || 0));
         if (!currentData || !n) return;
-        const st = (currentData._sheet ??= {});
-        if (window.SheetState?.variantRuleOn?.(currentData, 'woundsVigor')) {
-            return applyDamageWoundsVigor(st, n, nonlethal);
-        }
-        const max = Number(currentData.Total_HP) || 0;
-        if (nonlethal) {
-            st.hpNonlethal = (Number(st.hpNonlethal) || 0) + n;
-            window.SheetOverlay?.toast?.(`${n} nonlethal damage (total ${st.hpNonlethal})`);
+        const data = currentData;
+        const st = (data._sheet ??= {});
+        const before = {};
+        for (const k of HP_KEYS) before[k] = Object.prototype.hasOwnProperty.call(st, k) ? st[k] : undefined;
+        let msg;
+        if (window.SheetState?.variantRuleOn?.(data, 'woundsVigor')) {
+            msg = applyDamageWoundsVigor(st, n, nonlethal);
         } else {
-            let rest = n;
-            const temp = Number(st.hpTemp) || 0;
-            if (temp > 0) {
-                const used = Math.min(temp, rest);
-                st.hpTemp = temp - used;
-                rest -= used;
+            const max = Number(data.Total_HP) || 0;
+            if (nonlethal) {
+                st.hpNonlethal = (Number(st.hpNonlethal) || 0) + n;
+                msg = `${n} nonlethal damage (total ${st.hpNonlethal})`;
+            } else {
+                let rest = n;
+                const temp = Number(st.hpTemp) || 0;
+                if (temp > 0) {
+                    const used = Math.min(temp, rest);
+                    st.hpTemp = temp - used;
+                    rest -= used;
+                }
+                const cur = st.hpCurrent == null || st.hpCurrent === ''
+                    ? max : Number(st.hpCurrent) || 0;
+                st.hpCurrent = cur - rest;
+                msg = `${n} damage — HP ${st.hpCurrent}/${max}`
+                    + (st.hpCurrent < 0 ? ' · below 0!' : '');
             }
-            const cur = st.hpCurrent == null || st.hpCurrent === ''
-                ? max : Number(st.hpCurrent) || 0;
-            st.hpCurrent = cur - rest;
-            window.SheetOverlay?.toast?.(
-                `${n} damage — HP ${st.hpCurrent}/${max}`
-                + (st.hpCurrent < 0 ? ' · below 0!' : ''));
         }
         window.SheetApp?.quietSave?.();
-        window.SheetApp?.renderSheet?.(currentData);
+        window.SheetApp?.renderSheet?.(data);
+        window.SheetOverlay?.toast?.(msg, {
+            action: {
+                label: 'Undo',
+                onClick: () => {
+                    const live = (data._sheet ??= {});
+                    for (const k of HP_KEYS) {
+                        if (before[k] === undefined) delete live[k];
+                        else live[k] = before[k];
+                    }
+                    window.SheetApp?.quietSave?.();
+                    if (window.SheetApp?.current === data) window.SheetApp?.renderSheet?.(data);
+                    onUndo?.();
+                    window.SheetOverlay?.toast?.(`Undone — ${n}${nonlethal ? ' nonlethal' : ''} damage taken back`);
+                },
+            },
+        });
+        return { amount: n, nonlethal };
     }
 
     /** Apply healing to HP: raises hpCurrent capped at max, reduces nonlethal alongside
@@ -1906,17 +1886,31 @@ window.SheetRoll = (function () {
             bindExpandable(block);
             return block;
         }
+        // Every typed block (weapon, natural, spell, freeform) evaluates through the #146
+        // calculator; the arithmetic lands on the card and the toast carries an Undo.
         const doApply = ({ half = false, nonlethal = false } = {}) => {
             if (!dmg.typed) {
                 applyDamageToHp(half ? Math.floor(dmg.total / 2) : dmg.total, { nonlethal });
                 return;
             }
             const m = mitigateDamage(dmg, { half });
-            applyDamageToHp(m.total, { nonlethal });
-            mitNote.textContent = `Applied ${m.total}${nonlethal ? ' nonlethal' : ''}`
+            const text = `Applied ${m.total}${nonlethal ? ' nonlethal' : ''}`
                 + (m.steps.length ? ' — ' + m.steps.join(' · ')
                     : (m.total === dmg.total ? ' (no defenses matched)' : ''));
+            mitNote.textContent = text;
+            mitNote.classList.remove('is-undone');
             if (!mitNote.parentNode) block.appendChild(mitNote);
+            if (!m.total) {
+                window.SheetOverlay?.toast?.('No damage gets through — ' + (m.steps.join(' · ') || 'nothing to apply'));
+                return;
+            }
+            applyDamageToHp(m.total, {
+                nonlethal,
+                onUndo: () => {
+                    mitNote.textContent = text + ' — undone';
+                    mitNote.classList.add('is-undone');
+                },
+            });
         };
         const mkApply = (label, title, fn) => {
             const b = h('button', 'roll-card-apply-btn', label);
@@ -1927,6 +1921,7 @@ window.SheetRoll = (function () {
                 fn();
             });
             applyRow.appendChild(b);
+            return b;
         };
         const via = dmg.typed ? ' through DR / resistances (Defenses tab)' : '';
         mkApply('Apply ' + dmg.total, 'Subtract from HP' + via + ' — temp HP absorbs first',
@@ -1935,6 +1930,13 @@ window.SheetRoll = (function () {
             () => doApply({ half: true }));
         mkApply('NL', 'Apply as nonlethal damage' + via,
             () => doApply({ nonlethal: true }));
+        // ⚖ hands the block to the Defenses-tab calculator, pre-filled, for a hit the card's
+        // inferred typing got wrong (a silvered arrow, a spell whose energy was chosen at cast).
+        if (dmg.typed && window.SheetTabDefenses?.openCalculator) {
+            const calcBtn = mkApply('⚖', 'Open in the damage calculator (Defenses tab) to adjust types or bypasses first',
+                () => window.SheetTabDefenses.openCalculator(window.SheetDamageCalc.fromTyped(dmg.typed)));
+            calcBtn.classList.add('roll-card-calc-btn');
+        }
         block.appendChild(applyRow);
         bindExpandable(block);
         return block;
@@ -3522,6 +3524,9 @@ window.SheetRoll = (function () {
         // the selected attack routine without owning any roll math itself.
         applyDamageToHp,
         applyHealingToHp,
+        // #146: the Defenses-tab calculator posts its breakdown as a card and marks it undone.
+        postCard: (card) => pushRollCard(card, { sound: false }),
+        refreshLog: () => renderLog(),
         rollRoutine: () => doRoutineAttack(selectedRoutine(currentData)),
     };
 })();

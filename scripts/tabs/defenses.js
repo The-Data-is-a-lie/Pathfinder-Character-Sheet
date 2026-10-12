@@ -20,6 +20,245 @@ window.SheetTabDefenses = (function () {
     const ENERGY_TYPES = ['acid', 'cold', 'electricity', 'fire', 'sonic', 'force',
         'negative energy', 'positive energy'];
     const DAMAGE_TYPES = [...ENERGY_TYPES, 'bludgeoning', 'piercing', 'slashing'];
+    // ---------------------------------------------------------------- damage calculator (#146)
+    // "Take damage": enter what hit you (amount + type per part, what the attack overcomes),
+    // see which of this sheet's DR / resistances / immunities apply and which are bypassed, then
+    // one click applies the net to HP. The breakdown posts to the roll log and the toast carries
+    // an Undo — no confirm dialog (low-friction rule). The entry survives re-renders in this
+    // module-level state, so applying (which repaints the sheet) never loses the form.
+    const calcState = {
+        parts: [{ amount: '', type: 'slashing' }],
+        bypass: new Set(),
+        spell: false,
+        half: false,
+        nonlethal: false,
+    };
+    let calcFocusOnPaint = false;
+
+    function calcIncoming() {
+        return {
+            parts: calcState.parts.map((p) => ({ amount: Number(p.amount) || 0, types: p.type ? [p.type] : [] })),
+            bypass: [...calcState.bypass],
+            spell: calcState.spell,
+        };
+    }
+
+    function describeIncoming(inc) {
+        const parts = inc.parts.filter((p) => p.amount > 0)
+            .map((p) => `${p.amount} ${p.types[0] || 'untyped'}`).join(' + ');
+        const extra = [...inc.bypass];
+        if (inc.spell) extra.push('spell');
+        return parts + (extra.length ? ' · ' + extra.join(', ') : '');
+    }
+
+    /** Pre-fill the calculator (a roll card's ⚖ button) and bring it into view. */
+    function openCalculator(incoming) {
+        const parts = (incoming?.parts || []).filter((p) => (Number(p.amount) || 0) > 0);
+        calcState.parts = parts.length
+            ? parts.map((p) => ({ amount: String(p.amount), type: (p.types || [])[0] || 'untyped' }))
+            : [{ amount: '', type: 'slashing' }];
+        calcState.bypass = new Set(incoming?.bypass || []);
+        calcState.spell = Boolean(incoming?.spell);
+        calcState.half = false;
+        calcState.nonlethal = false;
+        calcFocusOnPaint = true;
+        const data = window.SheetApp.current;
+        if (!data) return;
+        renderSheet(data);
+        setActiveTab('defenses');
+    }
+
+    function renderDamageCalc(host, data) {
+        const C = window.SheetDamageCalc;
+        const wrap = h('div', 'dmg-calc no-print');
+        wrap.id = 'dmg-calc';
+        const head = h('div', 'def-line-head');
+        head.appendChild(h('h4', 'def-h', 'Take damage'));
+        wrap.appendChild(head);
+        wrap.appendChild(h('p', 'dim dmg-calc-hint',
+            'Got hit? Enter the damage. The sheet takes off your DR, resistances and immunities and shows the math.'));
+
+        const result = h('div', 'dmg-calc-result');
+        const rows = h('div', 'dmg-calc-rows');
+        const mkSelect = (value, onChange) => {
+            const sel = h('select', 'edit-field dmg-calc-type');
+            sel.setAttribute('aria-label', 'Damage type');
+            for (const t of C.INPUT_TYPES) {
+                const o = document.createElement('option');
+                o.value = t;
+                o.textContent = t;
+                sel.appendChild(o);
+            }
+            sel.value = value;
+            sel.addEventListener('change', () => onChange(sel.value));
+            return sel;
+        };
+        let firstAmount = null;
+        calcState.parts.forEach((part, idx) => {
+            const row = h('div', 'dmg-calc-row');
+            const amt = h('input', 'edit-field dmg-calc-amt');
+            amt.type = 'number';
+            amt.min = '0';
+            amt.inputMode = 'numeric';
+            amt.placeholder = '0';
+            amt.value = part.amount;
+            amt.setAttribute('aria-label', 'Damage amount');
+            amt.addEventListener('input', () => { part.amount = amt.value; paint(); });
+            amt.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); apply(); }
+            });
+            if (!firstAmount) firstAmount = amt;
+            row.appendChild(amt);
+            row.appendChild(mkSelect(part.type, (v) => { part.type = v; paint(); }));
+            if (calcState.parts.length > 1) {
+                const rm = h('button', 'inv-btn inv-btn-danger dmg-calc-rm', '×');
+                rm.type = 'button';
+                rm.title = 'Remove this damage part';
+                rm.addEventListener('click', () => {
+                    calcState.parts.splice(idx, 1);
+                    rerenderCalc();
+                });
+                row.appendChild(rm);
+            }
+            rows.appendChild(row);
+        });
+        wrap.appendChild(rows);
+        const add = h('button', 'inv-btn dmg-calc-add', '+ another type');
+        add.type = 'button';
+        add.title = 'Add a second damage type to this hit (e.g. 2d6 slashing + 1d6 fire)';
+        add.addEventListener('click', () => {
+            calcState.parts.push({ amount: '', type: 'fire' });
+            rerenderCalc();
+        });
+        wrap.appendChild(add);
+
+        // What the attack overcomes — toggle chips in DR's bypass vocabulary.
+        const by = h('div', 'dmg-calc-bypass');
+        by.setAttribute('role', 'group');
+        by.setAttribute('aria-label', 'What the attack overcomes');
+        by.appendChild(h('span', 'dmg-calc-label', 'Overcomes:'));
+        for (const b of C.BYPASS_TYPES) {
+            const chip = h('button', 'dmg-calc-chip', b);
+            chip.type = 'button';
+            chip.dataset.bypass = b;
+            chip.setAttribute('aria-pressed', String(calcState.bypass.has(b)));
+            chip.addEventListener('click', () => {
+                if (calcState.bypass.has(b)) calcState.bypass.delete(b);
+                else calcState.bypass.add(b);
+                chip.setAttribute('aria-pressed', String(calcState.bypass.has(b)));
+                paint();
+            });
+            by.appendChild(chip);
+        }
+        wrap.appendChild(by);
+
+        const opts = h('div', 'dmg-calc-opts');
+        const mkCheck = (key, label, title) => {
+            const lab = h('label', 'dmg-calc-opt');
+            lab.title = title;
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = calcState[key];
+            cb.dataset.opt = key;
+            cb.addEventListener('change', () => { calcState[key] = cb.checked; paint(); });
+            lab.append(cb, document.createTextNode(' ' + label));
+            opts.appendChild(lab);
+        };
+        mkCheck('spell', 'From a spell', 'Spells ignore damage reduction (energy resistance still applies)');
+        mkCheck('half', 'Half (save made)', 'Halve each part before defenses, rounding down');
+        mkCheck('nonlethal', 'Nonlethal', 'Goes to the nonlethal pool instead of HP');
+        wrap.appendChild(opts);
+        wrap.appendChild(result);
+
+        const applyBtn = h('button', 'tools-quick dmg-calc-apply', 'Apply');
+        applyBtn.type = 'button';
+        const WORD = { applied: 'applies', bypassed: 'bypassed', unused: 'not used', idle: 'not in play' };
+
+        function paint() {
+            const inc = calcIncoming();
+            const res = C.evaluate(inc, C.effectiveDefenses(data), { half: calcState.half });
+            result.textContent = '';
+            const list = h('ul', 'dmg-calc-checks');
+            if (!res.checks.length) {
+                list.appendChild(h('li', 'dmg-calc-check is-idle',
+                    'No DR, resistances or immunities on this sheet: the full amount applies.'));
+            }
+            for (const c of res.checks) {
+                const li = h('li', 'dmg-calc-check is-' + c.status);
+                li.dataset.kind = c.kind;
+                li.appendChild(h('span', 'dmg-calc-check-label', c.label));
+                li.appendChild(h('span', 'dmg-calc-check-status', WORD[c.status] || c.status));
+                if (c.note) li.appendChild(h('span', 'dmg-calc-check-note', c.note));
+                list.appendChild(li);
+            }
+            result.appendChild(list);
+            const net = h('div', 'dmg-calc-net');
+            net.appendChild(h('span', 'dmg-calc-label', 'Gets through:'));
+            const n = h('strong', 'dmg-calc-net-value', String(res.total));
+            net.appendChild(n);
+            if (res.raw !== res.total) net.appendChild(h('span', 'dim dmg-calc-of', ` of ${res.raw}`));
+            net.appendChild(applyBtn);
+            result.appendChild(net);
+            applyBtn.textContent = `Apply ${res.total}${calcState.nonlethal ? ' nonlethal' : ''}`;
+            applyBtn.disabled = res.raw <= 0;
+            applyBtn.title = res.raw <= 0 ? 'Enter an amount first'
+                : 'Subtract from HP (temp HP absorbs first); Undo in the toast';
+            return res;
+        }
+
+        function apply() {
+            const inc = calcIncoming();
+            const res = paint();
+            if (res.raw <= 0) { firstAmount?.focus(); return; }
+            const riders = res.buckets.map((b) => ({
+                source: `${b.types.join('/') || 'physical'} ${b.raw} → ${b.net}`,
+                text: b.steps.length ? b.steps.join(' · ') : 'no defenses matched',
+            }));
+            const entry = window.SheetRoll?.postCard?.({
+                title: 'Damage taken',
+                subtitle: describeIncoming(inc) + (calcState.half ? ' · half' : ''),
+                riders: [...riders, {
+                    source: 'Net',
+                    text: `${res.total}${calcState.nonlethal ? ' nonlethal' : ''} of ${res.raw}`,
+                }],
+            });
+            // Clear the amounts for the next hit; types and bypasses usually repeat.
+            calcState.parts.forEach((p) => { p.amount = ''; });
+            calcFocusOnPaint = true;
+            if (!res.total) {
+                window.SheetOverlay?.toast?.('No damage gets through: ' + (res.steps.join(' · ') || 'fully stopped'));
+                rerenderCalc();
+                return;
+            }
+            window.SheetRoll.applyDamageToHp(res.total, {
+                nonlethal: calcState.nonlethal,
+                onUndo: () => {
+                    if (!entry) return;
+                    entry.subtitle = (entry.subtitle || '') + ' · undone';
+                    window.SheetRoll?.refreshLog?.();
+                },
+            });
+        }
+        applyBtn.addEventListener('click', apply);
+
+        function rerenderCalc() {
+            const fresh = h('div');
+            renderDamageCalc(fresh, data);
+            wrap.replaceWith(fresh.firstChild);
+        }
+
+        paint();
+        host.appendChild(wrap);
+        if (calcFocusOnPaint) {
+            calcFocusOnPaint = false;
+            requestAnimationFrame(() => {
+                if (!wrap.isConnected) return;
+                wrap.scrollIntoView?.({ block: 'center' });
+                firstAmount?.focus({ preventScroll: true });
+            });
+        }
+    }
+
     function renderDefenses(body, data, d) {
         body.appendChild(h('p', 'dbl-edit-hint no-print',
             'AC bonuses by type (hover a box for sources), save buckets, and editable DR / resistances / SR. + adds an entry; × removes it.'));
@@ -30,6 +269,9 @@ window.SheetTabDefenses = (function () {
             renderSheet(data);
             setActiveTab('defenses');
         };
+
+        // --- #146: take damage through everything below
+        renderDamageCalc(body, data);
 
         // --- AC composition by bonus type
         const grid = h('div', 'defense-grid');
@@ -318,5 +560,5 @@ window.SheetTabDefenses = (function () {
         return sec;
     }
 
-    return { renderDefenses, tabDefenses };
+    return { renderDefenses, tabDefenses, openCalculator };
 })();

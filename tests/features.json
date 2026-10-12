@@ -8,6 +8,7 @@
     { "id": "spells.file-by-level", "area": "Spells", "title": "A picked spell files under its level for the book's class", "source": "user", "status": "have", "ticket": 139 },
     { "id": "catalog.browse-all", "area": "Catalog", "title": "Add menus list the whole applicable catalog A-Z before typing", "source": "user", "status": "have", "ticket": 140 },
     { "id": "inventory.multi-add", "area": "Inventory", "title": "Inventory picker adds many items across categories at once", "source": "user", "status": "have", "ticket": 140 },
-    { "id": "companions.mini-sheet", "area": "Companions", "title": "Companions are full mini-sheets with derived math, buffs and conditions", "source": "user", "status": "have", "ticket": 141 }
+    { "id": "companions.mini-sheet", "area": "Companions", "title": "Companions are full mini-sheets with derived math, buffs and conditions", "source": "user", "status": "have", "ticket": 141 },
+    { "id": "damage.calculator", "area": "Combat", "title": "Damage calculator: incoming damage through DR/ER/immunity", "source": "user", "status": "have", "ticket": 146 }
   ]
 }

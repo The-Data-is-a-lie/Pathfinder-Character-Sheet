@@ -2459,6 +2459,70 @@ body.dnd-dragging .feature-group.is-empty .feat-list {
 .def-amt { width: 4.5rem; }
 .def-custom { width: 9rem; }
 
+/* #146 damage calculator ("Take damage", top of Defenses) */
+.dmg-calc {
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    background: var(--panel);
+    padding: 0.4rem 0.6rem 0.55rem;
+    margin: 0.2rem 0 0.8rem;
+}
+.dmg-calc-hint { margin: 0 0 0.35rem; font-size: 0.82rem; }
+.dmg-calc-rows { display: flex; flex-direction: column; gap: 0.3rem; }
+.dmg-calc-row { display: flex; gap: 0.35rem; align-items: center; }
+/* .edit-field is full-width by default; here amount + type + × share one line. */
+.dmg-calc-row .edit-field.dmg-calc-amt { flex: 0 0 5rem; width: 5rem; min-height: 2.2rem; font-size: 1rem; }
+.dmg-calc-row .edit-field.dmg-calc-type { flex: 0 1 12rem; width: auto; min-width: 0; min-height: 2.2rem; }
+.dmg-calc-rm { min-height: 2.2rem; min-width: 2.2rem; }
+.dmg-calc-add { margin: 0.35rem 0; }
+.dmg-calc-bypass, .dmg-calc-opts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.45rem;
+    align-items: center;
+    margin: 0.25rem 0;
+}
+.dmg-calc-label { font-size: 0.8rem; font-weight: 600; color: var(--dim); }
+.dmg-calc-chip {
+    padding: 0.15rem 0.55rem;
+    min-height: 1.9rem;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    background: var(--chip-bg);
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+.dmg-calc-chip[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--on-accent);
+}
+.dmg-calc-opt { font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.2rem; }
+.dmg-calc-checks { list-style: none; margin: 0.4rem 0; padding: 0; display: grid; gap: 0.2rem; }
+.dmg-calc-check {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem 0.5rem;
+    align-items: baseline;
+    font-size: 0.85rem;
+    padding-left: 0.5rem;
+    border-left: 3px solid var(--rule);
+}
+.dmg-calc-check-label { font-weight: 600; }
+.dmg-calc-check-status { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.dmg-calc-check-note { color: var(--dim); font-size: 0.8rem; }
+.dmg-calc-check.is-applied { border-left-color: var(--success); }
+.dmg-calc-check.is-applied .dmg-calc-check-status { color: var(--success); }
+.dmg-calc-check.is-bypassed { border-left-color: var(--danger); }
+.dmg-calc-check.is-bypassed .dmg-calc-check-status { color: var(--danger); }
+.dmg-calc-check.is-unused, .dmg-calc-check.is-idle { opacity: 0.75; }
+.dmg-calc-net { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.dmg-calc-net-value { font-size: 1.4rem; }
+.dmg-calc-apply { margin-left: auto; min-height: 2.2rem; }
+.roll-card-mitigation.is-undone { text-decoration: line-through; }
+
 .feat-tags { display: inline-flex; flex-wrap: wrap; gap: 0.25rem; }
 .feat-tag {
     font-size: 0.68rem;
