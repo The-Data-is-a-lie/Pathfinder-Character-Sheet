@@ -948,19 +948,7 @@ window.SheetTabSpells = (function () {
 
         // Level blocks with the spell lists
         if (nonEmpty(bk.lists)) {
-            if (bk.preparedMode) {
-                const filt = h('label', 'spell-filter-prep no-print');
-                const cb = document.createElement('input');
-                cb.type = 'checkbox';
-                cb.addEventListener('change', () => {
-                    wrap.querySelectorAll('.spell-prep-row').forEach((row) => {
-                        const prepared = row.querySelector('.spell-prep-check')?.checked;
-                        row.style.display = cb.checked && !prepared ? 'none' : '';
-                    });
-                });
-                filt.append(cb, document.createTextNode(' Show prepared only'));
-                wrap.appendChild(filt);
-            }
+            // "Show prepared only" is the tab-wide Prepared only chip now (#149).
             const collapsedMap = loadSpellLevelCollapsed();
             bk.lists.forEach((spells, level) => {
                 if (!nonEmpty(spells)) return;
@@ -1142,6 +1130,24 @@ window.SheetTabSpells = (function () {
             'Browse spells to add to a level. Cast rolls attack/damage/DC and spends a slot'
             + (knownMetamagic(data).length ? ' (metamagic picker opens first)' : '')
             + '. Multiclass casters: each class gets its own spellbook below.'));
+        // #149: one search + level chips + Hide empty / Prepared only across every book.
+        if (books.some((bk) => nonEmpty(bk.lists))) {
+            body.appendChild(window.SheetListFilter.attach({
+                key: 'spells',
+                owner: data,
+                placeholder: 'Search spells…',
+                groupSel: '.spell-level-block',
+                groupId: (el) => 'L' + el.dataset.spellLevel,
+                groupLabel: (el) => (el.dataset.spellLevel === '0' ? 'Cantrips' : 'Level ' + el.dataset.spellLevel),
+                rowSel: '.spell-prep-row',
+                rowText: (el) => (el.dataset.dndId || '') + ' ' + el.textContent,
+                // Spontaneous rows have no Prep box: everything they know is castable.
+                prepared: (el) => {
+                    const cb = el.querySelector('.spell-prep-check');
+                    return cb ? cb.checked : null;
+                },
+            }));
+        }
         for (const bk of books) renderSpellbook(body, data, bk, multi);
 
         const addBook = h('button', 'inv-btn no-print spellbook-add', '+ Add spellbook');

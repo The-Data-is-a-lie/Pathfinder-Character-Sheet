@@ -235,16 +235,17 @@ window.SheetTabInventory = (function () {
         body.appendChild(h('p', 'dbl-edit-hint no-print',
             'Add items with Browse or a category +. Drag ⋮⋮ to reorder. Checkboxes: identified · carried · equipped (equip applies buffs).'));
 
-        const filterIn = h('input', 'edit-field inv-filter');
-        filterIn.type = 'search';
-        filterIn.placeholder = 'Search filter…';
-        filterIn.addEventListener('input', () => {
-            const q = filterIn.value.toLowerCase().trim();
-            body.querySelectorAll('.inv-item').forEach((el) => {
-                const n = (el.querySelector('.inv-item-name')?.textContent
-                    || el.textContent || '').toLowerCase();
-                el.style.display = !q || n.includes(q) ? '' : 'none';
-            });
+        // #149: the shared list toolbar (search + category chips + Hide empty).
+        const filterBar = window.SheetListFilter.attach({
+            key: 'inventory',
+            owner: data,
+            placeholder: 'Search filter…',
+            searchCls: 'inv-filter',
+            groupSel: '.inv-category[data-inv-cat]',
+            groupId: (el) => el.dataset.invCat,
+            groupLabel: (el) => (INV_CATEGORY_ORDER.find(([c]) => c === el.dataset.invCat) || [])[1] || el.dataset.invCat,
+            rowSel: '.inv-item',
+            rowText: (el) => el.querySelector('.inv-item-name')?.textContent || el.textContent,
         });
 
         // Category jump links (scroll to the section header)
@@ -260,7 +261,7 @@ window.SheetTabInventory = (function () {
             catNav.appendChild(btn);
         }
         const toolbarExtra = h('div', 'inv-toolbar-extra');
-        toolbarExtra.append(filterIn, catNav);
+        toolbarExtra.append(catNav);
 
         body.appendChild(sectionCatalogToolbar({
             browseLabel: 'Browse items',
@@ -284,6 +285,7 @@ window.SheetTabInventory = (function () {
                 },
             },
         }));
+        body.appendChild(filterBar);
 
         // Generated weapon / armor / shield live in the list as regular items
         // (migrated once) — no separate core-slots block.

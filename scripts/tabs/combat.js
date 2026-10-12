@@ -96,6 +96,20 @@ window.SheetTabCombat = (function () {
         }
         body.appendChild(sizeRow);
 
+        // #149: search + section chips over the weapons and the conditionals panel's groups.
+        // roll.js repaints the attack card on its own; the filter re-applies by observing.
+        body.appendChild(window.SheetListFilter.attach({
+            key: 'combat',
+            owner: data,
+            placeholder: 'Search weapons and conditionals…',
+            groupSel: '.combat-weapons, .cond-group',
+            groupId: (el) => (el.classList.contains('cond-group')
+                ? 'cond-' + (el.querySelector('.cond-group-title')?.textContent || '') : 'weapons'),
+            groupLabel: (el) => (el.classList.contains('cond-group')
+                ? el.querySelector('.cond-group-title')?.textContent : 'Weapons'),
+            rowSel: '.inv-item, .cond-row',
+        }));
+
         // Weapons — the same rows as Inventory (name / ⚙ opens the full item sheet)
         body.appendChild(h('h3', null, 'Weapons'));
         migrateCoreGear(data);
