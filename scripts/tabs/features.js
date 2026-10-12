@@ -409,51 +409,21 @@ window.SheetTabFeatures = (function () {
      * narrow to those groups. Hides via classes — never rebuilds the lists.
      */
     function renderFeaturesToolbar(data) {
-        const entries = featuresFilterEntries(data);
-        if (!entries.length) return null;
-        const bar = h('div', 'features-toolbar no-print');
-        const search = h('input', 'edit-field feature-search');
-        search.type = 'search';
-        search.placeholder = 'Search features…';
-        const pillRow = h('div', 'feature-filter-pills');
-
-        const applyFilters = () => {
-            const pane = bar.parentElement;
-            if (!pane) return;
-            const q = search.value.toLowerCase().trim();
-            const active = new Set([...pillRow.querySelectorAll('.filter-pill.is-active')]
-                .map((p) => p.dataset.fgroup));
-            // `.feature-group[data-fgroup]`, not a bare `[data-fgroup]`: the pill BUTTONS carry
-            // the same attribute, so the bare selector hid every other pill the moment one went
-            // active (a global `.hidden {display:none}` backs it) — leaving no way to select a
-            // second group, and no way back except the one pill still on screen.
-            pane.querySelectorAll('.feature-group[data-fgroup]').forEach((grp) => {
-                grp.classList.toggle('hidden', active.size > 0 && !active.has(grp.dataset.fgroup));
-            });
-            pane.querySelectorAll('.feat-item').forEach((el) => {
-                const t = (el.dataset.featName || '') + ' ' + el.textContent.toLowerCase();
-                el.style.display = !q || t.includes(q) ? '' : 'none';
-            });
-        };
-
-        search.addEventListener('input', applyFilters);
-        for (const entry of entries) {
-            const pill = h('button', 'filter-pill');
-            pill.type = 'button';
-            pill.dataset.fgroup = entry.slug;
-            pill.appendChild(h('span', null, entry.label));
-            pill.appendChild(h('span', 'pill-count', String(entry.count)));
-            pill.title = 'Show only selected groups (click again to clear)';
-            pill.setAttribute('aria-pressed', 'false');
-            pill.addEventListener('click', () => {
-                pill.classList.toggle('is-active');
-                pill.setAttribute('aria-pressed', pill.classList.contains('is-active') ? 'true' : 'false');
-                applyFilters();
-            });
-            pillRow.appendChild(pill);
-        }
-        bar.append(search, pillRow);
-        return bar;
+        if (!featuresFilterEntries(data).length) return null;
+        // #149: the shared list toolbar (search + section chips + Hide empty), same as every
+        // list tab. Sections are the `.feature-group`s; merged groups share one chip by slug.
+        return window.SheetListFilter.attach({
+            key: 'features',
+            owner: data,
+            placeholder: 'Search features…',
+            groupSel: '.feature-group[data-fgroup]',
+            groupId: (el) => el.dataset.fgroup,
+            groupLabel: (el) => el.querySelector('.feature-group-name')?.textContent || el.dataset.fgroup,
+            rowSel: '.feat-item',
+            rowText: (el) => (el.dataset.featName || '') + ' ' + el.textContent,
+            cls: 'features-toolbar',
+            searchCls: 'feature-search',
+        });
     }
     /** pf1 features footer: feat counts vs the odd-level budget (info boxes). */
     function renderFeatCounts(data) {

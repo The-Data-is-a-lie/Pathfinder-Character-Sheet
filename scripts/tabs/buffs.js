@@ -456,6 +456,17 @@ window.SheetTabBuffs = (function () {
         body.appendChild(h('p', 'dbl-edit-hint no-print',
             'Grouped by category. Active checkbox applies changes. Duration & level are session bookkeeping.'));
 
+        // #149: search + category chips + Hide empty, shared with every list tab.
+        body.appendChild(window.SheetListFilter.attach({
+            key: 'buffs',
+            owner: data,
+            placeholder: 'Search buffs…',
+            groupSel: '.buffs-section[data-buff-subtype]',
+            groupId: (el) => el.dataset.buffSubtype,
+            groupLabel: (el) => el.querySelector('.buffs-section-title')?.textContent || el.dataset.buffSubtype,
+            rowSel: '.buffs-row',
+        }));
+
         // Column legend
         const legend = h('div', 'buffs-col-legend no-print');
         legend.innerHTML = '<span></span>'

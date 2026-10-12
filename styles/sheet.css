@@ -2174,7 +2174,7 @@ button:disabled { opacity: 0.55; cursor: wait; }
 .feat-list { padding-left: 0.2rem; }
 
 /* Features toolbar: tab-wide search + filter pills (actor-item-nav-filters.hbs) */
-.features-toolbar {
+.features-toolbar, .list-toolbar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -2185,7 +2185,12 @@ button:disabled { opacity: 0.55; cursor: wait; }
     border: 1px solid var(--rule);
     border-radius: 6px;
 }
-.features-toolbar .feature-search { flex: 1 1 12rem; min-width: 8rem; }
+.features-toolbar .feature-search, .list-toolbar .list-search { flex: 1 1 12rem; min-width: 8rem; }
+/* #149 shared list toolbar: sections chips + the two special chips; hidden rows/sections */
+.list-filter-specials { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-left: auto; }
+.filter-pill.filter-special { border-style: dashed; }
+.list-filter-hidden { display: none !important; }
+.inv-tab .list-toolbar, .inventory-tab .list-toolbar { margin-top: 0.4rem; }
 .feature-filter-pills { display: flex; flex-wrap: wrap; gap: 0.3rem; }
 .filter-pill {
     font: inherit;
