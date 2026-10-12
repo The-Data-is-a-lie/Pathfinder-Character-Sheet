@@ -38,7 +38,12 @@ window.SheetUI = (function () {
     function details(summaryText, bodyHtml, cls) {
         const d = h('details', cls);
         d.appendChild(h('summary', null, summaryText));
-        if (bodyHtml) d.appendChild(htmlBlock('desc', bodyHtml));
+        if (bodyHtml) {
+            const body = htmlBlock('desc', bodyHtml);
+            d.appendChild(body);
+            // #147: @Save / @Damage / @Heal (and their prose forms) become buttons on first open.
+            window.SheetEnrich?.enrichOnOpen(d, body);
+        }
         return d;
     }
 

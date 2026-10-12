@@ -2006,6 +2006,7 @@ window.SheetRoll = (function () {
             det.appendChild(sum);
             const inner = h('div', 'roll-card-desc-body');
             inner.innerHTML = e.descHtml;
+            window.SheetEnrich?.enrich(inner);
             det.appendChild(inner);
             body.appendChild(det);
         }

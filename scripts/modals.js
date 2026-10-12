@@ -1796,6 +1796,7 @@ window.SheetModals = (function () {
         descPane.appendChild(h('h4', 'item-sheet-h', 'Identified Properties'));
         const descHtml = () => item.description || data.equip_descrip?.[item.name] || '';
         const descView = htmlBlock('desc item-sheet-desc', descHtml() || '<p class="dim">No description.</p>');
+        window.SheetEnrich?.enrich(descView);
         descPane.appendChild(descView);
         const descEditBtn = h('button', 'inv-btn item-sheet-desc-edit', 'Edit description');
         descEditBtn.type = 'button';
@@ -1806,6 +1807,7 @@ window.SheetModals = (function () {
             item.description = descEdit.value;
             (data.equip_descrip ??= {})[item.name] = descEdit.value;
             descView.innerHTML = descEdit.value || '<p class="dim">No description.</p>';
+            window.SheetEnrich?.enrich(descView);
             quietSave();
         });
         descEditBtn.addEventListener('click', () => descEdit.classList.toggle('hidden'));
