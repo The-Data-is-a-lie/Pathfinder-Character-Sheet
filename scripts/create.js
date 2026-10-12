@@ -40,6 +40,8 @@ window.SheetCreate = (function () {
     }
 
     function open() {
+        // Ticket 14: wake a sleeping backend now, so it is up by the time the Finish step posts.
+        window.SheetBackend?.warm?.();
         const SD = window.SheetData;
         const state = {
             step: 0,
@@ -302,7 +304,6 @@ window.SheetCreate = (function () {
         async function doCreate() {
             nextBtn.disabled = true;
             backBtn.disabled = true;
-            status.textContent = 'Rolling up your hero… this can take a minute.';
             try {
                 const data = await window.SheetGenerate.generateCustom({
                     race: state.race,
@@ -310,6 +311,8 @@ window.SheetCreate = (function () {
                     alignment: state.alignment,
                     highestLevel: String(state.level),
                     lowestLevel: String(state.level),
+                }, {
+                    onProgress: (p) => { status.textContent = window.SheetBackend.progressText(p); },
                 });
                 // Adoption has run seedRacialColumn, so the racial share lives in the
                 // Racial column and data[ab] is the pure base — ours to set.
@@ -321,8 +324,10 @@ window.SheetCreate = (function () {
                 state.step = 3;
                 paint(data);
             } catch (err) {
-                status.textContent = 'Failed: ' + err.message
-                    + ' — check the backend in Settings, then try again.';
+                // BackendErrors are already worded for the person at the sheet; the button that
+                // sent the request is re-enabled below, so it IS the retry.
+                status.textContent = err.kind ? err.message
+                    : 'Failed: ' + err.message + ' — check the backend in Settings, then try again.';
             } finally {
                 nextBtn.disabled = false;
                 backBtn.disabled = false;

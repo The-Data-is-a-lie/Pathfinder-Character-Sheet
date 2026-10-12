@@ -857,6 +857,7 @@
             // so copying again here would only ever flatten a Lowest/Highest range into one level.
             generate(form);
         });
+        document.getElementById('gen-retry')?.addEventListener('click', () => generate(form));
         document.getElementById('render-paste').addEventListener('click', () =>
             loadJsonText(document.getElementById('json-paste').value));
         document.getElementById('json-file').addEventListener('change', (e) => {

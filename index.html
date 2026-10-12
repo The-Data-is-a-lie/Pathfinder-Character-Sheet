@@ -68,6 +68,9 @@
          parses, and hands each response to SheetPWA.warmCache so the offline copy is built
          from the download the page was doing anyway (#61). -->
     <script src="scripts/pwa.js" defer></script>
+    <!-- Ticket 14: the one door to the generator backend (warm-up ping, wait line, timeout,
+         single-flight). Ahead of loot-ui.js, whose feature probe IS the warm-up ping. -->
+    <script src="scripts/backend.js" defer></script>
     <script src="scripts/data.js" defer></script>
     <script src="scripts/details.js" defer></script>
     <script src="scripts/library.js" defer></script>
@@ -280,6 +283,9 @@
                      GET /generate_loot. An older backend simply never reveals it. -->
                 <button type="button" id="gen-loot" class="gen-surprise" hidden title="Roll one encounter's worth of treasure and add it to any character in your library">💰 Treasure…</button>
                 <span id="gen-status" role="status"></span>
+                <!-- Ticket 14: shown only after a timeout / dropped connection, which usually means
+                     the request caught the backend asleep; it re-runs the same roll. -->
+                <button type="button" id="gen-retry" class="gen-surprise" hidden>↻ Try again</button>
             </div>
         </div>
 

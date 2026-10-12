@@ -46,6 +46,8 @@ window.SheetShellUI = (function () {
             return;
         }
         if (!window.SheetOverlay || !window.SheetGuide) return;
+        // Ticket 14: Start here leads to "Make a character", so wake the generator now.
+        window.SheetBackend?.warm?.();
         localStorage.setItem(START_SEEN_KEY, '1');
         startOverlay = window.SheetOverlay.open({
             title: 'Start here',
@@ -299,6 +301,9 @@ window.SheetShellUI = (function () {
         panel.classList.toggle('hidden');
         if (!panel.classList.contains('hidden')) {
             panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            // Ticket 14: opening the generate form is the strongest hint a roll is coming, so wake
+            // a backend that has gone back to sleep since the load-time ping.
+            if (id === 'gen-panel') window.SheetBackend?.warm?.();
         }
     }
 
