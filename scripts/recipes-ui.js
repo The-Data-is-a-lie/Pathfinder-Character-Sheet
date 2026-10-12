@@ -36,6 +36,7 @@ window.SheetRecipesUI = (function () {
 
     // ------------------------------------------------------------------ #73 related NPC
     function openRelated(data) {
+        window.SheetBackend?.warm?.();   // ticket 14: wake it while the recipe is being picked
         const src = data || window.SheetApp?.current;
         if (!src || src.error) return;
         const s = R().sourceParams(src);
@@ -105,12 +106,13 @@ window.SheetRecipesUI = (function () {
         cancel.addEventListener('click', () => handle.close());
         go.addEventListener('click', async () => {
             go.disabled = true;
-            status.textContent = 'Rolling them up… the backend can take a minute to wake.';
             try {
                 // The source must be saved BEFORE the link is written: it needs an id for the
                 // other side's relationship entry to point at, and generateCustom re-renders.
                 await window.SheetRoster.saveCurrent({ quiet: true });
-                const made = await window.SheetGenerate.generateCustom(R().toPayload(params));
+                const made = await window.SheetGenerate.generateCustom(R().toPayload(params), {
+                    onProgress: (p) => { status.textContent = window.SheetBackend.progressText(p, 'Rolling them up…'); },
+                });
                 R().linkCharacters(src, made, typeId);
                 // The live Notes box is the authority for prose, not `_sheet.prose`: BOTH
                 // renderSheet and saveCurrent begin by copying the textareas back over it. So
@@ -128,7 +130,7 @@ window.SheetRecipesUI = (function () {
                 window.SheetOverlay.toast(`${made.character_full_name} — `
                     + `${R().relationshipById(typeId).label.toLowerCase()} of ${s.name}`);
             } catch (err) {
-                status.textContent = 'Failed: ' + err.message;
+                status.textContent = err.kind ? err.message : 'Failed: ' + err.message;
                 go.disabled = false;
             }
         });
@@ -136,6 +138,7 @@ window.SheetRecipesUI = (function () {
 
     // ------------------------------------------------------------------ #74 encounter set
     function openEncounter() {
+        window.SheetBackend?.warm?.();
         const start = Math.max(1, Number(window.SheetApp?.current?.total_level) || 4);
         let apl = start;
         let difficulty = 'average';
@@ -226,10 +229,12 @@ window.SheetRecipesUI = (function () {
                 let i = 0;
                 for (const slot of solved.slots) {
                     i += 1;
-                    status.textContent = `Generating ${i} of ${total} — ${slot.role} (level ${slot.level})…`;
+                    const line = `Generating ${i} of ${total} — ${slot.role} (level ${slot.level})…`;
                     const made = await window.SheetGenerate.generateCustom({
                         highestLevel: String(slot.level),
                         lowestLevel: String(slot.level),
+                    }, {
+                        onProgress: (p) => { status.textContent = window.SheetBackend.progressText(p, line); },
                     });
                     made.character_full_name = `${made.character_full_name} (${slot.role})`;
                     R().tagEncounter(made, group);
@@ -246,8 +251,8 @@ window.SheetRecipesUI = (function () {
                 handle.close();
                 window.SheetOverlay.toast(`Encounter ready — ${group.name}`);
             } catch (err) {
-                status.textContent = 'Failed: ' + err.message
-                    + ' — anything already generated is saved in your library.';
+                status.textContent = (err.kind ? err.message : 'Failed: ' + err.message)
+                    + ' Anything already generated is saved in your library.';
                 go.disabled = false;
             }
         });

@@ -28,18 +28,11 @@ window.SheetLootUI = (function () {
     let probePromise = null;
     function probe() {
         if (probePromise) return probePromise;
-        probePromise = (async () => {
-            try {
-                const resp = await fetch(backend() + '/generate_loot', { method: 'GET' });
-                if (!resp.ok) return null;
-                const caps = await resp.json();
-                return caps && caps.ok ? caps : null;
-            } catch {
-                // Offline, CORS, DNS — all of them mean "cannot offer this right now", and none of
-                // them are worth a console error on a page that works fine without treasure.
-                return null;
-            }
-        })();
+        // The same GET doubles as the generator's warm-up ping, so SheetBackend owns it and this
+        // reads its answer: one request at load both wakes the backend and feature-detects loot.
+        // Offline, CORS, DNS all come back as not-ok, meaning "cannot offer this right now".
+        probePromise = window.SheetBackend.warm().then(({ ok, json }) =>
+            ok && json && json.ok ? json : null);
         return probePromise;
     }
 

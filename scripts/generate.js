@@ -265,33 +265,28 @@ window.SheetGenerate = (function () {
     }
     async function generate(form) {
         const status = document.getElementById('gen-status');
-        // #61: Generate is the sheet's ONLY network call, so it is the only thing offline mode
-        // has to speak to. Say so up front rather than letting the user watch a fetch time out.
-        if (navigator.onLine === false) {
-            status.textContent = 'You are offline — rolling up a new character needs the '
-                + 'generator backend. Everything else on the sheet keeps working.';
-            return;
-        }
+        const retry = document.getElementById('gen-retry');
+        if (retry) retry.hidden = true;
         // Two ways in now — the quick "Roll it!" and the advanced "Generate Character".
         const buttons = ['gen-roll', 'gen-submit', 'gen-surprise']
             .map((id) => document.getElementById(id)).filter(Boolean);
         const payload = buildPayload(form);
         localStorage.setItem(window.SheetApp.FORM_KEY, JSON.stringify(payload));
         for (const b of buttons) b.disabled = true;
-        status.textContent = 'Rolling up your hero… this can take up to a minute the first time.';
         try {
-            const resp = await fetch(backendUrl() + '/update_character_data', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+            // #61 offline bail-out, the cold-start wait line and the in-flight guard all live in
+            // SheetBackend, so every generate surface says the same thing at the same moment.
+            const data = await window.SheetBackend.postJson('/update_character_data', payload, {
+                onProgress: (p) => { status.textContent = window.SheetBackend.progressText(p); },
             });
-            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-            const data = await resp.json();
             await adoptCharacter(data);
             status.textContent = '';
             document.getElementById('gen-panel').classList.add('hidden');
         } catch (err) {
-            status.textContent = 'Failed: ' + err.message;
+            status.textContent = err.kind ? err.message : 'Failed: ' + err.message;
+            // A timeout or a dropped connection most likely caught the backend asleep, and it is
+            // probably awake now, so the same roll deserves a one-tap second try.
+            if (retry && err.retryable) retry.hidden = false;
         } finally {
             for (const b of buttons) b.disabled = false;
         }
@@ -299,21 +294,14 @@ window.SheetGenerate = (function () {
     /**
      * #44: the guided-create wizard's exit — post the gen form's payload with the wizard's
      * picks overriding it, adopt the result, and hand the data back for post-processing
-     * (name + chosen ability scores). Throws on HTTP failure so the wizard can show it.
+     * (name + chosen ability scores). Throws a SheetBackend.BackendError on failure so the
+     * caller can show it (and offer a retry when `err.retryable`). `opts.onProgress` is passed
+     * straight to SheetBackend.postJson.
      */
-    async function generateCustom(overrides = {}) {
-        if (navigator.onLine === false) {
-            throw new Error('You are offline — creating a character needs the generator backend.');
-        }
+    async function generateCustom(overrides = {}, opts = {}) {
         const form = document.getElementById('gen-form');
         const payload = { ...buildPayload(form), ...overrides };
-        const resp = await fetch(backendUrl() + '/update_character_data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
+        const data = await window.SheetBackend.postJson('/update_character_data', payload, opts);
         await adoptCharacter(data);
         return data;
     }
