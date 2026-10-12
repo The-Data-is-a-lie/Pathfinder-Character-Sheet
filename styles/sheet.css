@@ -2523,6 +2523,31 @@ body.dnd-dragging .feature-group.is-empty .feat-list {
 .dmg-calc-apply { margin-left: auto; min-height: 2.2rem; }
 .roll-card-mitigation.is-undone { text-decoration: line-through; }
 
+/* #147 inline enrichers: prose stays readable, but the phrase is a button that rolls it. */
+.enricher {
+    display: inline;
+    font: inherit;
+    color: var(--accent-dark);
+    background: var(--chip-bg);
+    border: none;
+    border-bottom: 1px dashed var(--accent);
+    border-radius: 3px;
+    padding: 0 0.2em;
+    margin: 0;
+    cursor: pointer;
+    text-align: inherit;
+}
+.enricher::before { font-size: 0.85em; margin-right: 0.2em; }
+.enricher-save::before { content: '⛨'; }
+.enricher-damage::before { content: '⚔'; }
+.enricher-heal::before { content: '✚'; }
+.enricher:hover { background: var(--edit-hover-bg); border-bottom-style: solid; }
+.enricher:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+@media print {
+    .enricher { background: none; border: none; color: inherit; padding: 0; }
+    .enricher::before { content: none; }
+}
+
 .feat-tags { display: inline-flex; flex-wrap: wrap; gap: 0.25rem; }
 .feat-tag {
     font-size: 0.68rem;
