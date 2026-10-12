@@ -3276,6 +3276,97 @@ body.dnd-dragging .feature-group.is-empty .feat-list {
     cursor: pointer;
 }
 .quick-action-btn:hover { background: var(--accent-hover); }
+/* #148 pinned Quick Actions: the player's own strip, above the fixed buttons */
+.quickbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0.35rem 0 0.2rem;
+    padding: 0.35rem 0.45rem;
+    border: 1px dashed var(--rule);
+    border-radius: 6px;
+    background: var(--panel);
+}
+.quickbar-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dim); }
+.qb-pin {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    background: var(--chip-bg);
+    overflow: hidden;
+}
+.qb-pin.is-gone { opacity: 0.55; border-style: dashed; }
+.qb-use {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 2.2rem;
+    padding: 0.15rem 0.35rem 0.15rem 0.65rem;
+    border: none;
+    background: none;
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+.qb-use:hover:not(:disabled) { background: var(--edit-hover-bg); }
+.qb-use:disabled { cursor: default; text-decoration: line-through; }
+.qb-icon { font-size: 0.9em; }
+.qb-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--on-accent);
+}
+.qb-unpin {
+    min-width: 2rem;
+    border: none;
+    border-left: 1px solid var(--rule);
+    background: none;
+    color: var(--dim);
+    font: inherit;
+    cursor: pointer;
+}
+.qb-unpin:hover { color: var(--danger); }
+.qb-add {
+    min-height: 2.2rem;
+    padding: 0.15rem 0.7rem;
+    border: 1px dashed var(--accent);
+    border-radius: 999px;
+    background: none;
+    color: var(--accent-dark);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+.qb-picker { display: flex; flex-direction: column; gap: 0.5rem; min-width: min(34rem, 86vw); }
+.qb-results { max-height: 60vh; overflow-y: auto; }
+.qb-group { margin: 0.5rem 0 0.2rem; font-size: 0.85rem; color: var(--dim); }
+.qb-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.15rem; }
+.qb-toggle {
+    width: 100%;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    min-height: 2.2rem;
+    padding: 0.2rem 0.45rem;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: none;
+    color: var(--ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.qb-toggle:hover { background: var(--edit-hover-bg); }
+.qb-toggle[aria-pressed="true"] { border-color: var(--accent); background: var(--chip-bg); }
+.qb-toggle-name { font-weight: 600; }
+.qb-toggle-sub { font-size: 0.8rem; margin-left: auto; }
 .summary-combat-strip {
     display: flex;
     flex-wrap: wrap;

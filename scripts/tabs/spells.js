@@ -259,14 +259,15 @@ window.SheetTabSpells = (function () {
         }
         if (window.SheetApp.current === data) {
             renderSheet(data);
-            setActiveTab('spells');
+            // stayTab: the Summary quickbar (#148) casts without leaving the Summary.
+            setActiveTab(opts.stayTab || 'spells');
         }
     }
     /** Cast entry point: direct cast, or a metamagic picker when the character has any. */
-    function promptCast(data, bk, level, name) {
+    function promptCast(data, bk, level, name, opts = {}) {
         const mmNames = knownMetamagic(data);
         if (!mmNames.length || !window.SheetOverlay?.open) {
-            castSpell(data, bk, level, name, null);
+            castSpell(data, bk, level, name, null, opts);
             return;
         }
         const body = h('div', 'mm-picker');
@@ -336,7 +337,7 @@ window.SheetTabSpells = (function () {
                 return;
             }
             handle.close();
-            castSpell(data, bk, level, name, mm);
+            castSpell(data, bk, level, name, mm, opts);
         });
     }
 
@@ -1179,5 +1180,44 @@ window.SheetTabSpells = (function () {
         } catch { /* private mode */ }
     }
 
-    return { renderSpells };
+    // ---------------------------------------------------------------- quickbar seam (#148)
+    // The Summary quickbar pins spells by (book id, level, name) and casts through the same
+    // promptCast path as the Cast button, so metamagic, prepared checks and slot spending match.
+    function pinnableSpells(data) {
+        const out = [];
+        for (const bk of bookViews(data)) {
+            (bk.lists || []).forEach((list, level) => {
+                for (const name of list || []) {
+                    if (name) out.push({ book: bk.id, bookName: bk.name, level, name: String(name) });
+                }
+            });
+        }
+        return out;
+    }
+    const findBook = (data, id) => bookViews(data).find((b) => b.id === id) || null;
+    /** Casts left at a book level: a number, null for unlimited (prepared cantrips), or
+     *  undefined when the book is gone. */
+    function spellSlotsLeft(data, bookId, level) {
+        const bk = findBook(data, bookId);
+        if (!bk) return undefined;
+        if (bk.preparedMode && level === 0) return null;
+        return Number(bk.casts?.[level]) || 0;
+    }
+    function quickCast(data, bookId, level, name) {
+        const bk = findBook(data, bookId);
+        if (!bk) return false;
+        promptCast(data, bk, level, name, { stayTab: 'summary' });
+        return true;
+    }
+    function openSpellSheet(data, bookId, level, name) {
+        const bk = findBook(data, bookId);
+        if (!bk) return;
+        window.SheetFeatureSheet.openFeatureSheet(data, {
+            kind: 'spell', name, sourceKind: 'spell', typeLabel: 'Spell', level,
+            canRegroup: false, showUses: false,
+            panels: { details: buildSpellDetailsPanel(data, bk, level, name) },
+        });
+    }
+
+    return { renderSpells, pinnableSpells, spellSlotsLeft, quickCast, openSpellSheet };
 })();

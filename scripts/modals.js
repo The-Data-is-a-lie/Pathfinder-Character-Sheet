@@ -1385,6 +1385,81 @@ window.SheetModals = (function () {
      */
     let itemSheetHandle = null;
     let classSheetHandle = null;
+    /**
+     * Spend one use of an inventory item: a linked pool (#25), its own charges, or one of a
+     * spell-item stack (#26), then cast the linked spell card. Shared by the item sheet's Use
+     * button and the Summary quickbar (#148). `fail` reports why nothing was spent; returns
+     * `{ leftTxt }` or null.
+     */
+    function useInventoryItem(data, item, { fail = (msg) => alert(msg) } = {}) {
+        item.charges = item.charges && typeof item.charges === 'object' ? item.charges : {};
+        // #26: builder-made items carry their casting facts; charge pools spend a
+        // charge, chargeless spell items (scrolls, potions) consume 1 quantity.
+        const si = item.spellItem && typeof item.spellItem === 'object'
+            ? item.spellItem : null;
+        const hasCharges = item.charges.value != null || item.charges.max != null;
+        // #25: a charge link redirects the spend to the pool owner.
+        const linkPool = item.chargeSource
+            ? window.SheetState?.resolveChargePool?.(data, { kind: 'item', id: item.id })
+            : null;
+        let leftTxt;
+        if (linkPool?.linked) {
+            if (linkPool.value <= 0) {
+                fail(`No charges left in ${linkPool.label}.`);
+                return null;
+            }
+            linkPool.value -= 1;
+            leftTxt = `${linkPool.value} left in ${linkPool.label}`;
+        } else if (hasCharges) {
+            const left = Number(item.charges.value);
+            if (!Number.isFinite(left) || left <= 0) {
+                fail('No charges left — set Charges first.');
+                return null;
+            }
+            item.charges.value = left - 1;
+            leftTxt = `${item.charges.value} charges left`;
+        } else if (si) {
+            const q = Number(item.quantity) || 0;
+            if (q <= 0) {
+                fail('None left — quantity is 0.');
+                return null;
+            }
+            item.quantity = q - 1;
+            leftTxt = `${item.quantity} left`;
+        } else {
+            fail('No charges left — set Charges first.');
+            return null;
+        }
+        quietSave();
+        const guess = String(item.name || '')
+            .replace(/\s*\[[^\]]+\]\s*$/, '')
+            .replace(/^(wand|staff|scroll|potion|rod)\s+of\s+/i, '').trim();
+        const spellName = si?.name || guess;
+        const sd = window.SheetDetails?.lookup?.('spells', spellName);
+        window.SheetRoll?.setOpen?.(true);
+        if (sd && window.SheetRoll?.rollSpellCast) {
+            const lvl = Number(si?.level) || 1;
+            const cl = Number(si?.cl) || 1;
+            window.SheetRoll.rollSpellCast({
+                name: `${item.name} (${leftTxt})`,
+                // #45: the auto-buff hook needs the bare spell name, not the
+                // decorated wand title.
+                baseSpellName: spellName,
+                level: lvl, data, spellData: sd,
+                castingAbility: 'int', castingMod: 0,
+                casterLevel: cl,
+                saveDC: si?.dc != null ? Number(si.dc) : 10 + lvl,
+                concentration: cl,
+                bab: window.SheetDerive?.babTotal?.(data) ?? (Number(data.bab_total) || 0),
+            });
+        } else {
+            window.SheetRoll?.rollAndLog?.('d1',
+                `${item.name}: 1 spent (${leftTxt})`);
+        }
+        window.SheetOverlay?.toast?.(`${item.name}: ${leftTxt}`);
+        return { leftTxt };
+    }
+
     function openItemSheet(data, item) {
         itemSheetHandle?.close(); // replace-on-reopen, as before
         const SD = window.SheetDetails;
@@ -1561,71 +1636,9 @@ window.SheetModals = (function () {
             useBtn.type = 'button';
             useBtn.title = 'Spend one charge (or one of the stack); casts the linked spell';
             useBtn.addEventListener('click', () => {
-                // #26: builder-made items carry their casting facts; charge pools spend a
-                // charge, chargeless spell items (scrolls, potions) consume 1 quantity.
-                const si = item.spellItem && typeof item.spellItem === 'object'
-                    ? item.spellItem : null;
-                const hasCharges = item.charges.value != null || item.charges.max != null;
-                // #25: a charge link redirects the spend to the pool owner.
-                const linkPool = item.chargeSource
-                    ? window.SheetState?.resolveChargePool?.(data, { kind: 'item', id: item.id })
-                    : null;
-                let leftTxt;
-                if (linkPool?.linked) {
-                    if (linkPool.value <= 0) {
-                        alert(`No charges left in ${linkPool.label}.`);
-                        return;
-                    }
-                    linkPool.value -= 1;
-                    leftTxt = `${linkPool.value} left in ${linkPool.label}`;
-                } else if (hasCharges) {
-                    const left = Number(item.charges.value);
-                    if (!Number.isFinite(left) || left <= 0) {
-                        alert('No charges left — set Charges first.');
-                        return;
-                    }
-                    item.charges.value = left - 1;
+                if (useInventoryItem(data, item) && item.charges.value != null) {
                     chIn.value = String(item.charges.value);
-                    leftTxt = `${item.charges.value} charges left`;
-                } else if (si) {
-                    const q = Number(item.quantity) || 0;
-                    if (q <= 0) {
-                        alert('None left — quantity is 0.');
-                        return;
-                    }
-                    item.quantity = q - 1;
-                    leftTxt = `${item.quantity} left`;
-                } else {
-                    alert('No charges left — set Charges first.');
-                    return;
                 }
-                quietSave();
-                const guess = String(item.name || '')
-                    .replace(/\s*\[[^\]]+\]\s*$/, '')
-                    .replace(/^(wand|staff|scroll|potion|rod)\s+of\s+/i, '').trim();
-                const spellName = si?.name || guess;
-                const sd = window.SheetDetails?.lookup?.('spells', spellName);
-                window.SheetRoll?.setOpen?.(true);
-                if (sd && window.SheetRoll?.rollSpellCast) {
-                    const lvl = Number(si?.level) || 1;
-                    const cl = Number(si?.cl) || 1;
-                    window.SheetRoll.rollSpellCast({
-                        name: `${item.name} (${leftTxt})`,
-                        // #45: the auto-buff hook needs the bare spell name, not the
-                        // decorated wand title.
-                        baseSpellName: spellName,
-                        level: lvl, data, spellData: sd,
-                        castingAbility: 'int', castingMod: 0,
-                        casterLevel: cl,
-                        saveDC: si?.dc != null ? Number(si.dc) : 10 + lvl,
-                        concentration: cl,
-                        bab: window.SheetDerive?.babTotal?.(data) ?? (Number(data.bab_total) || 0),
-                    });
-                } else {
-                    window.SheetRoll?.rollAndLog?.('d1',
-                        `${item.name}: 1 spent (${leftTxt})`);
-                }
-                window.SheetOverlay?.toast?.(`${item.name}: ${leftTxt}`);
             });
             chPair.append(chIn, h('span', 'item-sheet-hp-sep', '/'), chMaxIn, useBtn);
             chRow.appendChild(chPair);
@@ -1691,6 +1704,16 @@ window.SheetModals = (function () {
                 (v) => { item.rechargeOnRest = v; },
                 'Rest refills Charges to max (per-day items, staves — not wands)'),
         );
+        // #148: pf1's showInQuickbar — pin this item to the Summary Quick Actions strip.
+        if (item.id && window.SheetQuickbar) {
+            const ref = { kind: 'item', id: item.id };
+            const pinRow = checkRow('Pin to Quick Actions',
+                () => window.SheetQuickbar.isPinned(data, ref),
+                (v) => window.SheetQuickbar.setPinned(data, ref, v),
+                'Show this item on the Summary tab, one click to use');
+            pinRow.classList.add('item-sheet-pin');
+            checks.appendChild(pinRow);
+        }
         // #10: containers can waive their contents' weight; known magical containers
         // (bag of holding & co.) default to on — the explicit checkbox wins either way.
         if (inventoryCategory(item) === 'containers') {
@@ -2357,7 +2380,7 @@ window.SheetModals = (function () {
     }
 
     return {
-        openItemSheet, openClassSheet, openArchetypeSheet, openCatalogPicker, openBuffFinder,
+        openItemSheet, useInventoryItem, openClassSheet, openArchetypeSheet, openCatalogPicker, openBuffFinder,
         buildBuffDetailsPanel, buildBuffChangesPanel,
         openPortraitLightbox, openPowModifierEditor, openFeatureBuffMenu, buildItemBuffsPanel,
         buildFeatureChangesPanel, buildPowModifierPanel, openFrameless,
