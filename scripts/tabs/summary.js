@@ -162,6 +162,8 @@ window.SheetTabSummary = (function () {
     }
 
     function summaryQuickActions(body, data, d) {
+        // #148: the player's own pins first, the fixed actions below.
+        window.SheetQuickbar?.render(body, data);
         const bar = h('div', 'quick-actions no-print');
         const mk = (label, fn, title) => {
             const b = h('button', 'quick-action-btn', label);

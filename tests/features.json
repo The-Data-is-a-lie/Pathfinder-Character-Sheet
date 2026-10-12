@@ -10,6 +10,7 @@
     { "id": "inventory.multi-add", "area": "Inventory", "title": "Inventory picker adds many items across categories at once", "source": "user", "status": "have", "ticket": 140 },
     { "id": "companions.mini-sheet", "area": "Companions", "title": "Companions are full mini-sheets with derived math, buffs and conditions", "source": "user", "status": "have", "ticket": 141 },
     { "id": "damage.calculator", "area": "Combat", "title": "Damage calculator: incoming damage through DR/ER/immunity", "source": "user", "status": "have", "ticket": 146 },
-    { "id": "text.inline-enrichers", "area": "Text", "title": "Inline @Save / @Damage / @Heal enrichers in feature and spell text", "source": "foundry", "status": "have", "ticket": 147 }
+    { "id": "text.inline-enrichers", "area": "Text", "title": "Inline @Save / @Damage / @Heal enrichers in feature and spell text", "source": "foundry", "status": "have", "ticket": 147 },
+    { "id": "summary.quick-actions", "area": "Summary", "title": "Pinned Quick Actions bar on Summary", "source": "foundry", "status": "have", "ticket": 148 }
   ]
 }
