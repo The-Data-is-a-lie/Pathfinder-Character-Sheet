@@ -6698,3 +6698,31 @@ body.is-offline .pa-generate {
 .inv-carry-mods { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; margin-top: 0.35rem; font-size: 0.9rem; }
 .inv-carry-field { display: inline-flex; align-items: center; gap: 0.3rem; }
 .inv-carry-input.edit-field { width: 4.2rem; }
+
+/* #155 skill flags, lock, custom skills */
+.skills-lock-btn { margin: 0 0 0.35rem; }
+.skills-lock-btn.is-locked { border-color: var(--accent); }
+.skill-flags-cell { white-space: nowrap; }
+.skill-flag {
+    font: inherit;
+    font-size: 0.7rem;
+    line-height: 1;
+    padding: 0.12rem 0.25rem;
+    margin-right: 0.15rem;
+    border: 1px solid var(--rule, currentColor);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--ink-dim, inherit);
+    opacity: 0.55;
+    cursor: pointer;
+}
+.skill-flag.is-on { opacity: 1; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.skill-flag:disabled { cursor: default; }
+.skills-table-full tr.is-untrained td:not(.skill-roll-cell):not(.skill-flags-cell) { opacity: 0.55; }
+.skill-custom-add td { padding-top: 0.4rem; }
+.skill-custom-add .edit-field { width: auto; display: inline-block; margin-right: 0.35rem; }
+.skill-custom-name.edit-field { min-width: 16rem; }
+@media print { .skill-flag:not(.is-on) { display: none; } }
+/* The Flags column took width from Abl; keep the three letters readable. */
+.skills-table-full .skill-ability-select { min-width: 3.9rem; }
+.skills-table-full td.skill-ab-cell { width: 4.3rem; }

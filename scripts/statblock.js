@@ -52,7 +52,7 @@ window.SheetStatblock = (function () {
         const rankMap = SM.parseSkillRanks(data);
         const vr = data._sheet?.variantRules || {};
         const out = [];
-        for (const sk of window.SheetData?.ALL_SKILLS || []) {
+        for (const sk of SM.allSkills?.(data) || window.SheetData?.ALL_SKILLS || []) {
             if (sk.variant && !vr[sk.variant]) continue;
             if (!SM.ranksForSkill(rankMap, sk.name)) continue;   // Paizo lists trained skills
             const r = F.evaluate('@skills.' + sk.id + '.mod', data);

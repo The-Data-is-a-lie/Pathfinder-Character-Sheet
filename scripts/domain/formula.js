@@ -72,7 +72,8 @@ window.SheetFormula = (function () {
         [/@spheres\.cl\.total\b/gi, (_m, data) =>
             Number(data?.sphere_cl) || characterLevel(data) || null],
         // Full skill modifier (ranks + ability + ledger/ACP + user bonuses), by pf1 skill id.
-        [/@skills\.([a-z]+)\.mod\b/gi, (m, data) => skillModOf(data, m[1])],
+        // [a-z0-9_]: custom skill ids are cus_<slug> (#155).
+        [/@skills\.([a-z0-9_]+)\.mod\b/gi, (m, data) => skillModOf(data, m[1])],
         // CMB total, through the same derive block the Combat tab shows.
         [/@attributes\.cmb\.total\b/gi, (_m, data) =>
             Number(window.SheetDerive?.computeDerived?.(data)?.blocks?.cmb?.total) ?? null],
@@ -96,7 +97,7 @@ window.SheetFormula = (function () {
     /** Skill total for @skills.<id>.mod — composed from the same pieces the Skills tab sums. */
     function skillModOf(data, id) {
         const SM = window.SheetSkillMath;
-        const skill = (window.SheetData?.ALL_SKILLS || [])
+        const skill = (SM?.allSkills?.(data) || window.SheetData?.ALL_SKILLS || [])
             .find((s) => s.id === String(id).toLowerCase());
         if (!SM || !skill || !data) return null;
         const ab = SM.getSkillAbility(data, skill);

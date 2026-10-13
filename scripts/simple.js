@@ -412,7 +412,7 @@ window.SheetSimple = (function () {
         const rankMap = ensureSkillRanksObject(data);
         const craftLabel = data.craft_type ? `Craft (${data.craft_type})` : 'Craft';
         const skillRows = [];
-        for (const skill of ALL_SKILLS) {
+        for (const skill of window.SheetSkillMath.allSkills(data)) { // #155: custom skills too
             const displayName = skill.name === 'Craft' ? craftLabel
                 : skill.name === 'Profession' && nonEmpty(data.profession_ranks) ? null
                     : skill.name;

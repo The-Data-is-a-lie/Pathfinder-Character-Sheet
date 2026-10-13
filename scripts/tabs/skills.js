@@ -13,11 +13,12 @@ window.SheetTabSkills = (function () {
     const renderSheet = (d) => window.SheetApp.renderSheet(d);
     const setActiveTab = (id) => window.SheetApp.setActiveTab(id);
     const { rollBtn, rollAllBar } = window.SheetStatKit;
-    const { ALL_SKILLS } = window.SheetData;
     const {
         parseSkillRanks, ranksForSkill, skillAbilityKey, getSkillAbility, setSkillAbility,
         skillBonusEntry, setSkillBonus, skillUserBonus, skillMiscBonus, skillRankKey, ranksEditor,
+        skillFlags, setSkillFlag, allSkills, addCustomSkill, removeCustomSkill,
     } = window.SheetSkillMath;
+    const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 
     /**
      * Subsystem skills (Autohypnosis, Knowledge (psionics), Knowledge (martial)) belong to
@@ -48,11 +49,53 @@ window.SheetTabSkills = (function () {
             'Double-click ranks to edit. Change ability via the Abl dropdown. Roll = 1d20 + ranks + ability + misc.'));
 
         const unlockSkill = (data.skill_unlock?.base_skill || '').toLowerCase();
-        const table = h('table', 'skills-table skills-table-full');
+        // #155: the lock freezes each skill's ability, its ACP / RT flags and the custom-skill
+        // list (ranks and bonuses stay editable — they change every level; those don't).
+        const st = sheetState(data);
+        const locked = !!st.skillsLocked;
+        const rerender = () => { renderSheet(data); setActiveTab('skills'); };
+        const lockBtn = h('button', 'inv-btn skills-lock-btn no-print' + (locked ? ' is-locked' : ''),
+            locked ? '🔒 Skill setup locked' : '🔓 Lock skill setup');
+        lockBtn.type = 'button';
+        lockBtn.setAttribute('aria-pressed', String(locked));
+        lockBtn.title = locked
+            ? 'Abilities, ACP / trained-only flags and custom skills are locked — click to edit them'
+            : 'Lock each skill\'s ability, flags and the custom-skill list against accidental edits';
+        lockBtn.addEventListener('click', () => {
+            if (locked) delete st.skillsLocked;
+            else st.skillsLocked = true;
+            quietSave();
+            rerender();
+        });
+        body.appendChild(lockBtn);
+
+        const table = h('table', 'skills-table skills-table-full' + (locked ? ' is-locked' : ''));
         const hd = h('tr');
-        ['', 'Skill', 'Abl', 'Ranks', 'Mod', 'Racial', 'Feat', 'Trait', 'Misc', 'Buffs', 'CS', 'Total']
+        ['', 'Skill', 'Abl', 'Flags', 'Ranks', 'Mod', 'Racial', 'Feat', 'Trait', 'Misc', 'Buffs', 'CS', 'Total']
             .forEach((t) => hd.appendChild(h('th', null, t)));
+        hd.children[3].title = 'ACP: armor check penalty applies · RT: trained only (no use at 0 ranks)';
         table.appendChild(hd);
+
+        // #155 flag chips: ACP / RT, pressed = on. A trained-only skill at 0 ranks is dimmed and
+        // its roll says so — warned, never blocked.
+        const flagsCell = (skill) => {
+            const td = h('td', 'skill-flags-cell');
+            const f = skillFlags(data, skill);
+            for (const [flag, label, title] of [
+                ['acp', 'ACP', 'Armor check penalty applies to this skill'],
+                ['rt', 'RT', 'Trained only: needs at least 1 rank to use'],
+            ]) {
+                const b = h('button', 'skill-flag' + (f[flag] ? ' is-on' : ''), label);
+                b.type = 'button';
+                b.dataset.flag = flag;
+                b.setAttribute('aria-pressed', String(!!f[flag]));
+                b.title = title + (f[flag] ? ' (on)' : ' (off)') + (locked ? ' — unlock to change' : '');
+                b.disabled = locked;
+                b.addEventListener('click', () => { setSkillFlag(data, skill, flag, !f[flag]); rerender(); });
+                td.appendChild(b);
+            }
+            return td;
+        };
 
         // Bulk roll: drive the per-row Roll buttons this table already builds, so the totals
         // and log formatting stay in one place.
@@ -138,6 +181,7 @@ window.SheetTabSkills = (function () {
             nameTd.appendChild(rm);
             tr.appendChild(nameTd);
             tr.appendChild(h('td', 'num', String(skill.ab).toUpperCase()));
+            tr.appendChild(h('td', 'skill-flags-cell dim'));
             const rankTd = h('td', 'num skill-ranks-cell');
             rankTd.appendChild(ranksEditor(data, rKey, ranks));
             tr.appendChild(rankTd);
@@ -154,7 +198,7 @@ window.SheetTabSkills = (function () {
         const subSkillAddRow = (skill) => {
             const tr = h('tr', 'skill-subskill-add no-print');
             const td = h('td');
-            td.setAttribute('colspan', '12');
+            td.setAttribute('colspan', '13');
             const btn = h('button', 'inv-btn', `+ ${skill.name} type…`);
             btn.type = 'button';
             btn.addEventListener('click', () => {
@@ -175,7 +219,7 @@ window.SheetTabSkills = (function () {
         };
 
         const craftLabel = data.craft_type ? `Craft (${data.craft_type})` : 'Craft';
-        for (const skill of ALL_SKILLS) {
+        for (const skill of allSkills(data)) {
             // Variant-gated rows (Artistry / Lore) render only while their rule is on;
             // ranks typed into them survive a toggle-off in skill_ranks, just unlisted.
             if (skill.variant && !window.SheetState.variantRuleOn?.(data, skill.variant)) continue;
@@ -202,11 +246,18 @@ window.SheetTabSkills = (function () {
             const entry = skillBonusEntry(data, bonusKey);
             const user = skillUserBonus(data, bonusKey, ranks);
             const total = ranks + abMod + misc.total + user.total;
-            const tr = h('tr', displayName.toLowerCase().includes(unlockSkill) && unlockSkill
-                ? 'unlocked' : null);
+            const flags = skillFlags(data, skillEff);
+            const untrained = flags.rt && ranks < 1;
+            const tr = h('tr', [
+                displayName.toLowerCase().includes(unlockSkill) && unlockSkill ? 'unlocked' : null,
+                untrained ? 'is-untrained' : null,
+                skill.custom ? 'skill-custom-row' : null,
+            ].filter(Boolean).join(' ') || null);
+            tr.dataset.skill = skill.id;
 
             const rollTd = h('td', 'skill-roll-cell no-print');
-            rollTd.appendChild(rollBtn(displayName + ' check', total, `1d20${fmt(total)}`));
+            rollTd.appendChild(rollBtn(displayName + (untrained ? ' check (untrained — trained only!)' : ' check'),
+                total, untrained ? `1d20${fmt(total)} — trained only: no ranks yet` : `1d20${fmt(total)}`));
             tr.appendChild(rollTd);
             const nameTd = h('td', null,
                 displayName + (unlockSkill && displayName.toLowerCase().includes(unlockSkill) ? ' ★' : ''));
@@ -222,11 +273,28 @@ window.SheetTabSkills = (function () {
             // the rank field stays fully editable.
             const healthMark = window.SheetHealthUI?.rowBadge?.(data, 'skill', rKey);
             if (healthMark) nameTd.appendChild(healthMark);
+            if (skill.custom && !locked) {
+                const rm = h('button', 'inv-btn inv-btn-danger no-print skill-custom-del', '×');
+                rm.type = 'button';
+                rm.title = 'Remove this custom skill (its ranks are kept)';
+                rm.addEventListener('click', () => {
+                    const undo = removeCustomSkill(data, skill.id);
+                    rerender();
+                    if (undo) {
+                        window.SheetOverlay?.toast?.(`Removed “${skill.name}”`, {
+                            action: { label: 'Undo', onClick: () => { undo(); rerender(); } },
+                        });
+                    }
+                });
+                nameTd.appendChild(rm);
+            }
 
             const abTd = h('td', 'num skill-ab-cell');
             const abSel = h('select', 'skill-ability-select edit-field');
-            abSel.title = 'Key ability (default ' + String(skill.ab).toUpperCase() + ')';
-            for (const a of ['str', 'dex', 'con', 'int', 'wis', 'cha']) {
+            abSel.title = 'Key ability (default ' + String(skill.ab).toUpperCase() + ')'
+                + (locked ? ' — unlock skill setup to change' : '');
+            abSel.disabled = locked;
+            for (const a of ABILITIES) {
                 const opt = document.createElement('option');
                 opt.value = a;
                 opt.textContent = a.toUpperCase();
@@ -240,6 +308,7 @@ window.SheetTabSkills = (function () {
             });
             abTd.appendChild(abSel);
             tr.appendChild(abTd);
+            tr.appendChild(flagsCell(skillEff));
 
             const rankTd = h('td', 'num skill-ranks-cell');
             rankTd.appendChild(ranksEditor(data, rKey, ranks));
@@ -267,6 +336,40 @@ window.SheetTabSkills = (function () {
                 }
                 table.appendChild(subSkillAddRow(skill));
             }
+        }
+        // #155: add a custom skill inline — name + ability, Enter or Add. No dialog.
+        if (!locked) {
+            const tr = h('tr', 'skill-custom-add no-print');
+            const td = h('td');
+            td.setAttribute('colspan', '13');
+            const name = h('input', 'edit-field skill-custom-name');
+            name.type = 'text';
+            name.placeholder = 'New custom skill (e.g. Knowledge (Golarion), Sailing)…';
+            name.setAttribute('aria-label', 'Custom skill name');
+            const ab = h('select', 'edit-field skill-custom-ab');
+            ab.setAttribute('aria-label', 'Custom skill ability');
+            for (const a of ABILITIES) {
+                const opt = h('option', null, a.toUpperCase());
+                opt.value = a;
+                if (a === 'int') opt.selected = true;
+                ab.appendChild(opt);
+            }
+            const add = h('button', 'inv-btn skill-custom-add-btn', '+ Add skill');
+            add.type = 'button';
+            const doAdd = () => {
+                const nm = name.value.trim();
+                if (!nm) { name.focus(); return; }
+                if (!addCustomSkill(data, nm, ab.value)) {
+                    window.SheetOverlay?.toast?.(`There is already a skill called “${nm}”`);
+                    return;
+                }
+                rerender();
+            };
+            add.addEventListener('click', doAdd);
+            name.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doAdd(); } });
+            td.append(name, ab, add);
+            tr.appendChild(td);
+            table.appendChild(tr);
         }
         body.appendChild(table);
 
