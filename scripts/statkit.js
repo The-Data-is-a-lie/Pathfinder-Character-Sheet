@@ -26,6 +26,27 @@ window.SheetStatKit = (function () {
         return btn;
     }
     /**
+     * #153: an ability name that rolls its check — 1d20 + mod with allChecks / <ab>Checks ledger
+     * changes and negative levels (SheetDerive computeDerived().checks). The total is read at
+     * click time, so a buff toggled since the render still counts.
+     */
+    function abilityCheckBtn(data, ab, text) {
+        const btn = h('button', 'ability-check-btn', text);
+        btn.type = 'button';
+        btn.dataset.ability = ab;
+        const label = (window.SheetDerive.ABILITY_LABEL[ab] || ab.toUpperCase()) + ' check';
+        const current = () => computeDerived(data).checks[ab];
+        const c0 = current();
+        btn.title = `Roll ${label}: 1d20${fmt(c0.total)}\n`
+            + c0.parts.filter((p) => Number(p.value)).map((p) => `${p.label} ${fmt(Number(p.value))}`).join('\n');
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            rollCheck(label, current().total);
+        });
+        return btn;
+    }
+    /**
      * A "Roll all" bar that fires every per-row Roll button inside `scopeTable` — the buttons
      * already own the totals and log formatting, so bulk rolling stays DRY. Returns the bar.
      */
@@ -131,5 +152,5 @@ window.SheetStatKit = (function () {
         return row;
     }
 
-    return { rollCheck, rollBtn, rollAllBar, kvHp };
+    return { rollCheck, rollBtn, rollAllBar, kvHp, abilityCheckBtn };
 })();

@@ -111,6 +111,10 @@ window.SheetDerive = (function () {
         return { ...parts, base, total, mod: mod(total) - damagePen, formula };
     }
     /** Effective ability modifier (ledger + damage/drain/misc aware). */
+    const ABILITY_LABEL = {
+        str: 'Strength', dex: 'Dexterity', con: 'Constitution',
+        int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma',
+    };
     function abModOf(data, ab) {
         return abilityInfo(data, ab).mod;
     }
@@ -655,8 +659,19 @@ window.SheetDerive = (function () {
             note: hpNote,
         };
 
+        // #153 ability checks: 1d20 + mod, plus allChecks / <ab>Checks ledger changes and the
+        // negative-level penalty. Kept beside `blocks`, not in it: blocks are the statblock lines.
+        const checks = {};
+        for (const ab of ['str', 'dex', 'con', 'int', 'wis', 'cha']) {
+            const ps = [part(ABILITY_LABEL[ab], abModOf(data, ab), { kind: 'ability' })];
+            appendLedgerParts(ps, data, ledger, ['allChecks', ab + 'Checks']);
+            negPart(ps);
+            checks[ab] = { total: sumParts(ps), parts: ps };
+        }
+
         // Legacy-compatible flat fields for older call sites
         return {
+            checks,
             level, bab, strM, dexM, conM, wisM, intM, chaM,
             armorAc, shieldAc, maxDex: hasDexCap ? maxDex : null, effDex,
             size, conditionFlags: condFlags, encumbrance: enc,
@@ -874,7 +889,7 @@ window.SheetDerive = (function () {
     }
 
     return {
-        part, sumParts, appendLedgerParts, abilityInfo, abModOf, effectiveLedger,
+        part, sumParts, appendLedgerParts, abilityInfo, ABILITY_LABEL, abModOf, effectiveLedger,
         groupChangesBySource, computeDerived, combatStats, carryLimits, loadCategory,
         castingAbilityMod, totalLevel, casterLevelValue, spellSaveDC, concentrationBonus,
         acTypeTotals, saveBuckets, srTotal, babIterativesStr, GOOD_SAVES,
