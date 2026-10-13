@@ -1736,7 +1736,7 @@ window.SheetDetails = (function () {
         stanceChangesFromModifiers, lookupStanceBenefit, resolveStanceEntry,
         setStanceOverride, clearStanceOverride, conditionalForTalent, collectChanges,
         getFeatureOverride, setFeatureOverride, clearFeatureOverride, isFeatureEdited,
-        resolveFeature, resolveSpell, renameFeature, sphereNorm, OVERRIDE_KINDS,
+        resolveFeature, resolveSpell, renameFeature, sphereNorm, OVERRIDE_KINDS, membershipArrays,
         resolveTalentConditional,
         collectRollConditionals, normalizeInventoryEntry, powNorm,
         parseEnhancements, lookupEnhancement, collectEnhancements, coreGearItemKey,

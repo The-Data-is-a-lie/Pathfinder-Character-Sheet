@@ -1056,6 +1056,26 @@ window.SheetTabSpells = (function () {
                         });
                     });
                     row.appendChild(editBtn);
+                    // #154 ⧉: "<name> (copy)" right below, same level, unprepared, with any
+                    // sheet edits — the start of a variant (a house-ruled version, a metamagic set).
+                    const dupBtn = h('button', 'inv-btn spell-dup-btn no-print', '⧉');
+                    dupBtn.type = 'button';
+                    dupBtn.title = 'Duplicate';
+                    dupBtn.addEventListener('click', () => {
+                        const bucket = bk.lists[level];
+                        if (!Array.isArray(bucket)) return;
+                        const r = window.SheetRowVerbs.duplicateNamed(data, 'spell', bucket, name);
+                        quietSave();
+                        renderSheet(data);
+                        setActiveTab('spells');
+                        window.SheetOverlay?.toast?.(`Added “${r.name}”`, {
+                            action: {
+                                label: 'Undo',
+                                onClick: () => { r.undo(); quietSave(); renderSheet(data); setActiveTab('spells'); },
+                            },
+                        });
+                    });
+                    row.appendChild(dupBtn);
                     const rm = h('button', 'inv-btn inv-btn-danger no-print', '×');
                     rm.type = 'button';
                     rm.title = 'Remove from spell list';

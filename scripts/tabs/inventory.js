@@ -65,12 +65,13 @@ window.SheetTabInventory = (function () {
         };
         const minusBtn = h('button', 'inv-step no-print', '−');
         minusBtn.type = 'button';
-        minusBtn.title = 'Decrease quantity';
-        minusBtn.addEventListener('click', () => stepQty(-1));
+        // #154: Shift ×5, Ctrl/⌘ ×10.
+        minusBtn.title = 'Decrease quantity (Shift ×5, Ctrl ×10)';
+        minusBtn.addEventListener('click', (e) => stepQty(-window.SheetRowVerbs.stepSize(e)));
         const plusBtn = h('button', 'inv-step no-print', '+');
         plusBtn.type = 'button';
-        plusBtn.title = 'Increase quantity';
-        plusBtn.addEventListener('click', () => stepQty(1));
+        plusBtn.title = 'Increase quantity (Shift ×5, Ctrl ×10)';
+        plusBtn.addEventListener('click', (e) => stepQty(window.SheetRowVerbs.stepSize(e)));
         qtyCell.appendChild(minusBtn);
         qtyCell.appendChild(dblclickEditable(item, 'quantity', {
             type: 'number', min: 0, max: 999, relative: true, nudge: true,
@@ -150,7 +151,35 @@ window.SheetTabInventory = (function () {
             quietSave();
             invRerender(data);
         });
-        btns.append(buffsBtn, removeBtn);
+        // #154 row verbs: ⧉ copies the item (unequipped); ⫽ splits half the stack (Shift: one)
+        // into a new row below — inline, no dialog. Both offer Undo.
+        const verbToast = (text, undo) => window.SheetOverlay?.toast?.(text, {
+            action: { label: 'Undo', onClick: () => { undo(); quietSave(); invRerender(data); } },
+        });
+        const dupBtn = h('button', 'inv-icon-btn inv-dup-btn', '⧉');
+        dupBtn.type = 'button';
+        dupBtn.title = 'Duplicate (the copy starts unequipped)';
+        dupBtn.addEventListener('click', () => {
+            const r = window.SheetRowVerbs.duplicateItem(data, item);
+            quietSave();
+            invRerender(data);
+            verbToast(`Duplicated ${item.name || 'item'}`, r.undo);
+        });
+        btns.append(buffsBtn, dupBtn);
+        if ((Number(item.quantity) || 0) >= 2) {
+            const splitBtn = h('button', 'inv-icon-btn inv-split-btn', '⫽');
+            splitBtn.type = 'button';
+            splitBtn.title = 'Split the stack: half into a new row below (Shift: split off one)';
+            splitBtn.addEventListener('click', (e) => {
+                const r = window.SheetRowVerbs.splitStack(data, item, e.shiftKey ? 1 : undefined);
+                if (!r) return;
+                quietSave();
+                invRerender(data);
+                verbToast(`Split ${r.part.quantity} off ${item.name || 'the stack'}`, r.undo);
+            });
+            btns.appendChild(splitBtn);
+        }
+        btns.appendChild(removeBtn);
         row.appendChild(btns);
 
         // The full description lives in the item sheet (open via the ⚙ button); the
