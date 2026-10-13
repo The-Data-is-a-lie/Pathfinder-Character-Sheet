@@ -28,8 +28,12 @@ window.SheetTabFeatures = (function () {
         'Racial', 'Faction', 'Alignment',
     ]);
     function featDisplayName(name) {
+        // The catalog's spelling fixes casing only. A lookup that matched by stripping a
+        // parenthetical ("Weapon Focus (Longsword)", "Toughness (copy)") keeps the stored name,
+        // or the qualifier — the whole point of the entry — would vanish from the row.
         const entry = foundry('feats', name);
-        return entry?.name || name;
+        const same = entry?.name && entry.name.toLowerCase() === String(name).toLowerCase().trim();
+        return same ? entry.name : name;
     }
     function featTags(data, name) {
         // Per-character tag edits (#107) win over the compendium's tag list.
@@ -197,6 +201,31 @@ window.SheetTabFeatures = (function () {
                 });
             });
             ctrlCell.appendChild(edit);
+        }
+        // #154 ⧉ Duplicate: feats and traits are names in a list, so the copy is "<name> (copy)"
+        // (SheetRowVerbs). Class features are granted by levels, so they get no copy verb.
+        const dupList = opts.data && opts.sheetRef?.listKey && ['feat', 'trait'].includes(opts.sheetRef.kind)
+            ? opts.data[opts.sheetRef.listKey] : null;
+        if (Array.isArray(dupList)) {
+            const dup = h('button', 'inv-btn feat-dup-btn', '⧉');
+            dup.type = 'button';
+            dup.title = 'Duplicate';
+            dup.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const data = opts.data;
+                const r = window.SheetRowVerbs.duplicateNamed(data, opts.sheetRef.kind, dupList, opts.name);
+                quietSave();
+                renderSheet(data);
+                setActiveTab('features');
+                window.SheetOverlay?.toast?.(`Added “${r.name}”`, {
+                    action: {
+                        label: 'Undo',
+                        onClick: () => { r.undo(); quietSave(); renderSheet(data); setActiveTab('features'); },
+                    },
+                });
+            });
+            ctrlCell.appendChild(dup);
         }
         if (opts.onRemove) {
             const rm = h('button', 'inv-btn inv-btn-danger feat-remove', '×');
