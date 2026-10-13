@@ -1954,7 +1954,7 @@ button:disabled { opacity: 0.55; cursor: wait; }
         2rem
         2rem
         2rem
-        6.4rem;
+        8.2rem;
     align-items: center;
     column-gap: 0.4rem;
     row-gap: 0.25rem;
@@ -6681,3 +6681,7 @@ body.is-offline .pa-generate {
 .ability-check-btn:hover::after,
 .ability-check-btn:focus-visible::after { opacity: 0.8; }
 @media print { .ability-check-btn::after { content: none; } }
+
+/* #151: post-to-log on list rows + the Defenses card button. */
+.defenses-post-bar { display: flex; justify-content: flex-end; margin: 0 0 0.4rem; }
+.row-post-btn { line-height: 1; }

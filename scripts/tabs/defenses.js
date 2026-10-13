@@ -270,6 +270,15 @@ window.SheetTabDefenses = (function () {
             setActiveTab('defenses');
         };
 
+        // --- #151: the whole defensive line as one roll-log card, for "what's your touch AC?"
+        const postBar = h('div', 'defenses-post-bar no-print');
+        const postDef = h('button', 'inv-btn defenses-post-btn', '🎲 Post defenses');
+        postDef.type = 'button';
+        postDef.title = 'Post AC / touch / flat-footed / CMD / saves / SR / DR to the roll log';
+        postDef.addEventListener('click', () => window.SheetPostCards.postDefenses(data));
+        postBar.appendChild(postDef);
+        body.appendChild(postBar);
+
         // --- #146: take damage through everything below
         renderDamageCalc(body, data);
 
