@@ -163,13 +163,24 @@ window.SheetSimple = (function () {
             return node;
         };
         left.appendChild(spHeading('Ability Scores'));
-        left.appendChild(spTable(
+        const ABS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+        const abTable = spTable(
             ['Ability', { text: 'Score', cls: 'num' }, { text: 'Mod', cls: 'num' }],
-            ['str', 'dex', 'con', 'int', 'wis', 'cha'].map((ab) => [
+            ABS.map((ab) => [
                 ab.toUpperCase(),
                 { node: abilityScore(ab), cls: 'num' },
                 { text: data[ab] != null ? fmt(abModOf(data, ab)) : '', cls: 'num strong' },
-            ])));
+            ]));
+        // #153: the ability name rolls its check. Swapped in after spTable so the Explain hint
+        // it hangs off the label text still lands.
+        abTable.querySelectorAll('tr').forEach((tr, i) => {
+            const ab = ABS[i - 1];
+            const label = ab && tr.firstElementChild?.firstChild;
+            if (label?.nodeType === Node.TEXT_NODE) {
+                label.replaceWith(window.SheetStatKit.abilityCheckBtn(data, ab, label.textContent));
+            }
+        });
+        left.appendChild(abTable);
 
         // HP / init / speed
         left.appendChild(spHeading('Hit Points & Initiative'));

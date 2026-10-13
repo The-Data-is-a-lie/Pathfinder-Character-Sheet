@@ -6655,3 +6655,29 @@ body.is-offline .pa-generate {
 .companion-sheet .companion-attack-dice,
 .companion-sheet .companion-change-formula { width: 5rem; }
 .companion-sheet .companion-notes { width: 100%; }
+
+/* #153: ability names roll their check — read as the label, reveal the action on hover. */
+.ability-check-btn {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    text-decoration: underline dotted transparent;
+    text-underline-offset: 3px;
+}
+.ability-check-btn:hover,
+.ability-check-btn:focus-visible {
+    color: var(--accent);
+    text-decoration-color: currentColor;
+}
+.ability-check-btn::after {
+    content: ' 🎲';
+    font-size: 0.75em;
+    opacity: 0;
+}
+.ability-check-btn:hover::after,
+.ability-check-btn:focus-visible::after { opacity: 0.8; }
+@media print { .ability-check-btn::after { content: none; } }

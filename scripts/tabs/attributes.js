@@ -302,7 +302,9 @@ window.SheetTabAttributes = (function () {
         for (const ab of ['str', 'dex', 'con', 'int', 'wis', 'cha']) {
             const info = abilityInfo(data, ab);
             const tr = h('tr');
-            tr.appendChild(h('td', 'ability-name', ABILITY_NAMES[ab]));
+            // #153: the name rolls the ability check.
+            tr.appendChild(h('td', 'ability-name',
+                window.SheetStatKit.abilityCheckBtn(data, ab, ABILITY_NAMES[ab])));
 
             // Total = computed effective score (read-only); hover shows the full formula.
             const totTd = h('td', 'num ability-total', (info.total ?? '—') + '');
