@@ -91,13 +91,76 @@ window.SheetSkillMath = (function () {
         return { racial, feat, trait, misc, cs: !!e.cs, csBonus,
             total: racial + feat + trait + misc + csBonus };
     }
+    // ---- #155 per-skill flags + custom skills -------------------------------------------
+    // Flags: _sheet.skillFlags[key] = { acp?, rt? }, stored only where they differ from the
+    // default, so an untouched character carries nothing. ACP's default stays the old
+    // Foundry-style rule (marked acp, or Str/Dex-based); trained-only comes from the PF1 table.
+    function defaultFlags(data, skill) {
+        const ab = getSkillAbility(data, skill);
+        return { acp: !!(skill.acp || ab === 'str' || ab === 'dex'), rt: !!skill.rt };
+    }
+    function skillFlags(data, skill) {
+        const def = defaultFlags(data, skill);
+        const f = data?._sheet?.skillFlags?.[skillAbilityKey(skill)] || {};
+        return {
+            acp: typeof f.acp === 'boolean' ? f.acp : def.acp,
+            rt: typeof f.rt === 'boolean' ? f.rt : def.rt,
+        };
+    }
+    function setSkillFlag(data, skill, flag, on) {
+        const st = sheetState(data);
+        const key = skillAbilityKey(skill);
+        const map = (st.skillFlags ??= {});
+        const entry = { ...(map[key] || {}) };
+        if (Boolean(on) === defaultFlags(data, skill)[flag]) delete entry[flag];
+        else entry[flag] = Boolean(on);
+        if (Object.keys(entry).length) map[key] = entry;
+        else delete map[key];
+        if (!Object.keys(map).length) delete st.skillFlags;
+        quietSave();
+    }
+    /** Custom skills: _sheet.customSkills = [{ id: 'cus_…', name, ab, acp?, rt? }]. Ids are
+     *  [a-z0-9_] so @skills.<id>.mod resolves them. */
+    function customSkills(data) {
+        const list = data?._sheet?.customSkills;
+        return Array.isArray(list) ? list.filter((s) => s && s.id && s.name) : [];
+    }
+    /** Every skill row the character has: the PF1 table plus their custom skills. */
+    function allSkills(data) {
+        return [...(window.SheetData?.ALL_SKILLS || []), ...customSkills(data).map((s) => ({ ...s, custom: true }))];
+    }
+    function addCustomSkill(data, name, ab) {
+        const nm = String(name || '').trim();
+        if (!nm) return null;
+        const st = sheetState(data);
+        const list = (st.customSkills ??= []);
+        const taken = new Set(allSkills(data).map((s) => s.name.toLowerCase()));
+        if (taken.has(nm.toLowerCase())) return null;
+        const slug = nm.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'skill';
+        let id = 'cus_' + slug;
+        for (let i = 2; list.some((s) => s.id === id); i++) id = `cus_${slug}_${i}`;
+        const skill = { id, name: nm, ab: ['str', 'dex', 'con', 'int', 'wis', 'cha'].includes(ab) ? ab : 'int' };
+        list.push(skill);
+        quietSave();
+        return skill;
+    }
+    /** Remove a custom skill. → undo() (ranks in skill_ranks are left alone, so undo is exact). */
+    function removeCustomSkill(data, id) {
+        const list = sheetState(data).customSkills || [];
+        const i = list.findIndex((s) => s.id === id);
+        if (i < 0) return null;
+        const [gone] = list.splice(i, 1);
+        quietSave();
+        return () => { list.splice(Math.min(i, list.length), 0, gone); quietSave(); };
+    }
+
     function skillMiscBonus(data, skill) {
         const SD = window.SheetDetails;
         const ab = getSkillAbility(data, skill);
         // Use effective ledger so per-buff toggles apply
         const ledger = effectiveLedger(data);
-        // ACP applies when skill is Str/Dex based (Foundry-style) or originally marked acp
-        const acpApplies = skill.acp || ab === 'str' || ab === 'dex';
+        // ACP: the per-skill flag (#155), defaulting to marked-acp or Str/Dex-based.
+        const acpApplies = skillFlags(data, skill).acp;
         const hasNegLv = (Number(data?._sheet?.negativeLevels) || 0) > 0;
         if (!ledger?.changes?.length && !acpApplies && !hasNegLv) return { total: 0, bits: [] };
         const abBucket = {
@@ -177,5 +240,6 @@ window.SheetSkillMath = (function () {
     return {
         parseSkillRanks, ranksForSkill, skillAbilityKey, getSkillAbility, setSkillAbility,
         skillBonusEntry, setSkillBonus, skillUserBonus, skillMiscBonus, skillRankKey, ranksEditor,
+        skillFlags, setSkillFlag, customSkills, allSkills, addCustomSkill, removeCustomSkill,
     };
 })();
