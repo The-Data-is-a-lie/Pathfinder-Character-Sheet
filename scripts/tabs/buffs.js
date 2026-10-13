@@ -596,6 +596,9 @@ window.SheetTabBuffs = (function () {
                     row.appendChild(activeCell);
 
                     const ctrl = h('div', 'buffs-col-ctrl no-print');
+                    // #151: post the buff's card (changes, duration, notes) to the roll log.
+                    ctrl.appendChild(window.SheetPostCards.postBtn(
+                        () => window.SheetPostCards.postBuff(data, buff), 'buff-post-btn'));
                     const editBtn = h('button', 'inv-btn', 'Edit');
                     editBtn.type = 'button';
                     editBtn.addEventListener('click', () => {

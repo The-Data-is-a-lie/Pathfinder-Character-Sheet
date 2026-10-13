@@ -413,6 +413,13 @@ window.SheetTabSpells = (function () {
             if (!ann) return h('span', 'spell-name', name);
             return withMythicChip(details(name, mythicAnnotationHtml(ann), 'spell-details'), ann);
         }
+        return withMythicChip(details(name, spellBodyHtml(data, name, dc), 'spell-details'), ann);
+    }
+    /** The expander body — meta line, mythic text, description. Also the roll-log card (#151). */
+    function spellBodyHtml(data, name, dc) {
+        const sd = window.SheetDetails?.resolveSpell?.(data, name) || foundry('spells', name);
+        const ann = mythicAnnotationFor(data, name);
+        if (!sd?.description && !sd?.actions?.length) return ann ? mythicAnnotationHtml(ann) : '';
         const act = sd?.actions?.[0] || {};
         const dmgParts = (act.damage?.parts || [])
             .map((p) => {
@@ -442,7 +449,7 @@ window.SheetTabSpells = (function () {
         const desc = sd?.description
             ? enrichSpellHtml(sd.description)
             : '<p class="dim">No description on file.</p>';
-        return withMythicChip(details(name, metaHtml + mythicAnnotationHtml(ann) + desc, 'spell-details'), ann);
+        return metaHtml + mythicAnnotationHtml(ann) + desc;
     }
 
     /**
@@ -1055,6 +1062,10 @@ window.SheetTabSpells = (function () {
                             panels: { details: buildSpellDetailsPanel(data, bk, level, name) },
                         });
                     });
+                    // #151: post the spell's card (meta line + text) to the roll log.
+                    row.appendChild(window.SheetPostCards.postBtn(() => window.SheetPostCards.postSpell(data, name, {
+                        level, dc, descHtml: spellBodyHtml(data, name, dc),
+                    }), 'spell-post-btn'));
                     row.appendChild(editBtn);
                     // #154 ⧉: "<name> (copy)" right below, same level, unprepared, with any
                     // sheet edits — the start of a variant (a house-ruled version, a metamagic set).

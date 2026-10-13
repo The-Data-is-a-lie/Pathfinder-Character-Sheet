@@ -165,7 +165,10 @@ window.SheetTabInventory = (function () {
             invRerender(data);
             verbToast(`Duplicated ${item.name || 'item'}`, r.undo);
         });
-        btns.append(buffsBtn, dupBtn);
+        // #151: post the item's card to the roll log.
+        const postBtn = window.SheetPostCards.postBtn(() => window.SheetPostCards.postItem(data, item), 'inv-post-btn');
+        postBtn.className = 'inv-icon-btn inv-post-btn';
+        btns.append(postBtn, buffsBtn, dupBtn);
         if ((Number(item.quantity) || 0) >= 2) {
             const splitBtn = h('button', 'inv-icon-btn inv-split-btn', '⫽');
             splitBtn.type = 'button';
