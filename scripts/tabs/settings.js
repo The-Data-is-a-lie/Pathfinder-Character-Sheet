@@ -141,6 +141,46 @@ window.SheetTabSettings = (function () {
         }
     }
 
+    // #157: which ability drives each stat (pf1's actor settings). Per character, stored on
+    // _sheet.abilityLinks; only keys that differ from PF1's default are written, so "Reset"
+    // is just deleting the key and an untouched character carries nothing.
+    function renderAbilityLinks(body) {
+        const data = window.SheetApp.current;
+        if (!data || data.error) return;
+        const D = window.SheetDerive;
+        const links = D.abilityLinks(data);
+        const st = window.SheetState.sheetState(data);
+        body.appendChild(h('h3', null, 'Ability links'));
+        body.appendChild(h('p', 'dim',
+            'Which ability score feeds each number — for Agile Maneuvers (Dex to CMB), '
+            + 'a Wis-to-AC class feature, an undead using Cha for HP. Stored with this character.'));
+        const grid = h('div', 'settings-row ability-links-grid');
+        for (const key of Object.keys(D.LINK_DEFAULTS)) {
+            const wrap = h('label', 'ability-link');
+            wrap.appendChild(h('span', 'ability-link-label', D.LINK_LABELS[key]));
+            const sel = h('select', 'ability-link-select');
+            sel.dataset.link = key;
+            for (const [ab, label] of Object.entries(D.ABILITY_LABEL)) {
+                const opt = h('option', null, label + (ab === D.LINK_DEFAULTS[key] ? ' (default)' : ''));
+                opt.value = ab;
+                if (links[key] === ab) opt.selected = true;
+                sel.appendChild(opt);
+            }
+            if (links[key] !== D.LINK_DEFAULTS[key]) wrap.classList.add('is-changed');
+            sel.addEventListener('change', () => {
+                const map = (st.abilityLinks ??= {});
+                if (sel.value === D.LINK_DEFAULTS[key]) delete map[key];
+                else map[key] = sel.value;
+                if (!Object.keys(map).length) delete st.abilityLinks;
+                window.SheetApp.quietSave();
+                renderSheet(data);
+            });
+            wrap.appendChild(sel);
+            grid.appendChild(wrap);
+        }
+        body.appendChild(grid);
+    }
+
     // #80: per-character snapshot history. Checkpoints are automatic (library.js takes at
     // most one per 5-minute burst of saves, newest 20 kept); this section lists them with
     // Preview (read-only) / Restore / delete. Restore is always undoable: it snapshots the
@@ -338,6 +378,7 @@ window.SheetTabSettings = (function () {
         body.appendChild(guideRow);
 
         renderVariantRules(body);
+        renderAbilityLinks(body);
         renderHistory(body);
 
         body.appendChild(h('h3', null, 'Generation Backend'));

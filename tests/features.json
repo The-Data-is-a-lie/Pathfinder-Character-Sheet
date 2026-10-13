@@ -16,6 +16,7 @@
     { "id": "inputs.wheel-relative", "area": "Inputs", "title": "Wheel and relative (+5 / -7) input on HP, quantity, charges and buff level", "source": "foundry", "status": "have", "ticket": 150 },
     { "id": "attributes.ability-checks", "area": "Attributes", "title": "Click an ability name to roll its check (1d20 + mod, check bonuses, negative levels)", "source": "foundry", "status": "have", "ticket": 153 },
     { "id": "lists.row-verbs", "area": "Lists", "title": "Duplicate on every list row, inline split-stack, Shift x5 / Ctrl x10 steppers", "source": "foundry", "status": "have", "ticket": 154 },
-    { "id": "log.post-rows-defenses", "area": "Log", "title": "Every list row posts its card to the roll log; one-click Defenses card", "source": "foundry", "status": "have", "ticket": 151 }
+    { "id": "log.post-rows-defenses", "area": "Log", "title": "Every list row posts its card to the roll log; one-click Defenses card", "source": "foundry", "status": "have", "ticket": 151 },
+    { "id": "attributes.ability-links", "area": "Attributes", "title": "Settings picks the ability behind HP, saves, init, CMB, melee, ranged, AC and CMD; carry Str bonus and multiplier", "source": "foundry", "status": "have", "ticket": 157 }
   ]
 }

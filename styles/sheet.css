@@ -6685,3 +6685,16 @@ body.is-offline .pa-generate {
 /* #151: post-to-log on list rows + the Defenses card button. */
 .defenses-post-bar { display: flex; justify-content: flex-end; margin: 0 0 0.4rem; }
 .row-post-btn { line-height: 1; }
+
+/* #157 ability links (Settings) + carry modifiers (Inventory footer). */
+.ability-links-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: 0.35rem 0.9rem;
+}
+.ability-link { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.ability-link-label { font-size: 0.9rem; }
+.ability-link.is-changed .ability-link-label { color: var(--accent); font-weight: 600; }
+.inv-carry-mods { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; margin-top: 0.35rem; font-size: 0.9rem; }
+.inv-carry-field { display: inline-flex; align-items: center; gap: 0.3rem; }
+.inv-carry-input.edit-field { width: 4.2rem; }
