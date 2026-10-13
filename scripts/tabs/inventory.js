@@ -73,7 +73,7 @@ window.SheetTabInventory = (function () {
         plusBtn.addEventListener('click', () => stepQty(1));
         qtyCell.appendChild(minusBtn);
         qtyCell.appendChild(dblclickEditable(item, 'quantity', {
-            type: 'number', min: 0, max: 999,
+            type: 'number', min: 0, max: 999, relative: true, nudge: true,
             format: (v) => String(v == null || v === '' ? 1 : v),
             parse: (s) => Math.max(0, parseIntLoose(s, 1)),
             onChange: () => quietSave(),

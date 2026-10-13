@@ -245,8 +245,10 @@ window.SheetTabSummary = (function () {
             strip.appendChild(b);
             return b;
         };
+        // HP-family boxes take "+5" / "-7" and the wheel (#150); speeds stay plain.
         const editNumNode = (obj, key, opts = {}) => dblclickEditable(obj, key, {
             type: 'number', min: opts.min ?? 0,
+            relative: opts.nudge !== false, nudge: opts.nudge !== false,
             format: (v) => (v == null || v === '' ? '0' : String(v)),
             parse: (s) => parseIntLoose(s, 0),
             onChange: opts.onChange || (() => quietSave()),
@@ -317,7 +319,7 @@ window.SheetTabSummary = (function () {
         ]) {
             if (st.speeds[key] == null || st.speeds[key] === '') st.speeds[key] = key === 'land' ? (Number(data.land_speed) || 30) : 0;
             const node = h('span');
-            node.appendChild(editNumNode(st.speeds, key));
+            node.appendChild(editNumNode(st.speeds, key, { nudge: false }));
             // Medium/Heavy load slows movement (worse of armor/load; armor is usually
             // already baked into the generated speed, so only the load cap is shown).
             const enc = d.encumbrance;

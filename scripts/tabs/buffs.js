@@ -574,7 +574,7 @@ window.SheetTabBuffs = (function () {
 
                     const lvCell = h('span', 'buffs-col-lv');
                     lvCell.appendChild(dblclickEditable(buff, 'level', {
-                        type: 'number', min: 0, max: 40,
+                        type: 'number', min: 0, max: 40, relative: true, nudge: true,
                         format: (v) => (v == null || v === '' || Number(v) === 0 ? '—' : String(v)),
                         parse: (s) => parseIntLoose(s, 0),
                         onChange: () => quietSave(),
