@@ -559,9 +559,14 @@ window.SheetRoll = (function () {
     }
 
     // ---------------------------------------------------------------- character attack math
+    // The EFFECTIVE modifier (racial, level-up, belt, damage — SheetDerive.abModOf), the same one
+    // the Combat tab shows. Reading data[key] directly used the bare base score, so a Belt of
+    // Giant Strength raised the displayed attack bonus but not the rolled one (#157).
     function abilityMod(data, ab) {
         if (!data || !ab) return 0;
         const key = String(ab).toLowerCase();
+        const D = window.SheetDerive;
+        if (D?.abModOf) return Number(D.abModOf(data, key)) || 0;
         if (data[key] == null) return 0;
         return mod(data[key]);
     }
@@ -774,8 +779,11 @@ window.SheetRoll = (function () {
     function attackContext(data, itemKey) {
         if (!data || data.error) return null;
         const bab = window.SheetDerive?.babTotal?.(data) ?? (Number(data.bab_total) || 0);
-        const strM = abilityMod(data, 'str');
-        const dexM = abilityMod(data, 'dex');
+        // #157: melee / ranged read their linked ability (Str / Dex unless relinked in Settings).
+        // strM / dexM keep their names: they are "the melee mod" and "the ranged mod" downstream.
+        const links = window.SheetDerive?.abilityLinks?.(data) || { melee: 'str', ranged: 'dex' };
+        const strM = abilityMod(data, links.melee);
+        const dexM = abilityMod(data, links.ranged);
         const key = itemKey !== undefined ? itemKey : activeWeaponItemKey(data);
         const item = key ? findInventoryItem(data, key) : null;
         let enh, wName, wStats, label;
@@ -792,7 +800,7 @@ window.SheetRoll = (function () {
             label = weaponLabel(data);
         }
         const ranged = wStats ? isRangedAction(wStats.actionType) : false;
-        const abKey = ranged ? 'dex' : 'str';
+        const abKey = ranged ? links.ranged : links.melee;
         const abMod = ranged ? dexM : strM;
         const dmgAbKey = (wStats?.damageAbility || 'str').toLowerCase();
         const dmgAbMod = abilityMod(data, dmgAbKey);
@@ -823,7 +831,7 @@ window.SheetRoll = (function () {
         const damageFormula = formatDamageFormula(damageDice, damageFlat);
 
         return {
-            bab, strM, dexM, enh, wName, wStats, ranged, abKey, abMod,
+            bab, strM, dexM, enh, wName, wStats, ranged, abKey, abMod, links,
             dmgAbKey, dmgAbMod, damageFlat, damageDice, damageFormula,
             atkChanges, dmgChanges, atkChangesConfirm,
             weaponBonusConfirm, meleeBonusConfirm, rangedBonusConfirm,
@@ -3115,7 +3123,7 @@ window.SheetRoll = (function () {
                     },
                     bonusLines: [
                         { label: 'BAB', value: ctx.bab },
-                        { label: 'STR', value: ctx.strM },
+                        { label: String(ctx.links?.melee || 'str').toUpperCase(), value: ctx.strM },
                         ...ca.bits.map((b) => ({ label: b.source, value: b.value })),
                         ...(ooAtk ? [ooAtk.line] : []),
                     ],
@@ -3146,7 +3154,7 @@ window.SheetRoll = (function () {
                     },
                     bonusLines: [
                         { label: 'BAB', value: ctx.bab },
-                        { label: 'DEX', value: ctx.dexM },
+                        { label: String(ctx.links?.ranged || 'dex').toUpperCase(), value: ctx.dexM },
                         ...ca.bits.map((b) => ({ label: b.source, value: b.value })),
                         ...(ooAtk ? [ooAtk.line] : []),
                     ],

@@ -115,6 +115,26 @@ window.SheetDerive = (function () {
         str: 'Strength', dex: 'Dexterity', con: 'Constitution',
         int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma',
     };
+    // #157 ability links (pf1's actor settings): which ability drives each stat. Defaults are the
+    // PF1 ones; `_sheet.abilityLinks` overrides per key (Wis to AC, Cha to HP for an undead,
+    // Dex to CMB for Agile Maneuvers, Wis to melee for a guided weapon).
+    const LINK_DEFAULTS = {
+        hp: 'con', fort: 'con', ref: 'dex', will: 'wis', init: 'dex',
+        melee: 'str', ranged: 'dex', cmb: 'str', ac: 'dex', cmdStr: 'str', cmdDex: 'dex',
+    };
+    const LINK_LABELS = {
+        hp: 'Hit points', fort: 'Fortitude', ref: 'Reflex', will: 'Will', init: 'Initiative',
+        melee: 'Melee attack', ranged: 'Ranged attack', cmb: 'CMB', ac: 'AC / touch',
+        cmdStr: 'CMD (Str slot)', cmdDex: 'CMD (Dex slot)',
+    };
+    function abilityLinks(data) {
+        const user = data?._sheet?.abilityLinks || {};
+        const out = { ...LINK_DEFAULTS };
+        for (const k of Object.keys(LINK_DEFAULTS)) {
+            if (ABILITY_LABEL[user[k]]) out[k] = user[k];
+        }
+        return out;
+    }
     function abModOf(data, ab) {
         return abilityInfo(data, ab).mod;
     }
@@ -267,10 +287,50 @@ window.SheetDerive = (function () {
      * capacity): +1 / −6; both reduce speed (see loadReducedSpeed). Light load returns
      * null caps so callers can tell "no consequence" from "cap of 0".
      */
+    /**
+     * #157 carrying capacity: effective Str plus a carry-only Str bonus, times a multiplier.
+     * Both come from the Inventory inputs (`_sheet.carry = { strBonus, mult }`) plus the pf1
+     * ledger targets `carryStr` (adds) and `carryMult` (adds to the multiplier, as pf1 does:
+     * Ant Haul's +2 turns ×1 into ×3; a quadruped's ×1.5 is the input). → { str, mult, lim, parts }
+     */
+    function carryCapacity(data) {
+        const baseStr = abilityInfo(data, 'str').total ?? Number(data?.str);
+        const carry = data?._sheet?.carry || {};
+        const parts = [];
+        let str = Number(baseStr) || 0;
+        let mult = Number(carry.mult) > 0 ? Number(carry.mult) : 1;
+        if (mult !== 1) parts.push(`×${mult} (set on Inventory)`);
+        const userStr = Number(carry.strBonus) || 0;
+        if (userStr) { str += userStr; parts.push(`Str ${userStr > 0 ? '+' : ''}${userStr} (set on Inventory)`); }
+        const SD = window.SheetDetails;
+        if (SD?.changesForTargets && data) {
+            const ledger = effectiveLedger(data);
+            for (const [target, apply] of [
+                ['carryStr', (v, src) => { str += v; parts.push(`Str ${v > 0 ? '+' : ''}${v} (${src})`); }],
+                ['carryMult', (v, src) => { mult += v; parts.push(`×${v > 0 ? '+' : ''}${v} (${src})`); }],
+            ]) {
+                for (const c of SD.changesForTargets(ledger, [target])) {
+                    const ev = SD.evalSimpleFormula(c.formula, data);
+                    if (ev.ok && ev.value) apply(ev.value, c.source);
+                }
+            }
+        }
+        mult = Math.max(0, mult);
+        const raw = carryLimits(str);
+        const scale = (n) => Math.floor(n * mult);
+        return {
+            str, baseStr, mult, parts,
+            lim: { light: scale(raw.light), medium: scale(raw.medium), heavy: scale(raw.heavy) },
+        };
+    }
+    /** Load band for `totalLbs` against this character's carrying capacity (#157). */
+    function loadFor(data, totalLbs) {
+        const cap = carryCapacity(data);
+        return { ...bandFor(totalLbs, cap.lim), cap };
+    }
     function encumbrance(data) {
-        const effStr = abilityInfo(data, 'str').total ?? Number(data?.str);
         const weight = carriedWeightLbs(data);
-        const load = loadCategory(weight, effStr);
+        const load = loadFor(data, weight);
         const caps = {
             Medium: { maxDex: 3, acp: 3 },
             Heavy: { maxDex: 1, acp: 6 },
@@ -379,6 +439,12 @@ window.SheetDerive = (function () {
         const bab = (frac ? frac.bab : (Number(data.bab_total) || 0)) + (racial ? racial.bab : 0);
         const strM = abModOf(data, 'str'), dexM = abModOf(data, 'dex'), conM = abModOf(data, 'con');
         const wisM = abModOf(data, 'wis'), intM = abModOf(data, 'int'), chaM = abModOf(data, 'cha');
+        // #157: every stat below reads its ability through the link table. `lm(k)` is the mod,
+        // `ll(k)` the part label (the PF1 default keeps its old wording, so sources read the same).
+        const links = abilityLinks(data);
+        const lm = (k) => abModOf(data, links[k]);
+        const ll = (k, def) => (links[k] === LINK_DEFAULTS[k] ? def : ABILITY_LABEL[links[k]]);
+        const acAbM = lm('ac');
         const armorAc = toInt(data.armor_ac) ?? 0;
         const shieldAc = toInt(data.shield_ac) ?? 0;
         const size = sizeInfo(data);
@@ -393,14 +459,15 @@ window.SheetDerive = (function () {
             ? (enc.maxDex != null && (armorMaxDex == null || enc.maxDex < armorMaxDex)
                 ? `${enc.label.toLowerCase()} load` : 'armor')
             : '';
-        const dexCapped = hasDexCap && dexM > maxDex;
-        let effDex = dexCapped ? maxDex : dexM;
+        const dexCapped = hasDexCap && acAbM > maxDex;
+        let effDex = dexCapped ? maxDex : acAbM;
         // Dex-denying conditions: a POSITIVE Dex bonus stops counting (penalties still apply).
         const dexDenied = condFlags.loseDex && effDex > 0;
         if (dexDenied) effDex = 0;
+        const acAbShort = ll('ac', 'Dex');
         const dexAcLabel = dexDenied
-            ? `Dex (denied — ${condFlags.sources.join(', ')})`
-            : (dexCapped ? `Dex (capped by ${dexCapSource} max ${maxDex})` : 'Dex');
+            ? `${acAbShort} (denied — ${condFlags.sources.join(', ')})`
+            : (dexCapped ? `${acAbShort} (capped by ${dexCapSource} max ${maxDex})` : acAbShort);
         const armorName = (data.armor_name || '').trim() || 'Armor';
         const shieldName = (data.shield_name || '').trim() || 'Shield';
         const className = String(data.c_class || '').toLowerCase();
@@ -479,19 +546,19 @@ window.SheetDerive = (function () {
             negPart(parts);
             return { total: sumParts(parts), parts };
         }
-        const fort = saveBlock('fort', 'Constitution', conM);
-        const ref = saveBlock('ref', 'Dexterity', dexM);
-        const will = saveBlock('will', 'Wisdom', wisM);
+        const fort = saveBlock('fort', ABILITY_LABEL[links.fort], lm('fort'));
+        const ref = saveBlock('ref', ABILITY_LABEL[links.ref], lm('ref'));
+        const will = saveBlock('will', ABILITY_LABEL[links.will], lm('will'));
 
         // ---- Init / attacks / CMB / CMD ----
-        const initParts = [part('Dexterity', dexM, { kind: 'ability' })];
+        const initParts = [part(ABILITY_LABEL[links.init], lm('init'), { kind: 'ability' })];
         appendLedgerParts(initParts, data, ledger, ['init']);
         manualPart(initParts, 'init');
         negPart(initParts);
 
         const meleeParts = [
             part('BAB', bab, { kind: 'base' }),
-            part('Strength', strM, { kind: 'ability' }),
+            part(ABILITY_LABEL[links.melee], lm('melee'), { kind: 'ability' }),
         ];
         if (size.mod) meleeParts.push(sizePart());
         appendLedgerParts(meleeParts, data, ledger, ['attack', 'mattack']);
@@ -500,7 +567,7 @@ window.SheetDerive = (function () {
 
         const rangedParts = [
             part('BAB', bab, { kind: 'base' }),
-            part('Dexterity', dexM, { kind: 'ability' }),
+            part(ABILITY_LABEL[links.ranged], lm('ranged'), { kind: 'ability' }),
         ];
         if (size.mod) rangedParts.push(sizePart());
         appendLedgerParts(rangedParts, data, ledger, ['attack', 'rattack']);
@@ -562,7 +629,7 @@ window.SheetDerive = (function () {
         const specialSizePart = () => part(`Size, special (${size.label})`, size.special, { kind: 'base' });
         const cmbParts = [
             part('BAB', bab, { kind: 'base' }),
-            part('Strength', strM, { kind: 'ability' }),
+            part(ABILITY_LABEL[links.cmb], lm('cmb'), { kind: 'ability' }),
         ];
         if (size.special) cmbParts.push(specialSizePart());
         appendLedgerParts(cmbParts, data, ledger, ['cmb']);
@@ -570,20 +637,24 @@ window.SheetDerive = (function () {
         negPart(cmbParts);
 
         // CMD Dex follows the same denial rule as AC (flat-footed CMD is the separate stat).
+        const cmdDexM = lm('cmdDex');
+        const cmdDexDenied = condFlags.loseDex && cmdDexM > 0;
+        const cmdDexLabel = ABILITY_LABEL[links.cmdDex];
+        const cmdDexPart = part(
+            cmdDexDenied ? `${cmdDexLabel} (denied — ${condFlags.sources.join(', ')})` : cmdDexLabel,
+            cmdDexDenied ? Math.min(cmdDexM, 0) : cmdDexM, { kind: 'ability' });
         const cmdParts = [
             part('Base', 10),
             part('BAB', bab, { kind: 'base' }),
-            part('Strength', strM, { kind: 'ability' }),
-            part(dexDenied ? `Dexterity (denied — ${condFlags.sources.join(', ')})` : 'Dexterity',
-                dexDenied ? Math.min(dexM, 0) : dexM, { kind: 'ability' }),
+            part(ABILITY_LABEL[links.cmdStr], lm('cmdStr'), { kind: 'ability' }),
+            cmdDexPart,
         ];
         if (size.special) cmdParts.push(specialSizePart());
         appendLedgerParts(cmdParts, data, ledger, ['cmd']);
         manualPart(cmdParts, 'cmd');
 
         // Flat-footed CMD (PF1): CMD without Dexterity and dodge bonuses
-        const cmdFFParts = cmdParts.filter((p) =>
-            !(p.kind === 'ability' && p.label.startsWith('Dexterity')) && p.type !== 'dodge');
+        const cmdFFParts = cmdParts.filter((p) => p !== cmdDexPart && p.type !== 'dodge');
 
         // ---- HP: rolled dice + CON×level, then mhp feats (Toughness, …) on top ----
         // Mirrors Foundry: total_rolled_hp → hp.base; Con is ability contribution; Toughness → mhp.
@@ -591,7 +662,9 @@ window.SheetDerive = (function () {
         let rolled = toInt(data.total_rolled_hp);
         const hadRolledField = data.total_rolled_hp != null && data.total_rolled_hp !== '';
         const genTotal = toInt(data.Total_HP);
-        const conHp = level > 0 ? conM * level : 0;
+        const hpAbM = lm('hp');
+        const hpAbLabel = ABILITY_LABEL[links.hp];
+        const conHp = level > 0 ? hpAbM * level : 0;
 
         // Pre-sum mhp ledger so we can reverse-estimate dice from Total_HP if needed
         let mhpBonus = 0;
@@ -616,16 +689,16 @@ window.SheetDerive = (function () {
         }
         if (level > 0) {
             hpParts.push(part(
-                `Constitution (${fmt(conM)} × ${level} HD)`,
+                `${hpAbLabel} (${fmt(hpAbM)} × ${level} HD)`,
                 conHp, { kind: 'ability' }));
             // Racial HD are hit dice too: Con applies to each of them as well.
             if (racial) {
                 hpParts.push(part(
-                    `Constitution (${fmt(conM)} × ${racial.count} racial HD)`,
-                    conM * racial.count, { kind: 'ability' }));
+                    `${hpAbLabel} (${fmt(hpAbM)} × ${racial.count} racial HD)`,
+                    hpAbM * racial.count, { kind: 'ability' }));
             }
         } else {
-            hpParts.push(part('Constitution (no level/HD)', 0, { kind: 'ability' }));
+            hpParts.push(part(`${hpAbLabel} (no level/HD)`, 0, { kind: 'ability' }));
         }
         // Feats/traits/talents that grant mhp/hp (Toughness: max(3, HD), etc.) — additive
         appendLedgerParts(hpParts, data, ledger, ['mhp', 'hp'], { infoOnly: false });
@@ -671,7 +744,7 @@ window.SheetDerive = (function () {
 
         // Legacy-compatible flat fields for older call sites
         return {
-            checks,
+            checks, links, hpAbM,
             level, bab, strM, dexM, conM, wisM, intM, chaM,
             armorAc, shieldAc, maxDex: hasDexCap ? maxDex : null, effDex,
             size, conditionFlags: condFlags, encumbrance: enc,
@@ -709,7 +782,9 @@ window.SheetDerive = (function () {
         };
     }
     function loadCategory(totalLbs, strScore) {
-        const lim = carryLimits(strScore);
+        return bandFor(totalLbs, carryLimits(strScore));
+    }
+    function bandFor(totalLbs, lim) {
         if (totalLbs <= lim.light) return { label: 'Light', lim, cls: 'load-light' };
         if (totalLbs <= lim.medium) return { label: 'Medium', lim, cls: 'load-medium' };
         if (totalLbs <= lim.heavy) return { label: 'Heavy', lim, cls: 'load-heavy' };
@@ -889,8 +964,10 @@ window.SheetDerive = (function () {
     }
 
     return {
-        part, sumParts, appendLedgerParts, abilityInfo, ABILITY_LABEL, abModOf, effectiveLedger,
+        part, sumParts, appendLedgerParts, abilityInfo, ABILITY_LABEL,
+        abilityLinks, LINK_DEFAULTS, LINK_LABELS, abModOf, effectiveLedger,
         groupChangesBySource, computeDerived, combatStats, carryLimits, loadCategory,
+        carryCapacity, loadFor,
         castingAbilityMod, totalLevel, casterLevelValue, spellSaveDC, concentrationBonus,
         acTypeTotals, saveBuckets, srTotal, babIterativesStr, GOOD_SAVES,
         fractionalBases, babTotal,

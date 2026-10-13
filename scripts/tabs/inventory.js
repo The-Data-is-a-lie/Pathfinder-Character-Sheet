@@ -10,11 +10,9 @@ window.SheetTabInventory = (function () {
         h, section, dblclickEditable, parseIntLoose, fmtWeight, fmtPrice, cloneChanges,
         dndHandle, bindDragReorder, reorderArray, nonEmpty, fmt,
     } = window.SheetUI;
-    const { loadCategory, carryLimits, abilityInfo } = window.SheetDerive;
-    // Carrying capacity keys off the *effective* Strength (belt of giant strength included),
-    // not the raw base score.
-    const effStr = (data) => abilityInfo(data, 'str').total ?? data.str;
-    const { quietSave, ensureInventoryObjects } = window.SheetState;
+    // Carrying capacity is SheetDerive.loadFor: effective Str (belt included) + carry bonus,
+    // times the multiplier (#157).
+    const { quietSave, ensureInventoryObjects, sheetState } = window.SheetState;
     const {
         openItemSheet, addBlankInventoryItem, formatChangeLine, sectionCatalogToolbar,
         openCatalogPicker, openSpellConsumableBuilder,
@@ -454,7 +452,7 @@ window.SheetTabInventory = (function () {
         const coinLbs = Number(window.SheetInventoryModel.coinWeightLbs(data)) || 0;
         totalWeight += coinLbs;
 
-        const load = loadCategory(totalWeight, effStr(data));
+        const load = window.SheetDerive.loadFor(data, totalWeight);
         const eqCount = list.filter((it) => it.equipped).length;
         const carried = list.filter((it) => it.carried !== false).length;
         const valueSum = list.reduce((sum, it) => {
@@ -497,6 +495,39 @@ window.SheetTabInventory = (function () {
             bar.appendChild(seg);
         }
         foot.appendChild(bar);
+
+        // #157: carry-only Str bonus and a multiplier (quadruped ×1.5, a house rule…). Ledger
+        // carryStr / carryMult changes (Ant Haul, Muleback Cords) stack on top; the tooltip
+        // lists every term.
+        const carry = (sheetState(data).carry ??= {});
+        const capRow = h('div', 'inv-carry-mods no-print');
+        const capField = (label, key, opts) => {
+            const lab = h('label', 'inv-carry-field');
+            lab.appendChild(h('span', 'inv-carry-label', label));
+            const input = h('input', 'edit-field inv-carry-input');
+            input.type = 'number';
+            input.step = opts.step;
+            input.min = opts.min;
+            input.dataset.carry = key;
+            input.value = carry[key] != null && carry[key] !== '' ? String(carry[key]) : '';
+            input.placeholder = opts.placeholder;
+            input.addEventListener('change', () => {
+                const n = Number(input.value);
+                if (input.value === '' || !Number.isFinite(n) || n === opts.neutral) delete carry[key];
+                else carry[key] = n;
+                quietSave();
+                invRerender(data);
+            });
+            lab.appendChild(input);
+            return lab;
+        };
+        capRow.appendChild(capField('Carry Str +', 'strBonus', { step: '1', min: '-20', placeholder: '0', neutral: 0 }));
+        capRow.appendChild(capField('Capacity ×', 'mult', { step: '0.25', min: '0', placeholder: '1', neutral: 1 }));
+        const cap = load.cap;
+        capRow.appendChild(h('span', 'dim inv-carry-sum',
+            `Capacity from Str ${cap.str}${cap.mult !== 1 ? ` × ${cap.mult}` : ''}`));
+        capRow.title = ['Carrying capacity: Str ' + cap.baseStr, ...cap.parts].join('\n');
+        foot.appendChild(capRow);
 
         // Lift & drag capacities (PF1: above head = heavy; off ground = ×2; drag & push = ×5)
         const caps = h('div', 'inv-capacity-row');

@@ -255,9 +255,10 @@ window.SheetSimple = (function () {
             ['Save', { text: 'Total', cls: 'num' }, { text: 'Base', cls: 'num' },
                 { text: 'Ability', cls: 'num' }, { text: 'Misc', cls: 'num' }],
             [
-                saveRow('Fortitude', 'fort', d.blocks.fort, 'Con', d.conM),
-                saveRow('Reflex', 'ref', d.blocks.ref, 'Dex', d.dexM),
-                saveRow('Will', 'will', d.blocks.will, 'Wis', d.wisM),
+                // #157: the ability column follows the link table.
+                saveRow('Fortitude', 'fort', d.blocks.fort, titleCase(d.links.fort), abModOf(data, d.links.fort)),
+                saveRow('Reflex', 'ref', d.blocks.ref, titleCase(d.links.ref), abModOf(data, d.links.ref)),
+                saveRow('Will', 'will', d.blocks.will, titleCase(d.links.will), abModOf(data, d.links.will)),
             ]));
 
         // Offense
@@ -395,7 +396,7 @@ window.SheetSimple = (function () {
         left.appendChild(spTable(
             ['Item', { text: 'Qty', cls: 'num' }, { text: 'Wt.', cls: 'num' }],
             gearRows));
-        const load = loadCategory(totalWt, abilityInfo(data, 'str').total ?? data.str);
+        const load = window.SheetDerive.loadFor(data, totalWt);
         left.appendChild(h('p', 'simple-formula',
             `Total ${fmtWeight(totalWt)} — ${load.label} load`
             + ` (light ${load.lim.light} / medium ${load.lim.medium} / heavy ${load.lim.heavy} lbs)`));

@@ -265,7 +265,7 @@ window.SheetTabSummary = (function () {
             // feats), wounds = 2 × Con score, wound threshold = Con score. Damage
             // routing (temp → vigor → wounds) lives in roll.js applyDamageToHp.
             const vigorMax = Math.max(0,
-                d.blocks.hp.total - (d.conM || 0) * (Number(data.level) || 0));
+                d.blocks.hp.total - (d.hpAbM || 0) * (Number(data.level) || 0));
             const woundsMax = 2 * conScore;
             if (st.vigorCurrent == null || st.vigorCurrent === '') st.vigorCurrent = vigorMax;
             if (st.woundsCurrent == null || st.woundsCurrent === '') st.woundsCurrent = woundsMax;
