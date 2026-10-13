@@ -12,6 +12,7 @@
     { "id": "damage.calculator", "area": "Combat", "title": "Damage calculator: incoming damage through DR/ER/immunity", "source": "user", "status": "have", "ticket": 146 },
     { "id": "text.inline-enrichers", "area": "Text", "title": "Inline @Save / @Damage / @Heal enrichers in feature and spell text", "source": "foundry", "status": "have", "ticket": 147 },
     { "id": "summary.quick-actions", "area": "Summary", "title": "Pinned Quick Actions bar on Summary", "source": "foundry", "status": "have", "ticket": 148 },
-    { "id": "lists.search-chips", "area": "Lists", "title": "Search + filter chips on every list tab", "source": "foundry", "status": "have", "ticket": 149 }
+    { "id": "lists.search-chips", "area": "Lists", "title": "Search + filter chips on every list tab", "source": "foundry", "status": "have", "ticket": 149 },
+    { "id": "inputs.wheel-relative", "area": "Inputs", "title": "Wheel and relative (+5 / -7) input on HP, quantity, charges and buff level", "source": "foundry", "status": "have", "ticket": 150 }
   ]
 }

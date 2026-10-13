@@ -319,11 +319,87 @@ window.SheetUI = (function () {
         return out;
     }
 
+    // ---- #150: relative entry + wheel nudge on numeric boxes (pf1 muscle memory) ----
+    // "+5" / "-7" adjust the current value, "=-3" sets it outright; anything else is a plain
+    // value for the field's own parser. The wheel nudges by one (Ctrl/⌘ for ×10).
+    const REL_RE = /^\s*([+\-−])\s*(\d+(?:\.\d+)?)\s*$/;
+    const ABS_RE = /^\s*=\s*([+\-−]?\d+(?:\.\d+)?)\s*$/;
+    const clampNum = (v, min, max) => {
+        let n = v;
+        if (min != null && min !== '') n = Math.max(Number(min), n);
+        if (max != null && max !== '') n = Math.min(Number(max), n);
+        return n;
+    };
+    /** Resolve "+5" / "-7" against `current`, or "=N" to N; null when the text is neither. */
+    function resolveRelative(text, current) {
+        const s = String(text ?? '');
+        let m = ABS_RE.exec(s);
+        if (m) return Number(m[1].replace('−', '-'));
+        m = REL_RE.exec(s);
+        if (m) return (Number(current) || 0) + (m[1] === '+' ? 1 : -1) * Number(m[2]);
+        return null;
+    }
+    const RELATIVE_HINT = 'Type +5 or -7 to adjust, =N to set';
+    const NUDGE_HINT = 'Scroll to nudge (Ctrl ×10)';
+
+    // A page scroll that drifts over a nudge box must keep scrolling the page, not spin the
+    // number: a wheel event within this window of the last page-scroll event is passed through
+    // (and extends the window), so only a deliberate scroll after a pause nudges.
+    const SCROLL_THROUGH_MS = 400;
+    let lastPageWheel = -Infinity;
+    if (typeof document !== 'undefined') {
+        document.addEventListener('wheel', (e) => {
+            if (!e.target?.closest?.('[data-nudge]')) lastPageWheel = e.timeStamp;
+        }, { capture: true, passive: true });
+    }
+    /** Wheel over `el` steps a number: get() → current, set(n) → commit (clamped to min/max). */
+    function attachWheelNudge(el, { get, set, min, max, step = 1 }) {
+        el.dataset.nudge = '1';
+        if (!el.title.includes(NUDGE_HINT)) el.title = (el.title ? el.title + ' · ' : '') + NUDGE_HINT;
+        el.addEventListener('wheel', (e) => {
+            if (!e.deltaY) return;
+            if (e.timeStamp - lastPageWheel < SCROLL_THROUGH_MS) { lastPageWheel = e.timeStamp; return; }
+            e.preventDefault();
+            const n = step * (e.ctrlKey || e.metaKey ? 10 : 1) * (e.deltaY < 0 ? 1 : -1);
+            const cur = Number(get());
+            const next = clampNum((Number.isFinite(cur) ? cur : 0) + n, min, max);
+            if (next !== cur) set(next);
+        }, { passive: false });
+    }
+    /** For a bare <input>: relative entry on change plus the wheel nudge, both via a 'change'. */
+    function numericAffordances(input, { min, max, step = 1 } = {}) {
+        let before = input.value;
+        input.type = 'text';
+        input.inputMode = 'numeric';
+        input.title = (input.title ? input.title + ' · ' : '') + RELATIVE_HINT;
+        input.addEventListener('focus', () => { before = input.value; });
+        // Capture phase, so the field's own 'change' listener sees the resolved number.
+        input.addEventListener('change', () => {
+            const r = resolveRelative(input.value, before === '' ? 0 : Number(before));
+            if (r != null) input.value = String(clampNum(r, min, max));
+            before = input.value;
+        }, true);
+        attachWheelNudge(input, {
+            min, max, step,
+            get: () => (input.value === '' ? 0 : Number(input.value)),
+            set: (v) => {
+                input.value = String(v);
+                before = input.value;
+                input.dispatchEvent(new Event('change'));
+            },
+        });
+        return input;
+    }
+
     // ---- inline edit widgets (commit via the late-bound quietSave/refreshDerived above) ----
     function editableField(data, key, opts = {}) {
         const type = opts.type || 'text';
         const input = h('input', 'edit-field');
-        input.type = type === 'number' ? 'number' : 'text';
+        input.type = type === 'number' && !opts.relative ? 'number' : 'text';
+        if (opts.relative) {
+            input.inputMode = 'numeric';
+            input.title = RELATIVE_HINT;
+        }
         if (type === 'number') {
             if (opts.min != null) input.min = opts.min;
             if (opts.max != null) input.max = opts.max;
@@ -339,6 +415,10 @@ window.SheetUI = (function () {
         }
         input.addEventListener('change', () => {
             let v = input.value;
+            if (opts.relative) {
+                const r = resolveRelative(v, data[key]);
+                if (r != null) v = String(clampNum(r, opts.min, opts.max));
+            }
             if (opts.asArray) {
                 data[key] = v.split(',').map((s) => s.trim()).filter(Boolean);
             } else if (opts.parse) {
@@ -376,7 +456,7 @@ window.SheetUI = (function () {
      */
     function dblclickEditable(data, key, opts = {}) {
         const wrap = h('span', 'dbl-edit');
-        wrap.title = 'Double-click to edit';
+        wrap.title = 'Double-click to edit' + (opts.relative ? ` (${RELATIVE_HINT})` : '');
         const display = h('span', 'dbl-edit-display');
         const input = editableField(data, key, {
             ...opts,
@@ -429,6 +509,27 @@ window.SheetUI = (function () {
             input.classList.add('hidden');
             display.classList.remove('hidden');
             formatDisplay();
+        }
+
+        // #150: the wheel nudges the stored value straight away (no double-click first); while
+        // the box is open for typing it nudges the typed text instead, committed by Enter/blur.
+        if (opts.nudge) {
+            const editing = () => wrap.classList.contains('is-editing');
+            const readNum = (raw) => (opts.parse ? opts.parse(String(raw ?? '')) : Number(raw) || 0);
+            attachWheelNudge(wrap, {
+                min: opts.min, max: opts.max, step: opts.nudge.step || 1,
+                get: () => (editing()
+                    ? readNum(input.value)
+                    : readNum(opts.format ? opts.format(data[key]) : data[key])),
+                set: (v) => {
+                    if (editing()) { input.value = String(v); return; }
+                    data[key] = v;
+                    opts.onChange?.(v, data);
+                    quietSave();
+                    refreshDerived();
+                    formatDisplay();
+                },
+            });
         }
 
         input.addEventListener('keydown', (e) => {
@@ -782,6 +883,7 @@ window.SheetUI = (function () {
         titleCase, mod, toInt, nonEmpty, escapeHtml, parseIntLoose, fmtWeight, fmtPrice,
         foundry, highlightInlineRolls,
         editableField, kvEdit, dblclickEditable, kvDbl,
+        resolveRelative, attachWheelNudge, numericAffordances,
         bindDragReorder, bindDragList, reorderArray, dndHandle, cloneChanges,
     };
 })();

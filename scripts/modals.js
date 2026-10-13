@@ -1623,6 +1623,8 @@ window.SheetModals = (function () {
                 item.charges.value = chIn.value === '' ? null : Math.max(0, parseIntLoose(chIn.value, 0));
                 quietSave();
             });
+            // #150: "-1" spends one, "+10" recharges; the wheel nudges.
+            window.SheetUI.numericAffordances(chIn, { min: 0 });
             const chMaxIn = h('input', 'item-sheet-num');
             chMaxIn.type = 'number';
             chMaxIn.min = '0';
