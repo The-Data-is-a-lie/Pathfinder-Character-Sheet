@@ -29,6 +29,14 @@ window.SheetTabCombat = (function () {
         dmg.type = 'button';
         dmg.title = 'Damage only with ' + item.name;
         dmg.addEventListener('click', () => roll?.rollDamageFor?.(item.id));
+        // #152: a weapon with extra actions asks which one; say so on the buttons.
+        const nActs = window.SheetItemActions?.forItem(item).length || 0;
+        if (nActs) {
+            for (const b of [atk, dmg]) {
+                b.textContent += ' ▾';
+                b.title += ` — asks which action (Normal + ${nActs})`;
+            }
+        }
         row.append(atk, dmg);
         if (!ctx?.wStats) {
             row.appendChild(h('span', 'inv-atk-nostats', 'no weapon stats — set dice in the item sheet'));

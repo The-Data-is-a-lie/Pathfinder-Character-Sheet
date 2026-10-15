@@ -470,7 +470,11 @@ window.SheetFeatureSheet = (function () {
         const content = h('div', 'item-sheet-content');
         const tabBar = h('div', 'item-sheet-tabs');
         const panes = {};
-        for (const [id, label] of [['description', 'Description'], ['details', 'Details'], ['changes', 'Changes']]) {
+        // #152: feats, traits and class features can hold several actions (a dual-use feat).
+        const hasActions = !obj && ['feat', 'trait', 'classFeat'].includes(kind) && !!window.SheetActionsUI;
+        const tabDefs = [['description', 'Description'], ['details', 'Details'], ['changes', 'Changes']];
+        if (hasActions) tabDefs.push(['actions', 'Actions']);
+        for (const [id, label] of tabDefs) {
             const btn = h('button', 'item-sheet-tab' + (id === 'description' ? ' is-active' : ''), label);
             btn.type = 'button';
             btn.addEventListener('click', () => {
@@ -543,6 +547,21 @@ window.SheetFeatureSheet = (function () {
         chgPane.appendChild(ref.panels?.changes
             || SM.buildFeatureChangesPanel(data, ref.name, ref.sourceKind || kind));
         panes.changes = chgPane;
+
+        if (hasActions) {
+            const actPane = h('div', 'item-sheet-pane hidden');
+            actPane.appendChild(window.SheetActionsUI.editor({
+                data,
+                getList: () => window.SheetItemActions.forFeature(data, kind, ref.name),
+                setList: (list) => {
+                    const out = window.SheetItemActions.setForFeature(data, kind, ref.name, list);
+                    quietSave();
+                    syncEdited();
+                    return out;
+                },
+            }));
+            panes.actions = actPane;
+        }
 
         for (const pane of Object.values(panes)) content.appendChild(pane);
         grid.appendChild(content);

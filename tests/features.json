@@ -19,6 +19,7 @@
     { "id": "log.post-rows-defenses", "area": "Log", "title": "Every list row posts its card to the roll log; one-click Defenses card", "source": "foundry", "status": "have", "ticket": 151 },
     { "id": "attributes.ability-links", "area": "Attributes", "title": "Settings picks the ability behind HP, saves, init, CMB, melee, ranged, AC and CMD; carry Str bonus and multiplier", "source": "foundry", "status": "have", "ticket": 157 },
     { "id": "skills.custom-flags", "area": "Skills", "title": "Custom skills, per-skill ACP / trained-only flags and an edit lock", "source": "foundry", "status": "have", "ticket": 155 },
-    { "id": "spells.book-extras", "area": "Spells", "title": "Per-book DC / CL / concentration formulas, roll notes, range readout, spell failure %; per-spell prepared count and domain flag", "source": "foundry", "status": "have", "ticket": 156 }
+    { "id": "spells.book-extras", "area": "Spells", "title": "Per-book DC / CL / concentration formulas, roll notes, range readout, spell failure %; per-spell prepared count and domain flag", "source": "foundry", "status": "have", "ticket": 156 },
+    { "id": "items.multi-action", "area": "Items", "title": "Multi-action items and features (normal vs Power Attack, dual-use feats) with an action picker", "source": "foundry", "status": "have", "ticket": 152 }
   ]
 }

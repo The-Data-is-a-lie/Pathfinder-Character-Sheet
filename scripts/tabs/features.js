@@ -183,6 +183,15 @@ window.SheetTabFeatures = (function () {
             });
         });
         chatCell.appendChild(chat);
+        // #152 ⚔ Use: only when the entry has actions; asks which when there are several.
+        const actKind = opts.sheetRef?.kind;
+        if (opts.data && actKind && window.SheetActionsUI) {
+            const acts = window.SheetItemActions.forFeature(opts.data, actKind, opts.name);
+            if (acts.length) {
+                chatCell.appendChild(window.SheetActionsUI.useButton(opts.data,
+                    { title: opts.name, stored: acts, cls: 'feat-use-btn' }));
+            }
+        }
         li.appendChild(chatCell);
 
         const ctrlCell = h('div', 'feat-cell feat-cell-controls no-print');

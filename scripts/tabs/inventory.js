@@ -167,6 +167,22 @@ window.SheetTabInventory = (function () {
         const postBtn = window.SheetPostCards.postBtn(() => window.SheetPostCards.postItem(data, item), 'inv-post-btn');
         postBtn.className = 'inv-icon-btn inv-post-btn';
         btns.append(postBtn, buffsBtn, dupBtn);
+        // #152 ⚔: items with actions. A weapon rolls through the attack path (Normal + its
+        // actions); anything else posts the chosen action's card.
+        const itemActs = window.SheetItemActions?.forItem(item) || [];
+        if (itemActs.length && window.SheetActionsUI) {
+            if (inventoryCategory(item) === 'weapons') {
+                const useBtn = h('button', 'inv-icon-btn action-use-btn inv-use-btn', '⚔');
+                useBtn.type = 'button';
+                useBtn.title = `Attack… (Normal + ${itemActs.length} action${itemActs.length > 1 ? 's' : ''})`;
+                useBtn.addEventListener('click', () => window.SheetRoll?.rollWeaponAttackFor?.(item.id, { withDamage: true }));
+                btns.appendChild(useBtn);
+            } else {
+                const useBtn = window.SheetActionsUI.useButton(data, { title: item.name, stored: itemActs, cls: 'inv-use-btn' });
+                useBtn.className = 'inv-icon-btn action-use-btn inv-use-btn';
+                btns.appendChild(useBtn);
+            }
+        }
         if ((Number(item.quantity) || 0) >= 2) {
             const splitBtn = h('button', 'inv-icon-btn inv-split-btn', '⫽');
             splitBtn.type = 'button';
