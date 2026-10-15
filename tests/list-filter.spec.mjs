@@ -60,17 +60,19 @@ test('Spells: search, level chips, Prepared only and Hide empty compose, and sur
         }
         await bar(page, 'spells').locator('.filter-pill[data-lgroup="L1"]').click();
 
-        // Prepared only: untick one prepared spell; it drops out, the prepared ones stay.
-        const prepared = pane(page, 'spells').locator(`${rows}:has(.spell-prep-check:checked)`);
+        // Prepared only: set one prepared spell's count to 0; it drops out, the prepared ones stay.
+        const prepared = pane(page, 'spells').locator(`${rows}.is-prepared`);
         const nPrepared = await prepared.count();
         test.skip(nPrepared < 2, 'fixture has too few prepared spells');
-        const victim = prepared.first();
-        const victimName = await victim.getAttribute('data-dnd-id');
-        await victim.locator('.spell-prep-check').uncheck();
+        const victimName = await prepared.first().getAttribute('data-dnd-id');
+        // Pin the row by name: once its count is 0 it is no longer `.is-prepared`.
+        const victimN = pane(page, 'spells').locator(`${rows}[data-dnd-id="${victimName}"] .spell-prep-n`).first();
+        await victimN.fill('0');
+        await victimN.press('Enter');
         await bar(page, 'spells').locator('[data-special="prepared"]').click();
         await expect(pane(page, 'spells').locator(`${rows}[data-dnd-id="${victimName}"]`).first())
             .toHaveClass(/list-filter-hidden/);
-        await expect(pane(page, 'spells').locator(`${rows}:has(.spell-prep-check:checked)`).first())
+        await expect(pane(page, 'spells').locator(`${rows}.is-prepared`).first())
             .not.toHaveClass(/list-filter-hidden/);
     });
 
