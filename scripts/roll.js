@@ -294,6 +294,10 @@ window.SheetRoll = (function () {
         if (opts.metamagic?.names?.includes('Quicken Spell') && (data === currentData)) {
             const spent = autoSpendSwift('Quickened cast');
             if (spent) riders.push(spent);
+        } else if (data === currentData) {
+            // #161: most spells are a standard action (the extract carries no casting time).
+            const spent = autoSpendAction('standard', 'cast ' + (opts.name || 'a spell'));
+            if (spent) riders.push(spent);
         }
 
         if (isSpellAttackType(actionType)) {
@@ -1252,9 +1256,10 @@ window.SheetRoll = (function () {
         document.querySelectorAll('.round-strip-num').forEach((el) => {
             el.textContent = `Round ${Number(st.roundCounter) || 0}`;
         });
-        document.querySelectorAll('.ae-swift').forEach((el) => {
-            el.textContent = ae.swiftSpent ? 'Swift spent' : 'Swift ready';
-            el.classList.toggle('ae-spent', ae.swiftSpent);
+        document.querySelectorAll('.ae-act').forEach((el) => {
+            const on = !!ae.used[el.dataset.act];
+            el.classList.toggle('ae-spent', on);
+            el.setAttribute('aria-pressed', on ? 'true' : 'false');
         });
         document.querySelectorAll('.ae-aoo').forEach((el) => {
             el.textContent = `AoO ${ae.aooUsed}/${aooMaxFor(currentData)}`;
@@ -1268,26 +1273,36 @@ window.SheetRoll = (function () {
      * style. Returns a rider line for the card.
      */
     function autoSpendSwift(reason) {
+        return autoSpendAction('swift', reason);
+    }
+    /**
+     * #161: mark the action a roll proves happened (attack → standard, full attack → full-round,
+     * cast → standard, boost → swift, counter → immediate). Over-spending warns in the card and a
+     * toast and rolls anyway. Returns the card's rider line.
+     */
+    function autoSpendAction(kind, reason) {
         if (!currentData) return null;
-        const ae = window.SheetState.ensureActionEconomy(currentData);
-        let text;
-        if (ae.swiftSpent) {
-            text = `Swift already used this round (${reason}) — rolled anyway`;
-        } else {
-            ae.swiftSpent = true;
-            text = `Swift action spent (${reason})`;
-        }
-        window.SheetState.quietSave?.();
+        const S = window.SheetState;
+        const { conflict } = S.spendAction(currentData, kind);
+        const label = S.ACTION_LABELS[kind];
+        const text = conflict
+            ? `${label} action (${reason}) — ${conflict}; rolled anyway`
+            : `${label} action used (${reason})`;
+        if (conflict) window.SheetOverlay?.toast?.(`Over the action budget: ${conflict}.`);
         syncRoundStrips();
         return { source: 'Action economy', text };
     }
 
-    /** Rider line for any checked Boost maneuvers on this attack action, or null. */
-    function boostSwiftRider() {
-        const boosts = availableConditionals.filter((c) => c.sourceKind === 'maneuver'
-            && c.powType === 'boost' && activeConditionals.get(c.id));
-        if (!boosts.length) return null;
-        return autoSpendSwift('Boost: ' + boosts.map((b) => b.source).join(', '));
+    /** Rider lines for checked Boost (swift) and Counter (immediate) maneuvers on this attack. */
+    function maneuverActionRiders() {
+        const on = (type) => availableConditionals.filter((c) => c.sourceKind === 'maneuver'
+            && c.powType === type && activeConditionals.get(c.id));
+        const out = [];
+        const boosts = on('boost');
+        if (boosts.length) out.push(autoSpendAction('swift', 'Boost: ' + boosts.map((b) => b.source).join(', ')));
+        const counters = on('counter');
+        if (counters.length) out.push(autoSpendAction('immediate', 'Counter: ' + counters.map((b) => b.source).join(', ')));
+        return out.filter(Boolean);
     }
 
     /** The round strip: Round N · Next round (· Reset) · Swift chip · AoO chip. */
@@ -1327,18 +1342,32 @@ window.SheetRoll = (function () {
             strip.appendChild(reset);
         }
 
-        const swift = h('button', 'inv-btn ae-chip ae-swift',
-            ae.swiftSpent ? 'Swift spent' : 'Swift ready');
-        swift.type = 'button';
-        swift.title = 'Swift & immediate actions share one per-round slot — click to '
-            + 'spend or restore it. Quickened casts and Boost maneuvers spend it themselves.';
-        swift.classList.toggle('ae-spent', ae.swiftSpent);
-        swift.addEventListener('click', () => {
-            ae.swiftSpent = !ae.swiftSpent;
-            window.SheetState.quietSave?.();
-            syncRoundStrips();
-        });
-        strip.appendChild(swift);
+        // #161: the five actions of a turn. Attacks, full attacks, casts and maneuvers mark them
+        // themselves; a click marks or clears by hand; Next round clears all. Never blocks.
+        const TIPS = {
+            full: 'Full-round action — uses your standard and move (full attack, most routines)',
+            standard: 'Standard action — one attack, most spells, a strike',
+            move: 'Move action — a second one takes your standard',
+            swift: 'Swift action — shares one slot with immediate (Quicken, boosts)',
+            immediate: 'Immediate action — uses next turn’s swift slot (counters)',
+        };
+        const acts = h('span', 'ae-acts');
+        for (const kind of window.SheetState.ACTION_KINDS) {
+            const chip = h('button', 'inv-btn ae-chip ae-act', window.SheetState.ACTION_LABELS[kind]);
+            chip.type = 'button';
+            chip.dataset.act = kind;
+            chip.title = TIPS[kind] + ' · click to mark or clear';
+            const on = !!ae.used[kind];
+            chip.classList.toggle('ae-spent', on);
+            chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+            chip.addEventListener('click', () => {
+                const r = window.SheetState.toggleAction(data, kind);
+                if (r.conflict) window.SheetOverlay?.toast?.(`Over the action budget: ${r.conflict}.`);
+                syncRoundStrips();
+            });
+            acts.appendChild(chip);
+        }
+        strip.appendChild(acts);
 
         const aoo = h('button', 'inv-btn ae-chip ae-aoo',
             `AoO ${ae.aooUsed}/${aooMaxFor(data)}`);
@@ -2403,7 +2432,7 @@ window.SheetRoll = (function () {
         });
     }
 
-    function doWeaponAttack({ full = false, withDamage = true, itemKey = undefined, action = null } = {}) {
+    function doWeaponAttack({ full = false, withDamage = true, itemKey = undefined, action = null, reroll = false } = {}) {
         const applied = applyItemAction(attackContext(currentData, itemKey), action);
         const ctx = applied.ctx;
         const act = applied.act;
@@ -2423,8 +2452,12 @@ window.SheetRoll = (function () {
         const attacks = [];
         const damages = [];
         const riderLists = [];
-        const boostRider = boostSwiftRider();
-        if (boostRider) riderLists.push([boostRider]);
+        // A re-roll repeats the same action, so it spends nothing new.
+        if (!reroll) {
+            riderLists.push(maneuverActionRiders());
+            const actRider = autoSpendAction(full ? 'full' : 'standard', full ? 'full attack' : 'attack');
+            if (actRider) riderLists.push([actRider]);
+        }
         if (act?.riders.length) riderLists.push(act.riders);
 
         for (let i = 0; i < count; i++) {
@@ -2475,7 +2508,7 @@ window.SheetRoll = (function () {
             attacks,
             damages,
             riders: collectRiders(...riderLists),
-        }, { reroll: () => doWeaponAttack({ full, withDamage, itemKey, action }) });
+        }, { reroll: () => doWeaponAttack({ full, withDamage, itemKey, action, reroll: true }) });
     }
 
     function doDamageOnly({ itemKey = undefined, action = null } = {}) {
@@ -2689,7 +2722,7 @@ window.SheetRoll = (function () {
 
     /** Roll every line of a routine into one card. Ranged lines linked to an ammo item
      *  spend one each; an empty quiver still rolls but flags the line loudly. */
-    function doRoutineAttack(routine) {
+    function doRoutineAttack(routine, { reroll = false } = {}) {
         if (!currentData || !routine?.lines?.length) {
             pushLog('Full attack', 'No routine to roll — add attacks in the editor.', null, { sound: false });
             return;
@@ -2701,8 +2734,12 @@ window.SheetRoll = (function () {
         const notes = [];
         const ctxCache = new Map();
         let ammoSpent = false;
-        const boostRider = boostSwiftRider();
-        if (boostRider) riderLists.push([boostRider]);
+        if (!reroll) {
+            riderLists.push(maneuverActionRiders());
+            const actRider = autoSpendAction(routine.lines.length > 1 ? 'full' : 'standard',
+                'routine: ' + (routine.name || 'attack'));
+            if (actRider) riderLists.push([actRider]);
+        }
 
         for (const line of routine.lines) {
             const adjust = Number(line.adjust) || 0;
@@ -2803,7 +2840,7 @@ window.SheetRoll = (function () {
             attacks,
             damages,
             riders: [...notes, ...collectRiders(...riderLists)],
-        }, { reroll: () => doRoutineAttack(routine) });
+        }, { reroll: () => doRoutineAttack(routine, { reroll: true }) });
         if (ammoSpent) {
             window.SheetApp?.quietSave?.();
             // Repaint so Inventory quantity and the routine editor's ammo counts agree.

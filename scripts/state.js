@@ -388,13 +388,77 @@ window.SheetState = (function () {
      * budget in PF1) plus the AoO counter. `aooMax` is a user override; null/absent means
      * auto-derive (1, or 1 + Dex mod with Combat Reflexes — SheetRoll.aooMaxFor).
      */
+    // #161 action tracker: the five classic PF1 actions per turn. `used` is the source of truth;
+    // `swiftSpent` is kept in step (swift OR immediate — they share one slot) for older saves.
+    const ACTION_KINDS = ['full', 'standard', 'move', 'swift', 'immediate'];
+    const ACTION_LABELS = { full: 'Full-round', standard: 'Standard', move: 'Move', swift: 'Swift', immediate: 'Immediate' };
     function ensureActionEconomy(data) {
         const st = sheetState(data);
         if (!st.actionEconomy || typeof st.actionEconomy !== 'object') st.actionEconomy = {};
         const ae = st.actionEconomy;
-        ae.swiftSpent = ae.swiftSpent === true;
+        if (!ae.used || typeof ae.used !== 'object') {
+            ae.used = {};
+            if (ae.swiftSpent === true) ae.used.swift = true; // pre-#161 save
+        }
+        for (const k of Object.keys(ae.used)) if (!ACTION_KINDS.includes(k) || !ae.used[k]) delete ae.used[k];
+        ae.swiftSpent = !!(ae.used.swift || ae.used.immediate);
         ae.aooUsed = Math.max(0, Number(ae.aooUsed) || 0);
         return ae;
+    }
+    /** Why taking `kind` now breaks the turn's budget, or '' when it fits. Never blocks. */
+    function actionConflict(used, kind) {
+        const u = used || {};
+        switch (kind) {
+            case 'full':
+                if (u.full) return 'a full-round action is already used';
+                if (u.standard || u.move) return 'a full-round action needs your standard and move, and one is spent';
+                return '';
+            case 'standard':
+                if (u.full) return 'a full-round action already used this turn';
+                if (u.standard) return 'your standard action is already used';
+                return '';
+            case 'move':
+                if (u.full) return 'a full-round action already used this turn';
+                if (u.move && u.standard) return 'your move and standard are both used';
+                return '';
+            case 'swift':
+            case 'immediate':
+                if (u.swift || u.immediate) return 'swift and immediate share one slot, and it is used';
+                return '';
+            default:
+                return '';
+        }
+    }
+    /**
+     * Mark an action used. A second move takes the standard (PF1 lets you trade down); a
+     * full-round action marks standard + move too. Over-spending still marks — the caller warns.
+     * Returns { kind, conflict }.
+     */
+    function spendAction(data, kind) {
+        const ae = ensureActionEconomy(data);
+        const conflict = actionConflict(ae.used, kind);
+        if (kind === 'move' && ae.used.move && !ae.used.standard && !ae.used.full) ae.used.standard = true;
+        else ae.used[kind] = true;
+        if (kind === 'full') { ae.used.standard = true; ae.used.move = true; }
+        ae.swiftSpent = !!(ae.used.swift || ae.used.immediate);
+        quietSave();
+        return { kind, conflict };
+    }
+    /** Hand toggle from a chip: un-spends, or spends (with the same warning). */
+    function toggleAction(data, kind) {
+        const ae = ensureActionEconomy(data);
+        if (ae.used[kind]) {
+            delete ae.used[kind];
+            if (kind === 'full') { delete ae.used.standard; delete ae.used.move; }
+            ae.swiftSpent = !!(ae.used.swift || ae.used.immediate);
+            quietSave();
+            return { kind, conflict: '', on: false };
+        }
+        return { ...spendAction(data, kind), on: true };
+    }
+    function clearActions(ae) {
+        ae.used = {};
+        ae.swiftSpent = false;
     }
 
     /**
@@ -617,7 +681,7 @@ window.SheetState = (function () {
 
         // New round: the swift/immediate slot and AoO pool refresh (#19).
         const ae = ensureActionEconomy(data);
-        ae.swiftSpent = false;
+        clearActions(ae);
         ae.aooUsed = 0;
 
         // Fast healing + regeneration heal at the start of the creature's turn (#4).
@@ -647,7 +711,7 @@ window.SheetState = (function () {
     function resetRoundCounter(data) {
         sheetState(data).roundCounter = 0;
         const ae = ensureActionEconomy(data);
-        ae.swiftSpent = false;
+        clearActions(ae);
         ae.aooUsed = 0;
         quietSave();
     }
@@ -831,7 +895,7 @@ window.SheetState = (function () {
         featureCustomList, featureCustomEntry, pruneFeatureCustom, ensureBuffs, normalizeBuffEntry,
         normalizeGrants, GRANT_KEYS,
         formatBuffDuration, advanceRound, resetRoundCounter, featureUses, hasFeaturePool,
-        ensureActionEconomy,
+        ensureActionEconomy, spendAction, toggleAction, actionConflict, ACTION_KINDS, ACTION_LABELS,
         chargePoolOptions, resolveChargePool, spendPooledUse,
         createBuff, addBuffFromCatalog, ensureSpellCasts, spendSpellSlot,
         ensureCastingAbility, ensureInitiationStat, ensureInventoryObjects, ensureDefenses,
