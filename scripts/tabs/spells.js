@@ -87,6 +87,7 @@ window.SheetTabSpells = (function () {
             });
         }
         for (const v of views) applyBookExtras(data, v);
+        for (const v of views) applySpellPoints(data, v);
         // #160 wound thresholds: the penalty lowers CL (never below 1), and concentration with it.
         const wt = window.SheetState.woundThreshold?.(data);
         if (wt?.penalty) {
@@ -151,6 +152,59 @@ window.SheetTabSpells = (function () {
         v.restrictedSpells = ex.restricted && typeof ex.restricted === 'object' ? ex.restricted : {};
     }
     const bookDC = (bk, level) => 10 + level + bk.castMod + (bk.dcBonus || 0);
+
+    // ------------------------------------------- spell points variant (#159)
+    // Behind Settings → Variant rules → Spell points, each book can trade its slots for a point
+    // pool. Modelled on the pf1 system's own spell points: a per-book max formula (blank = the
+    // book's slots converted at 1 + level each, so the pool matches the slot table it replaces)
+    // and a cost of 1 + the level of the slot spent; cantrips stay free. Other books keep slots.
+    // Stored apart from the Spheres pool (_sheet.spellPointsMax/Current):
+    //   _sheet.bookSpellPoints[bookId] = { on, max (formula), value }
+    function spellPointStore(data, id, create) {
+        const st = (data._sheet ??= {});
+        if (create) st.bookSpellPoints ??= {};
+        if (create && st.bookSpellPoints) st.bookSpellPoints[id] ??= {};
+        return st.bookSpellPoints?.[id] || null;
+    }
+    /** The pool a book's own slots are worth: Σ per-day[L] × (1 + L), levels 1–9. */
+    const slotEquivalentPoints = (perDay) => (perDay || [])
+        .reduce((sum, n, lv) => sum + (lv > 0 ? (Number(n) || 0) * (1 + lv) : 0), 0);
+    const spellPointCost = (slotLevel) => (slotLevel > 0 ? 1 + slotLevel : 0);
+    function applySpellPoints(data, v) {
+        v.sp = null;
+        if (!window.SheetState.variantRuleOn?.(data, 'spellPoints')) return;
+        const store = spellPointStore(data, v.id, false);
+        if (!store?.on) return;
+        let max = slotEquivalentPoints(v.perDay);
+        let error = '';
+        if (String(store.max || '').trim()) {
+            const r = evalBookFormula(data, store.max, v.cl);
+            if (r.error) error = r.error;
+            else max = Math.max(0, r.value);
+        }
+        const value = store.value == null || store.value === '' ? max : Math.max(0, Number(store.value) || 0);
+        v.sp = { max, value, formula: String(store.max || ''), error };
+    }
+    /** Refill every point-pool book to its max (Rest). Returns how many books refilled. */
+    function refillSpellPoints(data) {
+        let n = 0;
+        for (const v of bookViews(data)) {
+            if (!v.sp) continue;
+            spellPointStore(data, v.id, true).value = v.sp.max;
+            n += 1;
+        }
+        return n;
+    }
+    /** Spend points for a cast; warns (never blocks) when the pool is short. */
+    function spendBookPoints(data, bk, slotLevel, mult = 1) {
+        const cost = spellPointCost(slotLevel) * mult;
+        const store = spellPointStore(data, bk.id, true);
+        const have = bk.sp.value;
+        store.value = Math.max(0, have - cost);
+        bk.sp.value = store.value;
+        quietSave();
+        return { cost, have, left: store.value, short: have < cost };
+    }
     /** PF1 standard ranges at a caster level. */
     function spellRanges(cl) {
         const n = Math.max(0, Number(cl) || 0);
@@ -301,7 +355,14 @@ window.SheetTabSpells = (function () {
             alert('That spell is not prepared.');
             return;
         }
-        if (!(bk.preparedMode && slotLevel === 0)) {
+        let pointSpend = null;
+        if (bk.sp) {
+            // #159: a point-pool book pays 1 + slot level (Metamagic raises it); an opposition
+            // school doubles it below. Short pools warn and cast anyway.
+            const sdOpp = window.SheetDetails?.resolveSpell?.(data, name) || foundry('spells', name);
+            const mult = slotLevel > 0 && inOpposition(bookRules(data, bk), sdOpp) ? 2 : 1;
+            pointSpend = spendBookPoints(data, bk, slotLevel, mult);
+        } else if (!(bk.preparedMode && slotLevel === 0)) {
             if (!spendBookSlot(data, bk, slotLevel)) {
                 alert(`No casts remaining at level ${slotLevel}.`);
                 return;
@@ -315,7 +376,12 @@ window.SheetTabSpells = (function () {
         // one slot per level is domain/school-only.
         const rules = bookRules(data, bk);
         const warnBits = [];
-        if (slotLevel > 0 && inOpposition(rules, sd)) {
+        if (pointSpend) {
+            warnBits.push(pointSpend.short
+                ? `only ${pointSpend.have} spell points for a ${pointSpend.cost}-point cast — cast anyway, ${pointSpend.left} left`
+                : `${pointSpend.cost} spell point${pointSpend.cost === 1 ? '' : 's'} spent — ${pointSpend.left} left`);
+        }
+        if (!pointSpend && slotLevel > 0 && inOpposition(rules, sd)) {
             const second = spendBookSlot(data, bk, slotLevel);
             warnBits.push(`${spellSchoolOf(sd)} is an opposition school — costs 2 slots`
                 + (second ? ' (second slot spent)' : ' (no second slot left to spend!)'));
@@ -346,6 +412,11 @@ window.SheetTabSpells = (function () {
                 concentration: bk.conc,
                 bab: window.SheetDerive?.babTotal?.(data) ?? (Number(data.bab_total) || 0),
                 metamagic: mm && mm.names.length ? mm : null,
+                extraRiders: pointSpend ? [{
+                    source: 'Spell points',
+                    text: `${pointSpend.cost} spent, ${pointSpend.left} left`
+                        + (pointSpend.short ? ` (had only ${pointSpend.have} — cast anyway)` : ''),
+                }] : [],
             });
         } else {
             const bits = ['Cast: ' + name, 'L' + level];
@@ -428,10 +499,12 @@ window.SheetTabSpells = (function () {
         };
         function updateSummary() {
             const mm = buildMM();
-            const left = bk.casts[mm.slotLevel] ?? 0;
+            const leftAt = (lv) => (bk.sp
+                ? `${spellPointCost(lv)} of ${bk.sp.value} points`
+                : `${bk.casts[lv] ?? 0} left`);
             summary.textContent = mm.names.length
-                ? `Cast from a level ${mm.slotLevel} slot (${left} left) · DC ${bookDC(bk, mm.dcLevel)}`
-                : `Cast plain from a level ${level} slot (${bk.casts[level] ?? 0} left) · DC ${bookDC(bk, level)}`;
+                ? `Cast from a level ${mm.slotLevel} slot (${leftAt(mm.slotLevel)}) · DC ${bookDC(bk, mm.dcLevel)}`
+                : `Cast plain from a level ${level} slot (${leftAt(level)}) · DC ${bookDC(bk, level)}`;
             summary.classList.toggle('mm-overflow', mm.slotLevel > 9);
         }
         updateSummary();
@@ -722,6 +795,67 @@ window.SheetTabSpells = (function () {
         });
         return btn;
     }
+    /** #159: the per-book spell points switch, pool, max formula and refill. */
+    function renderSpellPointsRow(data, bk) {
+        const row = h('div', 'kv kv-stat spellbook-points');
+        row.appendChild(h('span', 'k', 'Spell points'));
+        const v = h('span', 'v');
+        const repaint = () => { quietSave(); renderSheet(data); setActiveTab('spells'); };
+        const lab = h('label', 'spellbook-points-toggle');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'spellbook-points-on';
+        cb.checked = !!bk.sp;
+        cb.addEventListener('change', () => {
+            const store = spellPointStore(data, bk.id, true);
+            store.on = cb.checked;
+            if (!cb.checked) delete data._sheet.bookSpellPoints[bk.id];
+            repaint();
+        });
+        lab.append(cb, h('span', null, ' Cast from points instead of slots'));
+        const ctl = h('span', 'spellbook-points-ctl');
+        ctl.appendChild(lab);
+        v.appendChild(ctl);
+        if (bk.sp) {
+            const pool = h('span', 'spellbook-points-pool');
+            const bag = { value: bk.sp.value };
+            pool.appendChild(dblclickEditable(bag, 'value', {
+                type: 'number', min: 0,
+                format: (x) => String(x ?? 0),
+                parse: (s) => parseIntLoose(s, 0),
+                onChange: (x) => {
+                    spellPointStore(data, bk.id, true).value = Math.max(0, Number(x) || 0);
+                    repaint();
+                },
+            }));
+            pool.appendChild(document.createTextNode(` / ${bk.sp.max} `));
+            ctl.appendChild(pool);
+            const maxIn = h('input', 'edit-field spellbook-points-max');
+            maxIn.placeholder = `${slotEquivalentPoints(bk.perDay)} (slots × (1 + level))`;
+            maxIn.value = bk.sp.formula;
+            maxIn.title = 'Max points: a number or formula (@cl, @abilities.int.mod, …). Blank = this book’s slots converted at 1 + level each.';
+            maxIn.addEventListener('change', () => {
+                const store = spellPointStore(data, bk.id, true);
+                store.max = maxIn.value.trim();
+                if (!store.max) delete store.max;
+                repaint();
+            });
+            ctl.appendChild(maxIn);
+            if (bk.sp.error) ctl.appendChild(h('span', 'spellbook-extra-err', ' max formula: ' + bk.sp.error + ' — using the slot equivalent'));
+            const refill = h('button', 'inv-btn spellbook-points-refill no-print', 'Refill');
+            refill.type = 'button';
+            refill.title = 'Set the pool back to its max (Rest does this for every book)';
+            refill.addEventListener('click', () => {
+                spellPointStore(data, bk.id, true).value = bk.sp.max;
+                repaint();
+            });
+            ctl.appendChild(refill);
+            v.appendChild(h('div', 'dim spellbook-points-note',
+                'A cast costs 1 + the slot level it uses (metamagic raises it, an opposition school doubles it); cantrips are free. The Left column is not used for this book.'));
+        }
+        row.appendChild(v);
+        return row;
+    }
     /** #156: collapsible per-book extras — bonus formulas, roll notes, spell failure %. */
     function renderBookExtras(data, bk) {
         const ex = bookExtras(data, bk.id);
@@ -907,6 +1041,7 @@ window.SheetTabSpells = (function () {
             kv(wrap, 'Spell failure', `${bk.asf}% — rolled on every cast (warns, never blocks)`);
         }
         wrap.appendChild(renderBookExtras(data, bk));
+        if (window.SheetState.variantRuleOn?.(data, 'spellPoints')) wrap.appendChild(renderSpellPointsRow(data, bk));
 
         // Casting style
         if (bk.legacy) {
@@ -1173,8 +1308,9 @@ window.SheetTabSpells = (function () {
                     + (bk.dcBonus ? ` + bonus ${fmt(bk.dcBonus)}` : '')
                     + ` = 10 + ${level} + ${bk.castMod}` + (bk.dcBonus ? ` + ${bk.dcBonus}` : '');
                 headMain.appendChild(dcEl);
-                const metaBits = [
-                    `${left} left / ${bk.perDay?.[level] ?? '—'} day`,
+                const metaBits = [bk.sp
+                    ? (level > 0 ? `${spellPointCost(level)} pts a cast` : 'free')
+                    : `${left} left / ${bk.perDay?.[level] ?? '—'} day`,
                 ];
                 if (bk.preparedMode) {
                     metaBits.push(`${preparedTotalAt(data, bk, level)} prepared`);
@@ -1471,7 +1607,9 @@ window.SheetTabSpells = (function () {
     function spellSlotsLeft(data, bookId, level) {
         const bk = findBook(data, bookId);
         if (!bk) return undefined;
-        if (bk.preparedMode && level === 0) return null;
+        if (level === 0 && (bk.preparedMode || bk.sp)) return null;
+        // #159: a point-pool book reports how many casts its points still buy at this level.
+        if (bk.sp) return Math.floor(bk.sp.value / spellPointCost(level));
         return Number(bk.casts?.[level]) || 0;
     }
     function quickCast(data, bookId, level, name) {
@@ -1490,5 +1628,5 @@ window.SheetTabSpells = (function () {
         });
     }
 
-    return { renderSpells, pinnableSpells, spellSlotsLeft, quickCast, openSpellSheet };
+    return { renderSpells, pinnableSpells, spellSlotsLeft, quickCast, openSpellSheet, refillSpellPoints };
 })();

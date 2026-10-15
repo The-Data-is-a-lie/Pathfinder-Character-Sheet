@@ -6809,3 +6809,10 @@ body.is-offline .pa-generate {
 .combat-top-strip .summary-stat-val .hp-state {
     display: block; width: fit-content; max-width: 100%; margin: 0.15rem auto 0; white-space: normal;
 }
+
+/* #159 spell points per book */
+.spellbook-points .v { display: block; }
+.spellbook-points-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
+.spellbook-points-pool { font-weight: 700; font-variant-numeric: tabular-nums; }
+.spellbook-points-max { width: 12rem; }
+.spellbook-points-note { margin-top: 0.2rem; font-size: 0.85em; }
