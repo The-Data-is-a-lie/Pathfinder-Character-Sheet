@@ -179,10 +179,21 @@ window.SheetTabAttributes = (function () {
             + (luck.e_kat_earned != null ? `; ${luck.e_kat_earned} earned by the build` : '')));
 
         const heroBag = { hp: Number(data.hero_points) || 0 };
-        strip.appendChild(box('Hero pts', editableNum(heroBag, 'hp', (n) => {
+        const heroBox = box('Hero pts', editableNum(heroBag, 'hp', (n) => {
             data.hero_points = n;
             repaint();
-        }, { plain: true }), '10 E-Kats buy one hero point; a non-temporary hero point sells back for five'));
+        }, { plain: true }), '10 E-Kats buy one hero point; a non-temporary hero point sells back for five');
+        // #158: the same Spend menu as the Summary pool.
+        if (window.SheetHeroPoints) {
+            const spendBtn = h('button', 'inv-btn hero-spend-btn no-print', 'Spend');
+            spendBtn.type = 'button';
+            spendBtn.title = 'Spend a hero point';
+            spendBtn.addEventListener('click', () => window.SheetHeroPoints.openMenu(data, {
+                onDone: () => { renderSheet(data); setActiveTab('attributes'); },
+            }));
+            heroBox.appendChild(spendBtn);
+        }
+        strip.appendChild(heroBox);
 
         if (Number(luck.dr_pool)) {
             strip.appendChild(box('DR pool', String(luck.dr_pool), 'Luck spent as a daily damage-reduction pool'));

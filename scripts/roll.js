@@ -691,7 +691,44 @@ window.SheetRoll = (function () {
         return pushRollCard(card, { sound: false });
     }
 
+    // #158: a one-shot bonus on the NEXT d20 roll (a hero point's +8). Consumed by the first
+    // check (rollAndLog with a 1d20 formula) or attack d20 (rollD20Attack) that comes along.
+    let nextD20 = null;
+    function armNextD20(value, label) {
+        nextD20 = value ? { value: Number(value) || 0, label: label || 'Bonus' } : null;
+        document.querySelectorAll('.hero-armed').forEach((el) => el.classList.toggle('hidden', !nextD20));
+    }
+    function takeNextD20() {
+        const b = nextD20;
+        if (b) armNextD20(null);
+        return b;
+    }
+    /** The newest d20 result in the log: { title, total } (a check, or a card's first attack).
+     *  Text-only cards (hero points, item Use, feature posts) are skipped. */
+    function lastRoll() {
+        for (const e of history) {
+            if (e.type === 'simple' && e.total != null) return { title: e.title, total: e.total, entry: e };
+            const a = e.attacks?.[0];
+            if (a) return { title: `${e.title} — ${a.label}`, total: a.total, entry: e };
+        }
+        return null;
+    }
+    /** Re-run the newest log entry that knows how to repeat itself. */
+    function rerollLast() {
+        const e = history.find((x) => x.reroll);
+        if (!e) return false;
+        e.reroll();
+        return true;
+    }
+
     function rollAndLog(formula, title) {
+        if (/^\s*1d20\b/i.test(String(formula))) {
+            const armed = takeNextD20();
+            if (armed) {
+                formula = `${formula}+${armed.value}`;
+                title = `${title || 'Roll'} (+${armed.value} ${armed.label})`;
+            }
+        }
         const result = roll(formula);
         if (!result.ok) {
             pushLog(title || formula, result.error || 'Invalid roll', null, { sound: false });
@@ -2129,6 +2166,11 @@ window.SheetRoll = (function () {
 
     // ---------------------------------------------------------------- attack rolls
     function rollD20Attack(bonus, label, opts = {}) {
+        const armed = takeNextD20();
+        if (armed) {
+            bonus += armed.value;
+            opts = { ...opts, bonusLines: [...(opts.bonusLines || []), { label: armed.label, value: armed.value }] };
+        }
         const natural = randomInt(1, 20);
         const total = natural + bonus;
         const critRange = opts.critRange ?? 20;
@@ -3630,6 +3672,8 @@ window.SheetRoll = (function () {
         renderConditionalPanel,
         highlightInlineRolls,
         rollWeaponAttack: doWeaponAttack,
+        armNextD20, lastRoll, rerollLast,
+        nextD20Bonus: () => nextD20,
         rollDamage: doDamageOnly,
         renderRoundStrip,
         aooMaxFor,
