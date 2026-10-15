@@ -81,6 +81,8 @@ window.SheetTabSettings = (function () {
             'Replaces HP with vigor (hit dice) and wounds (2 × Con score); damage drains vigor first.'],
         ['abp', 'Automatic bonus progression',
             'Grants the Unchained attunement bonuses by level as always-on modifiers; per ABP, remove enhancement bonuses from gear.'],
+        ['heroPoints', 'Hero points',
+            'APG hero points: a pool beside HP with a Spend menu (+8 / +4 on a roll, extra action, reroll, recall, cheat death).'],
     ];
     const ABP_PICKS = [
         ['mental1', 'Mental prowess', ['int', 'wis', 'cha'], 6],

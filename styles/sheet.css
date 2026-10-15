@@ -6782,3 +6782,19 @@ body.is-offline .pa-generate {
 /* #161 action tracker: five chips, a segmented group inside the round strip */
 .ae-acts { display: inline-flex; flex-wrap: wrap; gap: 0.2rem; }
 .ae-act { padding: 0.15rem 0.45rem; font-size: 0.85em; }
+
+/* #158 hero points: pool widget + Spend menu */
+.hero-widget { display: inline-flex; align-items: center; gap: 0.25rem; flex-wrap: wrap; }
+.hero-count { font-weight: 700; font-variant-numeric: tabular-nums; }
+.hero-spend-btn { padding: 0.1rem 0.45rem; font-size: 0.8em; }
+.hero-menu { display: flex; flex-direction: column; gap: 0.35rem; min-width: min(28rem, 80vw); }
+.hero-use-btn {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem;
+    padding: 0.45rem 0.7rem; text-align: left; cursor: pointer;
+    background: var(--row-bg); color: var(--ink);
+    border: 1px solid var(--row-border); border-radius: 6px;
+}
+.hero-use-btn:hover, .hero-use-btn:focus-visible { background: var(--row-hover); border-color: var(--accent); }
+.hero-use-btn.is-short { border-style: dashed; }
+.hero-use-name { font-weight: 600; }
+.hero-use-hint { font-size: 0.85em; }

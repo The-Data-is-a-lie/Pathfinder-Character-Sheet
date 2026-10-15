@@ -314,6 +314,12 @@ window.SheetTabSummary = (function () {
         box(hpLine, 'Temp', editNumNode(st, 'hpTemp'));
         box(hpLine, 'Nonlethal', editNumNode(st, 'hpNonlethal'));
         }
+        // #158 hero points: the pool and its Spend menu, beside HP where the emergencies are.
+        if (window.SheetHeroPoints?.enabled(data)) {
+            box(hpLine, 'Hero pts', window.SheetHeroPoints.widget(data, {
+                onChange: () => { renderSheet(data); setActiveTab('summary'); },
+            }), { cls: 'hero-box', title: 'APG hero points — Spend lists the uses' });
+        }
         for (const [key, label] of [
             ['land', 'Land'], ['climb', 'Climb'], ['swim', 'Swim'], ['fly', 'Fly'], ['burrow', 'Burrow'],
         ]) {
