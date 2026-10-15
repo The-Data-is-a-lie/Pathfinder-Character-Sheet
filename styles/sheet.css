@@ -6755,3 +6755,26 @@ body.is-offline .pa-generate {
 /* The Flags column took width from Abl; keep the three letters readable. */
 .skills-table-full .skill-ability-select { min-width: 3.9rem; }
 .skills-table-full td.skill-ab-cell { width: 4.3rem; }
+
+/* #152 multi-action items: picker, editor, Use button */
+.action-picker { display: flex; flex-direction: column; gap: 0.4rem; min-width: min(26rem, 80vw); }
+.action-pick-btn {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem;
+    padding: 0.45rem 0.7rem; text-align: left; cursor: pointer;
+    background: var(--row-bg); color: var(--ink);
+    border: 1px solid var(--row-border); border-radius: 6px;
+}
+.action-pick-btn:hover, .action-pick-btn:focus-visible { background: var(--row-hover); border-color: var(--accent); }
+.action-pick-name { font-weight: 600; }
+.action-pick-sub { font-size: 0.85em; }
+.actions-editor { display: flex; flex-direction: column; gap: 0.5rem; }
+.action-edit-row {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: 0.3rem 0.5rem;
+    align-items: end; padding: 0.45rem; border: 1px solid var(--row-border); border-radius: 6px; background: var(--row-bg);
+}
+.action-edit-field { display: flex; flex-direction: column; gap: 0.1rem; font-size: 0.85em; min-width: 0; }
+.action-edit-field.is-wide { grid-column: span 2; }
+.action-edit-field .edit-field { width: 100%; min-width: 0; }
+.action-edit-label { font-weight: 600; color: var(--dim); }
+.action-del-btn { justify-self: end; }
+.actions-editor-bar { display: flex; gap: 0.4rem; flex-wrap: wrap; }

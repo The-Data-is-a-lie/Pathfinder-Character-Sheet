@@ -1790,7 +1790,8 @@ window.SheetModals = (function () {
         const content = h('div', 'item-sheet-content');
         const tabBar = h('div', 'item-sheet-tabs');
         const panes = {};
-        const tabs = [['description', 'Description'], ['details', 'Details'], ['changes', 'Changes']];
+        const tabs = [['description', 'Description'], ['details', 'Details'], ['changes', 'Changes'],
+            ['actions', 'Actions']];
         for (const [id, label] of tabs) {
             const btn = h('button', 'item-sheet-tab' + (id === 'description' ? ' is-active' : ''), label);
             btn.type = 'button';
@@ -1928,6 +1929,22 @@ window.SheetModals = (function () {
         const chgPane = h('div', 'item-sheet-pane hidden');
         chgPane.appendChild(buildItemBuffsPanel(data, item));
         panes.changes = chgPane;
+
+        // Actions pane (#152) — normal vs Power Attack, a wand's two modes, …
+        const actPane = h('div', 'item-sheet-pane hidden');
+        if (window.SheetActionsUI) {
+            actPane.appendChild(window.SheetActionsUI.editor({
+                weapon: !!(weapon || item.itemType === 'weapon' || inventoryCategory(item) === 'weapons'),
+                data,
+                getList: () => item.actions,
+                setList: (list) => {
+                    const out = window.SheetItemActions.setForItem(item, list);
+                    quietSave();
+                    return out;
+                },
+            }));
+        }
+        panes.actions = actPane;
 
         for (const pane of Object.values(panes)) content.appendChild(pane);
         grid.appendChild(content);

@@ -2202,7 +2202,7 @@ window.SheetRoll = (function () {
         return out;
     }
 
-    function rollDamage(ctx, { critMult = 1, isCrit = false, oneOff = null, label = '', grip = undefined } = {}) {
+    function rollDamage(ctx, { critMult = 1, isCrit = false, oneOff = null, label = '', grip = undefined, actionDmg = null } = {}) {
         const w = ctx.wStats;
         const cond = evaluateConditionals('damage',
             { isCrit: isCrit || critMult > 1, itemKey: ctx.itemKey,
@@ -2257,6 +2257,10 @@ window.SheetRoll = (function () {
         // One-off situational damage (rolled fresh per attack so dice one-offs behave).
         let ooVal = 0;
         if (oneOff?.spec) ooVal = rollTerms(oneOff.spec.terms).total;
+        // #152: the chosen action's damage delta (Power Attack's +N), same treatment as a one-off.
+        let actVal = 0;
+        if (actionDmg?.spec) actVal = rollTerms(actionDmg.spec.terms).total;
+        ooVal += actVal;
         const flat = abMod + ctx.enh + ctx.dmgChanges.total + cond.flat + condDice.total + ooVal;
         const total = diceTotal + flat;
         // Flat modifiers ride the physical bucket (PF1: DR reduces the attack's whole
@@ -2279,8 +2283,9 @@ window.SheetRoll = (function () {
         for (const b of cond.bits) parts.push({ label: b.source + ' (cond)', value: b.value });
         for (const d of condDice.details) parts.push({ label: 'Cond dice', detail: d });
         if (oneOff?.spec) {
-            parts.push({ label: (oneOff.label || 'Situational') + ' (one-off)', value: ooVal });
+            parts.push({ label: (oneOff.label || 'Situational') + ' (one-off)', value: ooVal - actVal });
         }
+        if (actionDmg?.spec) parts.push({ label: actionDmg.label, value: actVal });
 
         return {
             total,
@@ -2345,8 +2350,63 @@ window.SheetRoll = (function () {
         return oo?.damage ? { spec: oo.damage, label: oo.label } : null;
     }
 
-    function doWeaponAttack({ full = false, withDamage = true, itemKey = undefined } = {}) {
-        const ctx = attackContext(currentData, itemKey);
+    // ---------------------------------------------------------------- item actions (#152)
+    /**
+     * Fold a chosen item action into an attack context: `dice` swaps the weapon dice, atk/dmg
+     * become specs added like a one-off (rolled fresh per line, so dice work), and save / DC /
+     * range / notes become one rider. null/Normal → the context unchanged.
+     */
+    function applyItemAction(ctx, action) {
+        if (!ctx || !action || action.normal) return { ctx, act: null };
+        const IA = window.SheetItemActions;
+        const spec = (f) => {
+            const r = IA?.rollable?.(f, currentData);
+            if (!r) return { spec: null, unresolved: [] };
+            const p = parseFormula(r.formula);
+            return { spec: p.ok ? { terms: p.terms, formula: p.formula } : null,
+                unresolved: r.unresolved || [], bad: p.ok ? '' : f };
+        };
+        let c = ctx;
+        if (action.dice && ctx.wStats) {
+            const parts = ctx.wStats.parts?.length
+                ? [{ ...ctx.wStats.parts[0], dice: action.dice }, ...ctx.wStats.parts.slice(1)] : undefined;
+            c = { ...ctx, wStats: { ...ctx.wStats, dice: action.dice, ...(parts ? { parts } : {}) } };
+        }
+        const atk = spec(action.atk);
+        const dmg = spec(action.dmg);
+        const riders = [];
+        const sum = IA?.summary?.(action, currentData);
+        if (sum) riders.push({ source: action.name, text: sum });
+        const unresolved = [...atk.unresolved, ...dmg.unresolved];
+        if (unresolved.length) {
+            riders.push({ source: action.name, text: 'counted 0: unknown ' + unresolved.join(', ') });
+        }
+        for (const bad of [atk.bad, dmg.bad].filter(Boolean)) {
+            riders.push({ source: action.name, text: `could not read “${bad}” — skipped` });
+        }
+        return { ctx: c, act: { name: action.name, atk: atk.spec, dmg: dmg.spec, riders } };
+    }
+    /** Weapon actions stored on the inventory item behind `itemKey` (or the active weapon). */
+    function weaponActionsFor(itemKey) {
+        if (!currentData) return [];
+        const key = itemKey !== undefined ? itemKey : activeWeaponItemKey(currentData);
+        const item = key ? findInventoryItem(currentData, key) : null;
+        return item ? { item, list: window.SheetItemActions?.forItem?.(item) || [] } : { item: null, list: [] };
+    }
+    /** Run `run(action)` now, or after the picker when the weapon has extra actions. */
+    function withWeaponAction(itemKey, action, run) {
+        if (action !== undefined) return run(action);
+        const { item, list } = weaponActionsFor(itemKey);
+        if (!item || !list.length || !window.SheetActionsUI) return run(null);
+        return window.SheetActionsUI.withPick({
+            title: item.name, stored: list, weapon: true, data: currentData, run,
+        });
+    }
+
+    function doWeaponAttack({ full = false, withDamage = true, itemKey = undefined, action = null } = {}) {
+        const applied = applyItemAction(attackContext(currentData, itemKey), action);
+        const ctx = applied.ctx;
+        const act = applied.act;
         if (!ctx) {
             pushLog('Attack', 'Load a character first.', null, { sound: false });
             return;
@@ -2358,32 +2418,35 @@ window.SheetRoll = (function () {
         const critRange = ctx.wStats?.critRange ?? 20;
         const critMult = ctx.wStats?.critMult ?? 2;
         const count = full ? ctx.iters : 1;
-        const labelBase = ctx.label || ctx.wName;
+        const labelBase = (ctx.label || ctx.wName) + (act ? ' — ' + act.name : '');
         const oo = takeOneOff();
         const attacks = [];
         const damages = [];
         const riderLists = [];
         const boostRider = boostSwiftRider();
         if (boostRider) riderLists.push([boostRider]);
+        if (act?.riders.length) riderLists.push(act.riders);
 
         for (let i = 0; i < count; i++) {
             const pen = i * 5;
             const condThis = conditionalAtkBonus('normal', ctx.itemKey, { ranged: ctx.ranged });
             riderLists.push(condThis.riders);
             const ooAtk = rollOneOffAtk(oo);
-            const bonus = ctx.weaponBonus + condThis.total + (ooAtk?.value || 0) - pen;
+            const actAtk = act?.atk ? rollTerms(act.atk.terms).total : 0;
+            const bonus = ctx.weaponBonus + condThis.total + (ooAtk?.value || 0) + actAtk - pen;
             const iterLabel = full
                 ? (count > 1 ? `Attack #${i + 1}` : 'Attack')
                 : 'Attack';
             const bonusLines = attackBonusLines(ctx, condThis, pen);
             if (ooAtk) bonusLines.push(ooAtk.line);
+            if (act?.atk) bonusLines.push({ label: act.name, value: actAtk });
             const atk = rollD20Attack(bonus, iterLabel, {
                 critRange,
                 confirm: true,
                 getConfirmBonus: () => {
                     const cc = conditionalAtkBonus('crit', ctx.itemKey, { ranged: ctx.ranged });
                     return {
-                        bonus: ctx.weaponBonusConfirm + cc.total + (ooAtk?.value || 0) - pen,
+                        bonus: ctx.weaponBonusConfirm + cc.total + (ooAtk?.value || 0) + actAtk - pen,
                         cond: cc,
                     };
                 },
@@ -2395,6 +2458,7 @@ window.SheetRoll = (function () {
                 const mult = (atk.threatened && atk.confirm?.natural !== 1) ? critMult : 1;
                 const dmg = rollDamage(ctx, {
                     critMult: mult, isCrit: mult > 1, oneOff: oneOffDmgOpt(oo),
+                    actionDmg: act?.dmg ? { spec: act.dmg, label: act.name } : null,
                 });
                 if (dmg) {
                     damages.push(dmg);
@@ -2411,11 +2475,13 @@ window.SheetRoll = (function () {
             attacks,
             damages,
             riders: collectRiders(...riderLists),
-        }, { reroll: () => doWeaponAttack({ full, withDamage, itemKey }) });
+        }, { reroll: () => doWeaponAttack({ full, withDamage, itemKey, action }) });
     }
 
-    function doDamageOnly({ itemKey = undefined } = {}) {
-        const ctx = attackContext(currentData, itemKey);
+    function doDamageOnly({ itemKey = undefined, action = null } = {}) {
+        const applied = applyItemAction(attackContext(currentData, itemKey), action);
+        const ctx = applied.ctx;
+        const act = applied.act;
         if (!ctx) {
             pushLog('Damage', 'Load a character first.', null, { sound: false });
             return;
@@ -2425,18 +2491,21 @@ window.SheetRoll = (function () {
             return;
         }
         const oo = takeOneOff();
-        const dmg = rollDamage(ctx, { critMult: 1, isCrit: false, oneOff: oneOffDmgOpt(oo) });
+        const dmg = rollDamage(ctx, {
+            critMult: 1, isCrit: false, oneOff: oneOffDmgOpt(oo),
+            actionDmg: act?.dmg ? { spec: act.dmg, label: act.name } : null,
+        });
         if (!dmg) {
             pushLog('Damage', 'No weapon damage stats for “' + (ctx.wName || '?') + '”.', null, { sound: false });
             return;
         }
         pushRollCard({
-            title: ctx.label || ctx.wName,
+            title: (ctx.label || ctx.wName) + (act ? ' — ' + act.name : ''),
             subtitle: 'Damage',
             attacks: [],
             damages: [dmg],
-            riders: collectRiders(dmg.riders),
-        }, { reroll: () => doDamageOnly({ itemKey }) });
+            riders: collectRiders(act?.riders || [], dmg.riders),
+        }, { reroll: () => doDamageOnly({ itemKey, action }) });
     }
 
     // ---------------------------------------------------------------- attack routines
@@ -3010,15 +3079,18 @@ window.SheetRoll = (function () {
         atkBtn.title = dmgF
             ? `1d20 ${fmt(atkBonus)} then damage ${dmgF} (crit mult on threat)`
             : `1d20 ${fmt(atkBonus)} then damage`;
-        atkBtn.addEventListener('click', () => doWeaponAttack({ full: false, withDamage: true }));
+        atkBtn.addEventListener('click', () => withWeaponAction(undefined, undefined,
+            (action) => doWeaponAttack({ full: false, withDamage: true, action })));
         const fullBtn = h('button', null, 'Full attack');
         fullBtn.type = 'button';
         fullBtn.title = ctx.iters + ' attack(s) at −5 steps, each with damage';
-        fullBtn.addEventListener('click', () => doWeaponAttack({ full: true, withDamage: true }));
+        fullBtn.addEventListener('click', () => withWeaponAction(undefined, undefined,
+            (action) => doWeaponAttack({ full: true, withDamage: true, action })));
         const dmgBtn = h('button', null, dmgF ? 'Damage ' + dmgF : 'Damage');
         dmgBtn.type = 'button';
         dmgBtn.title = dmgF ? 'Weapon damage only: ' + dmgF : 'Roll weapon damage';
-        dmgBtn.addEventListener('click', () => doDamageOnly());
+        dmgBtn.addEventListener('click', () => withWeaponAction(undefined, undefined,
+            (action) => doDamageOnly({ action })));
         row.append(atkBtn, fullBtn, dmgBtn);
         return row;
     }
@@ -3524,8 +3596,12 @@ window.SheetRoll = (function () {
         rollDamage: doDamageOnly,
         renderRoundStrip,
         aooMaxFor,
-        rollWeaponAttackFor: (itemKey, opts = {}) => doWeaponAttack({ ...opts, itemKey }),
-        rollDamageFor: (itemKey) => doDamageOnly({ itemKey }),
+        // #152: these ask which action when the weapon has more than one; pass opts.action
+        // (null = Normal, or an action object) to skip the picker.
+        rollWeaponAttackFor: (itemKey, opts = {}) => withWeaponAction(itemKey, opts.action,
+            (action) => doWeaponAttack({ ...opts, itemKey, action })),
+        rollDamageFor: (itemKey, opts = {}) => withWeaponAction(itemKey, opts.action,
+            (action) => doDamageOnly({ itemKey, action })),
         rollSpellCast,
         hasFeat: (data, name) => hasFeat(data || currentData, name),
         attackContext: (itemKey) => attackContext(currentData, itemKey),
