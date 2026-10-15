@@ -6778,3 +6778,7 @@ body.is-offline .pa-generate {
 .action-edit-label { font-weight: 600; color: var(--dim); }
 .action-del-btn { justify-self: end; }
 .actions-editor-bar { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+/* #161 action tracker: five chips, a segmented group inside the round strip */
+.ae-acts { display: inline-flex; flex-wrap: wrap; gap: 0.2rem; }
+.ae-act { padding: 0.15rem 0.45rem; font-size: 0.85em; }
