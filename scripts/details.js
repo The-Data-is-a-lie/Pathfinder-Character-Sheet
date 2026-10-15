@@ -1306,6 +1306,17 @@ window.SheetDetails = (function () {
             }
         }
 
+        // #160 Wound Thresholds: the band's penalty is a standing ledger source while HP sits
+        // in it. The HP box owns it (like the condition tray owns conditions), so 'wound' is
+        // kept out of the Buffs Permanent list. CL is handled per spellbook (min 1, as pf1).
+        const wt = window.SheetState?.woundThreshold?.(data);
+        if (wt?.penalty) {
+            const pen = (target) => ({ formula: String(-wt.penalty), target, type: 'untyped' });
+            pushEntry(ledger, `Wound threshold: ${wt.label}`, 'wound', {
+                changes: ['attack', 'cmb', 'allSavingThrows', 'ac', 'skills', 'allChecks'].map(pen),
+            });
+        }
+
         // Checked combat toggles (conditional panel "Combat options" group) dual-write their
         // standing side — AC, saves — so every derived total updates while they're on. The
         // per-roll attack/damage side stays in collectRollConditionals; the panel owns the

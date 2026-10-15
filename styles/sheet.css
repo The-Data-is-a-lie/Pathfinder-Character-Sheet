@@ -6798,3 +6798,14 @@ body.is-offline .pa-generate {
 .hero-use-btn.is-short { border-style: dashed; }
 .hero-use-name { font-weight: 600; }
 .hero-use-hint { font-size: 0.85em; }
+
+/* #160 wound-threshold band chip on the HP box */
+.wound-band { margin-left: 0.3rem; }
+.wound-band-1 { background: var(--warning); color: var(--ink); }
+.wound-band-2 { background: var(--status-bloodied-bg); color: var(--ink); }
+.wound-band-3 { background: var(--danger); color: var(--on-accent); }
+/* HP state chips (Dying, Disabled, the wound band) sit under the number: the HP box is too
+   narrow for them inline, and its value never wraps. */
+.combat-top-strip .summary-stat-val .hp-state {
+    display: block; width: fit-content; max-width: 100%; margin: 0.15rem auto 0; white-space: normal;
+}

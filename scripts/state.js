@@ -887,6 +887,25 @@ window.SheetState = (function () {
     }
     const variantRuleOn = (data, key) => Boolean(data?._sheet?.variantRules?.[key]);
 
+    // #160 Wound Thresholds (Unchained), pf1's own rule: level = clamp(4 − ⌈(HP + temp) / max × 4⌉, 0, 3)
+    // — healthy / grazed (≤ 75%) / wounded (≤ 50%) / critical (≤ 25%) — and the penalty is
+    // level × 1 (normal) or × 2 (gritty) on attacks, CL, saves, AC, skills and checks. Off while
+    // wounds & vigor is on, exactly as pf1 does it.
+    const WOUND_LEVELS = ['Healthy', 'Grazed', 'Wounded', 'Critical'];
+    function woundThreshold(data) {
+        const off = { on: false, level: 0, label: WOUND_LEVELS[0], penalty: 0 };
+        if (!variantRuleOn(data, 'woundThresholds') || variantRuleOn(data, 'woundsVigor')) return off;
+        const st = data._sheet || {};
+        const max = Number(data.Total_HP) || 0;
+        if (max <= 0) return { ...off, on: true };
+        const cur = st.hpCurrent == null || st.hpCurrent === '' ? max : Number(st.hpCurrent) || 0;
+        const temp = Number(st.hpTemp) || 0;
+        let level = Math.min(3, Math.max(0, 4 - Math.ceil(((cur + temp) / max) * 4)));
+        if (!Number.isFinite(level)) level = 0;
+        const mult = st.variantRules?.woundThresholdsMode === 'gritty' ? 2 : 1;
+        return { on: true, level, label: WOUND_LEVELS[level], penalty: level * mult, mult };
+    }
+
     return {
         sheetState, quietSave, refreshDerived, seedBackendStatBonuses, seedRacialColumn,
         disabledBuffSet, buffSourceKey, removedBuffSet, isBuffSourceActive, isBuffSourceRemoved,
@@ -895,7 +914,7 @@ window.SheetState = (function () {
         featureCustomList, featureCustomEntry, pruneFeatureCustom, ensureBuffs, normalizeBuffEntry,
         normalizeGrants, GRANT_KEYS,
         formatBuffDuration, advanceRound, resetRoundCounter, featureUses, hasFeaturePool,
-        ensureActionEconomy, spendAction, toggleAction, actionConflict, ACTION_KINDS, ACTION_LABELS,
+        woundThreshold, ensureActionEconomy, spendAction, toggleAction, actionConflict, ACTION_KINDS, ACTION_LABELS,
         chargePoolOptions, resolveChargePool, spendPooledUse,
         createBuff, addBuffFromCatalog, ensureSpellCasts, spendSpellSlot,
         ensureCastingAbility, ensureInitiationStat, ensureInventoryObjects, ensureDefenses,

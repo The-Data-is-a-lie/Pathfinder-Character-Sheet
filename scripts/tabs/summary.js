@@ -293,8 +293,12 @@ window.SheetTabSummary = (function () {
                     + `you're wounded (staggered); at 0 you're dying.`,
             });
         } else {
+        // #160: with wound thresholds on, an HP edit can cross a band, so repaint the sheet.
+        const hpChanged = window.SheetState.variantRuleOn?.(data, 'woundThresholds')
+            ? () => { quietSave(); renderSheet(data); setActiveTab('summary'); }
+            : undefined;
         const hpVal = h('span', 'summary-hp-pair');
-        hpVal.appendChild(editNumNode(st, 'hpCurrent', { min: -999 }));
+        hpVal.appendChild(editNumNode(st, 'hpCurrent', { min: -999, onChange: hpChanged }));
         hpVal.appendChild(document.createTextNode(' / ' + d.blocks.hp.total));
         const cur = Number(st.hpCurrent) || 0;
         // PF1 negative-HP states: disabled at 0, dying below, dead at −Con score.
@@ -307,11 +311,18 @@ window.SheetTabSummary = (function () {
         else if (nl > cur) hpState = ['Unconscious (nonlethal)', 'hp-state-dying'];
         else if (nl === cur && nl > 0) hpState = ['Staggered (nonlethal)', 'hp-state-stagger'];
         if (hpState) hpVal.appendChild(h('span', 'hp-state ' + hpState[1], hpState[0]));
+        // #160: the wound-threshold band, and the penalty it is putting on the ledger.
+        const wt = window.SheetState.woundThreshold?.(data);
+        if (wt?.on && wt.level > 0) {
+            const chip = h('span', `hp-state wound-band wound-band-${wt.level}`, `${wt.label} ${fmt(-wt.penalty)}`);
+            chip.title = `Wound threshold: ${wt.label} — ${fmt(-wt.penalty)} on attacks, CL, saves, AC, skills and checks`;
+            hpVal.appendChild(chip);
+        }
         box(hpLine, 'HP', hpVal, {
             title: partsTitle(d.blocks.hp),
             cls: d.blocks.hp.total > 0 && cur <= d.blocks.hp.total / 2 ? 'is-bloodied' : undefined,
         });
-        box(hpLine, 'Temp', editNumNode(st, 'hpTemp'));
+        box(hpLine, 'Temp', editNumNode(st, 'hpTemp', { onChange: hpChanged }));
         box(hpLine, 'Nonlethal', editNumNode(st, 'hpNonlethal'));
         }
         // #158 hero points: the pool and its Spend menu, beside HP where the emergencies are.

@@ -22,6 +22,7 @@
     { "id": "spells.book-extras", "area": "Spells", "title": "Per-book DC / CL / concentration formulas, roll notes, range readout, spell failure %; per-spell prepared count and domain flag", "source": "foundry", "status": "have", "ticket": 156 },
     { "id": "items.multi-action", "area": "Items", "title": "Multi-action items and features (normal vs Power Attack, dual-use feats) with an action picker", "source": "foundry", "status": "have", "ticket": 152 },
     { "id": "combat.action-tracker", "area": "Combat", "title": "Action tracker chips (full-round / standard / move / swift / immediate) marked by attacks, casts and maneuvers", "source": "surpass", "status": "have", "ticket": 161 },
-    { "id": "variants.hero-points", "area": "Variants", "title": "Hero Points: pool beside HP with a Spend menu that auto-applies (+8 / +4, extra action, reroll, cheat death)", "source": "surpass", "status": "have", "ticket": 158 }
+    { "id": "variants.hero-points", "area": "Variants", "title": "Hero Points: pool beside HP with a Spend menu that auto-applies (+8 / +4, extra action, reroll, cheat death)", "source": "surpass", "status": "have", "ticket": 158 },
+    { "id": "variants.wound-thresholds", "area": "Variants", "title": "Wound Thresholds: grazed / wounded / critical penalties applied automatically, band shown on HP", "source": "foundry", "status": "have", "ticket": 160 }
   ]
 }

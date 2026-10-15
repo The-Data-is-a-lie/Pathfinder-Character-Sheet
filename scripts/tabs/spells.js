@@ -87,6 +87,16 @@ window.SheetTabSpells = (function () {
             });
         }
         for (const v of views) applyBookExtras(data, v);
+        // #160 wound thresholds: the penalty lowers CL (never below 1), and concentration with it.
+        const wt = window.SheetState.woundThreshold?.(data);
+        if (wt?.penalty) {
+            for (const v of views) {
+                const to = Math.max(1, v.cl - wt.penalty);
+                v.woundClPenalty = v.cl - to;
+                v.conc -= v.woundClPenalty;
+                v.cl = to;
+            }
+        }
         return views;
     }
 
