@@ -81,6 +81,8 @@ window.SheetTabSettings = (function () {
             'Replaces HP with vigor (hit dice) and wounds (2 × Con score); damage drains vigor first.'],
         ['abp', 'Automatic bonus progression',
             'Grants the Unchained attunement bonuses by level as always-on modifiers; per ABP, remove enhancement bonuses from gear.'],
+        ['woundThresholds', 'Wound thresholds',
+            'Unchained: at 75 / 50 / 25% HP you are grazed / wounded / critical, a −1 / −2 / −3 penalty on attacks, CL, saves, AC, skills and checks. Off while wounds & vigor is on.'],
         ['heroPoints', 'Hero points',
             'APG hero points: a pool beside HP with a Spend menu (+8 / +4 on a roll, extra action, reroll, recall, cheat death).'],
     ];
@@ -114,6 +116,26 @@ window.SheetTabSettings = (function () {
             });
             lab.append(boxEl, h('span', null, label + ' — ' + hint));
             row.appendChild(lab);
+            body.appendChild(row);
+        }
+        if (vr.woundThresholds) {
+            const row = h('div', 'settings-row variant-wt-mode');
+            row.appendChild(h('span', 'settings-row-label', 'Wound threshold penalties'));
+            const sel = h('select', 'edit-field');
+            sel.dataset.variant = 'woundThresholdsMode';
+            for (const [v, l] of [['normal', 'Normal (−1 / −2 / −3)'], ['gritty', 'Gritty (−2 / −4 / −6)']]) {
+                const opt = h('option', null, l);
+                opt.value = v;
+                if ((vr.woundThresholdsMode || 'normal') === v) opt.selected = true;
+                sel.appendChild(opt);
+            }
+            sel.addEventListener('change', () => {
+                vr.woundThresholdsMode = sel.value;
+                window.SheetApp.quietSave();
+                renderSheet(data);
+            });
+            row.appendChild(sel);
+            if (vr.woundsVigor) row.appendChild(h('span', 'dim', ' — off while wounds & vigor is on'));
             body.appendChild(row);
         }
         if (vr.abp) {
