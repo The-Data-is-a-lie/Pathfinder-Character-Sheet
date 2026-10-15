@@ -39,6 +39,8 @@ window.SheetTabSummary = (function () {
         for (const b of st.extraSpellbooks || []) {
             if (b && Array.isArray(b.dayList)) b.casts = b.dayList.map((n) => Number(n) || 0);
         }
+        // #159: books on spell points refill their pools.
+        if (window.SheetTabSpells?.refillSpellPoints?.(data)) done.push('spell points refilled');
         if (st.featureUses && typeof st.featureUses === 'object') {
             for (const u of Object.values(st.featureUses)) {
                 if (u && u.max != null) u.value = Number(u.max) || 0;

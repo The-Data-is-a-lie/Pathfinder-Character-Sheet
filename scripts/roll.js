@@ -288,7 +288,8 @@ window.SheetRoll = (function () {
 
         const attacks = [];
         const damages = [];
-        const riders = [];
+        // extraRiders: lines the caller already knows belong on the card (#159 spell points).
+        const riders = [...(Array.isArray(opts.extraRiders) ? opts.extraRiders : [])];
 
         // A Quickened cast is a swift action — the roll proves it, so spend the slot (#19).
         if (opts.metamagic?.names?.includes('Quicken Spell') && (data === currentData)) {

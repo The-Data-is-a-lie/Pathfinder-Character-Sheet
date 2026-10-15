@@ -83,6 +83,8 @@ window.SheetTabSettings = (function () {
             'Grants the Unchained attunement bonuses by level as always-on modifiers; per ABP, remove enhancement bonuses from gear.'],
         ['woundThresholds', 'Wound thresholds',
             'Unchained: at 75 / 50 / 25% HP you are grazed / wounded / critical, a −1 / −2 / −3 penalty on attacks, CL, saves, AC, skills and checks. Off while wounds & vigor is on.'],
+        ['spellPoints', 'Spell points',
+            'Lets each spellbook trade its slots for a point pool (Spells tab, per book): a cast costs 1 + its slot level, cantrips are free, Rest refills.'],
         ['heroPoints', 'Hero points',
             'APG hero points: a pool beside HP with a Spend menu (+8 / +4 on a roll, extra action, reroll, recall, cheat death).'],
     ];
