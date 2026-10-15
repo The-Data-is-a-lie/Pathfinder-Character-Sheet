@@ -2723,6 +2723,35 @@ body.dnd-dragging .feature-group.is-empty .feat-list {
 .spell-prep-label .pow-ready-tag {
     letter-spacing: 0.02em;
 }
+/* #156 prepared count + domain/school flag + book extras */
+.pow-ready-label.spell-prep-label { flex-direction: row; align-self: center; gap: 0.25rem; font-size: 0.72rem; }
+.spell-prep-n {
+    width: 2.1rem;
+    text-align: center;
+    padding: 0.05rem 0.15rem;
+    border: 1px solid var(--row-border);
+    border-radius: 3px;
+    background: var(--input-bg-solid);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 0.9rem;
+}
+.spell-prep-row:not(.is-prepared) .spell-prep-n { color: var(--dim); }
+.spell-restricted-flag { cursor: pointer; border: 1px dashed var(--row-border); background: transparent; color: var(--dim); }
+.spell-restricted-flag.is-on { border-style: solid; background: var(--accent); color: var(--on-accent); }
+.spellbook-note { margin-left: 0.4rem; font-size: 0.85em; }
+.spellbook-extras { margin: 0.3rem 0 0.5rem; }
+.spellbook-extras > summary { cursor: pointer; font-weight: 600; }
+.spellbook-extras-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: 0.4rem 0.8rem;
+    padding: 0.4rem 0;
+}
+.spellbook-extra { display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.9em; }
+.spellbook-extra-label { font-weight: 600; }
+.spellbook-extra .is-invalid { border-color: var(--danger); }
+.spellbook-extra-err { color: var(--danger); font-size: 0.85em; }
 
 /* Skills full table + roll */
 .skills-table-full { font-size: 0.88rem; }

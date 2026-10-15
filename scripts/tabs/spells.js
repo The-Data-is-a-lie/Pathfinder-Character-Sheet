@@ -86,9 +86,78 @@ window.SheetTabSpells = (function () {
                 castAb: b.castAb, castMod, cl, conc: cl + castMod,
             });
         }
+        for (const v of views) applyBookExtras(data, v);
         return views;
     }
-    const bookDC = (bk, level) => 10 + level + bk.castMod;
+
+    // ------------------------------------------- per-book extras (#156)
+    // _sheet.spellBookExtras[bookId] = { dc, cl, conc (formula strings), clNotes, concNotes,
+    // asf (number, %), restricted: { "<level>:<name>": true } }. Read without creating; empty
+    // fields and empty entries are deleted on write so a book nobody touched stores nothing.
+    const EXTRA_FORMULAS = [['cl', 'CL bonus'], ['conc', 'Concentration bonus'], ['dc', 'DC bonus']];
+    function bookExtras(data, id) {
+        return data._sheet?.spellBookExtras?.[id] || {};
+    }
+    function writeBookExtras(data, id, patch) {
+        const st = (data._sheet ??= {});
+        const all = (st.spellBookExtras ??= {});
+        const next = { ...(all[id] || {}), ...patch };
+        for (const [k, v] of Object.entries(next)) {
+            const empty = v == null || v === '' || v === 0
+                || (typeof v === 'object' && !Object.keys(v).length);
+            if (empty) delete next[k];
+        }
+        if (Object.keys(next).length) all[id] = next;
+        else delete all[id];
+        if (!Object.keys(all).length) delete st.spellBookExtras;
+    }
+    /** A bonus formula → { value, error }. Unresolvable formulas count 0 and say why. */
+    function evalBookFormula(data, f, cl) {
+        const s = String(f || '').trim();
+        if (!s) return { value: 0, error: '' };
+        const r = window.SheetFormula?.evaluate?.(s, data, { cl });
+        if (!r) return { value: 0, error: 'formula engine unavailable' };
+        if (!r.ok) return { value: 0, error: r.error || 'could not evaluate' };
+        if (r.unresolved?.length) return { value: 0, error: 'unknown ' + r.unresolved.join(', ') };
+        return { value: Math.trunc(Number(r.value) || 0), error: '' };
+    }
+    function applyBookExtras(data, v) {
+        const ex = bookExtras(data, v.id);
+        const baseCl = v.cl;
+        const cl = evalBookFormula(data, ex.cl, baseCl);
+        // The CL bonus feeds every later formula's @cl, and concentration rides on CL.
+        v.baseCl = baseCl;
+        v.cl = baseCl + cl.value;
+        const conc = evalBookFormula(data, ex.conc, v.cl);
+        const dc = evalBookFormula(data, ex.dc, v.cl);
+        v.conc += cl.value + conc.value;
+        v.clBonus = cl.value;
+        v.concBonus = conc.value;
+        v.dcBonus = dc.value;
+        v.formulaErrors = { cl: cl.error, conc: conc.error, dc: dc.error };
+        v.clNotes = String(ex.clNotes || '');
+        v.concNotes = String(ex.concNotes || '');
+        v.asf = Math.max(0, Math.min(100, Number(ex.asf) || 0));
+        v.restrictedSpells = ex.restricted && typeof ex.restricted === 'object' ? ex.restricted : {};
+    }
+    const bookDC = (bk, level) => 10 + level + bk.castMod + (bk.dcBonus || 0);
+    /** PF1 standard ranges at a caster level. */
+    function spellRanges(cl) {
+        const n = Math.max(0, Number(cl) || 0);
+        return { close: 25 + 5 * Math.floor(n / 2), medium: 100 + 10 * n, long: 400 + 40 * n };
+    }
+    const restrictedKey = (level, name) => `${level}:${name}`;
+    function isRestrictedSpell(bk, level, name) {
+        return !!bk.restrictedSpells?.[restrictedKey(level, name)];
+    }
+    function setRestrictedSpell(data, bk, level, name, on) {
+        const map = { ...(bookExtras(data, bk.id).restricted || {}) };
+        if (on) map[restrictedKey(level, name)] = true;
+        else delete map[restrictedKey(level, name)];
+        writeBookExtras(data, bk.id, { restricted: map });
+        bk.restrictedSpells = map;
+        return Object.keys(map).filter((k) => k.startsWith(level + ':')).length;
+    }
     function preparedBuckets(data, bk) {
         if (bk.legacy) {
             if (!Array.isArray(data.spells_prepared_names)) data.spells_prepared_names = [];
@@ -99,13 +168,25 @@ window.SheetTabSpells = (function () {
     function preparedSetAt(data, bk, level) {
         return new Set((preparedBuckets(data, bk)[level] || []).filter(Boolean));
     }
+    /** on = prepared at least once (an existing count is kept); off = every copy removed. */
     function writePreparedAt(data, bk, level, name, on) {
+        if (on && preparedCountAt(data, bk, level, name) > 0) return;
+        setPreparedCount(data, bk, level, name, on ? 1 : 0);
+    }
+    // #156 prepared count: "Magic Missile ×3" is three copies of the name in the existing
+    // bucket, so a save from before counts stays readable (one copy = prepared once).
+    function preparedCountAt(data, bk, level, name) {
+        return (preparedBuckets(data, bk)[level] || []).filter((n) => n === name).length;
+    }
+    function preparedTotalAt(data, bk, level) {
+        return (preparedBuckets(data, bk)[level] || []).filter(Boolean).length;
+    }
+    function setPreparedCount(data, bk, level, name, count) {
         const buckets = preparedBuckets(data, bk);
         while (buckets.length <= level) buckets.push([]);
-        const set = new Set((buckets[level] || []).filter(Boolean));
-        if (on) set.add(name);
-        else set.delete(name);
-        buckets[level] = [...set];
+        const n = Math.max(0, Math.min(99, Math.trunc(Number(count) || 0)));
+        const rest = (buckets[level] || []).filter((x) => x && x !== name);
+        buckets[level] = [...rest, ...Array(n).fill(name)];
     }
     function spendBookSlot(data, bk, level) {
         if (bk.legacy) return spendSpellSlot(data, level);
@@ -230,10 +311,15 @@ window.SheetTabSpells = (function () {
                 + (second ? ' (second slot spent)' : ' (no second slot left to spend!)'));
         }
         if (slotLevel > 0 && rules.restricted !== 'none') {
-            warnBits.push(`reminder: 1 slot/level is ${rules.restricted === 'domain'
-                ? 'domain' : 'school'}-only${rules.label ? ` (${rules.label})` : ''}`);
+            const kind = rules.restricted === 'domain' ? 'domain' : 'school';
+            warnBits.push(isRestrictedSpell(bk, level, name)
+                ? `${name} is your ${kind} spell — cast it from the ${kind} slot`
+                : `reminder: 1 slot/level is ${kind}-only${rules.label ? ` (${rules.label})` : ''}`);
         }
         if (warnBits.length) window.SheetOverlay?.toast?.(warnBits.join(' · '));
+        // #156 arcane spell failure: warn-only. The slot is already spent and the cast card
+        // still posts — the d100 card says whether the table should treat it as lost.
+        if (bk.asf > 0) rollSpellFailure(bk, name);
         const dcLevel = mm ? mm.dcLevel : level;
         window.SheetRoll?.setOpen?.(true);
         if (window.SheetRoll?.rollSpellCast) {
@@ -262,6 +348,22 @@ window.SheetTabSpells = (function () {
             // stayTab: the Summary quickbar (#148) casts without leaving the Summary.
             setActiveTab(opts.stayTab || 'spells');
         }
+    }
+    function rollSpellFailure(bk, name) {
+        const R = window.SheetRoll;
+        if (!R?.postCard) return;
+        const r = R.roll?.('1d100');
+        const got = r?.ok ? r.total : Math.ceil(Math.random() * 100);
+        const fails = got <= bk.asf;
+        R.postCard({
+            title: `Spell failure — ${name}`,
+            subtitle: `${bk.name} · arcane spell failure ${bk.asf}%`,
+            riders: [{
+                source: fails ? 'Fails' : 'Succeeds',
+                text: `d100 vs ${bk.asf}%: ${got}, ${fails
+                    ? 'fails — the spell is lost (the slot was spent)' : 'succeeds'}`,
+            }],
+        });
     }
     /** Cast entry point: direct cast, or a metamagic picker when the character has any. */
     function promptCast(data, bk, level, name, opts = {}) {
@@ -500,14 +602,14 @@ window.SheetTabSpells = (function () {
             const bucket = bk.lists[level];
             const i = (bucket || []).findIndex((n) => String(n) === String(name));
             if (i < 0) return;
-            const wasPrepared = bk.preparedMode && preparedSetAt(data, bk, level).has(name);
+            const wasPrepared = bk.preparedMode ? preparedCountAt(data, bk, level, name) : 0;
             bucket.splice(i, 1);
             writePreparedAt(data, bk, level, name, false);
             while (bk.lists.length <= to) bk.lists.push([]);
             if (!bk.lists[to].some((n) => String(n).toLowerCase() === String(name).toLowerCase())) {
                 bk.lists[to].push(name);
             }
-            if (wasPrepared) writePreparedAt(data, bk, to, name, true);
+            if (wasPrepared) setPreparedCount(data, bk, to, name, wasPrepared);
             quietSave();
             renderSheet(data);
             setActiveTab('spells');
@@ -597,16 +699,79 @@ window.SheetTabSpells = (function () {
 
     // ---------------------------------------------------------------- render (per book)
     /** Small 🎲 that posts a d20 check to the roll log (same style as saves/skills). */
-    function d20Btn(label, bonus) {
-        const b = window.SheetStatKit?.rollBtn?.(label, bonus);
+    function d20Btn(label, bonus, notes = '') {
+        const title = `1d20${fmt(bonus)} — ${label}` + (notes ? `\n${notes}` : '');
+        const b = window.SheetStatKit?.rollBtn?.(label, bonus, title);
         if (b) return b;
         const btn = h('button', 'inv-btn no-print', '🎲');
+        btn.title = title;
         btn.type = 'button';
         btn.addEventListener('click', () => {
             window.SheetRoll?.setOpen?.(true);
             window.SheetRoll?.rollAndLog?.('1d20' + (bonus >= 0 ? '+' + bonus : String(bonus)), label);
         });
         return btn;
+    }
+    /** #156: collapsible per-book extras — bonus formulas, roll notes, spell failure %. */
+    function renderBookExtras(data, bk) {
+        const ex = bookExtras(data, bk.id);
+        const det = h('details', 'spellbook-extras no-print');
+        // A formula that stopped resolving opens the panel so its "counts 0" note is seen.
+        if (Object.values(bk.formulaErrors || {}).some(Boolean)) det.open = true;
+        const sum = h('summary', null, 'Book extras');
+        const bits = [];
+        if (bk.clBonus) bits.push(`CL ${fmt(bk.clBonus)}`);
+        if (bk.concBonus) bits.push(`conc ${fmt(bk.concBonus)}`);
+        if (bk.dcBonus) bits.push(`DC ${fmt(bk.dcBonus)}`);
+        if (bk.asf) bits.push(`ASF ${bk.asf}%`);
+        if (bits.length) sum.appendChild(h('span', 'dim', ' — ' + bits.join(' · ')));
+        det.appendChild(sum);
+        const grid = h('div', 'spellbook-extras-grid');
+        const field = (key, label, value, placeholder, cls) => {
+            const lab = h('label', 'spellbook-extra');
+            lab.appendChild(h('span', 'spellbook-extra-label', label));
+            const inp = h('input', 'edit-field ' + cls);
+            inp.type = 'text';
+            inp.value = value ?? '';
+            if (placeholder) inp.placeholder = placeholder;
+            inp.dataset.extra = key;
+            lab.appendChild(inp);
+            grid.appendChild(lab);
+            return { lab, inp };
+        };
+        const commit = (patch) => {
+            writeBookExtras(data, bk.id, patch);
+            quietSave();
+            renderSheet(data);
+            setActiveTab('spells');
+        };
+        for (const [key, label] of EXTRA_FORMULAS) {
+            const { lab, inp } = field(key, label, ex[key], 'e.g. 1 or floor(@cl / 4)',
+                'spellbook-extra-formula');
+            inp.title = `${label}: a number or a formula (@cl, @abilities.int.mod, …). `
+                + 'An unknown reference counts 0 and says so.';
+            const err = bk.formulaErrors?.[key];
+            if (err) {
+                inp.classList.add('is-invalid');
+                lab.appendChild(h('span', 'spellbook-extra-err', 'counts 0: ' + err));
+            }
+            inp.addEventListener('change', () => commit({ [key]: inp.value.trim() }));
+        }
+        for (const [key, label] of [['clNotes', 'CL check notes'], ['concNotes', 'Concentration notes']]) {
+            const { inp } = field(key, label, ex[key], 'e.g. +4 to cast defensively',
+                'spellbook-extra-note');
+            inp.addEventListener('change', () => commit({ [key]: inp.value.trim() }));
+        }
+        const { inp: asfIn } = field('asf', 'Spell failure %', ex.asf ? String(ex.asf) : '',
+            '0', 'spellbook-extra-asf');
+        asfIn.title = 'Arcane spell failure from armor/shield. Each cast rolls d100 and posts the result — it never blocks the cast.';
+        window.SheetUI.numericAffordances?.(asfIn, { min: 0, max: 100, step: 5 });
+        asfIn.addEventListener('change', () => {
+            const n = Math.max(0, Math.min(100, parseIntLoose(asfIn.value, 0)));
+            commit({ asf: n });
+        });
+        det.appendChild(grid);
+        return det;
     }
     function renderSpellbook(body, data, bk, multi) {
         const wrap = h('div', 'spellbook-block');
@@ -669,11 +834,13 @@ window.SheetTabSpells = (function () {
         wrap.appendChild(abRow);
 
         // Caster level (override) — legacy writes data.caster_level, extra books their own.
+        // #156: this edits the BASE caster level; a Book-extras CL bonus is shown beside it.
+        let clEditRow;
         if (bk.legacy) {
-            kvDbl(wrap, 'Caster level', data, 'caster_level', {
+            clEditRow = kvDbl(wrap, 'Caster level', data, 'caster_level', {
                 type: 'number', min: 0, max: 40,
-                format: (v) => (v == null || v === '' ? String(bk.cl) : String(v)),
-                parse: (s) => parseIntLoose(s, bk.cl),
+                format: (v) => (v == null || v === '' ? String(bk.baseCl) : String(v)),
+                parse: (s) => parseIntLoose(s, bk.baseCl),
                 onChange: () => {
                     quietSave();
                     renderSheet(data);
@@ -681,9 +848,9 @@ window.SheetTabSpells = (function () {
                 },
             });
         } else {
-            kvDbl(wrap, 'Caster level', bk.raw, 'cl', {
+            clEditRow = kvDbl(wrap, 'Caster level', bk.raw, 'cl', {
                 type: 'number', min: 0, max: 40,
-                format: (v) => (v == null || v === '' || Number(v) === 0 ? String(bk.cl) : String(v)),
+                format: (v) => (v == null || v === '' || Number(v) === 0 ? String(bk.baseCl) : String(v)),
                 parse: (s) => parseIntLoose(s, 0),
                 onChange: () => {
                     quietSave();
@@ -692,14 +859,20 @@ window.SheetTabSpells = (function () {
                 },
             });
         }
+        if (bk.clBonus && clEditRow) {
+            clEditRow.querySelector('.v')?.appendChild(h('span', 'spellbook-note dim',
+                `${fmt(bk.clBonus)} book bonus = CL ${bk.cl}`));
+        }
 
         // Concentration + caster-level check, both rollable.
         const concRow = h('div', 'kv kv-stat');
         concRow.appendChild(h('span', 'k', 'Concentration'));
         const concV = h('span', 'v');
         concV.appendChild(document.createTextNode(
-            `${fmt(bk.conc)} (CL ${bk.cl} + ${bk.castAb.toUpperCase()} ${fmt(bk.castMod)}) `));
-        concV.appendChild(d20Btn(`Concentration (${bk.name})`, bk.conc));
+            `${fmt(bk.conc)} (CL ${bk.cl} + ${bk.castAb.toUpperCase()} ${fmt(bk.castMod)}`
+            + (bk.concBonus ? ` + bonus ${fmt(bk.concBonus)}` : '') + ') '));
+        concV.appendChild(d20Btn(`Concentration (${bk.name})`, bk.conc, bk.concNotes));
+        if (bk.concNotes) concV.appendChild(h('span', 'spellbook-note dim', bk.concNotes));
         concRow.appendChild(concV);
         wrap.appendChild(concRow);
 
@@ -707,14 +880,28 @@ window.SheetTabSpells = (function () {
         clRow.appendChild(h('span', 'k', 'CL check vs SR'));
         const clV = h('span', 'v');
         clV.appendChild(document.createTextNode(`1d20 ${fmt(bk.cl)} `));
-        clV.appendChild(d20Btn(`Caster level check vs SR (${bk.name})`, bk.cl));
+        clV.appendChild(d20Btn(`Caster level check vs SR (${bk.name})`, bk.cl, bk.clNotes));
+        if (bk.clNotes) clV.appendChild(h('span', 'spellbook-note dim', bk.clNotes));
         clRow.appendChild(clV);
         wrap.appendChild(clRow);
+
+        // #156: range readout at this book's CL, then the extras panel.
+        const rg = spellRanges(bk.cl);
+        const rangeRow = kv(wrap, 'Ranges',
+            `Close ${rg.close} ft · Medium ${rg.medium} ft · Long ${rg.long} ft`);
+        if (rangeRow?.classList) {
+            rangeRow.classList.add('spellbook-ranges');
+            rangeRow.title = `At CL ${bk.cl}: close 25 + 5 per 2 levels, medium 100 + 10/level, long 400 + 40/level`;
+        }
+        if (bk.asf > 0) {
+            kv(wrap, 'Spell failure', `${bk.asf}% — rolled on every cast (warns, never blocks)`);
+        }
+        wrap.appendChild(renderBookExtras(data, bk));
 
         // Casting style
         if (bk.legacy) {
             kv(wrap, 'Casting style', bk.preparedMode
-                ? 'Prepared (Prep checkbox · Cast spends a slot)'
+                ? 'Prepared (Prep × count · Cast spends a slot)'
                 : 'Spontaneous (Cast spends remaining/day)');
         } else {
             const styleRow = h('div', 'kv kv-stat');
@@ -941,7 +1128,7 @@ window.SheetTabSpells = (function () {
                 if (bk.preparedMode) {
                     const prepCell = h('td', 'num spell-prep-count');
                     prepCell.dataset.spellLevel = String(i);
-                    prepCell.textContent = String(preparedSetAt(data, bk, i).size);
+                    prepCell.textContent = String(preparedTotalAt(data, bk, i));
                     tr.appendChild(prepCell);
                     tr.appendChild(h('td', 'num', bk.lists?.[i]?.length ?? '—'));
                 } else {
@@ -973,13 +1160,14 @@ window.SheetTabSpells = (function () {
                 headMain.appendChild(h('h3', 'spell-level-title', levelLabel));
                 const dcEl = h('span', 'spell-level-dc', 'Save DC ' + dc);
                 dcEl.title = `10 + spell level ${level} + ${bk.castAb.toUpperCase()} ${fmt(bk.castMod)}`
-                    + ` = 10 + ${level} + ${bk.castMod}`;
+                    + (bk.dcBonus ? ` + bonus ${fmt(bk.dcBonus)}` : '')
+                    + ` = 10 + ${level} + ${bk.castMod}` + (bk.dcBonus ? ` + ${bk.dcBonus}` : '');
                 headMain.appendChild(dcEl);
                 const metaBits = [
                     `${left} left / ${bk.perDay?.[level] ?? '—'} day`,
                 ];
                 if (bk.preparedMode) {
-                    metaBits.push(`${preparedSetAt(data, bk, level).size} prepared`);
+                    metaBits.push(`${preparedTotalAt(data, bk, level)} prepared`);
                 }
                 metaBits.push(`${spells.length} in list`);
                 const rules = bookRules(data, bk);
@@ -1016,23 +1204,59 @@ window.SheetTabSpells = (function () {
 
                 const bodyBox = h('div', 'spell-level-body');
                 const list = h('div', 'spell-prep-list dnd-list');
-                const prepSet = bk.preparedMode ? preparedSetAt(data, bk, level) : null;
+                const restrictedKind = level > 0 ? bookRules(data, bk).restricted : 'none';
                 spells.forEach((name) => {
                     const row = h('div', 'spell-prep-row dnd-item');
                     row.dataset.dndId = String(name);
                     row.appendChild(dndHandle());
                     if (bk.preparedMode) {
+                        // #156: how many times it is prepared, not just whether. Casting does
+                        // not count it down — the Left column stays the spend model.
                         const lab = h('label', 'pow-ready-label spell-prep-label');
-                        const pcb = document.createElement('input');
-                        pcb.type = 'checkbox';
-                        pcb.className = 'pow-ready-check spell-prep-check';
-                        pcb.checked = prepSet.has(name);
-                        pcb.addEventListener('change', () => {
-                            writePreparedAt(data, bk, level, name, pcb.checked);
+                        const nIn = h('input', 'spell-prep-n');
+                        nIn.value = String(preparedCountAt(data, bk, level, name));
+                        nIn.size = 1;
+                        nIn.setAttribute('aria-label', `Times ${name} is prepared`);
+                        nIn.title = 'Times prepared (0 = not prepared)';
+                        window.SheetUI.numericAffordances?.(nIn, { min: 0, max: 9 });
+                        row.classList.toggle('is-prepared', Number(nIn.value) > 0);
+                        nIn.addEventListener('change', () => {
+                            const n = Math.max(0, Math.min(9, parseIntLoose(nIn.value, 0)));
+                            nIn.value = String(n);
+                            setPreparedCount(data, bk, level, name, n);
+                            row.classList.toggle('is-prepared', n > 0);
                             quietSave();
+                            const total = preparedTotalAt(data, bk, level);
+                            for (const el of document.querySelectorAll(
+                                `.spellbook-block[data-book-id="${bk.id}"] .spell-prep-count[data-spell-level="${level}"]`)) {
+                                el.textContent = String(total);
+                            }
                         });
-                        lab.append(pcb, h('span', 'pow-ready-tag', 'Prep'));
+                        lab.append(h('span', 'pow-ready-tag', 'Prep ×'), nIn);
                         row.appendChild(lab);
+                    }
+                    // #156: domain / specialist-school flag, only on books with that slot.
+                    if (restrictedKind !== 'none') {
+                        const word = restrictedKind === 'domain' ? 'Domain' : 'School';
+                        const on = isRestrictedSpell(bk, level, name);
+                        const flag = h('button', 'feat-tag spell-restricted-flag no-print' + (on ? ' is-on' : ''),
+                            on ? word : '+' + word);
+                        flag.type = 'button';
+                        flag.setAttribute('aria-pressed', on ? 'true' : 'false');
+                        flag.title = on
+                            ? `${name} fills this level's ${word.toLowerCase()} slot — click to unflag`
+                            : `Mark ${name} as this level's ${word.toLowerCase()} spell`;
+                        flag.addEventListener('click', () => {
+                            const n = setRestrictedSpell(data, bk, level, name, !on);
+                            quietSave();
+                            renderSheet(data);
+                            setActiveTab('spells');
+                            if (!on && n > 1) {
+                                toast(`${n} level-${level} spells are flagged ${word.toLowerCase()} — `
+                                    + 'there is usually only one slot.');
+                            }
+                        });
+                        row.appendChild(flag);
                     }
                     const castBtn = h('button', 'inv-btn spell-cast-btn no-print', 'Cast');
                     castBtn.type = 'button';
@@ -1174,8 +1398,8 @@ window.SheetTabSpells = (function () {
                 rowText: (el) => (el.dataset.dndId || '') + ' ' + el.textContent,
                 // Spontaneous rows have no Prep box: everything they know is castable.
                 prepared: (el) => {
-                    const cb = el.querySelector('.spell-prep-check');
-                    return cb ? cb.checked : null;
+                    const n = el.querySelector('.spell-prep-n');
+                    return n ? Number(n.value) > 0 : null;
                 },
             }));
         }
